@@ -1235,48 +1235,28 @@
   }
 
   function loadTaskList() {
-    // Skeleton shimmer ngay lập tức — phản hồi tức thì thay vì "treo"
     var skel = document.getElementById('taskSkeleton');
     var tbl = document.getElementById('taskListTable');
     var empty = document.getElementById('taskEmpty');
-    if (skel) skel.style.display = '';
-    if (tbl) tbl.style.display = 'none';
-    if (empty) empty.style.display = 'none';
-    // I9: đang tải → hiện '…' thay vì số 0 gây hiểu nhầm
-    var cntLoading = document.getElementById('taskCount');
-    if (cntLoading) cntLoading.textContent = '…';
+    // P2 (SWR an toàn): cache danh sách còn hạn (<TTL) → render NGAY từ bộ nhớ,
+    // KHÔNG skeleton — quay lại từ màn quét không còn chờ RPC. RPC nền vẫn chạy
+    // để sync dữ liệu mới nhất (khi có thay đổi, bảng tự cập nhật).
+    var cacheHit = LAST_TASK_LIST.tasks && (Date.now() - LAST_TASK_LIST.ts) < TASK_LIST_CACHE_TTL_MS;
+    if (cacheHit) {
+      renderTaskList_(LAST_TASK_LIST.tasks);
+    } else {
+      // Skeleton shimmer ngay lập tức — phản hồi tức thì thay vì "treo"
+      if (skel) skel.style.display = '';
+      if (tbl) tbl.style.display = 'none';
+      if (empty) empty.style.display = 'none';
+      // I9: đang tải → hiện '…' thay vì số 0 gây hiểu nhầm
+      var cntLoading = document.getElementById('taskCount');
+      if (cntLoading) cntLoading.textContent = '…';
+    }
     google.script.run
       .withSuccessHandler(function (tasks) {
-        var body = document.getElementById('taskListBody');
-        body.innerHTML = '';
-        if (skel) skel.style.display = 'none';
-        if (tbl) tbl.style.display = '';
-        var cnt = document.getElementById('taskCount');
-        if (cnt) cnt.textContent = (tasks ? tasks.length : 0);
-        if (!tasks || !tasks.length) {
-          if (empty) empty.style.display = '';
-          hideLoadingOverlay();
-          return;
-        }
-        if (empty) empty.style.display = 'none';
-        tasks.forEach(function (t, idx) {
-          var tr = document.createElement('tr');
-          var statusBadge = t.status === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>' : '<span class="badge open">Mở</span>';
-          tr.innerHTML =
-            '<td class="stt">' + (idx + 1) + '</td>' +
-            '<td>' + esc(t.taskId) + '</td>' +
-            '<td>' + esc(t.station) + '</td>' +
-            '<td>' + esc(t.slotCode) + '</td>' +
-            '<td>' + esc(t.team) + '</td>' +
-            '<td class="num">' + (t.total || 0) + '</td>' +
-            '<td class="num">' + (t.scanned || 0) + '</td>' +
-            '<td class="num">' + (t.extra || 0) + '</td>' +
-            '<td>' + statusBadge + '</td>' +
-            '<td>' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
-            '<td>' + esc(t.createdBy || '') + '</td>' +
-            '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button> <button class="btn btn-sm" onclick="reopenTask(\'' + escAttr(t.taskId) + '\')">Mở lại</button>') + '</td>';
-          body.appendChild(tr);
-        });
+        LAST_TASK_LIST = { tasks: tasks, ts: Date.now() };  // cập nhật cache
+        renderTaskList_(tasks);
         hideLoadingOverlay();
         markServerOk();  // P2: RPC thành công → server sống lại → netDot hồi phục
         _releaseRefreshLock();  // P2: RPC xong → nhả lock refresh (nếu dở)
@@ -1284,12 +1264,51 @@
       .withFailureHandler(function (err) {
         markServerFail();  // P2: RPC fail → server offline
         _releaseRefreshLock();
-        if (skel) skel.style.display = 'none';
-        if (tbl) tbl.style.display = '';
+        // Cache-reuse: RPC nền lỗi → giữ bảng đang hiển thị (cache), không phá UX
+        if (!cacheHit) {
+          if (skel) skel.style.display = 'none';
+          if (tbl) tbl.style.display = '';
+          showToast('Lỗi tải task: ' + err.message, true);
+        }
         hideLoadingOverlay();
-        showToast('Lỗi tải task: ' + err.message, true);
       })
       .getTaskListApi();
+  }
+
+  // Render bảng danh sách task (dùng chung cho full-load và cache-reuse)
+  function renderTaskList_(tasks) {
+    var skel = document.getElementById('taskSkeleton');
+    var tbl = document.getElementById('taskListTable');
+    var empty = document.getElementById('taskEmpty');
+    var body = document.getElementById('taskListBody');
+    var cnt = document.getElementById('taskCount');
+    body.innerHTML = '';
+    if (skel) skel.style.display = 'none';
+    if (tbl) tbl.style.display = '';
+    if (cnt) cnt.textContent = (tasks ? tasks.length : 0);
+    if (!tasks || !tasks.length) {
+      if (empty) empty.style.display = '';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    tasks.forEach(function (t, idx) {
+      var tr = document.createElement('tr');
+      var statusBadge = t.status === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>' : '<span class="badge open">Mở</span>';
+      tr.innerHTML =
+        '<td class="stt">' + (idx + 1) + '</td>' +
+        '<td>' + esc(t.taskId) + '</td>' +
+        '<td>' + esc(t.station) + '</td>' +
+        '<td>' + esc(t.slotCode) + '</td>' +
+        '<td>' + esc(t.team) + '</td>' +
+        '<td class="num">' + (t.total || 0) + '</td>' +
+        '<td class="num">' + (t.scanned || 0) + '</td>' +
+        '<td class="num">' + (t.extra || 0) + '</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td>' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
+        '<td>' + esc(t.createdBy || '') + '</td>' +
+        '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button> <button class="btn btn-sm" onclick="reopenTask(\'' + escAttr(t.taskId) + '\')">Mở lại</button>') + '</td>';
+      body.appendChild(tr);
+    });
   }
 
   function createTask() {
@@ -1368,6 +1387,11 @@
   // TTL 15s khớp server TASK_DETAIL — không bao giờ hiển thị data stale hơn server.
   var LAST_SCAN_VIEW = { taskId: null, ts: 0 };
   var SCAN_CACHE_TTL_MS = 15000;
+  // P2 (SWR an toàn): snapshot danh sách task — quay lại từ màn quét trong 15s
+  // render NGAY từ bộ nhớ (không skeleton) + RPC nền sync im lặng.
+  // TTL khớp SCAN_CACHE_TTL_MS — không bao giờ hiển thị data stale hơn server.
+  var LAST_TASK_LIST = { tasks: null, ts: 0 };
+  var TASK_LIST_CACHE_TTL_MS = 15000;
 
   // Render view scan từ data (dùng chung cho full-load và cache-reuse)
   function renderScanView(data) {
