@@ -55,7 +55,7 @@ function ensureSheets_() {
   getSheet_(SHEETS.CONFIG, ['Key', 'Value']);
   getSheet_(SHEETS.STAFF_DATA, []); // header giữ nguyên như csv — syncFromCsv() sẽ ghi
   getSheet_(SHEETS.ATTENDANCE_TASK, [
-    'taskId', 'taskType', 'station', 'slotCode', 'team', 'status', 'createdAt', 'createdBy', 'completedAt',
+    'taskId', 'taskType', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt',
   ]);
   const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG, [
     'taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation',
@@ -195,6 +195,7 @@ function taskFromRow_(row) {
     station: String(row[TASK_COLS.STATION] || ''),
     slotCode: String(row[TASK_COLS.SLOT_CODE] || ''),
     team: String(row[TASK_COLS.TEAM] || ''),
+    contractType: String(row[TASK_COLS.CONTRACT_TYPE] || ''),
     status: String(row[TASK_COLS.STATUS] || ''),
     // KHÔNG trả Date qua google.script.run (serialize lỗi → null toàn bộ).
     // Chỉ trả text đã format; createdBy/createdAtText đủ cho UI.
@@ -222,7 +223,7 @@ function readTask_(taskId) {
 function insertTask_(task) {
   getSheet_(SHEETS.ATTENDANCE_TASK).appendRow([
     task.taskId, task.taskType, task.station, task.slotCode, task.team,
-    task.status, task.createdAt, task.createdBy, task.completedAt || '',
+    task.contractType || '', task.status, task.createdAt, task.createdBy, task.completedAt || '',
   ]);
   invalidateTaskListCache_();
   // F5: phá negative-cache (readTaskDetailCached_ cache null 15s nếu getTaskDetail gọi
@@ -231,13 +232,14 @@ function insertTask_(task) {
 }
 
 /** Cập nhật trạng thái task (status, completedAt). */
-function updateTaskStatus_(taskId, status, completedAt, rowIndex) {
+function updateTaskStatus_(taskId, status, completedAt, rowIndex, contractType) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_TASK);
   const write = function (r) {
-    // P0 FIX: ghi 2 cột rời nhau (STATUS cột 6, COMPLETED_AT cột 9 — KHÔNG liền nhau,
-    // TASK_COLS: STATUS=5, CREATED_AT=6, CREATED_BY=7, COMPLETED_AT=8).
-    // Lỗi cũ: getRange(r, STATUS+1, 1, 2) ghi [status, completedAt] vào cột 6,7
+    // P0 FIX: ghi 3 cột rời nhau (CONTRACT_TYPE cột 5, STATUS cột 6, COMPLETED_AT cột 9 — KHÔNG liền nhau,
+    // TASK_COLS: CONTRACT_TYPE=5, STATUS=6, CREATED_AT=7, CREATED_BY=8, COMPLETED_AT=9).
+    // Lỗi cũ (v1): getRange(r, STATUS+1, 1, 2) ghi [status, completedAt] vào cột 6,7
     // → completedAt ĐÈ LÊN CREATED_AT (phá hủy thời điểm tạo), COMPLETED_AT không bao giờ ghi.
+    sheet.getRange(r, TASK_COLS.CONTRACT_TYPE + 1).setValue(contractType || '');
     sheet.getRange(r, TASK_COLS.STATUS + 1).setValue(status);
     sheet.getRange(r, TASK_COLS.COMPLETED_AT + 1).setValue(completedAt || '');
   };

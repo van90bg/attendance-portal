@@ -109,7 +109,7 @@ function completeTask(taskId) {
     // ABSENT/PRESENT không chạm lại). Thứ tự cũ (DONE trước) → mark fail = task đã
     // đóng nhưng log chưa chuyển Vắng, retry bị chặn "Task đã kết thúc".
     const absentCount = markUnscannedAbsent_(taskId);
-    updateTaskStatus_(taskId, TASK_STATUS.DONE, new Date(), task._rowIndex);
+    updateTaskStatus_(taskId, TASK_STATUS.DONE, new Date(), task._rowIndex, task.contractType || '');
     return {
       ok: true,
       message: 'Đã kết thúc task ' + taskId + (absentCount > 0 ? ' — ' + absentCount + ' NV chưa quét đánh dấu Vắng' : ''),
@@ -140,7 +140,7 @@ function reopenTask(taskId) {
     // Reset Vắng → Chưa điểm danh TRƯỚC (batch 1 lần), sau đó mở status task.
     // Thứ tự fail-safe giống completeTask: reset fail → task vẫn DONE, retry được.
     const resetCount = resetAbsentToPending_(taskId);
-    updateTaskStatus_(taskId, TASK_STATUS.OPEN, null, task._rowIndex);
+    updateTaskStatus_(taskId, TASK_STATUS.OPEN, null, task._rowIndex, task.contractType || '');
     return {
       ok: true,
       message: 'Đã mở lại task ' + taskId + (resetCount > 0 ? ' — ' + resetCount + ' NV Vắng được đặt lại Chưa điểm danh' : ''),
