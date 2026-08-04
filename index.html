@@ -826,12 +826,16 @@
         <div id="colSlot" class="grp-tree"></div>
       </div>
       <div class="grp-col">
+        <label class="grp-col-title">Hình thức (Contract)</label>
+        <div id="colContract" class="grp-tree"></div>
+      </div>
+      <div class="grp-col">
         <label class="grp-col-title">Date</label>
         <div id="colDate" class="grp-tree"></div>
       </div>
     </div>
     <div id="createPreview" style="margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:var(--card-radius);background:var(--surface-muted);font-size:13px;color:var(--muted);">
-      <div id="createPreviewCount">Tick chọn Station / Team / Ca để xem số lượng NV</div>
+      <div id="createPreviewCount">Tick chọn Station / Team / Ca / Hình thức để xem số lượng NV</div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
       <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
@@ -1218,6 +1222,7 @@
     var station = SEL.station;
     var slotCode = groupSelectedSlots();
     var team = groupSelectedTeams();
+    var contractType = SEL.contractTypes;
     var date = SEL.date;
     var cntEl = document.getElementById('createPreviewCount');
     if (!cntEl) return;
@@ -1233,13 +1238,13 @@
           cntEl.textContent = 'Số NV khớp: ' + res.count;
         })
         .withFailureHandler(function (err) { markServerFail(); cntEl.textContent = 'Lỗi preview: ' + err.message; })
-        .previewStaffApi({ station: station, slotCode: slotCode, team: team, date: date });
+        .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
     }, 400);
   }
   // ===== Modal tạo task: 4 cột checkbox Station | Team | Ca | Date (cascade theo Station) =====
   var STATION_GROUPS = [];   // từ server getFilterOptions.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
-  var SEL = { station: '', teams: [], slots: [], date: '' };  // trạng thái tick hiện tại
-  function resetSel() { SEL = { station: '', teams: [], slots: [], date: '' }; }
+  var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' };  // trạng thái tick hiện tại
+  function resetSel() { SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' }; }
   // Contract server giữ nguyên: slotCode/team là mảng; station/date string.
   function groupSelectedSlots() { return SEL.slots.slice(); }
   function groupSelectedTeams() { return SEL.teams.slice(); }
@@ -1254,6 +1259,7 @@
     renderColStation();
     renderColTeam();
     renderColSlot();
+    renderColContract();
     renderColDate();
   }
   function renderColStation() {
@@ -1312,6 +1318,22 @@
     });
     el.innerHTML = html;
   }
+  function renderColContract() {
+    var el = document.getElementById('colContract');
+    if (!el) return;
+    if (!SEL.station) { el.innerHTML = '<div class="grp-empty muted">Chọn Station trước</div>'; return; }
+    var g = stationData();
+    if (!g || !g.contractTypes || !g.contractTypes.length) { el.innerHTML = '<div class="grp-empty muted">Không có Hình thức</div>'; return; }
+    var html = '';
+    g.contractTypes.forEach(function (ct) {
+      var checked = SEL.contractTypes.indexOf(ct) !== -1;
+      html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
+        + '<input type="checkbox" data-col="contract" data-val="' + escAttr(ct) + '"' + (checked ? ' checked' : '') + '>'
+        + esc(ct)
+        + '</label>';
+    });
+    el.innerHTML = html;
+  }
   function renderColDate() {
     var el = document.getElementById('colDate');
     if (!el) return;
@@ -1348,12 +1370,13 @@
         if (SEL.station !== next) {
           SEL.station = next;
           // cascade: đổi station → reset team/slot/date + render lại 3 cột phụ thuộc
-          SEL.teams = []; SEL.slots = []; SEL.date = '';
+          SEL.teams = []; SEL.slots = []; SEL.contractTypes = []; SEL.date = '';
           renderAllCols();
         }
       } else if (col === 'date') {
         // Date chọn 1: check cái mới → bỏ cái cũ (single-select)
         SEL.date = cb.checked ? val : '';
+        SEL.contractTypes = [];
         renderAllCols();
       } else if (col === 'team') {
         toggleArr(SEL.teams, val, cb.checked);
@@ -1361,6 +1384,9 @@
       } else if (col === 'slot') {
         toggleArr(SEL.slots, val, cb.checked);
         renderColSlot();
+      } else if (col === 'contract') {
+        toggleArr(SEL.contractTypes, val, cb.checked);
+        renderColContract();
       }
       updateCreatePreview();
     });
@@ -1449,6 +1475,7 @@
       station: SEL.station,
       slotCode: groupSelectedSlots(),
       team: groupSelectedTeams(),
+      contractType: SEL.contractTypes,
       date: SEL.date
     };
     if (!input.station || !input.slotCode.length || !input.team.length) {

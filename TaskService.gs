@@ -32,8 +32,12 @@ function createReconcileTask(input) {
   const team = Array.isArray(input && input.team)
     ? (input.team).map(String).join(', ')
     : String((input && input.team) || '').trim();
+  const contractType = Array.isArray(input && input.contractType)
+    ? (input.contractType).map(String).join(', ')
+    : String((input && input.contractType) || '').trim();
   const filterSlots = Array.isArray(input && input.slotCode) ? input.slotCode : (slotCode ? [slotCode] : []);
   const filterTeams = Array.isArray(input && input.team) ? input.team : (team ? [team] : []);
+  const filterContractTypes = Array.isArray(input && input.contractType) ? input.contractType : (contractType ? [contractType] : []);
   const date = String((input && input.date) || '').trim();  // ngày vào làm (optional — lọc theo StaffData Date)
   const createdBy = String((input && input.createdBy) || '').trim() || 'web';
 
@@ -44,7 +48,7 @@ function createReconcileTask(input) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const staffList = filterStaffByGroup(readStaffList_(), { station: station, slotCode: filterSlots, team: filterTeams, date: date });
+    const staffList = filterStaffByGroup(readStaffList_(), { station: station, slotCode: filterSlots, team: filterTeams, contractType: filterContractTypes, date: date });
     // P1: Att.csv thật có NV 2 dòng trong CÙNG tổ hợp → dedupe theo staffId (giữ dòng đầu).
     // Nếu không: log 2 dòng cùng staffId → phantom absent khi kết thúc + row-key client lệch.
     const deduped = dedupeStaffByGroup(staffList);
@@ -68,6 +72,7 @@ function createReconcileTask(input) {
       station: station,
       slotCode: slotCode,
       team: team,
+      contractType: contractType,
       status: TASK_STATUS.OPEN,
       createdAt: now,
       createdBy: createdBy,

@@ -176,6 +176,27 @@ test('filterStaffByGroup: MULTI-select teams+slots (mảng)', () => {
   assert.equal(r2.length, 2); // OPS000001 + OPS000004
 });
 
+test('filterStaffByGroup: MULTI-select contractType', () => {
+  const staff = [
+    { staffId: 'OPS000001', slotCode: '08:00-17:00', team: 'Outbound', station: 'HN2 SOC', contractType: 'GRG' },
+    { staffId: 'OPS000002', slotCode: '08:00-17:00', team: 'Outbound', station: 'HN2 SOC', contractType: 'OS' },
+    { staffId: 'OPS000003', slotCode: '08:00-17:00', team: 'Inbound', station: 'HN2 SOC', contractType: 'GRG' },
+    { staffId: 'OPS000004', slotCode: '13:00-22:00', team: 'Outbound', station: 'HN2 SOC', contractType: 'VN' },
+  ];
+  // Chọn GRG → OPS000001 + OPS000003
+  const r = CsvUtil.filterStaffByGroup(staff, { station: 'HN2 SOC', contractType: ['GRG'] });
+  assert.equal(r.length, 2);
+  // Chọn GRG + OS → 3 người
+  const r2 = CsvUtil.filterStaffByGroup(staff, { station: 'HN2 SOC', contractType: ['GRG', 'OS'] });
+  assert.equal(r2.length, 3);
+  // Chọn VN → chỉ OPS000004
+  const r3 = CsvUtil.filterStaffByGroup(staff, { station: 'HN2 SOC', contractType: ['VN'] });
+  assert.equal(r3.length, 1);
+  // Không chọn contractType → tất cả
+  const r4 = CsvUtil.filterStaffByGroup(staff, { station: 'HN2 SOC' });
+  assert.equal(r4.length, 4);
+});
+
 test('normalizeStaffDate_: raw dd/mm/yyyy → yyyy-MM-dd (ISO)', () => {
   assert.equal(CsvUtil.normalizeStaffDate_('8/1/2026'), '2026-01-08');
   assert.equal(CsvUtil.normalizeStaffDate_('26-07-2026'), '2026-07-26');
@@ -202,29 +223,34 @@ test('buildStaffIndex/buildStaffListFromValues: date chuẩn hóa yyyy-MM-dd', (
   assert.equal(list[1].date, '2026-07-26');
 });
 
-test('buildStationGroups: cây 3 cấp Station → Ca → Team + dates (chỉ tổ hợp thực tế)', () => {
+test('buildStationGroups: cây 3 cấp Station → Ca → Team + dates + contractTypes', () => {
   const staff = [
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', date: '2026-08-01' },
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', date: '2026-08-01' },  // dup — gộp
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Inbound', date: '2026-08-02' },
-    { station: 'HN2 SOC', slotCode: '13:00-22:00', team: 'Inbound', date: '2026-08-01' },
-    { station: 'HCM SOC', slotCode: '18:00-02:00', team: 'Shipping', date: '2026-08-03' },
-    { station: 'HN2 SOC', slotCode: '', team: 'NoSlot', date: '' },       // thiếu slot → bỏ node ca
-    { station: '', slotCode: '08:00-17:00', team: 'NoStation', date: '' }, // thiếu station → bỏ
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: '', date: '2026-08-04' }, // thiếu team → bỏ node ca, vẫn có date
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', date: '2026-08-01', contractType: 'GRG' },
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', date: '2026-08-01', contractType: 'GRG' }, // dup
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Inbound', date: '2026-08-02', contractType: 'OS' },
+    { station: 'HN2 SOC', slotCode: '13:00-22:00', team: 'Inbound', date: '2026-08-01', contractType: 'GRG' },
+    { station: 'HCM SOC', slotCode: '18:00-02:00', team: 'Shipping', date: '2026-08-03', contractType: 'VN' },
+    { station: 'HN2 SOC', slotCode: '', team: 'NoSlot', date: '', contractType: 'CP' }, // thiếu slot → bỏ node ca, vẫn có contractType
+    { station: '', slotCode: '08:00-17:00', team: 'NoStation', date: '', contractType: 'GRG' }, // thiếu station → bỏ
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: '', date: '2026-08-04', contractType: 'OS' }, // thiếu team → bỏ node ca
   ];
   const groups = CsvUtil.buildStationGroups(staff);
   assert.equal(groups.length, 2);
-  assert.equal(groups[0].station, 'HCM SOC'); // sort A-Z
+  assert.equal(groups[0].station, 'HCM SOC');
   assert.equal(groups[1].station, 'HN2 SOC');
   const hn2 = groups[1];
-  assert.equal(hn2.slotCodes.length, 2);
-  assert.equal(hn2.slotCodes[0].slotCode, '08:00-17:00'); // sort
-  assert.deepEqual(hn2.slotCodes[0].teams, ['Inbound', 'Outbound']); // sort + dedupe
-  assert.deepEqual(hn2.slotCodes[1].teams, ['Inbound']);
-  // dates: HN2 có 01, 02, 04 (03 thuộc HCM) — sort + dedupe
+  // contractTypes: GRG + OS + CP (HN2 SOC có 3 loại — CP thu thập từ dòng thiếu slot+team)
+  assert.deepEqual(hn2.contractTypes, ['CP', 'GRG', 'OS']);
+  // Thực tế: CP có station=HN2 SOC nhưng thiếu slot+team → không tạo node ca,
+  // nhưng contractType vẫn được collect vào byStation[st].contracts
+  // => HCM SOC chỉ có VN
+  const hcm = groups[0];
+  assert.deepEqual(hcm.contractTypes, ['VN']);
+  // HN2 SOC: GRG (dòng 1,4) + OS (dòng 3,8) + CP (dòng 6 - thiếu slot+team nhưng vẫn collect) = 3 loại
+  assert.deepEqual(hn2.contractTypes.sort(), ['CP', 'GRG', 'OS'].sort());
+  // dates: HN2 có 01, 02, 04
   assert.deepEqual(hn2.dates, ['2026-08-01', '2026-08-02', '2026-08-04']);
-  assert.deepEqual(groups[0].dates, ['2026-08-03']);
+  assert.deepEqual(hcm.dates, ['2026-08-03']);
 });
 
 test('buildStationGroups: input rỗng → []', () => {

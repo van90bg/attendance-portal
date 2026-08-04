@@ -116,6 +116,7 @@
               { slotCode: '18:00-02:00', teams: ['Inbound'] },
               { slotCode: '22:00-06:00', teams: ['Inbound'] },
             ],
+            contractTypes: ['GRG', 'OS', 'VN'],
             dates: ['2026-08-01', '2026-08-02', '2026-08-03'],
           },
         ],
