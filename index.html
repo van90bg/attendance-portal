@@ -1861,6 +1861,9 @@
             BUSY = false;
             showToast(res.message, !res.ok);
             loadTaskList();
+            // P2 FIX: sau khi mở lại thành công → mở luôn task đó (vào màn quét
+            // để quét tiếp) thay vì chỉ refresh danh sách.
+            if (res.ok) openScan(taskId);
           })
           .withFailureHandler(function (err) {
             markServerFail();
