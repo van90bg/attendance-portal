@@ -104,6 +104,7 @@
     },
     getFilterOptions: function () {
       // Khớp server: trả cây stationGroups cho modal tạo task (3 cấp checkbox)
+      // Khớp server: chỉ trả stationGroups (client render 4 cột checkbox từ đây)
       return {
         ok: true,
         stationGroups: [
@@ -115,10 +116,9 @@
               { slotCode: '18:00-02:00', teams: ['Inbound'] },
               { slotCode: '22:00-06:00', teams: ['Inbound'] },
             ],
+            dates: ['2026-08-01', '2026-08-02', '2026-08-03'],
           },
         ],
-        stations: ['HN2 SOC'],
-        dates: ['2026-08-01', '2026-08-02', '2026-08-03'],
       };
     },
     previewStaffApi: function (input) {

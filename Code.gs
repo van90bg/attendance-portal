@@ -125,11 +125,9 @@ function getFilterOptions() {
   const staffList = readStaffList_();
   return {
     ok: true,
-    // Cây 3 cấp Station → Ca (Slot Code) → Team — modal tạo task render checkbox theo nhóm.
+    // Cây 4 cột: stationGroups = [{ station, slotCodes: [{slotCode, teams}], dates }]
+    // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
     stationGroups: buildStationGroups(staffList),
-    // Giữ distinct values (dropdown station/date + enable nút Create).
-    stations: distinctValues(staffList, 'station'),
-    dates: distinctValues(staffList, 'date'),  // ngay vao lam — dropdown modal
   };
 }
 

@@ -326,18 +326,27 @@ function buildStationGroups(staffList) {
   const byStation = {};
   (staffList || []).forEach(function (s) {
     const st = String(s.station || '').trim();
+    if (!st) return;
+    if (!byStation[st]) byStation[st] = { slots: {}, dates: {} };
     const slot = String(s.slotCode || '').trim();
     const team = String(s.team || '').trim();
-    if (!st || !slot || !team) return;  // thiếu 1 trong 3 → không tạo node
-    if (!byStation[st]) byStation[st] = {};
-    if (!byStation[st][slot]) byStation[st][slot] = {};
-    byStation[st][slot][team] = true;
+    // Node Ca/Team chỉ tạo khi đủ slot + team; dates thu thập riêng (cột Date cascade).
+    if (slot && team) {
+      if (!byStation[st].slots[slot]) byStation[st].slots[slot] = {};
+      byStation[st].slots[slot][team] = true;
+    }
+    const date = String(s.date || '').trim();
+    if (date) byStation[st].dates[date] = true;
   });
   const out = Object.keys(byStation).sort().map(function (st) {
-    const slotCodes = Object.keys(byStation[st]).sort().map(function (slot) {
-      return { slotCode: slot, teams: Object.keys(byStation[st][slot]).sort() };
+    const slotCodes = Object.keys(byStation[st].slots).sort().map(function (slot) {
+      return { slotCode: slot, teams: Object.keys(byStation[st].slots[slot]).sort() };
     });
-    return { station: st, slotCodes: slotCodes };
+    return {
+      station: st,
+      slotCodes: slotCodes,
+      dates: Object.keys(byStation[st].dates).sort(),
+    };
   });
   return out;
 }

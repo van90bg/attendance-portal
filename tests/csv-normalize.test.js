@@ -202,16 +202,16 @@ test('buildStaffIndex/buildStaffListFromValues: date chuẩn hóa yyyy-MM-dd', (
   assert.equal(list[1].date, '2026-07-26');
 });
 
-test('buildStationGroups: cây 3 cấp Station → Ca → Team (chỉ tổ hợp thực tế)', () => {
+test('buildStationGroups: cây 3 cấp Station → Ca → Team + dates (chỉ tổ hợp thực tế)', () => {
   const staff = [
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound' },
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound' },  // dup — gộp
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Inbound' },
-    { station: 'HN2 SOC', slotCode: '13:00-22:00', team: 'Inbound' },
-    { station: 'HCM SOC', slotCode: '18:00-02:00', team: 'Shipping' },
-    { station: 'HN2 SOC', slotCode: '', team: 'NoSlot' },       // thiếu slot → bỏ
-    { station: '', slotCode: '08:00-17:00', team: 'NoStation' }, // thiếu station → bỏ
-    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: '' },   // thiếu team → bỏ
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', date: '2026-08-01' },
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', date: '2026-08-01' },  // dup — gộp
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Inbound', date: '2026-08-02' },
+    { station: 'HN2 SOC', slotCode: '13:00-22:00', team: 'Inbound', date: '2026-08-01' },
+    { station: 'HCM SOC', slotCode: '18:00-02:00', team: 'Shipping', date: '2026-08-03' },
+    { station: 'HN2 SOC', slotCode: '', team: 'NoSlot', date: '' },       // thiếu slot → bỏ node ca
+    { station: '', slotCode: '08:00-17:00', team: 'NoStation', date: '' }, // thiếu station → bỏ
+    { station: 'HN2 SOC', slotCode: '08:00-17:00', team: '', date: '2026-08-04' }, // thiếu team → bỏ node ca, vẫn có date
   ];
   const groups = CsvUtil.buildStationGroups(staff);
   assert.equal(groups.length, 2);
@@ -222,6 +222,9 @@ test('buildStationGroups: cây 3 cấp Station → Ca → Team (chỉ tổ hợp
   assert.equal(hn2.slotCodes[0].slotCode, '08:00-17:00'); // sort
   assert.deepEqual(hn2.slotCodes[0].teams, ['Inbound', 'Outbound']); // sort + dedupe
   assert.deepEqual(hn2.slotCodes[1].teams, ['Inbound']);
+  // dates: HN2 có 01, 02, 04 (03 thuộc HCM) — sort + dedupe
+  assert.deepEqual(hn2.dates, ['2026-08-01', '2026-08-02', '2026-08-04']);
+  assert.deepEqual(groups[0].dates, ['2026-08-03']);
 });
 
 test('buildStationGroups: input rỗng → []', () => {
