@@ -178,6 +178,7 @@ function readStaffListUncached_() {
       cardIn: String(v[fieldOf.cardIn] || '').trim(),
       cardOut: String(v[fieldOf.cardOut] || '').trim(),
       date: normalizeStaffDate_(v[fieldOf.date]),  // ngay vao lam (StaffData Date) — chuẩn yyyy-MM-dd
+      contractType: String(v[fieldOf.contractType] || '').trim(),
     });
   }
   return out;
