@@ -26,7 +26,7 @@ function doGet(e) {
         error: 'debug=1 chỉ chạy từ Script Editor',
       })).setMimeType(ContentService.MimeType.JSON);
     }
-    return ContentService.createTextOutput(JSON.stringify(debugState()))
+    return ContentService.createTextOutput(JSON.stringify(debugState_()))
       .setMimeType(ContentService.MimeType.JSON);
   }
   // Debug: URL?debug=createTask&station=..&slotCode=..&team=.. → tạo task thật + trả detail
@@ -68,11 +68,9 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
-/** Debug: cấu trúc toàn bộ sheet (chạy qua ?debug=1). */
-function debugState() {
-  // P1: gate editor-only NGAY ĐẦU hàm — debugState() là function public, ai cũng gọi
-  // qua google.script.run.debugState() từ console kiosk anonymous (gate trong doGet
-  // chỉ bảo vệ đường ?debug=1). Leak: spreadsheetId + cấu trúc sheet + mẫu log.
+/** Debug: cấu trúc toàn bộ sheet (chạy qua ?debug=1). PRIVATE — không public qua google.script.run. */
+function debugState_() {
+  // Gate editor-only — tên private (_) nên không gọi được từ client.
   if (!isEditor_()) {
     return { error: 'debugState chỉ chạy từ Script Editor' };
   }

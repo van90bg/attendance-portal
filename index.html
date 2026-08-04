@@ -1636,7 +1636,7 @@
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.
   var SCAN_QUEUE = [];
   var SCAN_PROCESSING = false;
-  var SCAN_QUEUE_MAX = 50; // P2: giới hạn chống spam barcode → backlog 2.5s/item
+  var SCAN_QUEUE_MAX = 5; // P2 FIX: giới hạn queue 5 (50 → backlog 125s). Công nhân quét chậm hơn server 2.5s/item.
   // P2: seq chống response cũ đè scan card mới — quét B lúc response A đang bay,
   // response A về sẽ showScanCard(A) nhảy card về NV quét trước đó vài giây.
   var SCAN_CARD_SEQ = 0;

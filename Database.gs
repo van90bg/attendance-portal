@@ -14,6 +14,11 @@ function getSheet_(name, header) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
+    // P2: sheet dữ liệu bị xóa tay → tạo lại trống, dữ liệu cũ mất. Cache vẫn sống → UI sai.
+    // Log rõ tên sheet để QA/operator phát hiện sớm.
+    if (name === SHEETS.ATTENDANCE_LOG || name === SHEETS.ATTENDANCE_TASK || name === SHEETS.STAFF_DATA) {
+      console.error('SHEET MISSING — vừa tạo lại sheet "' + name + '" (bị xóa tay?). Dữ liệu cũ KHÔNG khôi phục.');
+    }
   }
   // Tự set header khi sheet trống (mới tạo HOẶC đã tồn tại nhưng chưa có dữ liệu).
   // Phòng trường hợp sheet tồn tại từ trước nhưng thiếu header → đọc/write lệch dòng.
@@ -546,8 +551,10 @@ function appendLogRow_(row) {
     row.taskId, row.staffId, row.staffName, row.slotCode, row.station, row.team, row.workstation,
     row.timeRef || '', row.timeScan || '', row.status, row.date || '',
   ]);
+  // P2 FIX: KHONG xoa LOG_ROWS cache o day -- append xa cuoi sheet, khong anh huong
+  // index row cua cache hien tai. Xoa cache buoc scan ke sau phai getDataRange full
+  // sheet (pha incremental cache). Chi batchInsertLogRows_ (tao task) moi can invalidate.
   invalidateTaskDetailCache_(row.taskId);
-  invalidateLogRows_(row.taskId); // U2: dòng mới append cuối — cache cũ thiếu dòng → xoá (tần suất thấp)
 }
 
 /** Ghi đè toàn bộ StaffData từ dữ liệu csv đã parse (syncFromCsv). */
