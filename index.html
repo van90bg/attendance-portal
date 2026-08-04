@@ -1377,7 +1377,9 @@
         // Date chọn 1: check cái mới → bỏ cái cũ (single-select)
         SEL.date = cb.checked ? val : '';
         SEL.contractTypes = [];
-        renderAllCols();
+        // R8: đổi date chỉ ảnh hưởng highlight cột date + reset contractTypes — không cần renderAllCols
+        renderColDate();
+        renderColContract();
       } else if (col === 'team') {
         toggleArr(SEL.teams, val, cb.checked);
         renderColTeam();  // cập nhật highlight checked
