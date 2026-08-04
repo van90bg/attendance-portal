@@ -1749,9 +1749,15 @@
     if (!wrap) return;
     var full = SCAN_QUEUE.length >= SCAN_QUEUE_MAX;
     wrap.classList.toggle('queue-full', full);
-    // P2: queue đầy → disable input luôn (hết gõ vô ích + spam toast khi Enter)
+    // P2: queue đầy → disable input luôn (hết gõ vô ích + spam toast khi Enter).
+    // P1 FIX: KHÔNG ghi đè disable vì task đã kết thúc — renderScanView set
+    // disabled=true khi task done, updateQueueFullState phải tôn trọng (trước đây
+    // inp.disabled = full (=false) enable lại input dù task đã đóng).
     var inp = document.getElementById('scanInput');
-    if (inp) inp.disabled = full;
+    if (inp) {
+      var taskDone = !CURRENT_TASK || CURRENT_TASK.status !== TASK_STATUS_C.OPEN;
+      inp.disabled = taskDone || full;
+    }
   }
 
   function processScanQueue() {
