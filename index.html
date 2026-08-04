@@ -211,37 +211,35 @@
       outline-offset: 2px;
     }
 
-    /* ===== Modal tạo task: 5 mục xếp DỌC (Station | Team | Ca | Hình thức | Date);
-       options của mỗi mục trải NGANG 3 cột (grid tự chảy). Thu gọn chiều ngang,
-       hiển thị TẤT CẢ options (không ẩn scroll), multi-select có checkbox "All". */
-    .grp-cols { display: flex; flex-direction: column; gap: 14px; }
-    .grp-row { display: flex; flex-direction: column; gap: 6px; }
+    /* ===== Modal tạo task: 5 mục xếp DỌC — options 3 cột, có "All",
+       hiển thị tất cả (không scroll), TỐI ƯU KÍCH THƯỚC NHỎ NHẤT. */
+    .grp-cols { display: flex; flex-direction: column; gap: 8px; }
+    .grp-row { display: flex; flex-direction: column; gap: 3px; }
     .grp-row .grp-col-title {
-      font-weight: 600; font-size: 12px;
+      font-weight: 600; font-size: 11px;
       text-transform: uppercase; letter-spacing: .5px;
       color: var(--muted);
     }
     .grp-tree {
       display: grid; grid-template-columns: repeat(3, 1fr);
       align-content: start;
-      gap: 2px 10px;
+      gap: 1px 6px;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 6px;
       background: #fff;
-      padding: 6px;
-      /* max-height, overflow: auto đã bỏ — hiển thị tất cả options */
+      padding: 4px;
     }
     .grp-tree > .grp-empty { grid-column: 1 / -1; }
     .grp-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 10px; cursor: pointer;
-      font-size: 13px; border-radius: 6px;
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 8px; cursor: pointer;
+      font-size: 12px; border-radius: 4px;
       user-select: none;
     }
     .grp-item:hover { background: #f1f3f4; }
     .grp-item.checked { background: #e8f0fe; }
     .grp-item input {
-      width: 16px; height: 16px;
+      width: 14px; height: 14px;
       accent-color: var(--primary); cursor: pointer;
       flex-shrink: 0;
     }
@@ -251,17 +249,18 @@
       background: #f8f9fa; border: 1px solid var(--border);
     }
     .grp-item.is-all:hover { background: #eef1f5; }
-    .grp-empty { padding: 12px; text-align: center; font-size: 12px; }
-    /* Kích thước modal tạo task CỐ ĐỊNH — thu gọn chiều ngang xuống 720px mặc định */
-    #createModal .about-dialog { width: 720px; max-width: 720px; }
-    @media (max-width: 767px) {
+    .grp-empty { padding: 8px; text-align: center; font-size: 11px; }
+    /* Kích thước modal CỐ ĐỊNH — nhỏ gọn nhất có thể */
+    #createModal .about-dialog { width: 560px; max-width: 560px; padding: 16px; }
+    @media (max-width: 599px) {
       #createModal .about-dialog {
         width: 100vw; max-width: 100vw;
         height: 100vh; max-height: 100vh;
         border-radius: 0;
         overflow: auto;
+        padding: 12px;
       }
-      .grp-row .grp-tree { grid-template-columns: repeat(2, 1fr); }  /* màn hẹp: 2 cột */
+      .grp-row .grp-tree { grid-template-columns: repeat(2, 1fr); }
     }
 
     /* ===== Bộ đếm — 3 khối luôn cùng 1 hàng (kiosk nhìn nhanh) ===== */
@@ -819,8 +818,8 @@
 <!-- Modal tạo task (cây nhóm Station → Ca → Team, checkbox) -->
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">
-    <h2 id="createModalTitle" style="font-size:17px;margin:0 0 4px;">+ Tạo task điểm danh</h2>
-    <p style="color:var(--muted);font-size:13px;margin:0 0 16px;">Tick chọn nhóm nhân viên cho task — quét mã <b>Ops</b> để điểm danh. (Station / Date chọn 1, Team / Ca chọn nhiều.)</p>
+    <h2 id="createModalTitle" style="font-size:15px;margin:0 0 3px;">+ Tạo task điểm danh</h2>
+    <p style="color:var(--muted);font-size:11px;margin:0 0 10px;">Tick chọn nhóm nhân viên cho task — quét mã <b>Ops</b> để điểm danh. (Station / Date chọn 1, Team / Ca / Hình thức chọn nhiều.)</p>
     <div class="grp-cols" id="grpCols">
       <div class="grp-row">
         <label class="grp-col-title">Station</label>
@@ -843,10 +842,10 @@
         <div id="colDate" class="grp-tree" data-single="true"></div>
       </div>
     </div>
-    <div id="createPreview" style="margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:var(--card-radius);background:var(--surface-muted);font-size:13px;color:var(--muted);">
-      <div id="createPreviewCount">Tick chọn Station / Team / Ca / Hình thức để xem số lượng NV</div>
+    <div id="createPreview" style="margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:var(--card-radius);background:var(--surface-muted);font-size:11px;color:var(--muted);">
+      <div id="createPreviewCount">Tick chọn Station / Team / Ca / Hình thức / Ngày để xem số lượng NV</div>
     </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
       <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
       <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task</button>
     </div>
@@ -1250,7 +1249,7 @@
         .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
     }, 400);
   }
-  // ===== Modal tạo task: 5 mục dọc — options trải 3 cột ngang, có "All" cho multi-select, hiển thị tất cả (không ẩn scroll) =====
+  // ===== Modal tạo task: 5 mục dọc — options 3 cột, có "All", hiển thị tất cả, KÍCH THƯỚC NHỎ NHẤT =====
   var STATION_GROUPS = [];   // từ server getFilterOptions.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
   var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' };  // trạng thái tick hiện tại
   function resetSel() { SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' }; }
