@@ -79,8 +79,8 @@
   function counters(log) {
     var c = { scanned: 0, absent: 0, extra: 0 };
     log.forEach(function (r) {
-      // Khớp server computeCounters: đếm theo timeScanText (không theo status text)
-      var hasScan = !!(r.timeScan || r.timeScanText);
+      // Khớp server computeCounters (ScanLogic.gs:82): epoch > 0 là nguồn sự thật duy nhất
+      var hasScan = Number(r.timeScanEpoch) > 0;
       if (hasScan) c.scanned++;
       if (r.status === 'Dư') c.extra++;
       else if (!hasScan) c.absent++;
