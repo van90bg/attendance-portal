@@ -37,13 +37,13 @@ RollCall_2/
 ├── Code.gs                # entry point doGet + gate isEditor_() cho ?debug=*/sync/setup
 ├── Config.gs              # hằng số: sheet names, cột, cache keys/TTL, STATUS, UI labels
 ├── CsvUtil.gs             # parse/normalize CSV + isValidBarcodeId() (pure, test được)
-├── Database.gs            # đọc StaffData, task CRUD, cache (index 5m / task list 30s / detail 15s)
+├── Database.gs            # đọc StaffData, task CRUD, cache (index 5m / list 30s / detail 15s / log rows 30s)
 ├── ScanLogic.gs           # phân loại scan: Có mặt / Đã điểm danh / Dư / reject (pure, test được)
 ├── ScanService.gs         # scanStaff — guard Ops + LockService + update/append log
 ├── TaskService.gs         # task CRUD + kết thúc task → markUnscannedAbsent_
 ├── index.html             # toàn bộ UI (task list + scan view) — 1 file
 ├── mock/mock-google.js    # mock GAS API cho test local
-├── tests/                 # unit tests (20/20 pass)
+├── tests/                 # unit tests (26/26 pass)
 └── scripts/cdp-helper.js  # CDP helper (open/eval/shot) cho verify UI thật
 ```
 
@@ -54,7 +54,7 @@ RollCall_2/
 | **Config** | Cấu hình (optional) |
 | **StaffData** | Dữ liệu HR (20 cột theo chuẩn Att.csv) — đọc-only, cache 5 phút, HR tự đồng bộ |
 | **AttendanceTask** | Task: Task ID, Type, Station, Slot Code, Team, Status, Created At/By, Completed At |
-| **AttendanceLog** | Log đối chiếu (10 cột): Task ID, Staff ID/Name, Slot/Team/Station/Workstation, Time Ref, Time Scan, Status |
+| **AttendanceLog** | Log đối chiếu (11 cột): Task ID, Staff ID/Name, Slot/Team/Station/Workstation, Time Ref, Time Scan, Status, Date (ngày vào làm) |
 
 > **Đã bỏ cardIn/cardOut** (2026-08-03): log không copy 2 cột Clock In/Out từ StaffData nữa — StaffData giữ nguyên, chỉ hiển thị.
 
@@ -63,7 +63,7 @@ RollCall_2/
 ### Test local
 
 ```bash
-npm test          # 20/20 — node --test
+npm test          # 26/26 — node --test
 ```
 
 ### Mock UI local
@@ -106,7 +106,7 @@ git push origin main
 - 1 issue / 1 commit; push giữa các bước
 - Branch `main` là nguồn duy nhất (branch `lobe` test đã gộp vào main và xoá — 2026-08-03)
 
-## Trạng thái (2026-08-03)
+## Trạng thái (2026-08-04)
 
 - ✅ 4 yêu cầu UI: counters 1 hàng · gradient scanLine · Ops prefix · modal tạo task
 - ✅ Modal confirm dùng chung thay `confirm()` (finishTask)
@@ -116,5 +116,6 @@ git push origin main
 - ✅ Simplify pass (4 reviewer): gộp helper trùng (scanBusy/scanCardHTML/statusRank/isEditor_), xoá duplicate counter bump, guard response scan theo task
 - ✅ Config trỏ script `1HmmGcLI…` + spreadsheet `1NQQnLn…` (HR tự đồng bộ vào StaffData)
 - ✅ Review pass (2026-08-03, reviewer độc lập + verify): P0 `updateTaskStatus_` ghi nhầm cột CREATED_AT → ghi đúng STATUS+COMPLETED_AT · P1 `debugState()` gate editor-only · P1 dedupe staffId trong cùng tổ hợp (Att.csv thật có NV 2 dòng cùng ca) · P2 a11y, format ngày, xóa CSS chết
-- ✅ Test: 23/23 pass
+- ✅ Test: 26/26 pass
+- ✅ README + Spec viết lại khớp codebase thực tế (bỏ phần ảo: check-in/out, state machine 4 bước, offline, paste batch, Bootstrap, IndexedDB)
 - ⏳ P2 phase: QA prod quét NV thật
