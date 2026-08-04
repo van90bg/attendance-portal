@@ -1490,6 +1490,7 @@
         BUSY = false;
         if (btn) btn.disabled = false;
         if (res.ok) {
+          invalidateClientCaches_();
           closeCreateModal();
           showToast(res.message + ' — ' + res.count + ' NV', false);
           loadTaskList();
@@ -1550,6 +1551,10 @@
   // render NGAY từ bộ nhớ (không skeleton) + RPC nền sync im lặng.
   // TTL dùng chung CACHE_TTL_MS — không bao giờ hiển thị data stale hơn server.
   var LAST_TASK_LIST = { tasks: null, ts: 0 };
+  function invalidateClientCaches_() {
+    LAST_TASK_LIST = { tasks: null, ts: 0 };
+    LAST_SCAN_VIEW = { taskId: null, ts: 0 };
+  }
 
   // Render view scan từ data (dùng chung cho full-load và cache-reuse)
   function renderScanView(data) {
@@ -2042,6 +2047,7 @@
           .withSuccessHandler(function (res) {
             BUSY = false;
             showToast(res.message, !res.ok);
+            invalidateClientCaches_();
             loadTaskList();
             // P2 FIX: sau khi mở lại thành công → mở luôn task đó (vào màn quét
             // để quét tiếp) thay vì chỉ refresh danh sách.
@@ -2077,6 +2083,7 @@
           .withSuccessHandler(function (res) {
             BUSY = false;
             if (res.ok) {
+              invalidateClientCaches_();
               showToast(res.message, false);
               loadTaskDetail(CURRENT_TASK.taskId);
             } else {
