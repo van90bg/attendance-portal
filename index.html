@@ -1399,7 +1399,7 @@
     // P2 (SWR an toàn): cache danh sách còn hạn (<TTL) → render NGAY từ bộ nhớ,
     // KHÔNG skeleton — quay lại từ màn quét không còn chờ RPC. RPC nền vẫn chạy
     // để sync dữ liệu mới nhất (khi có thay đổi, bảng tự cập nhật).
-    var cacheHit = LAST_TASK_LIST.tasks && (Date.now() - LAST_TASK_LIST.ts) < TASK_LIST_CACHE_TTL_MS;
+    var cacheHit = LAST_TASK_LIST.tasks && (Date.now() - LAST_TASK_LIST.ts) < CACHE_TTL_MS;
     if (cacheHit) {
       renderTaskList_(LAST_TASK_LIST.tasks);
     } else {
@@ -1515,7 +1515,7 @@
     // KHÔNG spinner + RPC nền sync im lặng — hết chờ đợi khi quay lại mở cùng task.
     if (CURRENT_TASK && CURRENT_TASK.taskId === taskId
         && LAST_SCAN_VIEW.taskId === taskId
-        && Date.now() - LAST_SCAN_VIEW.ts < SCAN_CACHE_TTL_MS) {
+        && Date.now() - LAST_SCAN_VIEW.ts < CACHE_TTL_MS) {
       renderScanView({ task: CURRENT_TASK, log: CURRENT_LOG, counters: CURRENT_COUNTERS });
       hideLoadingOverlay();  // phòng nếu overlay còn từ lần trước
       loadTaskDetail(taskId, true);  // RPC nền — sync dữ liệu mới nhất (nếu có thay đổi)
@@ -1545,12 +1545,11 @@
   // render NGAY từ bộ nhớ (không spinner, không chờ RPC) + gọi RPC nền sync im lặng.
   // TTL 15s khớp server TASK_DETAIL — không bao giờ hiển thị data stale hơn server.
   var LAST_SCAN_VIEW = { taskId: null, ts: 0 };
-  var SCAN_CACHE_TTL_MS = 15000;
+  var CACHE_TTL_MS = 15000; // TTL chung: scan view + task list (khớp server TASK_DETAIL)
   // P2 (SWR an toàn): snapshot danh sách task — quay lại từ màn quét trong 15s
   // render NGAY từ bộ nhớ (không skeleton) + RPC nền sync im lặng.
-  // TTL khớp SCAN_CACHE_TTL_MS — không bao giờ hiển thị data stale hơn server.
+  // TTL dùng chung CACHE_TTL_MS — không bao giờ hiển thị data stale hơn server.
   var LAST_TASK_LIST = { tasks: null, ts: 0 };
-  var TASK_LIST_CACHE_TTL_MS = 15000;
 
   // Render view scan từ data (dùng chung cho full-load và cache-reuse)
   function renderScanView(data) {
