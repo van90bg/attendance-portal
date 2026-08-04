@@ -120,14 +120,15 @@ function getMeta() {
   };
 }
 
-/** Distinct values cho dropdown. */
+/** Distinct values cho dropdown + cây nhóm cho modal tạo task. */
 function getFilterOptions() {
   const staffList = readStaffList_();
   return {
     ok: true,
+    // Cây 3 cấp Station → Ca (Slot Code) → Team — modal tạo task render checkbox theo nhóm.
+    stationGroups: buildStationGroups(staffList),
+    // Giữ distinct values (dropdown station/date + enable nút Create).
     stations: distinctValues(staffList, 'station'),
-    slotCodes: distinctValues(staffList, 'slotCode'),
-    teams: distinctValues(staffList, 'team'),
     dates: distinctValues(staffList, 'date'),  // ngay vao lam — dropdown modal
   };
 }

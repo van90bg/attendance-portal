@@ -315,6 +315,33 @@ function distinctValues(staffList, field, filterField, filterValue) {
   return out.sort();
 }
 
+/**
+ * Build cây nhóm Station → Ca (Slot Code) → Team cho modal tạo task (3 cấp, checkbox).
+ * Chỉ gồm các tổ hợp THỰC TẾ tồn tại trong staffList (station có dữ liệu mới xuất hiện).
+ * Sort theo tên để UI ổn định giữa các lần load.
+ * @param {Array<Object>} staffList — mảng staff (buildStaffListFromValues / parseCsvToStaff)
+ * @returns {Array<{station: string, slotCodes: Array<{slotCode: string, teams: string[]}>}>}
+ */
+function buildStationGroups(staffList) {
+  const byStation = {};
+  (staffList || []).forEach(function (s) {
+    const st = String(s.station || '').trim();
+    const slot = String(s.slotCode || '').trim();
+    const team = String(s.team || '').trim();
+    if (!st || !slot || !team) return;  // thiếu 1 trong 3 → không tạo node
+    if (!byStation[st]) byStation[st] = {};
+    if (!byStation[st][slot]) byStation[st][slot] = {};
+    byStation[st][slot][team] = true;
+  });
+  const out = Object.keys(byStation).sort().map(function (st) {
+    const slotCodes = Object.keys(byStation[st]).sort().map(function (slot) {
+      return { slotCode: slot, teams: Object.keys(byStation[st][slot]).sort() };
+    });
+    return { station: st, slotCodes: slotCodes };
+  });
+  return out;
+}
+
 // ===== Node test support (GAS bỏ qua) =====
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -330,5 +357,6 @@ if (typeof module !== 'undefined' && module.exports) {
     filterStaffByGroup: filterStaffByGroup,
     dedupeStaffByGroup: dedupeStaffByGroup,
     distinctValues: distinctValues,
+    buildStationGroups: buildStationGroups,
   };
 }

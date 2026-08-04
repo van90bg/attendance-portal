@@ -103,11 +103,21 @@
       return { ok: true, appTitle: MOCK_DATA.meta.appTitle, labels: MOCK_DATA.meta.labels, tableHeaders: MOCK_DATA.meta.tableHeaders };
     },
     getFilterOptions: function () {
+      // Khớp server: trả cây stationGroups cho modal tạo task (3 cấp checkbox)
       return {
         ok: true,
+        stationGroups: [
+          {
+            station: 'HN2 SOC',
+            slotCodes: [
+              { slotCode: '08:00-17:00', teams: ['Outbound'] },
+              { slotCode: '13:00-22:00', teams: ['Inbound'] },
+              { slotCode: '18:00-02:00', teams: ['Inbound'] },
+              { slotCode: '22:00-06:00', teams: ['Inbound'] },
+            ],
+          },
+        ],
         stations: ['HN2 SOC'],
-        slotCodes: ['08:00-17:00', '13:00-22:00', '18:00-02:00', '22:00-06:00'],
-        teams: ['Inbound', 'Outbound'],
         dates: ['2026-08-01', '2026-08-02', '2026-08-03'],
       };
     },

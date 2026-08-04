@@ -211,6 +211,43 @@
       outline-offset: 2px;
     }
 
+    /* ===== Cây nhóm Ca/Team trong modal tạo task (3 cấp checkbox) ===== */
+    .grp-tree {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 300px;
+      overflow: auto;
+      background: #fff;
+    }
+    .grp { border-bottom: 1px solid var(--border); }
+    .grp:last-child { border-bottom: none; }
+    .grp-ca {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; cursor: pointer;
+      font-weight: 600; font-size: 13px;
+      background: var(--surface-muted);
+      user-select: none;
+    }
+    .grp-ca:hover { background: #e8eaed; }
+    .grp-ca .grp-count {
+      margin-left: auto; color: var(--muted);
+      font-weight: 400; font-size: 11px;
+    }
+    .grp-teams { padding: 2px 0 6px 26px; }
+    .grp-team {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 10px; cursor: pointer;
+      font-size: 13px; border-radius: 6px;
+      user-select: none;
+    }
+    .grp-team:hover { background: #f1f3f4; }
+    .grp-team input, .grp-ca input {
+      width: 16px; height: 16px;
+      accent-color: var(--primary); cursor: pointer;
+      flex-shrink: 0;
+    }
+    .grp-empty { padding: 12px; text-align: center; font-size: 13px; }
+
     /* ===== Bộ đếm — 3 khối luôn cùng 1 hàng (kiosk nhìn nhanh) ===== */
     .counters { display: flex; gap: 10px; }
     .counter {
@@ -763,9 +800,9 @@
   </div>
 </div>
 
-<!-- Modal tạo task (kiểu v1: popup chọn Station/Ca/Team) -->
+<!-- Modal tạo task (cây nhóm Station → Ca → Team, checkbox) -->
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
-  <div class="about-dialog" style="max-width:440px;">
+  <div class="about-dialog" style="max-width:480px;">
     <h2 id="createModalTitle" style="font-size:17px;margin:0 0 4px;">+ Tạo task điểm danh</h2>
     <p style="color:var(--muted);font-size:13px;margin:0 0 16px;">Chọn nhóm nhân viên cho task — quét mã <b>Ops</b> để điểm danh.</p>
     <div class="form-grid" style="grid-template-columns:1fr;">
@@ -774,12 +811,10 @@
         <select id="fStation"></select>
       </div>
       <div>
-        <label for="fSlotCode">Ca (Slot Code) — chọn nhiều</label>
-        <select id="fSlotCode" multiple size="4"></select>
-      </div>
-      <div>
-        <label for="fTeam">Team — chọn nhiều</label>
-        <select id="fTeam" multiple size="2"></select>
+        <label>Ca / Team — tick chọn (chọn ca = chọn hết team)</label>
+        <div id="fGroupTree" class="grp-tree">
+          <div class="grp-empty muted">Chọn Station để hiển thị danh sách Ca / Team</div>
+        </div>
       </div>
       <div>
         <label for="fDate">Ngày vào làm (Date)</label>
@@ -840,6 +875,7 @@
     });
     initNetworkStatus();
     initCreatePreview();
+    initGroupTreeEvents();
     startAutoFocusLoop();
     initScanTopbarStuck();
     initScanFilters();
@@ -1047,10 +1083,13 @@
     var m = document.getElementById('createModal');
     if (!m) return;
     // P2: reset select về placeholder mỗi lần mở — không giữ giá trị ca cũ (tránh tạo nhầm task)
-    ['fStation', 'fSlotCode', 'fTeam', 'fDate'].forEach(function (id) {
+    ['fStation', 'fDate'].forEach(function (id) {
       var s = document.getElementById(id);
       if (s) s.value = '';
     });
+    // Reset lựa chọn cây nhóm + render lại
+    resetGroupSel();
+    renderGroupTree();
     m.setAttribute('aria-hidden', 'false');  // I10
     m.classList.add('open');
     var sel = document.getElementById('fStation');
@@ -1159,12 +1198,12 @@
     google.script.run
       .withSuccessHandler(function (res) {
         if (!res.ok) { _releaseRefreshLock(); showToast(res.message, true); return; }
+        STATION_GROUPS = res.stationGroups || [];
         fillSelect('fStation', res.stations, '-- Chọn station --');
-        fillSelect('fSlotCode', res.slotCodes, '-- Chọn ca --');
-        fillSelect('fTeam', res.teams, '-- Chọn team --');
         fillSelect('fDate', res.dates, '-- Tất cả ngày --');
-        var canCreate = res.stations.length > 0 && res.slotCodes.length > 0 && res.teams.length > 0;
+        var canCreate = res.stations.length > 0 && STATION_GROUPS.length > 0;
         document.getElementById('btnCreate').disabled = !canCreate;
+        renderGroupTree();  // refresh cây khi data mới về (nếu modal đang mở)
         markServerOk();  // RPC success → server sống lại (netDot hồi phục — phủ cả trường hợp chỉ load options)
         _releaseRefreshLock();
       })
@@ -1176,13 +1215,13 @@
   var _previewTimer = null;
   function updateCreatePreview() {
     var station = document.getElementById('fStation').value;
-    var slotCode = multiVal('fSlotCode');
-    var team = multiVal('fTeam');
+    var slotCode = groupSelectedSlots();
+    var team = groupSelectedTeams();
     var date = document.getElementById('fDate').value;
     var cntEl = document.getElementById('createPreviewCount');
     if (!cntEl) return;
     if (!station || !slotCode.length || !team.length) {
-      cntEl.textContent = 'Chọn Station / Ca / Team để xem số lượng NV';
+      cntEl.textContent = 'Tick chọn Ca / Team để xem số lượng NV';
       return;
     }
     clearTimeout(_previewTimer);
@@ -1197,9 +1236,9 @@
     }, 400);
   }
   function initCreatePreview() {
-    ['fStation', 'fSlotCode', 'fTeam', 'fDate'].forEach(function (id) {
+    ['fStation', 'fDate'].forEach(function (id) {
       var el = document.getElementById(id);
-      if (el) el.addEventListener('change', updateCreatePreview);
+      if (el) el.addEventListener('change', function () { renderGroupTree(); updateCreatePreview(); });
     });
   }
 
@@ -1220,18 +1259,132 @@
       sel.appendChild(o);
     });
   }
-  // Đọc giá trị select (multiple → mảng, single → string) — cho fSlotCode/fTeam.
-  function multiVal(id) {
-    var sel = document.getElementById(id);
-    if (!sel) return '';
-    if (sel.multiple) {
-      var out = [];
-      for (var i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].selected && sel.options[i].value) out.push(sel.options[i].value);
-      }
-      return out;
+  // ===== Cây nhóm Ca/Team cho modal tạo task (Station → Ca → Team, checkbox) =====
+  var STATION_GROUPS = [];   // từ server getFilterOptions.stationGroups
+  var GROUP_SEL = {};        // { slotCode: { teamName: true/false } } — trạng thái tick
+  function resetGroupSel() { GROUP_SEL = {}; }
+  function groupStateForSlot(slot) {
+    if (!GROUP_SEL[slot]) GROUP_SEL[slot] = {};
+    return GROUP_SEL[slot];
+  }
+  // Ca được xem là "chọn" khi có ít nhất 1 team được tick.
+  function groupSelectedSlots() {
+    return Object.keys(GROUP_SEL).filter(function (s) {
+      var teams = GROUP_SEL[s];
+      return Object.keys(teams).some(function (t) { return teams[t]; });
+    });
+  }
+  // Gộp mọi team được tick (khớp contract server: slotCode/team là mảng).
+  function groupSelectedTeams() {
+    var out = [];
+    Object.keys(GROUP_SEL).forEach(function (s) {
+      Object.keys(GROUP_SEL[s]).forEach(function (t) {
+        if (GROUP_SEL[s][t]) out.push(t);
+      });
+    });
+    return out;
+  }
+  function findGroupByStation(station) {
+    for (var i = 0; i < STATION_GROUPS.length; i++) {
+      if (STATION_GROUPS[i].station === station) return STATION_GROUPS[i];
     }
-    return sel.value;
+    return null;
+  }
+  function renderGroupTree() {
+    var tree = document.getElementById('fGroupTree');
+    if (!tree) return;
+    var station = document.getElementById('fStation').value;
+    if (!station) {
+      tree.innerHTML = '<div class="grp-empty muted">Chọn Station để hiển thị danh sách Ca / Team</div>';
+      return;
+    }
+    var g = findGroupByStation(station);
+    if (!g || !g.slotCodes.length) {
+      tree.innerHTML = '<div class="grp-empty muted">Station này chưa có dữ liệu Ca / Team</div>';
+      return;
+    }
+    var html = '';
+    g.slotCodes.forEach(function (sc) {
+      var sel = groupStateForSlot(sc.slotCode);
+      var nTeam = sc.teams.length;
+      var nSel = sc.teams.filter(function (t) { return sel[t]; }).length;
+      var caChecked = nTeam > 0 && nSel === nTeam ? ' checked' : '';
+      html += '<div class="grp">'
+        + '<label class="grp-ca" data-slot="' + escAttr(sc.slotCode) + '">'
+        + '<input type="checkbox" class="grp-ca-cb" data-slot="' + escAttr(sc.slotCode) + '"' + caChecked + '>'
+        + esc(sc.slotCode)
+        + '<span class="grp-count">' + nSel + '/' + nTeam + ' team</span>'
+        + '</label>'
+        + '<div class="grp-teams">';
+      sc.teams.forEach(function (t) {
+        html += '<label class="grp-team" data-slot="' + escAttr(sc.slotCode) + '" data-team="' + escAttr(t) + '">'
+          + '<input type="checkbox" class="grp-team-cb" data-slot="' + escAttr(sc.slotCode) + '" data-team="' + escAttr(t) + '"' + (sel[t] ? ' checked' : '') + '>'
+          + esc(t)
+          + '</label>';
+      });
+      html += '</div></div>';
+    });
+    tree.innerHTML = html;
+    // indeterminate phải set qua property JS sau khi DOM tồn tại
+    tree.querySelectorAll('.grp').forEach(function (grpEl) {
+      var caCb = grpEl.querySelector('.grp-ca-cb');
+      if (!caCb) return;
+      var slot = caCb.getAttribute('data-slot');
+      var sel = groupStateForSlot(slot);
+      var teamCbs = grpEl.querySelectorAll('.grp-team-cb');
+      var nSel = 0;
+      teamCbs.forEach(function (tcb) { if (sel[tcb.getAttribute('data-team')]) nSel++; });
+      caCb.checked = teamCbs.length > 0 && nSel === teamCbs.length;
+      caCb.indeterminate = nSel > 0 && nSel < teamCbs.length;
+    });
+  }
+  // Đồng bộ checkbox ca (checked/indeterminate) theo trạng thái team trong ca đó.
+  function syncCaCheckboxState(g, slot) {
+    var tree = document.getElementById('fGroupTree');
+    if (!tree) return;
+    var grpEl = null;
+    tree.querySelectorAll('.grp').forEach(function (el) {
+      var cb = el.querySelector('.grp-ca-cb');
+      if (cb && cb.getAttribute('data-slot') === slot) grpEl = el;
+    });
+    if (!grpEl) return;
+    var caCb = grpEl.querySelector('.grp-ca-cb');
+    var sel = groupStateForSlot(slot);
+    var teamCbs = grpEl.querySelectorAll('.grp-team-cb');
+    var nSel = 0;
+    teamCbs.forEach(function (tcb) { if (sel[tcb.getAttribute('data-team')]) nSel++; });
+    caCb.checked = teamCbs.length > 0 && nSel === teamCbs.length;
+    caCb.indeterminate = nSel > 0 && nSel < teamCbs.length;
+  }
+  // Delegation: 1 listener cho cả cây (render lại không phải gắn lại event).
+  function initGroupTreeEvents() {
+    var tree = document.getElementById('fGroupTree');
+    if (!tree) return;
+    tree.addEventListener('change', function (e) {
+      var cb = e.target;
+      if (!cb || cb.type !== 'checkbox') return;
+      var slot = cb.getAttribute('data-slot');
+      if (!slot) return;
+      var g = findGroupByStation(document.getElementById('fStation').value);
+      if (!g) return;
+      if (cb.classList.contains('grp-team-cb')) {
+        var team = cb.getAttribute('data-team');
+        groupStateForSlot(slot)[team] = cb.checked;
+        syncCaCheckboxState(g, slot);
+      } else if (cb.classList.contains('grp-ca-cb')) {
+        var slotGroup = null;
+        g.slotCodes.forEach(function (sc) { if (sc.slotCode === slot) slotGroup = sc; });
+        if (slotGroup) {
+          var state = groupStateForSlot(slot);
+          slotGroup.teams.forEach(function (t) { state[t] = cb.checked; });
+          var grpEl = cb.closest('.grp');
+          if (grpEl) {
+            grpEl.querySelectorAll('.grp-team-cb').forEach(function (tcb) { tcb.checked = cb.checked; });
+          }
+        }
+      }
+      updateCreatePreview();
+    });
   }
 
   function loadTaskList() {
@@ -1315,12 +1468,12 @@
     if (BUSY) return;
     var input = {
       station: document.getElementById('fStation').value,
-      slotCode: multiVal('fSlotCode'),
-      team: multiVal('fTeam'),
+      slotCode: groupSelectedSlots(),
+      team: groupSelectedTeams(),
       date: document.getElementById('fDate').value
     };
     if (!input.station || !input.slotCode.length || !input.team.length) {
-      showToast('Vui lòng chọn đủ Station, Team và Ca', true);
+      showToast('Vui lòng chọn Station và tick ít nhất 1 Ca / Team', true);
       return;
     }
     BUSY = true;

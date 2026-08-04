@@ -5,7 +5,7 @@
 
 ## Tính năng
 
-- **Tạo task đối chiếu** — chọn Station / Ca (Slot Code) / Team qua popup modal; 1 task = 1 tổ hợp lọc từ danh sách nhân viên HR
+- **Tạo task đối chiếu** — modal cây nhóm 3 cấp Station → Ca (Slot Code) → Team với checkbox; 1 task = 1 station + nhiều Ca/Team lọc từ danh sách nhân viên HR
 - **Quét barcode đối chiếu** — quét mã NV (`Ops…`, case-insensitive), server phân loại:
   - Khớp NV trong task → **Có mặt**
   - Quét lại → reject **Đã điểm danh**
