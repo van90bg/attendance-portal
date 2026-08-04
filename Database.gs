@@ -544,7 +544,10 @@ function updateLogRowCache_(taskId, rowIndex, mutate) {
       if (rows[i]._rowIndex === rowIndex) { mutate(rows[i]); break; }
     }
     cache_().put(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
-  } catch (e) { console.warn('updateLogRowCache_ fail', taskId, e.message); }
+  } catch (e) {
+    console.warn('updateLogRowCache_ fail', taskId, e.message);
+    invalidateLogRows_(taskId); // force rebuild lần sau — tránh cache stale gây classify sai
+  }
 }
 
 /** Append dòng mới (quét lạ → Dư). */
