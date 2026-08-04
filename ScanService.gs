@@ -68,6 +68,10 @@ function scanStaff(taskId, rawStaffId) {
       const now = new Date();
       updateLogRowScan_(result.row, now, result.status);
       result.row.timeScan = now;
+      // P1 FIX: thiếu set timeScanEpoch trên row → computeCounters (đếm theo
+      // timeScanEpoch > 0) bỏ sót NV vừa quét → server trả counters thiếu →
+      // client sync về đè counters đúng → "Đã quét" tụt 1 sau ~3s.
+      result.row.timeScanEpoch = now.getTime();
       result.row.status = result.status;
       timeScanText = formatTime_(now);
       timeScanEpoch = now.getTime();  // sort key số — client sort chính xác theo epoch
