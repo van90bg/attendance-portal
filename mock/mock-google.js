@@ -124,7 +124,10 @@
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
       if (!task) return { ok: false, message: 'Không tìm thấy task', task: null, log: [] };
       var log = getLog(taskId);
-      return { ok: true, task: task, log: log, counters: counters(log) };
+      // Deep-copy khi trả client — optimistic client mutate CURRENT_LOG (status/epoch)
+      // KHÔNG được leak vào server-side mock state (giống prod: google.script.run serialize JSON).
+      // Nếu trả reference: mọi lần quét đầu tiên đều bị reject nhầm 'Đã điểm danh'.
+      return { ok: true, task: task, log: JSON.parse(JSON.stringify(log)), counters: counters(log) };
     },
     createReconcileTaskApi: function (input) {
       var taskId = 'R' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-0' + (MOCK_DATA.tasks.length + 1);
@@ -149,6 +152,10 @@
       if (hit) { hit.status = 'Có mặt'; hit.timeScanText = ts; hit.timeScanEpoch = nowMs; }
       else { log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '', timeRefText: '', timeScanText: ts, timeScanEpoch: nowMs, status: 'Dư' }); }
       return { ok: true, message: 'Có mặt', status: 'Có mặt', timeScanText: ts, timeScanEpoch: nowMs, staffName: hit ? hit.staffName : 'NV LẠ', counters: counters(log) };
+    },
+    reopenTaskApi: function (taskId) {
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'open'; });
+      return { ok: true, message: 'Đã mở lại task ' + taskId };
     },
     completeTaskApi: function (taskId) {
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'done'; });
