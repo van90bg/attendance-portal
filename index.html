@@ -376,6 +376,7 @@
     .badge.absent  { background: #fce8e6; color: var(--danger); }
     .badge.extra   { background: #fef7e0; color: var(--warning); }
     .badge.open    { background: #e8f0fe; color: var(--primary); }
+    .badge.attend { background: #e6f4ea; color: #1e7e34; }
     .badge.done    { background: #f0f1f3; color: var(--muted); }
 
     /* ===== Scan input ===== */
@@ -664,6 +665,7 @@
       .badge.absent  { background: var(--danger); color: #fff; }
       .badge.extra   { background: var(--warning); color: #fff; }
       .badge.open    { background: var(--primary); color: #fff; }
+      .badge.attend { background: #1e7e34; color: #fff; }
       .badge.done    { background: #000; color: #fff; }
       .counter { border-width: 2px; }
     }
@@ -876,6 +878,10 @@
         <div id="colDate" class="grp-tree" data-single="true"></div>
       </div>
     </div>
+    <label class="grp-item" style="margin:10px 0 0;gap:8px;align-items:center;font-size:13px;cursor:pointer;">
+      <input type="checkbox" id="chkNoList" onchange="onNoListChange()">
+      <span>Quét tự do (không danh sách) — mọi mã quét là NV lạ, quét 2 lần: Giờ có mặt → Giờ quét</span>
+    </label>
     <div id="createPreview" style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--card-radius);background:var(--surface-muted);font-size:12px;">
       <div id="createPreviewSummary" style="color:var(--muted);margin-bottom:4px;">Chưa chọn filter nào</div>
       <div id="createPreviewCount" style="font-weight:700;color:var(--amber);">Tick chọn Station / Team / Ca / Hình thức / Ngày để xem số lượng NV</div>
@@ -1140,6 +1146,14 @@
     if (aboutFocusBack && aboutFocusBack.focus) aboutFocusBack.focus();
     aboutFocusBack = null;
   }
+  function onNoListChange() {
+    var chk = document.getElementById('chkNoList');
+    SEL.noList = !!(chk && chk.checked);
+    var grp = document.getElementById('grpCols');
+    if (grp) grp.style.opacity = SEL.noList ? '.4' : '';
+    updateCreatePreview();
+  }
+
   function openCreateModal() {
     var m = document.getElementById('createModal');
     if (!m) return;
@@ -1300,6 +1314,10 @@
       if (date) parts.push('Ngày: ' + esc(date));
       sumEl.innerHTML = parts.length ? 'Đã chọn: <strong style="color:var(--amber)">' + parts.join('</strong> · <strong style="color:var(--amber)">') + '</strong>' : 'Chưa chọn filter nào';
     }
+    if (SEL.noList) {
+      cntEl.textContent = 'Quét tự do: KHÔNG cần danh sách — mọi mã quét sẽ là NV lạ (ghi Giờ có mặt rồi Giờ quét)';
+      return;
+    }
     if (!station || !slotCode.length || !team.length) {
       cntEl.textContent = 'Tick chọn Ca / Team / Hình thức / Ngày để xem số lượng NV';
       return;
@@ -1371,8 +1389,8 @@
     }, 200);
   }
   var STATION_GROUPS = [];   // từ server getFilterOptions.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
-  var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' };  // trạng thái tick hiện tại
-  function resetSel() { SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' }; }
+  var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false };  // trạng thái tick hiện tại
+  function resetSel() { SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false }; }
   // Contract server giữ nguyên: slotCode/team là mảng; station/date string.
   function groupSelectedSlots() { return SEL.slots.slice(); }
   function groupSelectedTeams() { return SEL.teams.slice(); }
@@ -1658,7 +1676,7 @@
     if (empty) empty.style.display = 'none';
     tasks.forEach(function (t, idx) {
       var tr = document.createElement('tr');
-      var statusBadge = t.status === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>' : '<span class="badge open">Mở</span>';
+      var statusBadge = t.status === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>' : (t.status === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>' : '<span class="badge open">Mở</span>');
       tr.innerHTML =
         '<td class="stt">' + (idx + 1) + '</td>' +
         '<td>' + esc(t.taskId) + '</td>' +
@@ -1683,13 +1701,15 @@
       slotCode: groupSelectedSlots(),
       team: groupSelectedTeams(),
       contractType: SEL.contractTypes,
-      date: SEL.date
+      date: SEL.date,
+      noList: SEL.noList
       // createdBy KHÔNG gửi — server lấy từ Session.getActiveUser() (P2-8)
     };
-    if (!input.station || !input.slotCode.length || !input.team.length) {
+    if (!input.noList && (!input.station || !input.slotCode.length || !input.team.length)) {
       showToast('Vui lòng chọn Station và tick ít nhất 1 Ca / Team', true);
       return;
     }
+    if (input.noList && !input.station) input.station = '';
     BUSY = true;
     var btn = document.getElementById('btnCreateSubmit');
     if (btn) btn.disabled = true;
@@ -1786,7 +1806,7 @@
     restoreScanCard(safeArr(data.log));
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
-    var canScan = data.task.status === TASK_STATUS_C.OPEN;
+    var canScan = data.task.phase !== TASK_STATUS_C.DONE;
     document.getElementById('scanInput').disabled = !canScan;
     document.getElementById('scanInput').placeholder = canScan ? 'Quét mã nhân viên…' : 'Task đã kết thúc';
     updateFinishBtnState();
@@ -1861,7 +1881,7 @@
     // đã kết thúc → "Vắng" (markUnscannedAbsent_ đã chốt trạng thái).
     var lbl = document.querySelector('.counter.absent .lbl');
     if (lbl) {
-      lbl.textContent = (!CURRENT_TASK || CURRENT_TASK.status === TASK_STATUS_C.OPEN) ? 'Chưa điểm danh' : 'Vắng';
+      lbl.textContent = (!CURRENT_TASK || CURRENT_TASK.phase !== TASK_STATUS_C.DONE) ? 'Chưa điểm danh' : 'Vắng';
     }
   }
 
@@ -2200,7 +2220,7 @@
     // inp.disabled = full (=false) enable lại input dù task đã đóng).
     var inp = document.getElementById('scanInput');
     if (inp) {
-      var taskDone = !CURRENT_TASK || CURRENT_TASK.status !== TASK_STATUS_C.OPEN;
+      var taskDone = !CURRENT_TASK || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
       inp.disabled = taskDone || full;
     }
   }

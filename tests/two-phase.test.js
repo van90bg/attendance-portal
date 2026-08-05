@@ -109,3 +109,36 @@ test('buildExtraRow: field=timeScan ghi timeScan, field=timeRef ghi timeRef', ()
   assert.equal(rRef.timeScan, null);
   assert.equal(rRef.timeScanEpoch, 0);
 });
+
+// ===== Nhánh "Quét tự do" (noList) — tạo task KHÔNG danh sách, quét 2 lần =====
+test('noList: createReconcileTask không cần group → log rỗng, status Mở', () => {
+  // Giả lập các dependency bằng stub nhẹ (TaskService dùng global GAS API).
+  // Vì TaskService require GAS, test này chỉ kiểm tra classifyScan behaviour cho
+  // task noList: task Mở + log rỗng → lần 1 append EXTRA(timeRef), lần 2 append EXTRA(timeScan).
+  const taskOpen = { taskId: 'R-NL', status: CFG.TASK_STATUS.OPEN };
+  const r1 = ScanLogic.classifyScan(CFG, taskOpen, [], 'OPS000777');
+  assert.equal(r1.action, 'append');
+  assert.equal(r1.phase, 'present');
+  assert.equal(r1.field, 'timeRef');
+  assert.equal(r1.status, CFG.STATUS.EXTRA);
+
+  const taskAttend = { taskId: 'R-NL', status: CFG.TASK_STATUS.ATTEND };
+  const r2 = ScanLogic.classifyScan(CFG, taskAttend, [], 'OPS000777');
+  assert.equal(r2.action, 'append');
+  assert.equal(r2.phase, 'attend');
+  assert.equal(r2.field, 'timeScan');
+  assert.equal(r2.status, CFG.STATUS.EXTRA);
+});
+
+test('noList: 2-phase cho NV lạ — phase1 rồi phase2 trên cùng 1 dòng', () => {
+  // Mô phỏng: sau quét lần 1 (timeRef), dòng đã có trong log, quét lần 2 ghi timeScan.
+  const row = makeRow({ staffId: 'OPS000777', timeRef: new Date('2026-08-02T07:00:00'), timeRefEpoch: 1783078800000, status: CFG.STATUS.EXTRA });
+  const taskAttend = { taskId: 'R-NL', status: CFG.TASK_STATUS.ATTEND };
+  // Khi NV lạ đã có Giờ có mặt (phase1) → quét lần 2 (phase2) ghi Giờ quét và
+  // chuyển status EXTRA → PRESENT (điểm danh xong). Behaviour này đúng cho cả
+  // roster lẫn noList: append phase1 = Dư, update phase2 = Có mặt.
+  const res = ScanLogic.classifyScan(CFG, taskAttend, [row], 'OPS000777');
+  assert.equal(res.action, 'update');
+  assert.equal(res.field, 'timeScan');
+  assert.equal(res.status, CFG.STATUS.PRESENT);
+});
