@@ -883,6 +883,8 @@
   var META = null;
   var CURRENT_TASK = null;
   var CURRENT_LOG = [];
+  // I4: guard array từ server — nếu API trả object/string (bug tương lai) thì .forEach crash white screen
+  function safeArr(x) { return Array.isArray(x) ? x : []; }
   var CURRENT_COUNTERS = null;  // state counters để optimistic cập nhật ngay
   var BUSY = false;
   var AUTO_FOCUS_TIMER = null;
@@ -1544,8 +1546,8 @@
     }
     google.script.run
       .withSuccessHandler(function (tasks) {
-        LAST_TASK_LIST = { tasks: tasks, ts: Date.now() };  // cập nhật cache
-        renderTaskList_(tasks);
+        LAST_TASK_LIST = { tasks: safeArr(tasks), ts: Date.now() };  // cập nhật cache
+        renderTaskList_(safeArr(tasks));
         hideLoadingOverlay();
         markServerOk();  // P2: RPC thành công → server sống lại → netDot hồi phục
         _releaseRefreshLock();  // P2: RPC xong → nhả lock refresh (nếu dở)
@@ -1693,7 +1695,7 @@
     var tbl = document.getElementById('scanTable');
     var empty = document.getElementById('scanEmpty');
     CURRENT_TASK = data.task;
-    CURRENT_LOG = data.log || [];
+    CURRENT_LOG = safeArr(data.log);
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
     var TT_LABEL = { reconcile: 'Đối chiếu' };
@@ -1702,9 +1704,9 @@
       (data.task.status === TASK_STATUS_C.DONE ? ' · <b>Đã kết thúc</b>' : ' · Đang mở');
     if (skel) skel.style.display = 'none';
     if (tbl) tbl.style.display = '';
-    renderScanTable(data.log);
+    renderScanTable(safeArr(data.log));
     // P1: task đã có scan → khôi phục scan card (không reset về "Chưa có")
-    restoreScanCard(data.log);
+    restoreScanCard(safeArr(data.log));
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
     var canScan = data.task.status === TASK_STATUS_C.OPEN;
@@ -1740,7 +1742,11 @@
     google.script.run
       .withSuccessHandler(function (res) {
         if (seq !== SCAN_LOAD_SEQ) return; // response của task cũ — bỏ qua
-        if (!res.ok) { if (!silent) { showToast(res.message, true); backToList(); } return; }
+        if (!res.ok) {
+          hideLoadingOverlay();  // I5: ẩn spinner ngay cả khi res.ok === false
+          if (!silent) { showToast(res.message, true); backToList(); }
+          return;
+        }
         renderScanView(res);
         LAST_SCAN_VIEW = { taskId: taskId, ts: Date.now() };
         hideLoadingOverlay();  // P2: load xong → ẩn spinner
@@ -1797,7 +1803,7 @@
     var q = SCAN_FILTER.q.trim().toLowerCase();
     var st = SCAN_FILTER.status;
     var out = [];
-    (log || []).forEach(function (r) {
+    safeArr(log).forEach(function (r) {
       if (st && r.status !== st) return;
       if (q) {
         var hay = (String(r.staffId || '') + ' ' + String(r.staffName || '')).toLowerCase();
