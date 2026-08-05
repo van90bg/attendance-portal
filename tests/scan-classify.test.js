@@ -8,8 +8,8 @@ const assert = require('node:assert/strict');
 const ScanLogic = require('../ScanLogic.gs');
 
 const CFG = {
-  STATUS: { PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
-  TASK_STATUS: { OPEN: 'open', DONE: 'done' },
+  STATUS: { PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư', PENDING: '-' },
+  TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
 };
 
 function makeRow(overrides) {
@@ -44,16 +44,17 @@ test('classifyScan: empty staffId → reject', () => {
   assert.equal(res.reason, 'empty-staff-id');
 });
 
-test('classifyScan: NV trong log + chưa quét → update PRESENT', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
+test('classifyScan (phase2): NV trong log + chưa quét → update PRESENT', () => {
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.ATTEND };
   const res = ScanLogic.classifyScan(CFG, task, [makeRow()], 'ops000001');
   assert.equal(res.action, 'update');
+  assert.equal(res.field, 'timeScan');
   assert.equal(res.status, CFG.STATUS.PRESENT);
   assert.equal(res.row.staffId, 'OPS000001');
 });
 
-test('classifyScan: NV trong log + đã quét → reject already-scanned', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
+test('classifyScan (phase2): NV trong log + đã quét → reject already-scanned', () => {
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.ATTEND };
   const scanned = makeRow({ timeScan: new Date('2026-08-02T07:45:00'), timeScanEpoch: 1783082700000, status: CFG.STATUS.PRESENT });
   const res = ScanLogic.classifyScan(CFG, task, [scanned], 'OPS000001');
   assert.equal(res.action, 'reject');
@@ -117,18 +118,20 @@ test('buildExtraRow: tạo dòng Dư với thông tin staff nếu có', () => {
     staffName: 'NhanVien Mau 099', slotCode: '13:00-22:00', station: 'HN2 SOC',
     team: 'Inbound', workstation: 'IBReceiving', cardIn: '12:00:00', cardOut: '',
   };
-  const row = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS000099', staffInfo, now);
+  const row = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS000099', staffInfo, now, 'timeScan');
   assert.equal(row.status, CFG.STATUS.EXTRA);
   assert.equal(row.staffName, 'NhanVien Mau 099');
   assert.equal(row.timeScan, now);
-  assert.equal(row.timeScanEpoch, now.getTime());  // simplify: append phải có epoch → counter scanned=1
+  assert.equal(row.timeScanEpoch, now.getTime());  // append phase2: timeScan epoch → counter scanned=1
   assert.equal(row.timeRef, null);
+  assert.equal(row.timeRefEpoch, 0);
   // computeCounters phải đếm NV vừa append là scanned=1 (không phải 0)
   const c = ScanLogic.computeCounters(CFG, [row]);
   assert.equal(c.scanned, 1);
+  assert.equal(c.presentAt, 0);
   assert.equal(c.extra, 1);
   // Không có staffInfo → các trường rỗng, không crash
-  const row2 = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS999999', null, now);
+  const row2 = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS999999', null, now, 'timeScan');
   assert.equal(row2.staffName, '');
   assert.equal(row2.status, CFG.STATUS.EXTRA);
 });
