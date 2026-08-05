@@ -205,19 +205,13 @@ function scanStaffApi(taskId, staffId) {
   return scanStaff(taskId, staffId);
 }
 
-/** Kết thúc task. Chỉ deployer. */
+/** Kết thúc task. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */
 function completeTaskApi(taskId) {
-  if (!isEditor_()) {
-    return { ok: false, message: 'Chỉ quản lý mới được kết thúc task' };
-  }
   return completeTask(taskId);
 }
 
-/** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). Chỉ deployer. */
+/** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). MỞ cho mọi nhân viên. */
 function reopenTaskApi(taskId) {
-  if (!isEditor_()) {
-    return { ok: false, message: 'Chỉ quản lý mới được mở lại task' };
-  }
   return reopenTask(taskId);
 }
 
