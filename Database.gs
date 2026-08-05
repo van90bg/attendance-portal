@@ -557,10 +557,47 @@ function appendLogRow_(row) {
     row.taskId, row.staffId, row.staffName, row.slotCode, row.station, row.team, row.workstation,
     row.timeRef || '', row.timeScan || '', row.status, row.date || '',
   ]);
-  // P2 FIX: KHONG xoa LOG_ROWS cache o day -- append xa cuoi sheet, khong anh huong
-  // index row cua cache hien tai. Xoa cache buoc scan ke sau phai getDataRange full
-  // sheet (pha incremental cache). Chi batchInsertLogRows_ (tao task) moi can invalidate.
+  // I3 FIX: chen dong moi vao LOG_ROWS cache (incremental) thay vi xoa.
+  // Neu khong, thiet bi 2 quet CUNG staffId la trong cua so TTL (30s) se cache-miss
+  // dong moi → classifyScan ra 'append' → ghi DONG 'Du' TRUNG LAP.
+  // Chen vao cache giu nguyen incremental (khong bat rebuild full sheet).
+  pushLogRowToCache_(row);
   invalidateTaskDetailCache_(row.taskId);
+}
+
+/**
+ * Chen 1 dòng mới vào LOG_ROWS cache (sau append) để thiết bị khác không đọc thiếu.
+ * Chỉ chạm cache NẾU đang có (cache hit) — miss thì dòng sau rebuild từ sheet.
+ * @param {Object} row — object dòng log (phải có taskId + _rowIndex)
+ */
+function pushLogRowToCache_(row) {
+  try {
+    const key = CACHE_KEYS.LOG_ROWS + row.taskId;
+    const cached = cache_().get(key);
+    if (cached === null) return; // miss — không xây cache trong luồng ghi
+    const rows = JSON.parse(cached);
+    // _rowIndex của dòng append = cuối sheet = max hiện tại + 1
+    let maxIdx = 0;
+    for (let i = 0; i < rows.length; i++) { if (rows[i]._rowIndex > maxIdx) maxIdx = rows[i]._rowIndex; }
+    const slim = {
+      taskId: row.taskId,
+      staffId: row.staffId,
+      staffName: row.staffName,
+      slotCode: row.slotCode,
+      station: row.station,
+      team: row.team,
+      timeScanText: row.timeScan ? formatTime_(row.timeScan) : '',
+      timeScanEpoch: row.timeScan ? row.timeScan.getTime() : 0,
+      status: row.status,
+      dateText: row.date || '',
+      _rowIndex: maxIdx + 1,
+    };
+    rows.push(slim);
+    cache_().put(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
+  } catch (e) {
+    console.warn('pushLogRowToCache_ fail', row && row.taskId, e.message);
+    invalidateLogRows_(row.taskId); // fail → xoá cache để lần sau rebuild đúng
+  }
 }
 
 /** Ghi đè toàn bộ StaffData từ dữ liệu csv đã parse (syncFromCsv). */
