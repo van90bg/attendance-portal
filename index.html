@@ -1286,11 +1286,11 @@
     // Summary động (v1): tổng hợp filter đã chọn — cập nhật NGAY (không đợi RPC)
     if (sumEl) {
       var parts = [];
-      if (station) parts.push('Station: ' + station);
+      if (station) parts.push('Station: ' + esc(station));
       if (slotCode.length) parts.push('Ca: ' + slotCode.length);
       if (team.length) parts.push('Team: ' + team.length);
       if (contractType.length) parts.push('Hình thức: ' + contractType.length);
-      if (date) parts.push('Ngày: ' + date);
+      if (date) parts.push('Ngày: ' + esc(date));
       sumEl.innerHTML = parts.length ? 'Đã chọn: <strong style="color:var(--amber)">' + parts.join('</strong> · <strong style="color:var(--amber)">') + '</strong>' : 'Chưa chọn filter nào';
     }
     if (!station || !slotCode.length || !team.length) {

@@ -165,14 +165,18 @@ function previewStaffCountsApi(input) {
   const staffList = readStaffList_();
   const base = (input && input.base) || {};
   const col = input && input.col;
-  const options = (input && input.options) || [];
+  // P2-5: guard Array.isArray — client có thể gửi sai kiểu (I4 sót server)
+  const options = Array.isArray(input && input.options) ? input.options : [];
+  const bSlot = Array.isArray(base.slotCode) ? base.slotCode : [];
+  const bTeam = Array.isArray(base.team) ? base.team : [];
+  const bContract = Array.isArray(base.contractType) ? base.contractType : [];
   const counts = {};
   options.forEach(function (opt) {
     const f = {
       station: base.station,
-      slotCode: (col === 'slot') ? [opt] : (base.slotCode || []),
-      team: (col === 'team') ? [opt] : (base.team || []),
-      contractType: (col === 'contract') ? [opt] : (base.contractType || []),
+      slotCode: (col === 'slot') ? [opt] : bSlot,
+      team: (col === 'team') ? [opt] : bTeam,
+      contractType: (col === 'contract') ? [opt] : bContract,
       date: (col === 'date') ? opt : base.date,
     };
     const filtered = filterStaffByGroup(staffList, f);
