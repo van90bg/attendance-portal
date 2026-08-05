@@ -185,11 +185,8 @@ function previewStaffCountsApi(input) {
   return { ok: true, counts: counts };
 }
 
-/** Tạo task đối chiếu + pre-fill. Chỉ deployer (máy cá nhân manager). */
+/** Tạo task đối chiếu + pre-fill. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */
 function createReconcileTaskApi(input) {
-  if (!isEditor_()) {
-    return { ok: false, taskId: null, count: 0, message: 'Chỉ quản lý mới được tạo task' };
-  }
   return createReconcileTask(input);
 }
 
