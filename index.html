@@ -216,30 +216,30 @@
     .grp-cols { display: flex; flex-direction: column; gap: 8px; }
     .grp-row { display: flex; flex-direction: column; gap: 3px; }
     .grp-row .grp-col-title {
-      font-weight: 600; font-size: 11px;
+      font-weight: 600; font-size: 13px;
       text-transform: uppercase; letter-spacing: .5px;
       color: var(--muted);
     }
     .grp-tree {
       display: grid; grid-template-columns: repeat(3, 1fr);
       align-content: start;
-      gap: 1px 6px;
+      gap: 2px 8px;
       border: 1px solid var(--border);
       border-radius: 6px;
       background: #fff;
-      padding: 4px;
+      padding: 6px;
     }
     .grp-tree > .grp-empty { grid-column: 1 / -1; }
     .grp-item {
-      display: flex; align-items: center; gap: 6px;
-      padding: 4px 8px; cursor: pointer;
-      font-size: 12px; border-radius: 4px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; cursor: pointer;
+      font-size: 14px; border-radius: 4px;
       user-select: none;
     }
     .grp-item:hover { background: #f1f3f4; }
     .grp-item.checked { background: #e8f0fe; }
     .grp-item input {
-      width: 14px; height: 14px;
+      width: 16px; height: 16px;
       accent-color: var(--primary); cursor: pointer;
       flex-shrink: 0;
     }
@@ -249,8 +249,8 @@
       background: #f8f9fa; border: 1px solid var(--border);
     }
     .grp-item.is-all:hover { background: #eef1f5; }
-    .grp-empty { padding: 8px; text-align: center; font-size: 11px; }
-    .opt-count { font-size: 10px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+    .grp-empty { padding: 8px; text-align: center; font-size: 13px; }
+    .opt-count { font-size: 12px; color: var(--muted); margin-left: 6px; font-weight: 500; font-variant-numeric: tabular-nums; }
     /* Kích thước modal CỐ ĐỊNH — nhỏ gọn nhất có thể */
     #createModal .about-dialog { width: 680px; max-width: 680px; padding: 16px; }
     @media (max-width: 719px) {
@@ -1257,6 +1257,8 @@
   function getOptCountKey(col, val) { return col + ':' + val; }
   function setOptCount(col, val, cnt) { _optCountCache[getOptCountKey(col, val)] = cnt; }
   function getOptCount(col, val) { return _optCountCache[getOptCountKey(col, val)]; }
+  // Đếm số NV cho từng option, CÓ tính ngữ cảnh các filter KHÁC đã chọn
+  // (vd: đã chọn Ca C1 → count Team A = NV(station + C1 + Team A)).
   function fetchOptCounts(col, options) {
     if (!SEL.station) return;
     var need = options.filter(function (v) { return getOptCount(col, v) === undefined; });
@@ -1264,11 +1266,13 @@
     clearTimeout(_optCountTimer);
     _optCountTimer = setTimeout(function () {
       var batch = need.slice(0, 20);
-      var params = { station: SEL.station };
-      if (col === 'team') params.team = batch;
-      else if (col === 'slot') params.slotCode = batch;
-      else if (col === 'contract') params.contractType = batch;
-      else if (col === 'date') params.date = batch;
+      var base = {
+        station: SEL.station,
+        slotCode: SEL.slots.slice(),
+        team: SEL.teams.slice(),
+        contractType: SEL.contractTypes.slice(),
+        date: SEL.date
+      };
       google.script.run
         .withSuccessHandler(function (res) {
           if (res && res.counts) {
@@ -1280,7 +1284,7 @@
           }
         })
         .withFailureHandler(function () {})
-        .previewStaffCountsApi(params);
+        .previewStaffCountsApi({ col: col, options: batch, base: base });
     }, 200);
   }
   var STATION_GROUPS = [];   // từ server getFilterOptions.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
@@ -1440,14 +1444,16 @@
           SEL.station = next;
           // cascade: đổi station → reset team/slot/date + render lại 3 cột phụ thuộc
           SEL.teams = []; SEL.slots = []; SEL.contractTypes = []; SEL.date = '';
+          clearOptCountCache();
           renderAllCols();
         }
       } else if (col === 'date') {
         // Date chọn 1: check cái mới → bỏ cái cũ (single-select)
         // FIX: KHÔNG reset contractTypes — user chọn Date không mất filter Hình thức
+        // Đếm lại TẤT CẢ cột theo ngữ cảnh mới (date ảnh hưởng count Team/Ca/Hình thức)
         SEL.date = cb.checked ? val : '';
-        renderColDate();
-        renderColContract();
+        clearOptCountCache();
+        renderAllCols();
       } else if (col === 'team' || col === 'slot' || col === 'contract') {
         var arr = (col === 'team') ? SEL.teams : (col === 'slot' ? SEL.slots : SEL.contractTypes);
         // "__ALL__" = tick tất cả / bỏ tất cả
@@ -1472,10 +1478,9 @@
         } else {
           toggleArr(arr, val, cb.checked);
         }
-        // render lại cột tương ứng để cập nhật "All" checkbox state
-        if (col === 'team') renderColTeam();
-        else if (col === 'slot') renderColSlot();
-        else if (col === 'contract') renderColContract();
+        // render lại TẤT CẢ cột để đếm lại count theo ngữ cảnh filter mới
+        clearOptCountCache();
+        renderAllCols();
       }
       updateCreatePreview();
     });

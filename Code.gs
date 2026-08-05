@@ -150,27 +150,28 @@ function previewStaffApi(input) {
 }
 
 /**
- * Đếm số NV khớp theo từng option riêng biệt cho modal tạo task (per-option counts).
- * Gửi batch option → trả map {option: count}.
- * @param {{station: string, team?: string[], slotCode?: string[], contractType?: string[], date?: string[]}} input
+ * Đếm số NV cho từng option trong 1 cột, CÓ tính ngữ cảnh các filter KHÁC đã chọn.
+ * Client gửi `base` = tổ hợp filter hiện tại (station/slotCode/team/contractType/date),
+ * `col` = cột đang đếm, `options` = danh sách option của cột đó.
+ * Count mỗi option = filter với base, nhưng cột `col` bị ghi đè bằng [option] duy nhất.
  * @returns {{ok: boolean, counts: Object<string, number>}}
  */
 function previewStaffCountsApi(input) {
   const staffList = readStaffList_();
-  const station = input && input.station;
+  const base = (input && input.base) || {};
+  const col = input && input.col;
+  const options = (input && input.options) || [];
   const counts = {};
-  const fields = ['team', 'slotCode', 'contractType', 'date'];
-  fields.forEach(function (field) {
-    const options = input && input[field];
-    if (!options || !options.length) return;
-    options.forEach(function (opt) {
-      const filterOpt = {};
-      filterOpt[field] = [opt];
-      if (station) filterOpt.station = station;
-      const filtered = filterStaffByGroup(staffList, filterOpt);
-      const deduped = dedupeStaffByGroup(filtered);
-      counts[opt] = deduped.length;
-    });
+  options.forEach(function (opt) {
+    const f = {
+      station: base.station,
+      slotCode: (col === 'slot') ? [opt] : (base.slotCode || []),
+      team: (col === 'team') ? [opt] : (base.team || []),
+      contractType: (col === 'contract') ? [opt] : (base.contractType || []),
+      date: (col === 'date') ? opt : base.date,
+    };
+    const filtered = filterStaffByGroup(staffList, f);
+    counts[opt] = dedupeStaffByGroup(filtered).length;
   });
   return { ok: true, counts: counts };
 }
