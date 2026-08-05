@@ -1250,6 +1250,9 @@
         var brand = document.getElementById('brandTitle');
         if (brand && meta.appTitle) brand.textContent = meta.appTitle;
         refreshAll();
+        // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
+        // khi quét đầu thay vì về sau. KHÔNG block UI — chỉ warm cache.
+        try { google.script.run.warmStaffCacheApi(); } catch (e) { /* ignore */ }
       })
       .withFailureHandler(function (err) {
         markServerFail();  // P2: RPC fail = server unreachable → netDot offline
@@ -1735,6 +1738,9 @@
           showToast(res.message + ' — ' + res.count + ' NV', false);
           loadTaskList();
           openScan(res.taskId);
+          // Fix #1: task Quét tự do vừa tạo → warm staffIndex ngay (fire-and-forget)
+          // để quét đầu đã có tên NV từ cache thay vì về sau.
+          if (input.noList) { try { google.script.run.warmStaffCacheApi(); } catch (e) {} }
         } else {
           showToast(res.message, true);
         }

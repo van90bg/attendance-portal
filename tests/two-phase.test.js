@@ -142,3 +142,24 @@ test('noList: 2-phase cho NV lạ — phase1 rồi phase2 trên cùng 1 dòng', 
   assert.equal(res.field, 'timeScan');
   assert.equal(res.status, CFG.STATUS.PRESENT);
 });
+
+// ===== Fix #3: noList QUÉT ĐẦU (phase1) phải ghi PENDING (Chưa điểm danh), KHÔNG Dư =====
+test('buildExtraRow: status truyền vào được giữ (mặc định EXTRA fallback)', () => {
+  const now = new Date('2026-08-02T08:00:00');
+  const rDef = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS1', null, now, 'timeRef');
+  assert.equal(rDef.status, CFG.STATUS.EXTRA);
+  const rPen = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS1', null, now, 'timeRef', CFG.STATUS.PENDING);
+  assert.equal(rPen.status, CFG.STATUS.PENDING);
+  const rPre = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS1', null, now, 'timeScan', CFG.STATUS.PRESENT);
+  assert.equal(rPre.status, CFG.STATUS.PRESENT);
+});
+
+test('noList phase1 append: classifyScan vẫn trả EXTRA (ScanService phải override PENDING)', () => {
+  // noList quét đầu (phase1, task OPEN) cho NV lạ → classifyScan trả append + EXTRA.
+  // Contract: ScanService override thành PENDING cho noList phase1 (chưa có Giờ quét).
+  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.OPEN };
+  const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
+  assert.equal(cls.action, 'append');
+  assert.equal(cls.status, CFG.STATUS.EXTRA); // classifyScan GIỮ EXTRA (contract cũ)
+});
+
