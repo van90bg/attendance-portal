@@ -250,9 +250,10 @@
     }
     .grp-item.is-all:hover { background: #eef1f5; }
     .grp-empty { padding: 8px; text-align: center; font-size: 11px; }
+    .opt-count { font-size: 10px; color: var(--muted); margin-left: 4px; font-weight: 400; }
     /* Kích thước modal CỐ ĐỊNH — nhỏ gọn nhất có thể */
-    #createModal .about-dialog { width: 560px; max-width: 560px; padding: 16px; }
-    @media (max-width: 599px) {
+    #createModal .about-dialog { width: 680px; max-width: 680px; padding: 16px; }
+    @media (max-width: 719px) {
       #createModal .about-dialog {
         width: 100vw; max-width: 100vw;
         height: 100vh; max-height: 100vh;
@@ -1235,11 +1236,11 @@
     var cntEl = document.getElementById('createPreviewCount');
     if (!cntEl) return;
     if (!station || !slotCode.length || !team.length) {
-      cntEl.textContent = 'Tick chọn Ca / Team để xem số lượng NV';
+      cntEl.textContent = 'Tick chọn Ca / Team / Hình thức / Ngày để xem số lượng NV';
       return;
     }
     clearTimeout(_previewTimer);
-    _previewTimer = setTimeout(function () {  // debounce 400ms — tranh spam RPC khi doi select lien tuc
+    _previewTimer = setTimeout(function () {  // debounce 200ms — nhanh hơn
       google.script.run
         .withSuccessHandler(function (res) {
           if (!res || !res.ok) { cntEl.textContent = 'Không tải được preview'; return; }
@@ -1247,9 +1248,41 @@
         })
         .withFailureHandler(function (err) { markServerFail(); cntEl.textContent = 'Lỗi preview: ' + err.message; })
         .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
-    }, 400);
+    }, 200);
   }
   // ===== Modal tạo task: 5 mục dọc — options 3 cột, có "All", hiển thị tất cả, KÍCH THƯỚC NHỎ NHẤT =====
+  var _optCountCache = {};
+  var _optCountTimer = null;
+  function clearOptCountCache() { _optCountCache = {}; }
+  function getOptCountKey(col, val) { return col + ':' + val; }
+  function setOptCount(col, val, cnt) { _optCountCache[getOptCountKey(col, val)] = cnt; }
+  function getOptCount(col, val) { return _optCountCache[getOptCountKey(col, val)]; }
+  function fetchOptCounts(col, options) {
+    if (!SEL.station) return;
+    var need = options.filter(function (v) { return getOptCount(col, v) === undefined; });
+    if (!need.length) return;
+    clearTimeout(_optCountTimer);
+    _optCountTimer = setTimeout(function () {
+      var batch = need.slice(0, 20);
+      var params = { station: SEL.station };
+      if (col === 'team') params.team = batch;
+      else if (col === 'slot') params.slotCode = batch;
+      else if (col === 'contract') params.contractType = batch;
+      else if (col === 'date') params.date = batch;
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res && res.counts) {
+            Object.keys(res.counts).forEach(function (k) { setOptCount(col, k, res.counts[k]); });
+            if (col === 'team') renderColTeam();
+            else if (col === 'slot') renderColSlot();
+            else if (col === 'contract') renderColContract();
+            else if (col === 'date') renderColDate();
+          }
+        })
+        .withFailureHandler(function () {})
+        .previewStaffCountsApi(params);
+    }, 200);
+  }
   var STATION_GROUPS = [];   // từ server getFilterOptions.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
   var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' };  // trạng thái tick hiện tại
   function resetSel() { SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '' }; }
@@ -1302,19 +1335,21 @@
     if (!teams.length) { el.innerHTML = '<div class="grp-empty muted">Không có Team</div>'; return; }
     var allChecked = teams.length > 0 && teams.every(function (t) { return SEL.teams.indexOf(t) !== -1; });
     var html = '';
-    // "All" checkbox đầu tiên
     html += '<label class="grp-item is-all' + (allChecked ? ' checked' : '') + '">'
       + '<input type="checkbox" data-col="team" data-val="__ALL__"' + (allChecked ? ' checked' : '') + '>'
       + 'Tất cả'
       + '</label>';
     teams.forEach(function (t) {
       var checked = SEL.teams.indexOf(t) !== -1;
+      var cnt = getOptCount('team', t);
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="team" data-val="' + escAttr(t) + '"' + (checked ? ' checked' : '') + '>'
-        + esc(t)
+        + esc(t) + cntHtml
         + '</label>';
     });
     el.innerHTML = html;
+    fetchOptCounts('team', teams);
   }
   function renderColSlot() {
     var el = document.getElementById('colSlot');
@@ -1325,19 +1360,21 @@
     var slots = g.slotCodes.map(function (sc) { return sc.slotCode; });
     var allChecked = slots.length > 0 && slots.every(function (s) { return SEL.slots.indexOf(s) !== -1; });
     var html = '';
-    // "All" checkbox đầu tiên
     html += '<label class="grp-item is-all' + (allChecked ? ' checked' : '') + '">'
       + '<input type="checkbox" data-col="slot" data-val="__ALL__"' + (allChecked ? ' checked' : '') + '>'
       + 'Tất cả'
       + '</label>';
     g.slotCodes.forEach(function (sc) {
       var checked = SEL.slots.indexOf(sc.slotCode) !== -1;
+      var cnt = getOptCount('slot', sc.slotCode);
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="slot" data-val="' + escAttr(sc.slotCode) + '"' + (checked ? ' checked' : '') + '>'
-        + esc(sc.slotCode)
+        + esc(sc.slotCode) + cntHtml
         + '</label>';
     });
     el.innerHTML = html;
+    fetchOptCounts('slot', slots);
   }
   function renderColContract() {
     var el = document.getElementById('colContract');
@@ -1347,19 +1384,21 @@
     if (!g || !g.contractTypes || !g.contractTypes.length) { el.innerHTML = '<div class="grp-empty muted">Không có Hình thức</div>'; return; }
     var allChecked = g.contractTypes.length > 0 && g.contractTypes.every(function (ct) { return SEL.contractTypes.indexOf(ct) !== -1; });
     var html = '';
-    // "All" checkbox đầu tiên
     html += '<label class="grp-item is-all' + (allChecked ? ' checked' : '') + '">'
       + '<input type="checkbox" data-col="contract" data-val="__ALL__"' + (allChecked ? ' checked' : '') + '>'
       + 'Tất cả'
       + '</label>';
     g.contractTypes.forEach(function (ct) {
       var checked = SEL.contractTypes.indexOf(ct) !== -1;
+      var cnt = getOptCount('contract', ct);
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="contract" data-val="' + escAttr(ct) + '"' + (checked ? ' checked' : '') + '>'
-        + esc(ct)
+        + esc(ct) + cntHtml
         + '</label>';
     });
     el.innerHTML = html;
+    fetchOptCounts('contract', g.contractTypes);
   }
   function renderColDate() {
     var el = document.getElementById('colDate');
@@ -1370,12 +1409,15 @@
     var html = '';
     g.dates.forEach(function (d) {
       var checked = SEL.date === d ? ' checked' : '';
+      var cnt = getOptCount('date', d);
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="date" data-val="' + escAttr(d) + '"' + checked + '>'
-        + esc(d)
+        + esc(d) + cntHtml
         + '</label>';
     });
     el.innerHTML = html;
+    fetchOptCounts('date', g.dates);
   }
   function toggleArr(arr, val, on) {
     var i = arr.indexOf(val);
@@ -1402,9 +1444,8 @@
         }
       } else if (col === 'date') {
         // Date chọn 1: check cái mới → bỏ cái cũ (single-select)
+        // FIX: KHÔNG reset contractTypes — user chọn Date không mất filter Hình thức
         SEL.date = cb.checked ? val : '';
-        SEL.contractTypes = [];
-        // R8: đổi date chỉ ảnh hưởng highlight cột date + reset contractTypes — không cần renderAllCols
         renderColDate();
         renderColContract();
       } else if (col === 'team' || col === 'slot' || col === 'contract') {

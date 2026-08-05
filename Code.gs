@@ -139,6 +139,7 @@ function previewStaffApi(input) {
     slotCode: input && input.slotCode,
     team: input && input.team,
     date: input && input.date,
+    contractType: input && input.contractType,
   });
   // Tái dùng dedupeStaffByGroup (đã test) — đảm bảo count preview khớp count tạo task thật.
   const deduped = dedupeStaffByGroup(filtered);
@@ -146,6 +147,32 @@ function previewStaffApi(input) {
     ok: true,
     count: deduped.length,  // chi tra count — khong gui sample (user bo hien thi 10 NV dau)
   };
+}
+
+/**
+ * Đếm số NV khớp theo từng option riêng biệt cho modal tạo task (per-option counts).
+ * Gửi batch option → trả map {option: count}.
+ * @param {{station: string, team?: string[], slotCode?: string[], contractType?: string[], date?: string[]}} input
+ * @returns {{ok: boolean, counts: Object<string, number>}}
+ */
+function previewStaffCountsApi(input) {
+  const staffList = readStaffList_();
+  const station = input && input.station;
+  const counts = {};
+  const fields = ['team', 'slotCode', 'contractType', 'date'];
+  fields.forEach(function (field) {
+    const options = input && input[field];
+    if (!options || !options.length) return;
+    options.forEach(function (opt) {
+      const filterOpt = {};
+      filterOpt[field] = [opt];
+      if (station) filterOpt.station = station;
+      const filtered = filterStaffByGroup(staffList, filterOpt);
+      const deduped = dedupeStaffByGroup(filtered);
+      counts[opt] = deduped.length;
+    });
+  });
+  return { ok: true, counts: counts };
 }
 
 /** Tạo task đối chiếu + pre-fill. */
