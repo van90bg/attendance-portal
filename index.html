@@ -1264,6 +1264,7 @@
         STATION_GROUPS = res.stationGroups || [];
         var canCreate = STATION_GROUPS.length > 0;
         document.getElementById('btnCreate').disabled = !canCreate;
+        clearOptCountCache();  // P3-14: data mới → badge count cũ không còn đúng
         renderAllCols();  // refresh 4 cột khi data mới về (nếu modal đang mở)
         markServerOk();  // RPC success → server sống lại (netDot hồi phục — phủ cả trường hợp chỉ load options)
         _releaseRefreshLock();
@@ -1528,6 +1529,11 @@
         // FIX: KHÔNG reset contractTypes — user chọn Date không mất filter Hình thức
         // Chỉ cập nhật count các cột (badge), KHÔNG rebuild cột (tránh nháy)
         SEL.date = cb.checked ? val : '';
+        // P2-4: uncheck các checkbox Date khác trong DOM (chỉ 1 được chọn)
+        var dateBoxes = document.querySelectorAll('#colDate input[type=checkbox]');
+        dateBoxes.forEach(function (db) {
+          if (db.getAttribute('data-val') !== val) db.checked = false;
+        });
         clearOptCountCache();
         fetchOptCounts('team', stationTeams());
         var gdt = stationData();
@@ -1563,6 +1569,14 @@
           else if (col === 'contract') renderColContract();
         } else {
           toggleArr(arr, val, cb.checked);
+          // P3-13: nếu mọi option đã chọn → tick "Tất cả" trong DOM (không rebuild cột)
+          var allCb = e.target.closest('.grp-tree').querySelector('input[data-val="__ALL__"]');
+          if (allCb) {
+            var others = e.target.closest('.grp-tree').querySelectorAll('.grp-item:not(.is-all) input[type=checkbox]');
+            var allOn = others.length > 0;
+            others.forEach(function (o) { if (!o.checked) allOn = false; });
+            allCb.checked = allOn;
+          }
         }
         // Chỉ cập nhật count các cột (badge), KHÔNG rebuild cột (tránh nháy).
         // Cột vừa tick đã có checkbox checked sẵn từ click; chỉ cần đếm lại count.
