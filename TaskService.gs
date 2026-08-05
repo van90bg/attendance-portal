@@ -26,6 +26,10 @@ function makeTaskId_(now) {
  */
 function createReconcileTask(input) {
   const station = String((input && input.station) || '').trim();
+  // noList: quét tự do KHÔNG danh sách (luồng vận hành quét 2 lần không cần roster).
+  // Khi bật, bỏ qua validate group + KHÔNG pre-fill log → mọi quét là Dư (phase1 ghi
+  // Giờ có mặt, phase2 ghi Giờ quét). Task vẫn Mở (phase1) như bình thường.
+  const noList = !!(input && input.noList);
   // Multi-select: slotCode/team có thể là mảng (từ modal) — task sheet chỉ có 1 cột,
   // nối ", " để lưu hiển thị; filter vẫn dùng mảng gốc (dòng NV khớp BẤT KỲ team/slot chọn).
   const slotCode = Array.isArray(input && input.slotCode)
@@ -46,20 +50,26 @@ function createReconcileTask(input) {
   let createdBy = 'web';
   try { createdBy = Session.getActiveUser().getEmail() || 'web'; } catch (e) { createdBy = 'web'; }
 
-  if (!station || !filterSlots.length || !filterTeams.length) {
+  // noList: bỏ qua validate group (không cần roster). Station vẫn optional (để trống
+  // → 'Tự do'). Các filter khác (slot/team/contract/date) bỏ qua hoàn toàn.
+  if (!noList && (!station || !filterSlots.length || !filterTeams.length)) {
     return { ok: false, taskId: null, count: 0, message: 'Thiếu station/slotCode/team' };
   }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const staffList = filterStaffByGroup(readStaffList_(), { station: station, slotCode: filterSlots, team: filterTeams, contractType: filterContractTypes, date: date });
-    // P1: Att.csv thật có NV 2 dòng trong CÙNG tổ hợp → dedupe theo staffId (giữ dòng đầu).
-    // Nếu không: log 2 dòng cùng staffId → phantom absent khi kết thúc + row-key client lệch.
-    const deduped = dedupeStaffByGroup(staffList);
-
-    if (!deduped.length) {
-      return { ok: false, taskId: null, count: 0, message: UI_LABELS.CREATE_FAILED_EMPTY };
+    // noList: KHÔNG đọc StaffData, log rỗng — mọi quét sau là Dư (phase1 Giờ có mặt,
+    // phase2 Giờ quét). Dùng trực tiếp staffList rỗng để skip filter + dedupe + guard.
+    let deduped = [];
+    if (!noList) {
+      const staffList = filterStaffByGroup(readStaffList_(), { station: station, slotCode: filterSlots, team: filterTeams, contractType: filterContractTypes, date: date });
+      // P1: Att.csv thật có NV 2 dòng trong CÙNG tổ hợp → dedupe theo staffId (giữ dòng đầu).
+      // Nếu không: log 2 dòng cùng staffId → phantom absent khi kết thúc + row-key client lệch.
+      deduped = dedupeStaffByGroup(staffList);
+      if (!deduped.length) {
+        return { ok: false, taskId: null, count: 0, message: UI_LABELS.CREATE_FAILED_EMPTY };
+      }
     }
 
     const now = new Date();
@@ -74,7 +84,7 @@ function createReconcileTask(input) {
     const task = {
       taskId: taskId,
       taskType: TASK_TYPE.RECONCILE,
-      station: station,
+      station: noList ? (station || 'Tự do') : station,
       slotCode: slotCode,
       team: team,
       contractType: contractType,
@@ -86,9 +96,9 @@ function createReconcileTask(input) {
     insertTask_(task);
     // TIME_REF = Giờ có mặt (breaking 2026-08-05): pre-fill ghi ngay giờ tạo task
     // cho mọi NV trong list. Khác v1 (pre-fill time = taskCreated rỗng).
-    const count = batchInsertLogRows_(taskId, deduped, now);
+    const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
 
-    return { ok: true, taskId: taskId, count: count, message: 'Tạo task thành công: ' + taskId };
+    return { ok: true, taskId: taskId, count: count, message: 'Tạo task' + (noList ? ' quét tự do' : '') + ' thành công: ' + taskId };
   } finally {
     lock.releaseLock();
   }
