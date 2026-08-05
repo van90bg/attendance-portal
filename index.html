@@ -1814,6 +1814,10 @@
         if (!res.ok) {
           hideLoadingOverlay();  // I5: ẩn spinner ngay cả khi res.ok === false
           if (!silent) { showToast(res.message, true); backToList(); }
+          else {
+            // P3-12: silent fail (finishTask) → render lại view tươi (không kẹt UI OPEN)
+            loadTaskDetail(taskId);
+          }
           return;
         }
         renderScanView(res);

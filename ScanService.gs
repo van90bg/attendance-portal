@@ -77,15 +77,28 @@ function scanStaff(taskId, rawStaffId) {
       timeScanEpoch = now.getTime();  // sort key số — client sort chính xác theo epoch
       scannedName = result.row.staffName || null;
     } else if (result.action === 'append') {
+      // P2-6: re-check cache (có thể kiosk khác vừa push dòng này trong lock) trước khi append
+      // → tránh Dư TRÙNG LẶP khi 2 kiosk quét CÙNG staffId lạ trong cửa sổ cache TTL.
+      const freshRows = readLogRowsCached_(taskId);
+      const existing = findLogRow(freshRows, staffId);
       const now = new Date();
-      // F1: đọc staffIndex CHỈ ở đây (append) — lazy thay vì mỗi scan
-      const staffInfo = (readStaffIndex_())[staffId] || null;
-      const extraRow = buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
-      appendLogRow_(extraRow);
-      logRows.push(extraRow);
-      timeScanText = formatTime_(now);
-      timeScanEpoch = now.getTime();
-      scannedName = extraRow.staffName || null;
+      if (existing) {
+        // Đã có (race) → coi như đã append, KHÔNG append nữa (tránh duplicate).
+        const status = existing.status || STATUS.EXTRA;
+        timeScanText = existing.timeScanText || formatTime_(now);
+        timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
+        scannedName = existing.staffName || null;
+        result.status = status;
+      } else {
+        // F1: đọc staffIndex CHỈ ở đây (append) — lazy thay vì mỗi scan
+        const staffInfo = (readStaffIndex_())[staffId] || null;
+        const extraRow = buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
+        appendLogRow_(extraRow);
+        logRows.push(extraRow);
+        timeScanText = formatTime_(now);
+        timeScanEpoch = now.getTime();
+        scannedName = extraRow.staffName || null;
+      }
     }
 
     const counters = computeCounters({ STATUS: STATUS }, logRows);
