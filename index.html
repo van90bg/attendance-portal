@@ -445,12 +445,14 @@
     .scan-card.ok { border-color: var(--success); background: var(--card-ok-bg); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
     .scan-card.err { border-color: var(--danger); background: var(--card-err-bg); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
     .scan-card.extra { border-color: var(--warning); background: var(--card-extra-bg); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
+    .scan-card.warn { border-color: var(--warning); background: var(--card-extra-bg); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
     .scan-card .sc-status {
       font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted);
     }
     .scan-card.ok .sc-status { color: var(--success); }
     .scan-card.err .sc-status { color: var(--danger); }
     .scan-card.extra .sc-status { color: var(--warning); }
+    .scan-card.warn .sc-status { color: var(--warning); }
     .scan-card .sc-name { font-size: 30px; font-weight: 800; line-height: 1.25; margin-top: 2px; }
     .scan-card .sc-meta { font-size: 14px; color: var(--muted); margin-top: 4px; }
     .scan-card .sc-empty { color: var(--muted); font-size: 14px; }
@@ -929,6 +931,8 @@
   var STATUS_C = { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' };
   // Task status — khớp TASK_STATUS trong Config.gs (3 trạng thái 2-phase)
   var TASK_STATUS_C = { OPEN: 'open', ATTEND: 'attend', DONE: 'done' };
+  // Task type — khớp TASK_TYPE trong Config.gs (phân biệt quét tự do / đối chiếu)
+  var TASK_TYPE_C = { RECONCILE: 'reconcile', FREE: 'free' };
   // Phase label tiếng Việt cho task status
   var TASK_PHASE_LABEL = {
     open: 'Mở', attend: 'Điểm danh', done: 'Xong',
@@ -1808,6 +1812,12 @@
     var tbl = document.getElementById('scanTable');
     var empty = document.getElementById('scanEmpty');
     CURRENT_TASK = data.task;
+    // Server không trả field phase (function closure không serialize được) — tính lại
+    // từ status ở client để tránh lỗi "unidentified" khi cache miss.
+    if (CURRENT_TASK && !CURRENT_TASK.phase) {
+      CURRENT_TASK.phase = CURRENT_TASK.status === TASK_STATUS_C.ATTEND ? 'attend'
+        : (CURRENT_TASK.status === TASK_STATUS_C.DONE ? 'done' : 'open');
+    }
     CURRENT_LOG = safeArr(data.log);
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
@@ -2116,7 +2126,7 @@
     if (!/^ops/i.test(staffId)) {
       showToast('Mã phải bắt đầu bằng "Ops"', true);
       playBeep('error');
-      showScanCard('Sai mã', { staffId: staffId }, true);
+      showScanCard('Sai mã', { staffId: staffId }, 'err');
       input.value = '';
       input.focus();
       return;
@@ -2141,14 +2151,14 @@
         if (Number(target.timeScanEpoch) > 0) {
           showToast('Đã điểm danh', true);
           playBeep('error');
-          showScanCard('Đã điểm danh', target, true);
+          showScanCard('Đã điểm danh', target, 'warn');
           return;
         }
       } else {
         if (Number(target.timeRefEpoch) > 0) {
           showToast('Đã có mặt', true);
           playBeep('error');
-          showScanCard('Đã có mặt', target, true);
+          showScanCard('Đã có mặt', target, 'warn');
           return;
         }
       }
@@ -2181,20 +2191,37 @@
       }
     } else {
       item.optimisticNew = true;
-      // NV lạ → dòng tạm status Dư (khớp server EXTRA)
+      // NV lạ → dòng tạm. Status optimistic phải khớp server:
+      // - Quét tự do (FREE): PENDING (phase1) / PRESENT (phase2) — KHÔNG Dư.
+      // - Đối chiếu (RECONCILE): EXTRA (Dư) — NV lạ ngoài danh sách.
+      // (Fix 2026-08-06: trước đây hardcode EXTRA → free task hiện "Dư" 3-4s rồi mới sửa.)
+      var isFree = CURRENT_TASK && CURRENT_TASK.taskType === TASK_TYPE_C.FREE;
+      var optimisticStatusNew = isFree
+        ? (phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING)
+        : STATUS_C.EXTRA;
       target = { staffId: staffId, staffName: '…', slotCode: '', station: '', team: '',
                  timeRefText: phase2 ? '' : fmtDate(now), timeRefEpoch: phase2 ? 0 : now.getTime(),
                  timeScanText: phase2 ? fmtDate(now) : '', timeScanEpoch: phase2 ? now.getTime() : 0,
-                 status: STATUS_C.EXTRA };
+                 status: optimisticStatusNew };
       item.target = target;
+      item.optimisticStatus = optimisticStatusNew;
       CURRENT_LOG.push(target);
     }
     item.scanSeq = ++SCAN_CARD_SEQ;  // P2: đánh dấu lượt quét này là mới nhất — response cũ không đè card
     // Toast optimistic — hiện ĐÚNG trạng thái; server KHÔNG toast lại nếu trùng
-    item.optimisticStatus = item.optimisticNew ? STATUS_C.EXTRA : (phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING);
+    // (tránh lặp/nháy). NV lạ (optimisticNew) đã có status đúng theo free/reconcile ở trên.
+    if (!item.optimisticNew) {
+      item.optimisticStatus = phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING;
+    }
+    // Toast optimistic: NV lạ (chưa có tên) hiện mã NV thay vì dấu '-' (PENDING) gây
+    // hiểu lầm "trống". Server sẽ toast lại status thật nếu khác.
+    var toastMsg = (item.optimisticNew && !target.staffName) ? staffId : item.optimisticStatus;
     playBeep('scan');
-    showToast(item.optimisticStatus, false);
-    showScanCard(item.optimisticStatus, target, false);
+    showToast(toastMsg, false);
+    // optimistic: NV lạ free=PENDING (warn-ish) nhưng chưa confirm → dùng 'ok' tạm,
+    // server sẽ confirm đúng mode sau.
+    var optMode = item.optimisticStatus === STATUS_C.EXTRA ? 'extra' : 'ok';
+    showScanCard(item.optimisticStatus, target, optMode);
     // ---- Optimistic counters: recount NGAY từ CURRENT_LOG (đã mutate/push) — khớp
     // server computeCounters; server sẽ trả giá trị chuẩn sau. ----
     recountFromLog();
@@ -2314,7 +2341,10 @@
           // Scan card: làm mới từ server (lấy tên NV thật cho NV lạ) — CHỈ nếu
           // lượt quét này vẫn là mới nhất (item.scanSeq === SCAN_CARD_SEQ) — nếu
           // user đã quét NV khác khi response đang bay, không để card nhảy về cũ.
-          if (res.status && item.scanSeq === SCAN_CARD_SEQ) showScanCard(res.status, item.target, false);
+          if (res.status && item.scanSeq === SCAN_CARD_SEQ) {
+            var srvMode = res.status === STATUS_C.EXTRA ? 'extra' : 'ok';
+            showScanCard(res.status, item.target, srvMode);
+          }
         } else {
           rollback();
           playBeep('error');
@@ -2385,13 +2415,22 @@
         showToast(res.message, !res.ok);
         if (res.ok) {
           invalidateClientCaches_();
-          // Cập nhật task hiện tại thành phase2, render lại view (hiện nút Kết thúc).
+          // Cập nhật task hiện tại thành phase2 TỨC THÌ (không reload detail — tránh
+          // chờ 2-3s đọc full sheet). Chỉ re-render button + hint phase.
           if (CURRENT_TASK && CURRENT_TASK.taskId === taskId) {
             CURRENT_TASK.phase = TASK_STATUS_C.ATTEND;
             CURRENT_TASK.status = TASK_STATUS_C.ATTEND;
+            var metaEl = document.getElementById('scanTaskMeta');
+            if (metaEl) {
+              var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
+              var phaseHint = ' (ghi Giờ quét)';
+              metaEl.innerHTML =
+                esc(TT_LABEL[CURRENT_TASK.taskType] || 'Task') + ' · ' + esc(CURRENT_TASK.station) + ' · ' +
+                esc(CURRENT_TASK.slotCode) + ' · ' + esc(CURRENT_TASK.team) + ' · <b>Điểm danh</b>' + phaseHint;
+            }
             updateFinishBtnState();
+            document.getElementById('scanInput').focus();
           }
-          loadTaskDetail(taskId, true);
         }
       })
       .withFailureHandler(function (err) {
@@ -2451,14 +2490,15 @@
       (target.slotCode ? ' · Ca: ' + esc(target.slotCode) : '') +
       (target.team ? ' · ' + esc(target.team) : '') + '</div>';
   }
-  function showScanCard(status, target, isError) {
+  // mode: 'ok' (xanh) | 'extra' (cam - Dư) | 'warn' (cam - đã điểm danh/đã có mặt) | 'err' (đỏ)
+  function showScanCard(status, target, mode) {
     var card = document.getElementById('scanCard');
     if (!card) return;
     if (!target) { resetScanCard(); return; }
-    // C2: 3 trạng thái — Dư = amber (cảnh báo, không phải lỗi), lỗi = đỏ, ok = xanh
-    var cls = isError ? 'err' : (status === STATUS_C.EXTRA ? 'extra' : 'ok');
+    // C2: Dư = cam (extra), đã điểm danh/đã có mặt = cam (warn, không phải lỗi), lỗi = đỏ, ok = xanh.
+    var cls = (mode === 'err') ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok'));
     card.className = 'scan-card ' + cls;
-    card.innerHTML = scanCardHTML(isError ? 'Lỗi' : status, target);
+    card.innerHTML = scanCardHTML(status, target);
   }
 
   function resetScanCard() {

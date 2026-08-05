@@ -101,8 +101,8 @@ function scanStaff(taskId, rawStaffId) {
       if (!existing) {
         try { staffInfo = (readStaffIndex_())[staffId] || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffInfo = null; }
       }
-      // LUÔN define extraRow (tránh ReferenceError "extraRow is not defined" khi quét Dư có race).
-      const extraRow = existing ? {
+      // Gán (không khai báo lại) — extraRow đã hoist lên scope hàm để return đọc được.
+      extraRow = existing ? {
         slotCode: existing.slotCode || '',
         station: existing.station || '',
         team: existing.team || '',
@@ -134,7 +134,9 @@ function scanStaff(taskId, rawStaffId) {
           timeRefEpoch = now.getTime();
         }
         scannedName = extraRow.staffName || null;
-        result.status = STATUS.EXTRA;
+        // KHÔNG hardcode EXTRA ở đây — result.status đã do classifyScan trả đúng
+        // (free task = PENDING/PRESENT, roster lạ = EXTRA). Hardcode sẽ ghi nhầm "Dư"
+        // cho quét tự do (Fix 2026-08-05).
       }
     }
 

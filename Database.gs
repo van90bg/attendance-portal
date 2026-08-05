@@ -439,10 +439,11 @@ function readTaskDetailCached_(taskId) {
     if (!task) return null;
     const log = readLogRows_(taskId);
     const counters = computeCounters({ STATUS: STATUS }, log);
-    // P3: strip _rowIndex khỏi cache — rowIndex chỉ dùng khi GHI (updateLogRowScan_/
-    // updateTaskStatus_ luôn đọc tươi qua readLogRows_/readTask_, không qua cache).
-    // Cache giữ _rowIndex → stale nếu log/task bị xóa/chèn giữa chừng.
+    // P3: strip _rowIndex + phase khỏi cache — rowIndex chỉ dùng khi GHI; phase là
+    // function closure (taskFromRow_) → JSON.stringify crash (throw "undefined") khi
+    // cache miss → client bắt lỗi "unidentified". Client tính phase lại từ status.
     delete task._rowIndex;
+    delete task.phase;
     log.forEach(function (r) { delete r._rowIndex; });
     return { task: task, log: log, counters: counters };
   }, CACHE_TTL.TASK_DETAIL);
