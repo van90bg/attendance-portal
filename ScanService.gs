@@ -82,32 +82,32 @@ function scanStaff(taskId, rawStaffId) {
       let existing = null;
       try { existing = findLogRow(readLogRowsCached_(taskId), staffId); } catch (e) { console.warn('recheck cache fail', e.message); }
       const now = new Date();
+      // Đọc staffIndex CHỈ khi thực sự cần append (lazy). G: wrap try/catch — nếu
+      // StaffData lỗi vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi".
+      let staffInfo = null;
+      if (!existing) {
+        try { staffInfo = (readStaffIndex_())[staffId] || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffInfo = null; }
+      }
+      // LUÔN define extraRow (tránh ReferenceError "extraRow is not defined" khi quét Dư có race).
+      const extraRow = existing ? {
+        slotCode: existing.slotCode || '',
+        station: existing.station || '',
+        team: existing.team || '',
+        workstation: existing.workstation || '',
+      } : buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
       if (existing) {
         // Đã có (race) → coi như đã append, KHÔNG append nữa (tránh duplicate).
-        const status = existing.status || STATUS.EXTRA;
         timeScanText = existing.timeScanText || formatTime_(now);
         timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
         scannedName = existing.staffName || null;
-        result.status = status;
-        // G2 FIX: return ở dưới đọc extraRow.slotCode/station/team → phải define
-        // extraRow trong mọi nhánh append (không thì ReferenceError "extraRow is not defined").
-        var extraRow = {
-          slotCode: existing.slotCode || '',
-          station: existing.station || '',
-          team: existing.team || '',
-          workstation: existing.workstation || '',
-        };
+        result.status = existing.status || STATUS.EXTRA;
       } else {
-        // F1: đọc staffIndex CHỈ ở đây (append) — lazy thay vì mỗi scan
-        // G: wrap try/catch — nếu StaffData lỗi/throw, vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi"
-        let staffInfo = null;
-        try { staffInfo = (readStaffIndex_())[staffId] || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffInfo = null; }
-        const extraRow = buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
         appendLogRow_(extraRow);
         logRows.push(extraRow);
         timeScanText = formatTime_(now);
         timeScanEpoch = now.getTime();
         scannedName = extraRow.staffName || null;
+        result.status = STATUS.EXTRA;
       }
     }
 
@@ -124,10 +124,10 @@ function scanStaff(taskId, rawStaffId) {
       timeScanText: timeScanText,
       timeScanEpoch: timeScanEpoch,
       staffName: scannedName,
-      slotCode: result.action === 'append' ? extraRow.slotCode : (result.row && result.row.slotCode) || '',
-      station: result.action === 'append' ? extraRow.station : (result.row && result.row.station) || '',
-      team: result.action === 'append' ? extraRow.team : (result.row && result.row.team) || '',
-      workstation: result.action === 'append' ? extraRow.workstation : (result.row && result.row.workstation) || '',
+      slotCode: (result.action === 'append' ? extraRow.slotCode : (result.row && result.row.slotCode)) || '',
+      station: (result.action === 'append' ? extraRow.station : (result.row && result.row.station)) || '',
+      team: (result.action === 'append' ? extraRow.team : (result.row && result.row.team)) || '',
+      workstation: (result.action === 'append' ? extraRow.workstation : (result.row && result.row.workstation)) || '',
       counters: counters,
     };
   } finally {
