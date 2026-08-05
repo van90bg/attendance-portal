@@ -1677,8 +1677,8 @@
       slotCode: groupSelectedSlots(),
       team: groupSelectedTeams(),
       contractType: SEL.contractTypes,
-      date: SEL.date,
-      createdBy: (META && META.userEmail) || ''
+      date: SEL.date
+      // createdBy KHÔNG gửi — server lấy từ Session.getActiveUser() (P2-8)
     };
     if (!input.station || !input.slotCode.length || !input.team.length) {
       showToast('Vui lòng chọn Station và tick ít nhất 1 Ca / Team', true);
