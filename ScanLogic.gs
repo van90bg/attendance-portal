@@ -113,9 +113,12 @@ function computeCounters(cfg, logRows) {
  * @param {Object|null} staffInfo — từ staffIndex (có thể null nếu không tìm thấy)
  * @param {Date} now
  * @param {string} field — 'timeRef' (phase1: Giờ có mặt) | 'timeScan' (phase2: Giờ quét)
+ * @param {string} status — status ghi cho dòng (mặc định EXTRA để roster lạ = Dư).
+ *   noList QUÉT ĐẦU (phase1) truyền PENDING (Chưa điểm danh) — NV lạ chưa có
+ *   Giờ quét nên KHÔNG gán Dư; chỉ phase2 (có Giờ quét) mới PRESENT. (Fix #3)
  * @returns {Object} row theo LOG_COLS
  */
-function buildExtraRow(cfg, taskId, staffId, staffInfo, now, field) {
+function buildExtraRow(cfg, taskId, staffId, staffInfo, now, field, status) {
   var timeRef = null, timeScan = null, timeRefEpoch = 0, timeScanEpoch = 0;
   if (field === 'timeScan') {
     timeScan = now; timeScanEpoch = now ? now.getTime() : 0;
@@ -137,7 +140,9 @@ function buildExtraRow(cfg, taskId, staffId, staffInfo, now, field) {
     // append phase2 cũng phải set timeScanEpoch (nguồn sự thật counters/sort).
     timeScanEpoch: timeScanEpoch,
     date: '',  // NV quét lạ không có trong StaffData → không có ngày vào làm
-    status: cfg.STATUS.EXTRA,
+    // status do caller truyền (mặc định EXTRA giữ behaviour roster lạ = Dư);
+    // noList quét đầu (phase1) truyền PENDING — Fix #3.
+    status: status || cfg.STATUS.EXTRA,
   };
 }
 

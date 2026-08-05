@@ -220,6 +220,18 @@ function reopenTaskApi(taskId) {
   return reopenTask(taskId);
 }
 
+/** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ
+ *  hiện NGAY khi quét đầu thay vì về sau mới có (do StaffData index bị lazy + cache 5p).
+ *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn kiosk. */
+function warmStaffCacheApi() {
+  try {
+    readStaffIndex_(); // gây cache (nếu chưa có) — các scan kế đọc từ cache, trả tên tức thì
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'warm failed' };
+  }
+}
+
 /**
  * Gate editor-only — chỉ thao tác QUẢN LÝ (tạo/kết thúc/mở lại task + debug/sync/setup).
  * Deploy "Execute as: User accessing the web app" → getEffectiveUser() = user đó

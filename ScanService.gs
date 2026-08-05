@@ -120,6 +120,10 @@ function scanStaff(taskId, rawStaffId) {
         scannedName = existing.staffName || null;
         result.status = existing.status || STATUS.EXTRA;
       } else {
+        // status ghi phải theo classifyScan trả (result.status) — KHÔNG hardcode EXTRA.
+        // noList quét đầu (phase1) = PENDING (Chưa điểm danh), phase2 = PRESENT.
+        // Fix #3: buildExtraRow giờ nhận status param (mặc định EXTRA).
+        extraRow.status = result.status || STATUS.EXTRA;
         appendLogRow_(extraRow);
         logRows.push(extraRow);
         if (field === 'timeScan') {
