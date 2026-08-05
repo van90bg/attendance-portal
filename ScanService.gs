@@ -26,6 +26,9 @@ function scanStaff(taskId, rawStaffId) {
       counters: { scanned: 0, absent: 0, extra: 0, total: 0 },
     };
   }
+  // DEFENSE: bọc toàn bộ logic trong try/catch — bất kỳ lỗi nào (kể cả
+  // ReferenceError extraRow) trả ok:false thay vì ném ra → kiosk hiện toast, KHÔNG "Server lỗi".
+  try {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -117,6 +120,14 @@ function scanStaff(taskId, rawStaffId) {
     // t2→t3 = classify + write. Nếu read > 1.5s → cần index log (xem Database.gs).
     const t3 = Date.now();
     console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, action: result.action, totalMs: t3 - t0, readMs: t2 - t1, writeMs: t3 - t2 });
+    // Tính field an toàn vào biến riêng — KHÔNG đọc extraRow/result.row trực tiếp trong return
+    // (tránh ReferenceError nếu biến chưa define trong 1 nhánh).
+    let outSlot = '', outStation = '', outTeam = '', outWs = '';
+    if (result.action === 'append' && extraRow) {
+      outSlot = extraRow.slotCode || ''; outStation = extraRow.station || ''; outTeam = extraRow.team || ''; outWs = extraRow.workstation || '';
+    } else if (result.action === 'update' && result.row) {
+      outSlot = result.row.slotCode || ''; outStation = result.row.station || ''; outTeam = result.row.team || ''; outWs = result.row.workstation || '';
+    }
     return {
       ok: true,
       message: result.status,
@@ -124,13 +135,18 @@ function scanStaff(taskId, rawStaffId) {
       timeScanText: timeScanText,
       timeScanEpoch: timeScanEpoch,
       staffName: scannedName,
-      slotCode: (result.action === 'append' ? extraRow.slotCode : (result.row && result.row.slotCode)) || '',
-      station: (result.action === 'append' ? extraRow.station : (result.row && result.row.station)) || '',
-      team: (result.action === 'append' ? extraRow.team : (result.row && result.row.team)) || '',
-      workstation: (result.action === 'append' ? extraRow.workstation : (result.row && result.row.workstation)) || '',
+      slotCode: outSlot,
+      station: outStation,
+      team: outTeam,
+      workstation: outWs,
       counters: counters,
     };
   } finally {
     lock.releaseLock();
   }
+} catch (e) {
+  // DEFENSE: bất kỳ lỗi runtime → trả ok:false (kiosk toast) thay vì crash "Server lỗi".
+  console.error({ bench: 'scanStaff', taskId: taskId, staffId: staffId, error: e && e.message, stack: e && e.stack });
+  return { ok: false, message: 'Lỗi server: ' + (e && e.message ? e.message : 'unknown'), status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
+}
 }
