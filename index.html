@@ -1554,6 +1554,10 @@
           } else {
             arr.length = 0;
           }
+          // FIX: tick "Tất cả" → render lại cột đó để các con hiển thị checked (DOM không tự tick).
+          if (col === 'team') renderColTeam();
+          else if (col === 'slot') renderColSlot();
+          else if (col === 'contract') renderColContract();
         } else {
           toggleArr(arr, val, cb.checked);
         }
@@ -1643,7 +1647,7 @@
         '<td class="num">' + (t.extra || 0) + '</td>' +
         '<td>' + statusBadge + '</td>' +
         '<td>' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
-        '<td>' + esc(t.createdBy || '') + '</td>' +
+        '<td>' + esc(displayName(t.createdBy || '')) + '</td>' +
         '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button> <button class="btn btn-sm" onclick="reopenTask(\'' + escAttr(t.taskId) + '\')">Mở lại</button>') + '</td>';
       body.appendChild(tr);
     });
@@ -1656,7 +1660,8 @@
       slotCode: groupSelectedSlots(),
       team: groupSelectedTeams(),
       contractType: SEL.contractTypes,
-      date: SEL.date
+      date: SEL.date,
+      createdBy: (META && META.userEmail) || ''
     };
     if (!input.station || !input.slotCode.length || !input.team.length) {
       showToast('Vui lòng chọn Station và tick ít nhất 1 Ca / Team', true);
@@ -2269,7 +2274,8 @@
             if (res.ok) {
               invalidateClientCaches_();
               showToast(res.message, false);
-              loadTaskDetail(CURRENT_TASK.taskId);
+              // C: silent=true → KHÔNG reset UI (skeleton/ẩn table) — chỉ render view mới lên view cũ (mượt, không nháy toàn bộ)
+              loadTaskDetail(CURRENT_TASK.taskId, true);
             } else {
               showToast(res.message, true);
               if (btn) btn.disabled = false;

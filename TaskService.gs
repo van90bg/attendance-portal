@@ -39,7 +39,8 @@ function createReconcileTask(input) {
   const filterTeams = Array.isArray(input && input.team) ? input.team : (team ? [team] : []);
   const filterContractTypes = Array.isArray(input && input.contractType) ? input.contractType : (contractType ? [contractType] : []);
   const date = String((input && input.date) || '').trim();  // ngày vào làm (optional — lọc theo StaffData Date)
-  const createdBy = String((input && input.createdBy) || '').trim() || 'web';
+  let createdBy = String((input && input.createdBy) || '').trim();
+  if (!createdBy) { try { createdBy = Session.getActiveUser().getEmail() || 'web'; } catch (e) { createdBy = 'web'; } }
 
   if (!station || !filterSlots.length || !filterTeams.length) {
     return { ok: false, taskId: null, count: 0, message: 'Thiếu station/slotCode/team' };
