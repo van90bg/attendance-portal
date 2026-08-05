@@ -1,9 +1,11 @@
 /**
- * TaskService.gs — Nghiệp vụ task (tạo/đóng) + pre-fill log.
+ * TaskService.gs — Nghiệp vụ task (tạo/đóng/chuyển phase) + pre-fill log.
  *
- * Luồng 2 (MVP): tạo task từ tổ hợp (station, slotCode, team) →
- * pre-fill AttendanceLog batch 1 lần (timeRef = createdAt, status = Vắng)
- * → quét đối chiếu → Kết thúc (done).
+ * 2-phase attendance: tạo task → phase1 (Mở, quét Giờ có mặt) → phase2 (Điểm danh,
+ * quét Giờ quét) → Xong.
+ * - Có list: pre-fill log, TIME_REF = giờ tạo task (Giờ có mặt cho mọi NV).
+ * - Không list: log rỗng; quét lần 1 ghi TIME_REF (Giờ có mặt) + dòng Dư.
+ * transitionToAttend chuyển Mở→Điểm danh (mở nút Kết thúc). completeTask chỉ ở phase2.
  */
 
 /** Tạo taskId có thứ tự đọc được: R20260802-0730 (giờ tạo). */
@@ -82,6 +84,8 @@ function createReconcileTask(input) {
       completedAt: null,
     };
     insertTask_(task);
+    // TIME_REF = Giờ có mặt (breaking 2026-08-05): pre-fill ghi ngay giờ tạo task
+    // cho mọi NV trong list. Khác v1 (pre-fill time = taskCreated rỗng).
     const count = batchInsertLogRows_(taskId, deduped, now);
 
     return { ok: true, taskId: taskId, count: count, message: 'Tạo task thành công: ' + taskId };
@@ -91,7 +95,7 @@ function createReconcileTask(input) {
 }
 
 /**
- * Đóng task (Kết thúc) — khóa quét.
+ * Đóng task (Kết thúc) — chỉ ở phase2 (Điểm danh). Nút Kết thúc chỉ hiện ở phase2.
  * @param {string} taskId
  * @returns {{ok: boolean, message: string}}
  */
@@ -103,12 +107,16 @@ function completeTask(taskId) {
   try {
     const task = readTask_(taskId);
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
-    if (task.status !== TASK_STATUS.OPEN) {
+    // Chỉ kết thúc khi đang ở phase2 (Điểm danh). Nếu còn Mở (phase1) → chặn.
+    if (task.status === TASK_STATUS.OPEN) {
+      return { ok: false, message: UI_LABELS.COMPLETE_BLOCKED };
+    }
+    if (task.status !== TASK_STATUS.ATTEND) {
       return { ok: false, message: 'Task đã kết thúc' };
     }
     // P1 (audit): markUnscannedAbsent_ TRƯỚC, updateTaskStatus_(DONE) SAU — fail-safe.
-    // Nếu mark fail (quota/timeout): task vẫn OPEN → user retry được.
-    // Nếu updateTaskStatus_ fail: task vẫn OPEN → retry, mark idempotent (dòng đã
+    // Nếu mark fail (quota/timeout): task vẫn ATTEND → user retry được.
+    // Nếu updateTaskStatus_ fail: task vẫn ATTEND → retry, mark idempotent (dòng đã
     // ABSENT/PRESENT không chạm lại). Thứ tự cũ (DONE trước) → mark fail = task đã
     // đóng nhưng log chưa chuyển Vắng, retry bị chặn "Task đã kết thúc".
     const absentCount = markUnscannedAbsent_(taskId);
@@ -117,6 +125,31 @@ function completeTask(taskId) {
       ok: true,
       message: 'Đã kết thúc task ' + taskId + (absentCount > 0 ? ' — ' + absentCount + ' NV chưa quét đánh dấu Vắng' : ''),
     };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Chuyển task từ phase1 (Mở) sang phase2 (Điểm danh).
+ * Mở nút "Kết thúc". Sau bước này, quét sẽ ghi Giờ quét (TIME_SCAN) thay vì Giờ có mặt.
+ * Không sửa log — NV đã có Giờ có mặt giữ nguyên; NV quét tiếp theo (lần 2) ghi Giờ quét.
+ * @param {string} taskId
+ * @returns {{ok: boolean, message: string}}
+ */
+function transitionToAttend(taskId) {
+  if (!taskId) return { ok: false, message: 'Thiếu taskId' };
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const task = readTask_(taskId);
+    if (!task) return { ok: false, message: 'Không tìm thấy task' };
+    if (task.status !== TASK_STATUS.OPEN) {
+      return { ok: false, message: UI_LABELS.TRANSITION_BLOCKED };
+    }
+    updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
+    return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét Giờ quét' };
   } finally {
     lock.releaseLock();
   }
