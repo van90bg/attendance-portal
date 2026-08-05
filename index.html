@@ -767,6 +767,7 @@
         <div class="task-title" id="scanTaskTitle"></div>
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
+      <button class="btn btn-primary" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Kết thúc task">Kết thúc</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
     </div>
@@ -919,8 +920,12 @@
   // P3: hằng số status — KHÔNG hardcode chuỗi tiếng Việt trong logic (đổi label = vỡ logic).
   // Khớp STATUS trong Config.gs; label hiển thị badge dùng đúng chuỗi này.
   var STATUS_C = { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' };
-  // Task status — khớp TASK_STATUS trong Config.gs
-  var TASK_STATUS_C = { OPEN: 'open', DONE: 'done' };
+  // Task status — khớp TASK_STATUS trong Config.gs (3 trạng thái 2-phase)
+  var TASK_STATUS_C = { OPEN: 'open', ATTEND: 'attend', DONE: 'done' };
+  // Phase label tiếng Việt cho task status
+  var TASK_PHASE_LABEL = {
+    open: 'Mở', attend: 'Điểm danh', done: 'Xong',
+  };
 
   document.addEventListener('DOMContentLoaded', function () {
     loadMetaAndOptions();
@@ -1769,9 +1774,11 @@
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
     var TT_LABEL = { reconcile: 'Đối chiếu' };
+    var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
+    var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
     metaEl.innerHTML =
       esc(TT_LABEL[data.task.taskType] || 'Task') + ' · ' + esc(data.task.station) + ' · ' + esc(data.task.slotCode) + ' · ' + esc(data.task.team) +
-      (data.task.status === TASK_STATUS_C.DONE ? ' · <b>Đã kết thúc</b>' : ' · Đang mở');
+      ' · <b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);
     if (skel) skel.style.display = 'none';
     if (tbl) tbl.style.display = '';
     renderScanTable(safeArr(data.log));
@@ -1858,9 +1865,10 @@
     }
   }
 
-  // C3: state lọc + sort bảng scan — mặc định "Giờ quét" MỚI NHẤT lên đầu (col 5, desc).
+  // C3: state lọc + sort bảng scan — mặc định sort theo phase:
+  // phase1 (Mở) → Giờ có mặt (col 6) mới nhất; phase2 (Điểm danh) → Giờ quét (col 7).
   var SCAN_FILTER = { q: '', status: '' };
-  var SCAN_SORT = { col: 7, asc: false };  // Giờ quét (mới nhất lên đầu) — col 7 sau khi thêm Station(4)/Date(5)
+  var SCAN_SORT = { col: 6, asc: false };  // mặc định Giờ có mặt (phase1); filterAndSortScan override theo phase
   var STATUS_ORDER = {};  // P3: dựng từ STATUS_C — tránh hardcode label
   STATUS_ORDER[STATUS_C.PENDING] = 0;
   STATUS_ORDER[''] = 0;
@@ -1876,6 +1884,12 @@
   function filterAndSortScan(log) {
     var q = SCAN_FILTER.q.trim().toLowerCase();
     var st = SCAN_FILTER.status;
+    // 2-phase: sort mặc định theo phase — phase1 Giờ có mặt (col6), phase2 Giờ quét (col7)
+    var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 7 : 6;
+    var col = SCAN_SORT.col, asc = SCAN_SORT.asc;
+    // Nếu user chưa chọn sort riêng → dùng phaseCol; nếu đã chọn → tôn trọng.
+    if (col !== 6 && col !== 7) { /* user chọn cột khác (staffId/status...) → giữ */ }
+    else { col = phaseCol; }
     var out = [];
     safeArr(log).forEach(function (r) {
       if (st && r.status !== st) return;
@@ -2038,7 +2052,9 @@
     if (!CURRENT_TASK) return;
     // P2 (audit): chặn sớm khi task đã đóng (tab khác kết thúc task giữa chừng) —
     // tránh optimistic rồi rollback; server vẫn reject nếu race.
-    if (CURRENT_TASK.status !== TASK_STATUS_C.OPEN) {
+    // 2-phase: chặn chỉ khi task DONE (Xong). Phase OPEN (ghi Giờ có mặt) và
+    // ATTEND (ghi Giờ quét) đều cho quét. Tab khác kết thúc task giữa chừng → server reject.
+    if (CURRENT_TASK.phase === TASK_STATUS_C.DONE) {
       showToast('Task đã kết thúc', true);
       playBeep('error');
       document.getElementById('scanInput').value = '';
@@ -2079,42 +2095,65 @@
       if (!target && String(r.staffId).toUpperCase() === norm) { target = r; }
     });
 
-    // Đã quét (Có mặt/Dư) → chặn NGAY ở client, không gọi server (tránh toast lặp)
-    if (target && (target.status === STATUS_C.PRESENT || target.status === STATUS_C.EXTRA)) {
-      showToast('Đã điểm danh', true);
-      playBeep('error');
-      showScanCard('Đã điểm danh', target, true);
-      return;
+    // 2-phase: chặn NGAY ở client theo phase hiện tại (tránh toast lặp + gọi server).
+    // phase1 (Mở): đã có Giờ có mặt (timeRefEpoch>0) → 'Đã có mặt'.
+    // phase2 (Điểm danh): đã quét (timeScanEpoch>0) → 'Đã điểm danh'.
+    if (target) {
+      if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
+        if (Number(target.timeScanEpoch) > 0) {
+          showToast('Đã điểm danh', true);
+          playBeep('error');
+          showScanCard('Đã điểm danh', target, true);
+          return;
+        }
+      } else {
+        if (Number(target.timeRefEpoch) > 0) {
+          showToast('Đã có mặt', true);
+          playBeep('error');
+          showScanCard('Đã có mặt', target, true);
+          return;
+        }
+      }
     }
 
+    var phase2 = CURRENT_TASK.phase === TASK_STATUS_C.ATTEND;
+    var now = new Date();
     var item = {
       staffId: staffId,
       taskId: CURRENT_TASK.taskId,  // F1: capture task lúc enqueue — guard response cũ
       target: target,
       optimisticNew: false,
+      phase2: phase2,
       oldStatus: null,
-      oldTimeScanText: null,
-      oldTimeScanEpoch: null,
+      oldTimeRefText: null, oldTimeRefEpoch: null,
+      oldTimeScanText: null, oldTimeScanEpoch: null,
     };
     if (target) {
       item.oldStatus = target.status;
-      item.oldTimeScanText = target.timeScanText;
-      item.oldTimeScanEpoch = target.timeScanEpoch;
-      target.status = STATUS_C.PRESENT;
-      target.timeScanText = fmtDate(new Date());
-      target.timeScanEpoch = Date.now();  // sort key — quét tức thì nhảy lên đầu
+      item.oldTimeRefText = target.timeRefText; item.oldTimeRefEpoch = target.timeRefEpoch;
+      item.oldTimeScanText = target.timeScanText; item.oldTimeScanEpoch = target.timeScanEpoch;
+      if (phase2) {
+        target.status = STATUS_C.PRESENT;          // Giờ quét → Có mặt
+        target.timeScanText = fmtDate(now);
+        target.timeScanEpoch = now.getTime();      // sort key — quét tức thì nhảy lên đầu
+      } else {
+        target.status = STATUS_C.PENDING;          // Giờ có mặt → chưa điểm danh
+        target.timeRefText = fmtDate(now);
+        target.timeRefEpoch = now.getTime();
+      }
     } else {
       item.optimisticNew = true;
-      // NV lạ → dòng tạm status Dư (khớp server), không phải Có mặt
+      // NV lạ → dòng tạm status Dư (khớp server EXTRA)
       target = { staffId: staffId, staffName: '…', slotCode: '', station: '', team: '',
-                 timeRefText: '', timeScanText: fmtDate(new Date()), status: STATUS_C.EXTRA,
-                 timeScanEpoch: Date.now() };
+                 timeRefText: phase2 ? '' : fmtDate(now), timeRefEpoch: phase2 ? 0 : now.getTime(),
+                 timeScanText: phase2 ? fmtDate(now) : '', timeScanEpoch: phase2 ? now.getTime() : 0,
+                 status: STATUS_C.EXTRA };
       item.target = target;
       CURRENT_LOG.push(target);
     }
     item.scanSeq = ++SCAN_CARD_SEQ;  // P2: đánh dấu lượt quét này là mới nhất — response cũ không đè card
-    // Toast optimistic — hiện ĐÚNG status; server KHÔNG toast lại nếu trùng
-    item.optimisticStatus = item.optimisticNew ? STATUS_C.EXTRA : STATUS_C.PRESENT;
+    // Toast optimistic — hiện ĐÚNG trạng thái; server KHÔNG toast lại nếu trùng
+    item.optimisticStatus = item.optimisticNew ? STATUS_C.EXTRA : (phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING);
     playBeep('scan');
     showToast(item.optimisticStatus, false);
     showScanCard(item.optimisticStatus, target, false);
@@ -2128,22 +2167,23 @@
   }
 
   // P1: không cho Kết thúc khi còn lượt quét chờ server (task-closed sẽ mất scan).
+  // 2-phase: 3 nút — ToAttend (Mở→Điểm danh), Finish (chỉ phase2), Reopen (Done→Mở).
   function updateFinishBtnState() {
     var btn = document.getElementById('btnFinish');
     var btnRe = document.getElementById('btnReopen');
+    var btnTo = document.getElementById('btnToAttend');
     if (!btn) return;
-    var done = !CURRENT_TASK || CURRENT_TASK.status !== TASK_STATUS_C.OPEN;
+    var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
+    var done = phase === TASK_STATUS_C.DONE;
+    // Nút "Kết thúc" chỉ hiện ở phase2 (Điểm danh).
+    if (btnTo) btnTo.style.display = (phase === TASK_STATUS_C.OPEN) ? '' : 'none';
+    if (btnRe) btnRe.style.display = done ? '' : 'none';
+    if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
     if (scanBusy()) {
-      btn.disabled = true;
-      btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc';
-    } else {
-      btn.disabled = done;
+      if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
+    } else if (btn) {
+      btn.disabled = false;
       btn.title = '';
-    }
-    // H: task DONE → ẩn "Kết thúc", hiện "Mở lại" (trong task, thay thế). Task OPEN → ngược lại.
-    if (btnRe) {
-      btnRe.style.display = done ? '' : 'none';
-      btn.style.display = done ? 'none' : '';
     }
     updateQueueFullState();
   }
@@ -2174,10 +2214,13 @@
     function rollback() {
       if (item.target && !item.optimisticNew) {
         item.target.status = item.oldStatus;
-        // Đã Có mặt trước đó → giữ timeScanText/epoch server đã set, không ghi đè
-        if (item.oldStatus !== STATUS_C.PRESENT) {
+        // Khôi phục cả Giờ có mặt (timeRef) và Giờ quét (timeScan) theo phase.
+        if (item.phase2) {
           item.target.timeScanText = item.oldTimeScanText || '';
           item.target.timeScanEpoch = item.oldTimeScanEpoch || 0;
+        } else {
+          item.target.timeRefText = item.oldTimeRefText || '';
+          item.target.timeRefEpoch = item.oldTimeRefEpoch || 0;
         }
       } else if (item.target && item.optimisticNew) {
         // P1: splice theo index — KHÔNG pop() (pop xóa row CUỐI, sai khi queue
@@ -2214,11 +2257,18 @@
           if (item.target) {
             item.target.status = res.status;
             item.target.staffName = res.staffName || item.target.staffName;
-            // REVERT c5903db: bỏ gán field NV Dư — trả về hành vi cũ (chỉ tên,
-            // các cột khác cập nhật khi mở lại task) — fix trước gây chuỗi lỗi server.
-            if (res.timeScanText) item.target.timeScanText = res.timeScanText;
-            // sort key chính xác từ server epoch (đồng bộ thời điểm thật)
-            if (res.timeScanEpoch) item.target.timeScanEpoch = res.timeScanEpoch;
+            // 2-phase: cập nhật đúng cột theo res.field (timeRef=Giờ có mặt / timeScan=Giờ quét).
+            if (res.phase === 'attend' || res.field === 'timeScan') {
+              if (res.timeScanText) item.target.timeScanText = res.timeScanText;
+              if (res.timeScanEpoch) item.target.timeScanEpoch = res.timeScanEpoch;  // sort key chính xác từ server
+            } else {
+              if (res.timeRefText) item.target.timeRefText = res.timeRefText;
+              if (res.timeRefEpoch) item.target.timeRefEpoch = res.timeRefEpoch;
+            }
+            // slotCode/station/team từ server (NV lạ có thể tra được staffIndex)
+            if (res.slotCode !== undefined) item.target.slotCode = res.slotCode || '';
+            if (res.station !== undefined) item.target.station = res.station || '';
+            if (res.team !== undefined) item.target.team = res.team || '';
           }
           // Toast optimistic đã hiện đúng → KHÔNG toast lại (tránh lặp/nháy).
           // Chỉ cập nhật nếu server trả status khác dự đoán.
@@ -2281,6 +2331,37 @@
           .reopenTaskApi(taskId);
       }
     );
+  }
+
+  // 2-phase: chuyển task Mở (phase1, ghi Giờ có mặt) → Điểm danh (phase2, ghi Giờ quét).
+  function transitionToAttend(taskId) {
+    if (BUSY || !taskId) return;
+    if (scanBusy()) {
+      showToast('Đang xử lý quét — chờ xong rồi chuyển', true);
+      return;
+    }
+    BUSY = true;
+    google.script.run
+      .withSuccessHandler(function (res) {
+        BUSY = false;
+        showToast(res.message, !res.ok);
+        if (res.ok) {
+          invalidateClientCaches_();
+          // Cập nhật task hiện tại thành phase2, render lại view (hiện nút Kết thúc).
+          if (CURRENT_TASK && CURRENT_TASK.taskId === taskId) {
+            CURRENT_TASK.phase = TASK_STATUS_C.ATTEND;
+            CURRENT_TASK.status = TASK_STATUS_C.ATTEND;
+            updateFinishBtnState();
+          }
+          loadTaskDetail(taskId, true);
+        }
+      })
+      .withFailureHandler(function (err) {
+        markServerFail();
+        BUSY = false;
+        showToast('Lỗi chuyển điểm danh: ' + err.message, true);
+      })
+      .transitionToAttendApi(taskId);
   }
 
   function finishTask() {
@@ -2354,13 +2435,13 @@
     var card = document.getElementById('scanCard');
     if (!card || !log || !log.length) return;
     var last = null;
-    // P2: chọn theo giờ quét MỚI NHẤT (không theo thứ tự sheet) — NV quét giữa danh sách
-    // (update giữ nguyên vị trí dòng) có giờ muộn hơn NV cuối. So theo epoch (số) —
-    // timeScanText "HH:mm:ss" mất ngày, xuyên nửa đêm sẽ so sai.
-    // P2: epoch là nguồn sự thật duy nhất (text mất ngày xuyên nửa đêm) — filter + so đều theo epoch.
+    // 2-phase: phase1 (Mở) chọn theo Giờ có mặt (timeRefEpoch); phase2 (Điểm danh) theo Giờ quét (timeScanEpoch).
+    // So theo epoch (số) — text "HH:mm:ss" mất ngày, xuyên nửa đêm sẽ so sai.
+    var phase2 = CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND;
+    var keyOf = function (r) { return phase2 ? (Number(r.timeScanEpoch) || 0) : (Number(r.timeRefEpoch) || 0); };
     log.forEach(function (r) {
-      var e = Number(r.timeScanEpoch) || 0;
-      if (e > (last ? (Number(last.timeScanEpoch) || 0) : 0)) last = r;
+      var e = keyOf(r);
+      if (e > (last ? keyOf(last) : 0)) last = r;
     });
     if (!last) { resetScanCard(); return; }
     card.className = last.status === STATUS_C.EXTRA ? 'scan-card extra' : 'scan-card ok';

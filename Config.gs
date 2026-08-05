@@ -74,8 +74,9 @@ const LOG_COLS = {
   STATION: 4,
   TEAM: 5,
   WORKSTATION: 6,
-  TIME_REF: 7,    // luồng 2 = taskCreated (pre-fill batch lúc tạo task)
-  TIME_SCAN: 8,   // giờ quét đối chiếu
+  TIME_REF: 7,    // GIỜ CÓ MẶT (breaking 2026-08-05): luồng có list = giờ tạo task;
+                   // luồng không list = giờ quét lần 1. Tái dùng cột cũ (trước = pre-fill time).
+  TIME_SCAN: 8,   // GIỜ QUÉT — điểm danh (quét lần 2, hoặc lần 1 với list có sẵn)
   STATUS: 9,
   DATE: 10,       // ngày vào làm (copy từ StaffData) — hiển thị cột Date, khác TIME_REF (ngày task)
 };
@@ -89,10 +90,15 @@ const STATUS = {
   EXTRA: 'Dư',
 };
 
-// ===== Trạng thái task =====
+// ===== Trạng thái task (state machine 2-phase attendance) =====
+// MỞ (open): phase 1 — quét Giờ có mặt. Có list: roster sẵn, TIME_REF đã ghi giờ tạo.
+//                         Không list: quét lần 1 ghi TIME_REF + tạo dòng.
+// ĐIỂM DANH (attend): phase 2 — quét Giờ quét (TIME_SCAN). Nút "Kết thúc" chỉ hiện ở đây.
+// XONG (done): đã kết thúc — NV chưa quét (TIME_SCAN rỗng) đánh Vắng.
 const TASK_STATUS = {
-  OPEN: 'open',
-  DONE: 'done',
+  OPEN: 'open',       // phase 1: chờ điểm danh / ghi Giờ có mặt
+  ATTEND: 'attend',   // phase 2: đang điểm danh (quét Giờ quét)
+  DONE: 'done',       // đã kết thúc
 };
 
 // ===== Loại task =====
@@ -130,6 +136,12 @@ const UI_LABELS = {
   TASK_CLOSED: 'Task đã kết thúc',
   STAFF_NOT_FOUND: 'Không tìm thấy nhân viên',
   CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn',
+  // 2-phase attendance labels (server trả về task.status === TASK_STATUS.*)
+  TASK_PHASE_OPEN: 'Mở',          // phase 1: chờ điểm danh / ghi Giờ có mặt
+  TASK_PHASE_ATTEND: 'Điểm danh',  // phase 2: đang quét Giờ quét
+  TASK_PHASE_DONE: 'Xong',        // đã kết thúc
+  TRANSITION_BLOCKED: 'Chỉ chuyển sang điểm danh khi task đang ở trạng thái Mở',
+  COMPLETE_BLOCKED: 'Chỉ kết thúc task khi đang ở trạng thái Điểm danh',
 };
 
 // ===== Cấu hình WebApp =====
