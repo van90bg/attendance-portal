@@ -89,6 +89,14 @@ function scanStaff(taskId, rawStaffId) {
         timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
         scannedName = existing.staffName || null;
         result.status = status;
+        // G2 FIX: return ở dưới đọc extraRow.slotCode/station/team → phải define
+        // extraRow trong mọi nhánh append (không thì ReferenceError "extraRow is not defined").
+        var extraRow = {
+          slotCode: existing.slotCode || '',
+          station: existing.station || '',
+          team: existing.team || '',
+          workstation: existing.workstation || '',
+        };
       } else {
         // F1: đọc staffIndex CHỈ ở đây (append) — lazy thay vì mỗi scan
         // G: wrap try/catch — nếu StaffData lỗi/throw, vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi"
