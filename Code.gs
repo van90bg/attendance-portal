@@ -114,9 +114,14 @@ function debugState_() {
 
 /** Meta cho UI: title. */
 function getMeta() {
+  // Deploy "Anyone within @spxexpress.com" → getActiveUser() có email (user đăng nhập Google).
+  // Anonymous thật (không login) → rỗng. Hiển thị ở header như v1.
+  let userEmail = '';
+  try { userEmail = Session.getActiveUser().getEmail() || ''; } catch (e) { userEmail = ''; }
   return {
     ok: true,
     appTitle: UI_LABELS.APP_TITLE,
+    userEmail: userEmail,
   };
 }
 

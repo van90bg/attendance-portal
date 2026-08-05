@@ -65,6 +65,14 @@
       z-index: 10;
     }
     header h1 { font-size: 20px; font-weight: 600; }
+    .header-user {
+      color: var(--header-text, #e2e8f0);
+      font-size: 13px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    @media (max-width: 599px) { .header-user { display: none; } }  /* màn nhỏ ẩn để tránh tràn header */
     .btn {
       border: none;
       border-radius: 8px;
@@ -690,6 +698,7 @@
     <span class="title"><span class="accent">R</span>OLLCALL · <span id="brandTitle" style="color:#7f8ea3">ĐIỂM DANH KHO</span></span>
   </div>
   <div class="header-right">
+    <small id="userEmail" class="header-user" aria-label="Người dùng đang đăng nhập"></small>
     <span class="net-dot" id="netDot" title="Trạng thái mạng"></span>
     <small id="netText">Online</small>
     <button class="btn-icon-dark" id="btnSound" onclick="toggleSound()" title="Tắt/Mở âm thanh" aria-label="Tắt/Mở âm thanh">🔊</button>
@@ -1185,10 +1194,23 @@
     }
   });
 
+  // Tên hiển thị từ email (v1): cắt trước @, title-case nhẹ. VD van.thanhnguyen@spxexpress.com → Van.thanhnguyen
+  function displayName(email) {
+    if (!email) return '—';
+    var name = String(email).split('@')[0];
+    return name || email;
+  }
   function loadMetaAndOptions() {
     google.script.run
       .withSuccessHandler(function (meta) {
         META = meta;
+        // Hiển thị user ở header (v1 style) — chỉ tên, KHÔNG badge quyền
+        var uEl = document.getElementById('userEmail');
+        if (uEl) {
+          var em = (meta && meta.userEmail) || '';
+          uEl.textContent = em ? displayName(em) : 'Khách';
+          uEl.title = em || 'Chưa đăng nhập';
+        }
         // Header mới không còn #appTitle — cập nhật brand title nếu có
         var brand = document.getElementById('brandTitle');
         if (brand && meta.appTitle) brand.textContent = meta.appTitle;
