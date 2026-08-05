@@ -66,18 +66,28 @@ function scanStaff(taskId, rawStaffId) {
 
     let timeScanText = '';
     let timeScanEpoch = 0;
+    let timeRefText = '';
+    let timeRefEpoch = 0;
     let scannedName = null;
+    // field do classifyScan chỉ định: 'timeRef' (phase1: Giờ có mặt) | 'timeScan' (phase2: Giờ quét)
+    const field = result.field;
     if (result.action === 'update') {
       const now = new Date();
-      updateLogRowScan_(result.row, now, result.status);
-      result.row.timeScan = now;
-      // P1 FIX: thiếu set timeScanEpoch trên row → computeCounters (đếm theo
-      // timeScanEpoch > 0) bỏ sót NV vừa quét → server trả counters thiếu →
-      // client sync về đè counters đúng → "Đã quét" tụt 1 sau ~3s.
-      result.row.timeScanEpoch = now.getTime();
+      if (field === 'timeScan') {
+        updateLogRowScan_(result.row, now, result.status);
+        result.row.timeScan = now;
+        result.row.timeScanEpoch = now.getTime();
+        timeScanText = formatTime_(now);
+        timeScanEpoch = now.getTime();
+      } else {
+        // phase1: ghi Giờ có mặt (TIME_REF), giữ status PENDING (chưa điểm danh)
+        updateLogRowRef_(result.row, now);
+        result.row.timeRef = now;
+        result.row.timeRefEpoch = now.getTime();
+        timeRefText = formatTime_(now);
+        timeRefEpoch = now.getTime();
+      }
       result.row.status = result.status;
-      timeScanText = formatTime_(now);
-      timeScanEpoch = now.getTime();  // sort key số — client sort chính xác theo epoch
       scannedName = result.row.staffName || null;
     } else if (result.action === 'append') {
       // P2-6: re-check cache (có thể kiosk khác vừa push dòng này trong lock) trước khi append
@@ -97,18 +107,28 @@ function scanStaff(taskId, rawStaffId) {
         station: existing.station || '',
         team: existing.team || '',
         workstation: existing.workstation || '',
-      } : buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
+      } : buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now, field);
       if (existing) {
         // Đã có (race) → coi như đã append, KHÔNG append nữa (tránh duplicate).
-        timeScanText = existing.timeScanText || formatTime_(now);
-        timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
+        if (field === 'timeScan') {
+          timeScanText = existing.timeScanText || formatTime_(now);
+          timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
+        } else {
+          timeRefText = existing.timeRefText || formatTime_(now);
+          timeRefEpoch = Number(existing.timeRefEpoch) || now.getTime();
+        }
         scannedName = existing.staffName || null;
         result.status = existing.status || STATUS.EXTRA;
       } else {
         appendLogRow_(extraRow);
         logRows.push(extraRow);
-        timeScanText = formatTime_(now);
-        timeScanEpoch = now.getTime();
+        if (field === 'timeScan') {
+          timeScanText = formatTime_(now);
+          timeScanEpoch = now.getTime();
+        } else {
+          timeRefText = formatTime_(now);
+          timeRefEpoch = now.getTime();
+        }
         scannedName = extraRow.staffName || null;
         result.status = STATUS.EXTRA;
       }
@@ -124,8 +144,12 @@ function scanStaff(taskId, rawStaffId) {
       ok: true,
       message: result.status,
       status: result.status,
+      phase: result.phase,
+      field: field,
       timeScanText: timeScanText,
       timeScanEpoch: timeScanEpoch,
+      timeRefText: timeRefText,
+      timeRefEpoch: timeRefEpoch,
       staffName: scannedName,
       slotCode: result.action === 'append' ? (extraRow ? extraRow.slotCode : '') : (result.row ? result.row.slotCode : ''),
       station: result.action === 'append' ? (extraRow ? extraRow.station : '') : (result.row ? result.row.station : ''),

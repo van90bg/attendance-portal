@@ -210,6 +210,11 @@ function completeTaskApi(taskId) {
   return completeTask(taskId);
 }
 
+/** Chuyển task Mở (phase1) → Điểm danh (phase2). MỞ cho mọi nhân viên. */
+function transitionToAttendApi(taskId) {
+  return transitionToAttend(taskId);
+}
+
 /** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). MỞ cho mọi nhân viên. */
 function reopenTaskApi(taskId) {
   return reopenTask(taskId);

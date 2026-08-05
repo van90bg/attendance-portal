@@ -201,6 +201,13 @@ function taskFromRow_(row) {
     team: String(row[TASK_COLS.TEAM] || ''),
     contractType: String(row[TASK_COLS.CONTRACT_TYPE] || ''),
     status: String(row[TASK_COLS.STATUS] || ''),
+    // phase derived từ status cho client dễ render UI (Mở/Điểm danh/Xong).
+    // open=phase1 (ghi Giờ có mặt), attend=phase2 (ghi Giờ quét), done=Xong.
+    phase: (function (st) {
+      if (st === TASK_STATUS.ATTEND) return 'attend';
+      if (st === TASK_STATUS.DONE) return 'done';
+      return 'open';
+    })(String(row[TASK_COLS.STATUS] || '')),
     // KHÔNG trả Date qua google.script.run (serialize lỗi → null toàn bộ).
     // Chỉ trả text đã format; createdBy/createdAtText đủ cho UI.
     createdBy: String(row[TASK_COLS.CREATED_BY] || ''),
@@ -338,6 +345,7 @@ function logFromRow_(taskId, row) {
     timeScanText: formatTime_(timeScan),
     // Sort key số (epoch ms) — text "HH:mm:ss" mất ngày → sort chuỗi sai khi task
     // xuyên nửa đêm. Client sort theo con số này (chính xác tuyệt đối).
+    timeRefEpoch: timeRef ? timeRef.getTime() : 0,
     timeScanEpoch: timeScan ? timeScan.getTime() : 0,
     status: String(row[LOG_COLS.STATUS] || ''),
     // Date = ngay vao lam (copy tu StaffData) — format yyyy-MM-dd (ISO) cho hien thi
@@ -381,6 +389,8 @@ function readLogRowsCached_(taskId) {
         slotCode: r.slotCode,
         station: r.station,
         team: r.team,
+        timeRefText: r.timeRefText,
+        timeRefEpoch: r.timeRefEpoch,
         timeScanText: r.timeScanText,
         timeScanEpoch: r.timeScanEpoch,
         status: r.status,
@@ -531,6 +541,22 @@ function updateLogRowScan_(row, timeScan, status) {
 }
 
 /**
+ * Cập nhật TIME_REF (Giờ có mặt) cho 1 dòng (phase1) — 1 setValues batch.
+ * @param {Object} row — từ readLogRows_/readLogRowsCached_ (luôn có _rowIndex, taskId)
+ */
+function updateLogRowRef_(row, timeRef) {
+  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+  sheet.getRange(row._rowIndex, LOG_COLS.TIME_REF + 1, 1, 1).setValue(timeRef);
+  invalidateTaskDetailCache_(row.taskId);
+  // U2: cập nhật row trong LOG_ROWS cache (incremental) — scan kế không chạm sheet.
+  updateLogRowCache_(row.taskId, row._rowIndex, function (r) {
+    r.timeRefText = formatTime_(timeRef);
+    r.timeRefEpoch = timeRef.getTime();
+  });
+  return true;
+}
+
+/**
  * Cập nhật 1 dòng trong LOG_ROWS cache sau khi ghi sheet (incremental).
  * Chỉ chạm cache NẾU đang có (cache hit) — miss thì dòng sau sẽ rebuild. Tránh
  * getDataRange full sheet log mỗi scan liên tiếp.
@@ -590,6 +616,8 @@ function pushLogRowToCache_(row) {
       slotCode: row.slotCode,
       station: row.station,
       team: row.team,
+      timeRefText: row.timeRef ? formatTime_(row.timeRef) : '',
+      timeRefEpoch: row.timeRef ? row.timeRef.getTime() : 0,
       timeScanText: row.timeScan ? formatTime_(row.timeScan) : '',
       timeScanEpoch: row.timeScan ? row.timeScan.getTime() : 0,
       status: row.status,
