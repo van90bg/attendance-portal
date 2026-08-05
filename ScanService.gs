@@ -26,6 +26,9 @@ function scanStaff(taskId, rawStaffId) {
       counters: { scanned: 0, absent: 0, extra: 0, total: 0 },
     };
   }
+  // DEFENSE: bọc toàn bộ logic trong try/catch — bất kỳ lỗi nào (kể cả
+  // ReferenceError extraRow) trả ok:false thay vì ném ra → kiosk hiện toast, KHÔNG "Server lỗi".
+  try {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -77,15 +80,38 @@ function scanStaff(taskId, rawStaffId) {
       timeScanEpoch = now.getTime();  // sort key số — client sort chính xác theo epoch
       scannedName = result.row.staffName || null;
     } else if (result.action === 'append') {
+      // P2-6: re-check cache (có thể kiosk khác vừa push dòng này trong lock) trước khi append
+      // → tránh Dư TRÙNG LẶP khi 2 kiosk quét CÙNG staffId lạ trong cửa sổ cache TTL.
+      let existing = null;
+      try { existing = findLogRow(readLogRowsCached_(taskId), staffId); } catch (e) { console.warn('recheck cache fail', e.message); }
       const now = new Date();
-      // F1: đọc staffIndex CHỈ ở đây (append) — lazy thay vì mỗi scan
-      const staffInfo = (readStaffIndex_())[staffId] || null;
-      const extraRow = buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
-      appendLogRow_(extraRow);
-      logRows.push(extraRow);
-      timeScanText = formatTime_(now);
-      timeScanEpoch = now.getTime();
-      scannedName = extraRow.staffName || null;
+      // Đọc staffIndex CHỈ khi thực sự cần append (lazy). G: wrap try/catch — nếu
+      // StaffData lỗi vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi".
+      let staffInfo = null;
+      if (!existing) {
+        try { staffInfo = (readStaffIndex_())[staffId] || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffInfo = null; }
+      }
+      // LUÔN define extraRow (tránh ReferenceError "extraRow is not defined" khi quét Dư có race).
+      const extraRow = existing ? {
+        slotCode: existing.slotCode || '',
+        station: existing.station || '',
+        team: existing.team || '',
+        workstation: existing.workstation || '',
+      } : buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
+      if (existing) {
+        // Đã có (race) → coi như đã append, KHÔNG append nữa (tránh duplicate).
+        timeScanText = existing.timeScanText || formatTime_(now);
+        timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
+        scannedName = existing.staffName || null;
+        result.status = existing.status || STATUS.EXTRA;
+      } else {
+        appendLogRow_(extraRow);
+        logRows.push(extraRow);
+        timeScanText = formatTime_(now);
+        timeScanEpoch = now.getTime();
+        scannedName = extraRow.staffName || null;
+        result.status = STATUS.EXTRA;
+      }
     }
 
     const counters = computeCounters({ STATUS: STATUS }, logRows);
@@ -101,9 +127,18 @@ function scanStaff(taskId, rawStaffId) {
       timeScanText: timeScanText,
       timeScanEpoch: timeScanEpoch,
       staffName: scannedName,
+      slotCode: result.action === 'append' ? (extraRow ? extraRow.slotCode : '') : (result.row ? result.row.slotCode : ''),
+      station: result.action === 'append' ? (extraRow ? extraRow.station : '') : (result.row ? result.row.station : ''),
+      team: result.action === 'append' ? (extraRow ? extraRow.team : '') : (result.row ? result.row.team : ''),
+      workstation: result.action === 'append' ? (extraRow ? extraRow.workstation : '') : (result.row ? result.row.workstation : ''),
       counters: counters,
     };
   } finally {
     lock.releaseLock();
+  }
+  } catch (e) {
+    // DEFENSE: bất kỳ lỗi runtime → trả ok:false (kiosk toast) thay vì crash "Server lỗi".
+    console.error({ bench: 'scanStaff', taskId: taskId, staffId: staffId, error: e && e.message, stack: e && e.stack });
+    return { ok: false, message: 'Lỗi server: ' + (e && e.message ? e.message : 'unknown'), status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
   }
 }

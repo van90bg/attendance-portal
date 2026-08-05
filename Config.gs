@@ -13,10 +13,15 @@ const SHEETS = {
 };
 
 /**
- * Spreadsheet chứa dữ liệu (user cung cấp — tạo bằng tài khoản cá nhân, sẽ đổi sau).
- * Nếu để rỗng: Database tự tạo 'RollCall v2 DB' khi chạy lần đầu.
+ * Spreadsheet chứa dữ liệu.
+ * ⚠️ BẢO MẬT: KHÔNG hardcode ID production vào repo (dù private, vẫn lộ cho
+ * collaborator + lịch sử git). Chuyển ID vào Script Properties 'SPREADSHEET_ID'
+ * (File → Project settings → Script Properties). Database.getSpreadsheet_() ưu
+ * tiên DEFAULT_SPREADSHEET_ID → Script Properties → spreadsheet bind → tạo mới.
+ * Để rỗng ('') để BẮT BUỘC dùng Script Properties (không còn ID production trong code).
+ * Giữ giá trị placeholder này chỉ để local mock/test chạy được; production phải rỗng.
  */
-const DEFAULT_SPREADSHEET_ID = '1NQQnLnVDITrUIII59ibk6vVfuDnMHKqsDtfGmHgjNYo';
+const DEFAULT_SPREADSHEET_ID = '';
 
 // ===== Header StaffData (giữ đúng header Att.csv — index theo thứ tự cột) =====
 // Sheet StaffData lưu nguyên cấu trúc csv hệ thống (1 dòng = 1 NV–1 ca–1 station).

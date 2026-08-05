@@ -1,6 +1,8 @@
 # Credentials — TUYỆT ĐỐI không commit
 .clasprc.json
 *.clasprc.json
+# .clasp.json chứa script ID thật — không track (dùng .clasp.json.sample để chia sẻ cấu hình)
+.clasp.json
 
 # Node
 node_modules/
