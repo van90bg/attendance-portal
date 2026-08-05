@@ -2214,12 +2214,8 @@
           if (item.target) {
             item.target.status = res.status;
             item.target.staffName = res.staffName || item.target.staffName;
-            // P2: cập nhật ĐỦ thông tin NV Dư từ server (Ca/Station/Team/Workstation) —
-            // không để trống rồi chờ mở lại task mới thấy.
-            if (res.slotCode !== undefined) item.target.slotCode = res.slotCode || '';
-            if (res.station !== undefined) item.target.station = res.station || '';
-            if (res.team !== undefined) item.target.team = res.team || '';
-            if (res.workstation !== undefined) item.target.workstation = res.workstation || '';
+            // REVERT c5903db: bỏ gán field NV Dư — trả về hành vi cũ (chỉ tên,
+            // các cột khác cập nhật khi mở lại task) — fix trước gây chuỗi lỗi server.
             if (res.timeScanText) item.target.timeScanText = res.timeScanText;
             // sort key chính xác từ server epoch (đồng bộ thời điểm thật)
             if (res.timeScanEpoch) item.target.timeScanEpoch = res.timeScanEpoch;
