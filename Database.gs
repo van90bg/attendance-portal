@@ -20,8 +20,9 @@ function getSheet_(name, header) {
       console.error('SHEET MISSING — vừa tạo lại sheet "' + name + '" (bị xóa tay?). Dữ liệu cũ KHÔNG khôi phục.');
     }
   }
-  // Tự set header khi sheet trống (mới tạo HOẶC đã tồn tại nhưng chưa có dữ liệu).
-  // Phòng trường hợp sheet tồn tại từ trước nhưng thiếu header → đọc/write lệch dòng.
+  // Tự set header CHỈ khi sheet hoàn toàn trống (chưa có dữ liệu).
+  // LƯU Ý: sheet cũ có data nhưng thiếu header sẽ KHÔNG được vá tự động ở đây
+  // (tránh ghi đè header lên dòng 1 đang là data) — xem ensureSheets_ migration.
   if (header && header.length && sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, header.length).setValues([header]).setFontWeight('bold');
   }
@@ -64,9 +65,11 @@ function ensureSheets_() {
   // Migration an toàn: sheet cũ tạo trước khi có cột date (LOG_COL_COUNT=11) vẫn còn
   // 10 cột → getSheet_ chỉ set header khi sheet trống, không tự thêm cột. Nếu thiếu,
   // thêm cột cuối + đặt header, nếu không batchInsertLogRows_ ghi 11 giá trị sẽ vỡ.
-  if (logSheet.getLastColumn() < LOG_COL_COUNT) {
+  // Migration an toàn: sheet cũ (8-10 cột) thiếu cột date → thêm cột tới đủ LOG_COL_COUNT
+  // (while loop, không chỉ 1 cột — nếu thiếu nhiều cột thì batchInsertLogRows_ vỡ).
+  while (logSheet.getLastColumn() < LOG_COL_COUNT) {
     logSheet.insertColumnAfter(logSheet.getLastColumn());
-    logSheet.getRange(1, LOG_COL_COUNT).setValue('date');
+    logSheet.getRange(1, logSheet.getLastColumn()).setValue('date');
   }
 }
 
@@ -553,10 +556,13 @@ function updateLogRowCache_(taskId, rowIndex, mutate) {
 
 /** Append dòng mới (quét lạ → Dư). */
 function appendLogRow_(row) {
-  getSheet_(SHEETS.ATTENDANCE_LOG).appendRow([
+  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+  sheet.appendRow([
     row.taskId, row.staffId, row.staffName, row.slotCode, row.station, row.team, row.workstation,
     row.timeRef || '', row.timeScan || '', row.status, row.date || '',
   ]);
+  // P2-7: _rowIndex thật từ sheet (KHÔNG suy từ cache — cache chia sẻ giữa kiosk có thể lệch)
+  row._rowIndex = sheet.getLastRow();
   // I3 FIX: chen dong moi vao LOG_ROWS cache (incremental) thay vi xoa.
   // Neu khong, thiet bi 2 quet CUNG staffId la trong cua so TTL (30s) se cache-miss
   // dong moi → classifyScan ra 'append' → ghi DONG 'Du' TRUNG LAP.
@@ -576,9 +582,7 @@ function pushLogRowToCache_(row) {
     const cached = cache_().get(key);
     if (cached === null) return; // miss — không xây cache trong luồng ghi
     const rows = JSON.parse(cached);
-    // _rowIndex của dòng append = cuối sheet = max hiện tại + 1
-    let maxIdx = 0;
-    for (let i = 0; i < rows.length; i++) { if (rows[i]._rowIndex > maxIdx) maxIdx = rows[i]._rowIndex; }
+    // P2-7: _rowIndex lấy từ row._rowIndex (đã set = sheet.getLastRow() sau append)
     const slim = {
       taskId: row.taskId,
       staffId: row.staffId,
@@ -590,7 +594,7 @@ function pushLogRowToCache_(row) {
       timeScanEpoch: row.timeScan ? row.timeScan.getTime() : 0,
       status: row.status,
       dateText: row.date || '',
-      _rowIndex: maxIdx + 1,
+      _rowIndex: row._rowIndex || 0,
     };
     rows.push(slim);
     cache_().put(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
