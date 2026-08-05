@@ -92,6 +92,20 @@
 
   // State per-task: mock PHẢI giữ log giữa các lần quét (giống prod đọc sheet thật).
   // Nếu buildLog lại mỗi lần → mất state → counters sai giữa các lần quét liên tiếp.
+    // Chuẩn hoá filter giống server filterStaffByGroup (CsvUtil.gs) — dùng cho preview
+  function mockFilterStaff(base) {
+    return MOCK_DATA.staff.filter(function (s) {
+      if (base.station && s.station !== base.station) return false;
+      if (base.slotCode && base.slotCode.length && base.slotCode.indexOf(s.slotCode) === -1) return false;
+      if (base.team && base.team.length && base.team.indexOf(s.team) === -1) return false;
+      if (base.contractType && base.contractType.length) { /* staff mock chưa có contractType → bỏ qua */ }
+      if (base.date && base.date !== (s.dateText || '')) return false;
+      return true;
+    });
+  }
+  function mockDedupe(list) {
+    var seen = {}; return list.filter(function (s) { if (seen[s.staffId]) return false; seen[s.staffId] = true; return true; });
+  }
   var MOCK_LOGS = {};
   function getLog(taskId) {
     if (!MOCK_LOGS[taskId]) MOCK_LOGS[taskId] = buildLog(taskId);
@@ -123,9 +137,39 @@
       };
     },
     previewStaffApi: function (input) {
-      // mock: dem NV khop bo loc — khop contract server previewStaffApi (chi count, khong sample)
-      var count = 8;
-      return { ok: true, count: count };
+      // chuẩn hoá: đếm NV khớp filter (giống server previewStaffApi)
+      var base = {
+        station: input && input.station,
+        slotCode: (input && input.slotCode) || [],
+        team: (input && input.team) || [],
+        contractType: (input && input.contractType) || [],
+        date: input && input.date,
+      };
+      var filtered = mockFilterStaff(base);
+      return { ok: true, count: mockDedupe(filtered).length };
+    },
+    previewStaffCountsApi: function (input) {
+      // per-option count: base = filter hiện tại, mỗi option ghi đè cột đó = [opt]
+      var base = {
+        station: input && input.station,
+        slotCode: (input && input.slotCode) || [],
+        team: (input && input.team) || [],
+        contractType: (input && input.contractType) || [],
+        date: input && input.date,
+      };
+      var opts = (input && input.options) || [];
+      var col = input && input.col;
+      var out = {};
+      opts.forEach(function (opt) {
+        var ob = JSON.parse(JSON.stringify(base));
+        if (col === 'team') ob.team = [opt];
+        else if (col === 'slot') ob.slotCode = [opt];
+        else if (col === 'contract') ob.contractType = [opt];
+        else if (col === 'date') ob.date = opt;
+        else if (col === 'station') ob.station = opt;
+        out[opt] = mockDedupe(mockFilterStaff(ob)).length;
+      });
+      return { ok: true, counts: out };
     },
     getTaskListApi: function () {
       return MOCK_DATA.tasks.slice();
