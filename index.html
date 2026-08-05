@@ -475,6 +475,7 @@
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     #toast.ok { background: #188038; }
     #toast.err { background: #d93025; }
+    #toast.warn { background: var(--warning, #e85d04); }
     #toast .toast-text { display: inline-block; }
     #toast .toast-close {
       background: transparent; border: none; color: #fff; opacity: .8;
@@ -856,6 +857,10 @@
   <div class="about-dialog">
     <h2 id="createModalTitle" style="font-size:15px;margin:0 0 3px;">+ Tạo task điểm danh</h2>
     <p style="color:var(--muted);font-size:11px;margin:0 0 10px;">Tick chọn nhóm nhân viên cho task — quét mã <b>Ops</b> để điểm danh. (Station / Date chọn 1, Team / Ca / Hình thức chọn nhiều.)</p>
+    <label class="grp-item nolist-card" id="noListCard" style="margin:0 0 12px;padding:10px 12px;gap:8px;align-items:center;font-size:13px;cursor:pointer;border:1px solid var(--warning, #e85d04);border-radius:var(--card-radius);background:#fef7e0;">
+      <input type="checkbox" id="chkNoList" onchange="onNoListChange()">
+      <span><strong style="color:var(--warning, #e85d04);">Quét tự do</strong> (không danh sách) — mọi mã quét là NV lạ, quét 2 lần: Giờ có mặt → Giờ quét</span>
+    </label>
     <div class="grp-cols" id="grpCols">
       <div class="grp-row">
         <label class="grp-col-title">Station</label>
@@ -878,10 +883,6 @@
         <div id="colDate" class="grp-tree" data-single="true"></div>
       </div>
     </div>
-    <label class="grp-item" style="margin:10px 0 0;gap:8px;align-items:center;font-size:13px;cursor:pointer;">
-      <input type="checkbox" id="chkNoList" onchange="onNoListChange()">
-      <span>Quét tự do (không danh sách) — mọi mã quét là NV lạ, quét 2 lần: Giờ có mặt → Giờ quét</span>
-    </label>
     <div id="createPreview" style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--card-radius);background:var(--surface-muted);font-size:12px;">
       <div id="createPreviewSummary" style="color:var(--muted);margin-bottom:4px;">Chưa chọn filter nào</div>
       <div id="createPreviewCount" style="font-weight:700;color:var(--amber);">Tick chọn Station / Team / Ca / Hình thức / Ngày để xem số lượng NV</div>
@@ -1150,7 +1151,14 @@
     var chk = document.getElementById('chkNoList');
     SEL.noList = !!(chk && chk.checked);
     var grp = document.getElementById('grpCols');
-    if (grp) grp.style.opacity = SEL.noList ? '.4' : '';
+    if (grp) {
+      grp.style.opacity = SEL.noList ? '.4' : '';
+      // V1: bật Quét tự do → vô hiệu hoá filter (không cần danh sách); tắt → mở lại
+      var inputs = grp.querySelectorAll('input, .grp-item');
+      for (var i = 0; i < inputs.length; i++) inputs[i].style.pointerEvents = SEL.noList ? 'none' : '';
+    }
+    var card = document.getElementById('noListCard');
+    if (card) card.style.background = SEL.noList ? '#fdeccf' : '#fef7e0';
     updateCreatePreview();
   }
 
@@ -1160,6 +1168,10 @@
     // P2: reset lựa chọn 4 cột mỗi lần mở — không giữ giá trị cũ (tránh tạo nhầm task)
     resetSel();
     renderAllCols();
+    // V1: reset checkbox Quét tự do mỗi lần mở (không giữ trạng thái cũ)
+    var chk = document.getElementById('chkNoList');
+    if (chk) chk.checked = false;
+    onNoListChange();
     m.setAttribute('aria-hidden', 'false');  // I10
     m.classList.add('open');
     var first = document.querySelector('#createModal .grp-item input');
@@ -2475,7 +2487,10 @@
     t.setAttribute('aria-live', isError ? 'assertive' : 'polite');
     t.innerHTML = '<span class="toast-text">' + esc(msg) + '</span>' +
       (isError ? '<button class="toast-close" onclick="dismissToast()" aria-label="Đóng thông báo">✕</button>' : '');
-    t.className = 'show ' + (isError ? 'err' : 'ok');
+    // V3: phân loại màu toast theo thông tin — Dư = amber (cảnh báo, không lỗi),
+    // lỗi = đỏ, còn lại (Có mặt / Chưa điểm danh / thông báo thường) = xanh.
+    var cls = isError ? 'err' : (msg === STATUS_C.EXTRA ? 'warn' : 'ok');
+    t.className = 'show ' + cls;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { t.className = ''; }, 2600);
   }
