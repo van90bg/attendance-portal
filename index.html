@@ -1265,6 +1265,26 @@
   function getOptCount(col, val) { return _optCountCache[getOptCountKey(col, val)]; }
   // Đếm số NV cho từng option, CÓ tính ngữ cảnh các filter KHÁC đã chọn
   // (vd: đã chọn Ca C1 → count Team A = NV(station + C1 + Team A)).
+  // Cập nhật text badge count của 1 cột mà KHÔNG rebuild DOM (giữ checkbox/focus).
+  function refreshCountBadges(col) {
+    var map = { team: 'colTeam', slot: 'colSlot', contract: 'colContract', date: 'colDate' };
+    var el = document.getElementById(map[col]);
+    if (!el) return;
+    var items = el.querySelectorAll('.grp-item:not(.is-all)');
+    items.forEach(function (item) {
+      var cb = item.querySelector('input[type=checkbox]');
+      if (!cb) return;
+      var val = cb.getAttribute('data-val');
+      var cnt = getOptCount(col, val);
+      var span = item.querySelector('.opt-count');
+      if (cnt !== undefined) {
+        if (!span) { span = document.createElement('span'); span.className = 'opt-count'; item.appendChild(span); }
+        span.textContent = cnt;  // không dấu ()
+      } else if (span) {
+        span.remove();
+      }
+    });
+  }
   function fetchOptCounts(col, options) {
     if (!SEL.station) return;
     var need = options.filter(function (v) { return getOptCount(col, v) === undefined; });
@@ -1283,10 +1303,8 @@
         .withSuccessHandler(function (res) {
           if (res && res.counts) {
             Object.keys(res.counts).forEach(function (k) { setOptCount(col, k, res.counts[k]); });
-            if (col === 'team') renderColTeam();
-            else if (col === 'slot') renderColSlot();
-            else if (col === 'contract') renderColContract();
-            else if (col === 'date') renderColDate();
+            // CHỈ cập nhật text badge — KHÔNG rebuild cột (tránh nháy/flicker)
+            refreshCountBadges(col);
           }
         })
         .withFailureHandler(function () {})
@@ -1352,7 +1370,7 @@
     teams.forEach(function (t) {
       var checked = SEL.teams.indexOf(t) !== -1;
       var cnt = getOptCount('team', t);
-      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">' + cnt + '</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="team" data-val="' + escAttr(t) + '"' + (checked ? ' checked' : '') + '>'
         + esc(t) + cntHtml
@@ -1377,7 +1395,7 @@
     g.slotCodes.forEach(function (sc) {
       var checked = SEL.slots.indexOf(sc.slotCode) !== -1;
       var cnt = getOptCount('slot', sc.slotCode);
-      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">' + cnt + '</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="slot" data-val="' + escAttr(sc.slotCode) + '"' + (checked ? ' checked' : '') + '>'
         + esc(sc.slotCode) + cntHtml
@@ -1401,7 +1419,7 @@
     g.contractTypes.forEach(function (ct) {
       var checked = SEL.contractTypes.indexOf(ct) !== -1;
       var cnt = getOptCount('contract', ct);
-      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">' + cnt + '</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="contract" data-val="' + escAttr(ct) + '"' + (checked ? ' checked' : '') + '>'
         + esc(ct) + cntHtml
@@ -1420,7 +1438,7 @@
     g.dates.forEach(function (d) {
       var checked = SEL.date === d ? ' checked' : '';
       var cnt = getOptCount('date', d);
-      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">(' + cnt + ')</span>' : '';
+      var cntHtml = (cnt !== undefined) ? ' <span class="opt-count">' + cnt + '</span>' : '';
       html += '<label class="grp-item' + (checked ? ' checked' : '') + '">'
         + '<input type="checkbox" data-col="date" data-val="' + escAttr(d) + '"' + checked + '>'
         + esc(d) + cntHtml
@@ -1456,10 +1474,16 @@
       } else if (col === 'date') {
         // Date chọn 1: check cái mới → bỏ cái cũ (single-select)
         // FIX: KHÔNG reset contractTypes — user chọn Date không mất filter Hình thức
-        // Đếm lại TẤT CẢ cột theo ngữ cảnh mới (date ảnh hưởng count Team/Ca/Hình thức)
+        // Chỉ cập nhật count các cột (badge), KHÔNG rebuild cột (tránh nháy)
         SEL.date = cb.checked ? val : '';
         clearOptCountCache();
-        renderAllCols();
+        fetchOptCounts('team', stationTeams());
+        var gdt = stationData();
+        if (gdt) {
+          fetchOptCounts('slot', gdt.slotCodes.map(function (sc) { return sc.slotCode; }));
+          if (gdt.contractTypes) fetchOptCounts('contract', gdt.contractTypes);
+          if (gdt.dates) fetchOptCounts('date', gdt.dates);
+        }
       } else if (col === 'team' || col === 'slot' || col === 'contract') {
         var arr = (col === 'team') ? SEL.teams : (col === 'slot' ? SEL.slots : SEL.contractTypes);
         // "__ALL__" = tick tất cả / bỏ tất cả
@@ -1484,9 +1508,16 @@
         } else {
           toggleArr(arr, val, cb.checked);
         }
-        // render lại TẤT CẢ cột để đếm lại count theo ngữ cảnh filter mới
+        // Chỉ cập nhật count các cột (badge), KHÔNG rebuild cột (tránh nháy).
+        // Cột vừa tick đã có checkbox checked sẵn từ click; chỉ cần đếm lại count.
         clearOptCountCache();
-        renderAllCols();
+        var gts = stationData();
+        fetchOptCounts('team', stationTeams());
+        if (gts) {
+          fetchOptCounts('slot', gts.slotCodes.map(function (sc) { return sc.slotCode; }));
+          if (gts.contractTypes) fetchOptCounts('contract', gts.contractTypes);
+          if (gts.dates) fetchOptCounts('date', gts.dates);
+        }
       }
       updateCreatePreview();
     });
