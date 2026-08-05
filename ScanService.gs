@@ -42,11 +42,11 @@ function scanStaff(taskId, rawStaffId) {
     // hiếm). 52KB JSON.parse + 1 full-read StaffData mỗi 5 phút là thừa với 99% scan.
 
     const result = classifyScan(
-      { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
-      task,
-      logRows,
-      staffId
-    );
+          { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+          task,
+          logRows,
+          staffId
+        );
 
     if (result.action === 'reject') {
       // F: lookup thay ternary 3 tầng — lý do reject → message (reason không có → STAFF_NOT_FOUND)

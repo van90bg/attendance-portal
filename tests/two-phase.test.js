@@ -9,6 +9,7 @@ const ScanLogic = require('../ScanLogic.gs');
 const CFG = {
   STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
   TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
+  TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
 };
 
 function makeRow(overrides) {
@@ -154,12 +155,30 @@ test('buildExtraRow: status truyền vào được giữ (mặc định EXTRA fa
   assert.equal(rPre.status, CFG.STATUS.PRESENT);
 });
 
-test('noList phase1 append: classifyScan vẫn trả EXTRA (ScanService phải override PENDING)', () => {
-  // noList quét đầu (phase1, task OPEN) cho NV lạ → classifyScan trả append + EXTRA.
-  // Contract: ScanService override thành PENDING cho noList phase1 (chưa có Giờ quét).
-  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.OPEN };
+test('noList (FREE) phase1 quét đầu: append PENDING — KHÔNG Dư', () => {
+  // Quét tự do (taskType FREE) KHÔNG có danh sách → NV lạ hợp lệ, quét đầu
+  // (phase1) ghi Giờ có mặt + PENDING (Chưa điểm danh), KHÔNG phải Dư.
+  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
   const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
   assert.equal(cls.action, 'append');
-  assert.equal(cls.status, CFG.STATUS.EXTRA); // classifyScan GIỮ EXTRA (contract cũ)
+  assert.equal(cls.field, 'timeRef');
+  assert.equal(cls.status, CFG.STATUS.PENDING);
+});
+
+test('noList (FREE) phase2 quét: append PRESENT — điểm danh xong', () => {
+  // Quét tự do phase2 (Điểm danh), NV lạ → append Giờ quét + PRESENT.
+  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.ATTEND, taskType: CFG.TASK_TYPE.FREE };
+  const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
+  assert.equal(cls.action, 'append');
+  assert.equal(cls.field, 'timeScan');
+  assert.equal(cls.status, CFG.STATUS.PRESENT);
+});
+
+test('roster (RECONCILE) NV lạ vẫn EXTRA (Dư) — không đổi behaviour', () => {
+  // Có danh sách (RECONCILE): NV quét không có trong roster → Dư (EXTRA).
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.RECONCILE };
+  const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
+  assert.equal(cls.action, 'append');
+  assert.equal(cls.status, CFG.STATUS.EXTRA);
 });
 

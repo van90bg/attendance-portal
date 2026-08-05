@@ -103,7 +103,8 @@ const TASK_STATUS = {
 
 // ===== Loại task =====
 const TASK_TYPE = {
-  RECONCILE: 'reconcile', // Phase 0: chỉ có loại này (đối chiếu từ csv)
+  RECONCILE: 'reconcile', // đối chiếu từ csv (CÓ danh sách NV)
+  FREE: 'free',           // Quét tự do — KHÔNG danh sách (noList), quét 2 lần
 };
 
 // ===== Cache TTL (giây) =====

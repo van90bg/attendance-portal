@@ -10,6 +10,7 @@ const ScanLogic = require('../ScanLogic.gs');
 const CFG = {
   STATUS: { PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư', PENDING: '-' },
   TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
+  TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
 };
 
 function makeRow(overrides) {

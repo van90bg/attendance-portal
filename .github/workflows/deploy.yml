@@ -29,3 +29,21 @@ jobs:
 
       - name: Push to GAS
         run: clasp push -f
+
+      # QUAN TRỌNG: clasp push chỉ cập nhật HEAD code. Web app chạy qua
+      # deployment trỏ VERSION cố định → phải `clasp deploy` để tạo version
+      # mới + gắn vào deployment hiện có (giữ URL). Thiếu bước này = web app
+      # mãi chạy code cũ dù Action success (bug 2026-08-05: lỗi extraRow còn
+      # nguyên vì workflow chỉ có clasp push).
+      - name: Deploy version mới + update deployment (giữ URL)
+        run: |
+          if [ -n "${{ secrets.GAS_DEPLOYMENT_ID_1 }}" ]; then
+            clasp deploy -i "${{ secrets.GAS_DEPLOYMENT_ID_1 }}" --description "auto ${{ github.sha }}"
+          else
+            echo "GAS_DEPLOYMENT_ID_1 chưa set — bỏ qua"
+          fi
+          if [ -n "${{ secrets.GAS_DEPLOYMENT_ID_2 }}" ]; then
+            clasp deploy -i "${{ secrets.GAS_DEPLOYMENT_ID_2 }}" --description "auto ${{ github.sha }}"
+          else
+            echo "GAS_DEPLOYMENT_ID_2 chưa set — bỏ qua"
+          fi

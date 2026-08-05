@@ -82,9 +82,11 @@ function createReconcileTask(input) {
     }
 
     const task = {
-      taskId: taskId,
-      taskType: TASK_TYPE.RECONCILE,
-      station: noList ? (station || 'Tự do') : station,
+          taskId: taskId,
+          // noList (Quét tự do) dùng taskType FREE để classifyScan nhận biết:
+          // NV lạ quét đầu (phase1) ghi PENDING (chưa điểm danh), KHÔNG Dư.
+          taskType: noList ? TASK_TYPE.FREE : TASK_TYPE.RECONCILE,
+          station: noList ? (station || 'Tự do') : station,
       slotCode: slotCode,
       team: team,
       contractType: contractType,

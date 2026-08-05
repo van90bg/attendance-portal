@@ -53,15 +53,27 @@ function classifyScan(cfg, task, logRows, staffId) {
       return { action: 'reject', phase: 'attend', field: null, status: null, reason: 'already-scanned', row: row };
     }
     return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.PRESENT, reason: null, row: row };
-  }
-  // Không có trong danh sách chốt → Dư (Q6): phase1 ghi Giờ có mặt; phase2 ghi Giờ quét.
-  if (phase === 'present') {
-    return { action: 'append', phase: 'present', field: 'timeRef', status: cfg.STATUS.EXTRA, reason: null, row: null };
-  }
-  return { action: 'append', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: null };
-}
+      }
+      // NV không có trong log.
+      // - Roster (taskType != 'free'): NV quét lạ là Dư (EXTRA) — ghi nhận ngoài danh sách chốt.
+      //   phase1 Giờ có mặt, phase2 Giờ quét.
+      // - Quét tự do (taskType FREE / noList): KHÔNG có danh sách chốt → NV lạ là hợp lệ,
+      //   KHÔNG phải Dư. Quét đầu (phase1) = PENDING (chưa điểm danh), phase2 = PRESENT.
+      //   (Fix Dư sai 2026-08-05)
+      const isFree = task && task.taskType === cfg.TASK_TYPE.FREE;
+      if (isFree) {
+        return {
+          action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),
+          status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.PRESENT, reason: null, row: null,
+        };
+      }
+      if (phase === 'present') {
+        return { action: 'append', phase: 'present', field: 'timeRef', status: cfg.STATUS.EXTRA, reason: null, row: null };
+      }
+      return { action: 'append', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: null };
+    }
 
-/**
+    /**
  * Tìm dòng NV trong log theo staffId (staffId đã normalize trước).
  * @param {Array<Object>} logRows
  * @param {string} staffId
