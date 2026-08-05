@@ -101,6 +101,10 @@ function scanStaff(taskId, rawStaffId) {
       timeScanText: timeScanText,
       timeScanEpoch: timeScanEpoch,
       staffName: scannedName,
+      slotCode: result.action === 'append' ? extraRow.slotCode : (result.row && result.row.slotCode) || '',
+      station: result.action === 'append' ? extraRow.station : (result.row && result.row.station) || '',
+      team: result.action === 'append' ? extraRow.team : (result.row && result.row.team) || '',
+      workstation: result.action === 'append' ? extraRow.workstation : (result.row && result.row.workstation) || '',
       counters: counters,
     };
   } finally {
