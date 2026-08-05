@@ -250,7 +250,13 @@
     }
     .grp-item.is-all:hover { background: #eef1f5; }
     .grp-empty { padding: 8px; text-align: center; font-size: 13px; }
-    .opt-count { font-size: 12px; color: var(--muted); margin-left: 6px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .opt-count {
+      font-size: 12px; margin-left: 6px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #fff; background: var(--primary);
+      border-radius: 999px; padding: 1px 7px;
+      min-width: 22px; text-align: center; display: inline-block;
+    }
     /* Kích thước modal CỐ ĐỊNH — nhỏ gọn nhất có thể */
     #createModal .about-dialog { width: 680px; max-width: 680px; padding: 16px; }
     @media (max-width: 719px) {
@@ -1252,7 +1258,7 @@
   }
   // ===== Modal tạo task: 5 mục dọc — options 3 cột, có "All", hiển thị tất cả, KÍCH THƯỚC NHỎ NHẤT =====
   var _optCountCache = {};
-  var _optCountTimer = null;
+  var _optCountTimers = {};  // timer riêng từng cột — tránh clearTimeout lẫn nhau khi renderAllCols
   function clearOptCountCache() { _optCountCache = {}; }
   function getOptCountKey(col, val) { return col + ':' + val; }
   function setOptCount(col, val, cnt) { _optCountCache[getOptCountKey(col, val)] = cnt; }
@@ -1263,8 +1269,8 @@
     if (!SEL.station) return;
     var need = options.filter(function (v) { return getOptCount(col, v) === undefined; });
     if (!need.length) return;
-    clearTimeout(_optCountTimer);
-    _optCountTimer = setTimeout(function () {
+    clearTimeout(_optCountTimers[col]);
+    _optCountTimers[col] = setTimeout(function () {
       var batch = need.slice(0, 20);
       var base = {
         station: SEL.station,
