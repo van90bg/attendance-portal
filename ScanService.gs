@@ -79,8 +79,8 @@ function scanStaff(taskId, rawStaffId) {
     } else if (result.action === 'append') {
       // P2-6: re-check cache (có thể kiosk khác vừa push dòng này trong lock) trước khi append
       // → tránh Dư TRÙNG LẶP khi 2 kiosk quét CÙNG staffId lạ trong cửa sổ cache TTL.
-      const freshRows = readLogRowsCached_(taskId);
-      const existing = findLogRow(freshRows, staffId);
+      let existing = null;
+      try { existing = findLogRow(readLogRowsCached_(taskId), staffId); } catch (e) { console.warn('recheck cache fail', e.message); }
       const now = new Date();
       if (existing) {
         // Đã có (race) → coi như đã append, KHÔNG append nữa (tránh duplicate).
@@ -91,7 +91,9 @@ function scanStaff(taskId, rawStaffId) {
         result.status = status;
       } else {
         // F1: đọc staffIndex CHỈ ở đây (append) — lazy thay vì mỗi scan
-        const staffInfo = (readStaffIndex_())[staffId] || null;
+        // G: wrap try/catch — nếu StaffData lỗi/throw, vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi"
+        let staffInfo = null;
+        try { staffInfo = (readStaffIndex_())[staffId] || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffInfo = null; }
         const extraRow = buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now);
         appendLogRow_(extraRow);
         logRows.push(extraRow);
