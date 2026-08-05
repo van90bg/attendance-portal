@@ -96,6 +96,21 @@ test('computeCounters: quy ước đã chốt', () => {
   assert.equal(c.total, 4);
 });
 
+test('computeCounters: PENDING + có timeScan (data-repair) → đếm scanned, KHÔNG absent', () => {
+  // Insurance path (markUnscannedAbsent_): dòng có timeScan nhưng status còn '-'
+  // (data legacy/sửa tay) → chuẩn hóa thành Có mặt, KHÔNG đánh Vắng.
+  // computeCounters dùng timeScanEpoch > 0 làm nguồn sự thật duy nhất.
+  const rows = [
+    makeRow({ staffId: 'OPS000001', timeScanEpoch: 1700000000000, status: CFG.STATUS.PENDING }), // quét rồi nhưng status chưa cập nhật
+    makeRow({ staffId: 'OPS000002', timeScanEpoch: 0, status: CFG.STATUS.PENDING }),       // chưa quét (đúng)
+  ];
+  const c = ScanLogic.computeCounters(CFG, rows);
+  assert.equal(c.scanned, 1);   // chỉ dòng có timeScan
+  assert.equal(c.absent, 1);    // dòng còn PENDING + chưa quét
+  assert.equal(c.extra, 0);     // không phải EXTRA
+  assert.equal(c.total, 2);
+});
+
 test('buildExtraRow: tạo dòng Dư với thông tin staff nếu có', () => {
   const now = new Date('2026-08-02T08:00:00');
   const staffInfo = {

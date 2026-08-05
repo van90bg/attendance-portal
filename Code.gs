@@ -185,8 +185,11 @@ function previewStaffCountsApi(input) {
   return { ok: true, counts: counts };
 }
 
-/** Tạo task đối chiếu + pre-fill. */
+/** Tạo task đối chiếu + pre-fill. Chỉ deployer (máy cá nhân manager). */
 function createReconcileTaskApi(input) {
+  if (!isEditor_()) {
+    return { ok: false, taskId: null, count: 0, message: 'Chỉ quản lý mới được tạo task' };
+  }
   return createReconcileTask(input);
 }
 
@@ -200,36 +203,52 @@ function getTaskDetailApi(taskId) {
   return getTaskDetail(taskId);
 }
 
-/** Quét NV. */
+/** Quét NV. Mở cho kiosk — KHÔNG cần editor (luồng vận hành hàng ngày). */
 function scanStaffApi(taskId, staffId) {
   return scanStaff(taskId, staffId);
 }
 
-/** Kết thúc task. */
+/** Kết thúc task. Chỉ deployer. */
 function completeTaskApi(taskId) {
+  if (!isEditor_()) {
+    return { ok: false, message: 'Chỉ quản lý mới được kết thúc task' };
+  }
   return completeTask(taskId);
 }
 
-/** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). */
+/** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). Chỉ deployer. */
 function reopenTaskApi(taskId) {
+  if (!isEditor_()) {
+    return { ok: false, message: 'Chỉ quản lý mới được mở lại task' };
+  }
   return reopenTask(taskId);
 }
 
 /**
- * Gate editor-only — kiosk anonymous.
- * USER_DEPLOYING: getEffectiveUser() = deployer (user sở hữu script); getActiveUser()
- * trả email người truy cập webapp NẾU đã đăng nhập Google (bất kỳ tài khoản nào),
- * rỗng nếu anonymous. Chỉ deployer được chạy thao tác nguy hiểm (debug/sync/setup).
- * Dùng chung cho mọi thao tác nguy hiểm — 1 nơi sửa logic.
+ * Gate editor-only — chỉ thao tác QUẢN LÝ (tạo/kết thúc/mở lại task + debug/sync/setup).
+ * Deploy "Execute as: User accessing the web app" → getEffectiveUser() = user đó
+ * (KHÔNG phải deployer), nên so sánh active===effective là SAI và dễ bị bypass.
+ * Đúng: editor = user truy cập đã đăng nhập VÀ email trùng DEPLOYER_EMAIL
+ * (lấy từ Script Properties — KHÔNG hardcode).
+ * Bối cảnh: máy cá nhân của manager → chỉ cần định danh tài khoản, KHÔNG cần PIN.
  */
 function isEditor_() {
   try {
     const active = Session.getActiveUser().getEmail();
-    const effective = Session.getEffectiveUser().getEmail();
-    // fail-closed: phải có active user VÀ là deployer
-    return !!(active && active.toLowerCase() === effective.toLowerCase());
+    const deployer = getDeployerEmail_();
+    // fail-closed: phải có active user VÀ trùng deployer email
+    return !!(active && deployer && active.toLowerCase() === deployer.toLowerCase());
   } catch (e) {
     return false; // lỗi quyền → chặn (không fail-open)
+  }
+}
+
+/** Email deployer (owner của script) — từ Script Properties (không hardcode). */
+function getDeployerEmail_() {
+  try {
+    return PropertiesService.getScriptProperties().getProperty('DEPLOYER_EMAIL') || '';
+  } catch (e) {
+    return '';
   }
 }
 
