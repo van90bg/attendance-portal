@@ -620,6 +620,14 @@
       border-radius: 50%;
       animation: spin .7s linear infinite;
     }
+    /* F6: modal spin cho nút chuyển trạng thái (spinner dùng chung loadingOverlay + spinModal) */
+    .spin-big {
+      width: 40px; height: 40px;
+      border: 4px solid #e6eaf0; border-top-color: var(--warning);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
     #loadingOverlay p { margin-top: 16px; color: var(--muted); font-size: 15px; font-weight: 500; }
 
     /* ===== About modal (tham khảo v1) ===== */
@@ -909,6 +917,13 @@
   </div>
 </div>
 
+<div id="spinModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Đang xử lý">
+  <div class="about-dialog" style="width:auto;max-width:280px;text-align:center;padding:26px 30px;border-top:3px solid var(--amber);">
+    <div class="spin-big"></div>
+    <p id="spinModalMsg" style="margin-top:14px;color:var(--muted);font-size:14px;font-weight:600;"></p>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1078,11 +1093,29 @@
   function hideLoadingOverlay() {
     var o = document.getElementById('loadingOverlay');
     if (o) o.classList.add('hide');
+    hideModalSpin(); // F6: mọi success/fail path gọi hideLoadingOverlay → đóng modal spin luôn
   }
   function showLoadingOverlay() {
     var o = document.getElementById('loadingOverlay');
     if (!o) return;
     o.classList.remove('hide');
+  }
+
+  // F6: modal spin cho nút chuyển trạng thái (Kết thúc / Chuyển điểm danh / Mở lại) —
+  // thay loadingOverlay toàn màn để thấy rõ đang xử lý ở ngay tâm màn, hết khi nhận phản hồi.
+  function showModalSpin(msg) {
+    var m = document.getElementById('spinModal');
+    var l = document.getElementById('spinModalMsg');
+    if (!m) return;
+    if (l) l.textContent = msg || 'Đang xử lý…';
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+  }
+  function hideModalSpin() {
+    var m = document.getElementById('spinModal');
+    if (!m) return;
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
   }
 
   /* P2: watchdog an toàn — nếu RPC khởi động treo (cold start GAS / mạng chậm / offline),
@@ -2426,7 +2459,7 @@
       'Mở lại task ' + taskId + '?\nNV bị đánh Vắng sẽ đặt lại "Chưa điểm danh" để quét tiếp.',
       function () {
         BUSY = true;
-        showLoadingOverlay();
+        showModalSpin('Đang mở lại task…');
         google.script.run
           .withSuccessHandler(function (res) {
             BUSY = false;
@@ -2457,7 +2490,7 @@
       return;
     }
     BUSY = true;
-    showLoadingOverlay();
+    showModalSpin('Đang chuyển sang Điểm danh…');
     google.script.run
       .withSuccessHandler(function (res) {
         BUSY = false;
@@ -2510,7 +2543,7 @@
       'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.',
       function () {
         BUSY = true;
-        showLoadingOverlay();
+        showModalSpin('Đang kết thúc task…');
         var btn = document.getElementById('btnFinish');
         if (btn) btn.disabled = true;
         google.script.run
