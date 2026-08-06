@@ -2236,8 +2236,12 @@
       var optimisticStatusNew = isFree
         ? (phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING)
         : STATUS_C.EXTRA;
-      var cachedName = CLIENT_STAFF_INDEX[String(staffId).toUpperCase()] || '';
-      target = { staffId: staffId, staffName: cachedName || '…', slotCode: '', station: '', team: '',
+      var staffRec = CLIENT_STAFF_INDEX[String(staffId).toUpperCase()] || null;
+      var cachedName = staffRec ? (staffRec.staffName || '') : '';
+      target = { staffId: staffId, staffName: cachedName || '…',
+                 slotCode: staffRec ? (staffRec.slotCode || '') : '',
+                 station: staffRec ? (staffRec.station || '') : '',
+                 team: staffRec ? (staffRec.team || '') : '',
                  timeRefText: phase2 ? '' : fmtDate(now), timeRefEpoch: phase2 ? 0 : now.getTime(),
                  timeScanText: phase2 ? fmtDate(now) : '', timeScanEpoch: phase2 ? now.getTime() : 0,
                  status: optimisticStatusNew };
