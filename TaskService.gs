@@ -188,7 +188,8 @@ function reopenTask(taskId) {
     // Reset Vắng → Chưa điểm danh TRƯỚC (batch 1 lần), sau đó mở status task.
     // Thứ tự fail-safe giống completeTask: reset fail → task vẫn DONE, retry được.
     const resetCount = resetAbsentToPending_(taskId);
-    updateTaskStatus_(taskId, TASK_STATUS.OPEN, null, task._rowIndex, task.contractType || '');
+    // F4: mở lại → Điểm danh (phase2, ghi Giờ quét) để quét tiếp luôn — KHÔNG về OPEN.
+    updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
     return {
       ok: true,
       message: 'Đã mở lại task ' + taskId + (resetCount > 0 ? ' — ' + resetCount + ' NV Vắng được đặt lại Chưa điểm danh' : ''),
