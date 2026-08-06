@@ -52,6 +52,11 @@ function classifyScan(cfg, task, logRows, staffId) {
     if (Number(row.timeScanEpoch) > 0) {
       return { action: 'reject', phase: 'attend', field: null, status: null, reason: 'already-scanned', row: row };
     }
+    // NV lạ (Dư/EXTRA từ phase1) quét lại phase2 → VẪN là Dư (EXTRA), KHÔNG đổi thành
+    // Có mặt (PRESENT). Chỉ NV trong danh sách (status PENDING) quét phase2 mới = PRESENT.
+    if (row.status === cfg.STATUS.EXTRA) {
+      return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: row };
+    }
     return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.PRESENT, reason: null, row: row };
       }
       // NV không có trong log.

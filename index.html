@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <base target="_top">
@@ -321,7 +321,8 @@
       margin-top: 6px;
     }
     .counter.scanned .num { color: var(--success); }
-    .counter.absent .num { color: var(--danger); }
+    .counter.absent .num { color: var(--danger); }   /* DONE: Vắng (đỏ) */
+    .counter.waiting .num { color: var(--primary); } /* Mở: Chờ điểm danh (xanh) */
     .counter.extra .num { color: var(--warning); }
 
     /* ===== C3: toolbar lọc bảng NV ===== */
@@ -919,7 +920,7 @@
 
   var META = null;
   var CURRENT_TASK = null;
-  var CURRENT_LOG = [];
+  var CURRENT_LOG = [];\n  // Cache tên NV client-side (từ server response) → quét lại cùng mã hiện tên tức thì.\n  var CLIENT_STAFF_INDEX = {};
   // I4: guard array từ server — nếu API trả object/string (bug tương lai) thì .forEach crash white screen
   function safeArr(x) { return Array.isArray(x) ? x : []; }
   var CURRENT_COUNTERS = null;  // state counters để optimistic cập nhật ngay
@@ -1834,13 +1835,15 @@
     restoreScanCard(safeArr(data.log));
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
-    // Chỉ cho quét ở phase2 (Điểm danh) — quét ở phase1 (Mở) chỉ ghi Giờ có mặt,
-    // không ghi Giờ quét/Đã điểm danh → user hiểu nhầm "đã điểm danh" mà sheet trống.
-    // Task Mở: disable input, hint "Bấm Chuyển điểm danh để bắt đầu quét".
-    var canScan = data.task.phase === TASK_STATUS_C.ATTEND;
+    // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
+    // Giờ có mặt được). Task Quét tự do (FREE) phase1 KHÔNG cho quét — phải bấm
+    // "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
+    var isReconcile = data.task.taskType === TASK_TYPE_C.RECONCILE;
+    var canScan = data.task.phase === TASK_STATUS_C.ATTEND || isReconcile;
     var scanInput = document.getElementById('scanInput');
     scanInput.disabled = !canScan;
-    scanInput.placeholder = canScan ? 'Quét mã nhân viên…' : 'Bấm "Chuyển điểm danh" để bắt đầu quét';
+    scanInput.placeholder = canScan ? 'Quét mã nhân viên…'
+      : 'Bấm "Chuyển điểm danh" để bắt đầu quét';
     updateFinishBtnState();
     if (canScan) {
       scanInput.focus();
@@ -1909,11 +1912,24 @@
     document.getElementById('cScanned').textContent = c.scanned || 0;
     document.getElementById('cAbsent').textContent = c.absent || 0;
     document.getElementById('cExtra').textContent = c.extra || 0;
-    // Label động theo trạng thái task: đang mở → "Chưa điểm danh" (chưa quét ≠ vắng);
-    // đã kết thúc → "Vắng" (markUnscannedAbsent_ đã chốt trạng thái).
-    var lbl = document.querySelector('.counter.absent .lbl');
-    if (lbl) {
-      lbl.textContent = (!CURRENT_TASK || CURRENT_TASK.phase !== TASK_STATUS_C.DONE) ? 'Chưa điểm danh' : 'Vắng';
+    // Label + màu động theo phase: phase1 (Mở) → "Chờ điểm danh" (xanh, chưa đến lượt,
+    // KHÔNG phải Vắng); phase2 chưa kết thúc → "Chưa điểm danh" (vàng); DONE → "Vắng" (đỏ).
+    var absentCounter = document.querySelector('.counter.absent');
+    var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
+    if (lbl && CURRENT_TASK) {
+      if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
+        lbl.textContent = 'Chờ điểm danh';
+        absentCounter.classList.add('waiting');
+        absentCounter.classList.remove('absent');
+      } else if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
+        lbl.textContent = 'Chưa điểm danh';
+        absentCounter.classList.add('absent');
+        absentCounter.classList.remove('waiting');
+      } else { // DONE
+        lbl.textContent = 'Vắng';
+        absentCounter.classList.add('absent');
+        absentCounter.classList.remove('waiting');
+      }
     }
   }
 
@@ -2076,7 +2092,7 @@
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.
   var SCAN_QUEUE = [];
   var SCAN_PROCESSING = false;
-  var SCAN_QUEUE_MAX = 5; // P2 FIX: giới hạn queue 5 (50 → backlog 125s). Công nhân quét chậm hơn server 2.5s/item.
+  var SCAN_QUEUE_MAX = 2; // giảm backlog (5 → 2) để tên NV hiện tức thì, ít delay queue
   // P2: seq chống response cũ đè scan card mới — quét B lúc response A đang bay,
   // response A về sẽ showScanCard(A) nhảy card về NV quét trước đó vài giây.
   var SCAN_CARD_SEQ = 0;
@@ -2203,7 +2219,8 @@
       var optimisticStatusNew = isFree
         ? (phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING)
         : STATUS_C.EXTRA;
-      target = { staffId: staffId, staffName: '…', slotCode: '', station: '', team: '',
+      var cachedName = CLIENT_STAFF_INDEX[String(staffId).toUpperCase()] || '';
+      target = { staffId: staffId, staffName: cachedName || '…', slotCode: '', station: '', team: '',
                  timeRefText: phase2 ? '' : fmtDate(now), timeRefEpoch: phase2 ? 0 : now.getTime(),
                  timeScanText: phase2 ? fmtDate(now) : '', timeScanEpoch: phase2 ? now.getTime() : 0,
                  status: optimisticStatusNew };
@@ -2413,6 +2430,7 @@
       return;
     }
     BUSY = true;
+    showLoadingOverlay();
     google.script.run
       .withSuccessHandler(function (res) {
         BUSY = false;
@@ -2444,6 +2462,7 @@
       .withFailureHandler(function (err) {
         markServerFail();
         BUSY = false;
+        hideLoadingOverlay();
         showToast('Lỗi chuyển điểm danh: ' + err.message, true);
       })
       .transitionToAttendApi(taskId);
@@ -2463,6 +2482,7 @@
       'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.',
       function () {
         BUSY = true;
+        showLoadingOverlay();
         var btn = document.getElementById('btnFinish');
         if (btn) btn.disabled = true;
         google.script.run
@@ -2587,3 +2607,12 @@
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
