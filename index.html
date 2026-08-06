@@ -2458,6 +2458,7 @@
     google.script.run
       .withSuccessHandler(function (res) {
         BUSY = false;
+        hideLoadingOverlay();
         showToast(res.message, !res.ok);
         if (res.ok) {
           invalidateClientCaches_();
