@@ -2268,8 +2268,9 @@
       // - Đối chiếu (RECONCILE): EXTRA (Dư) — NV lạ ngoài danh sách.
       // (Fix 2026-08-06: trước đây hardcode EXTRA → free task hiện "Dư" 3-4s rồi mới sửa.)
       var isFree = CURRENT_TASK && CURRENT_TASK.taskType === TASK_TYPE_C.FREE;
+      // FREE phase2: NV chưa trong danh sách phase1 → DƯ (EXTRA). KV chưa quay phase1.
       var optimisticStatusNew = isFree
-        ? (phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING)
+        ? (phase2 ? STATUS_C.EXTRA : STATUS_C.PENDING)
         : STATUS_C.EXTRA;
       var staffRec = CLIENT_STAFF_INDEX[String(staffId).toUpperCase()] || null;
       var cachedName = staffRec ? (staffRec.staffName || '') : '';
