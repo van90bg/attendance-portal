@@ -90,7 +90,10 @@ function createReconcileTask(input) {
       slotCode: slotCode,
       team: team,
       contractType: contractType,
-      status: TASK_STATUS.OPEN,
+      // 2.10: RECONCILE (có list pre-fill) tạo task vào thẳng phase2 (attend) — KHÔNG
+      // cần bấm "Chuyển điểm danh" thủ công (danh sách đã có sẵn → quét NV ngoài list = Dư).
+      // FREE (noList) vẫn mở phase1 (open) — cần scan phase1 để xây danh sách rồi mới chuyển attend.
+      status: noList ? TASK_STATUS.OPEN : TASK_STATUS.ATTEND,
       createdAt: now,
       createdBy: createdBy,
       completedAt: null,
