@@ -80,11 +80,12 @@ test('scanStaff: quét tự do (FREE) phase1 — KHÔNG ghi Dư, trả PENDING',
   assert.equal(res.message, ctx.STATUS.PENDING, 'toast message không được là "Dư"');
 });
 
-test('scanStaff: quét tự do (FREE) phase2 — trả PRESENT (điểm danh xong)', () => {
+test('scanStaff: quét tự do (FREE) phase2 — NV lạ ngoài danh sách phase1 → Dư / EXTRA', () => {
   const ctx = makeCtx({ readTask_: () => freshTask('free', 'attend'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999');
   assert.equal(res.ok, true);
-  assert.equal(res.status, ctx.STATUS.PRESENT, 'free phase2 = Có mặt');
-  assert.notEqual(res.message, ctx.STATUS.EXTRA, 'không được hiện "Dư"');
+  // FREE phase2: NV chưa trong danh sách phase1 → Dư (EXTRA) — ghi Giờ quét, đếm Dư.
+  assert.equal(res.status, ctx.STATUS.EXTRA, 'free phase2 NV lạ = Dư');
+  assert.equal(res.message, ctx.STATUS.EXTRA, 'toast hiện "Dư"');
 });

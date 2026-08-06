@@ -163,13 +163,14 @@ test('noList (FREE) phase1 quét đầu: append PENDING — KHÔNG Dư', () => {
   assert.equal(cls.status, CFG.STATUS.PENDING);
 });
 
-test('noList (FREE) phase2 quét: append PRESENT — điểm danh xong', () => {
+test('noList (FREE) phase2 quét NV lạ → append EXTRA — Dư', () => {
   // Quét tự do phase2 (Điểm danh), NV lạ → append Giờ quét + PRESENT.
   const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.ATTEND, taskType: CFG.TASK_TYPE.FREE };
   const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
   assert.equal(cls.action, 'append');
   assert.equal(cls.field, 'timeScan');
-  assert.equal(cls.status, CFG.STATUS.PRESENT);
+  // FREE phase2: NV chưa trong danh sách phase1 → Dư (EXTRA), không còn PRESENT.
+  assert.equal(cls.status, CFG.STATUS.EXTRA);
 });
 
 test('roster (RECONCILE) NV lạ vẫn EXTRA (Dư) — không đổi behaviour', () => {

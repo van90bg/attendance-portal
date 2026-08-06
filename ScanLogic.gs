@@ -67,9 +67,12 @@ function classifyScan(cfg, task, logRows, staffId) {
       //   (Fix Dư sai 2026-08-05)
       const isFree = task && task.taskType === cfg.TASK_TYPE.FREE;
       if (isFree) {
+        // FREE 2-phase (noList): phase1 quét đầu = danh sách (PENDING, có mặt chưa
+        // điểm danh). phase2 quét NVavtrong danh sách = đánh giá x.s.Mọi NV quét
+        // KHÔNG có trong danh sách phase1 → Dư (EXTRA) — ghi Giờ quét, đếm Dư.
         return {
           action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),
-          status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.PRESENT, reason: null, row: null,
+          status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.EXTRA, reason: null, row: null,
         };
       }
       if (phase === 'present') {
