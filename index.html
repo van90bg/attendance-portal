@@ -940,6 +940,7 @@
   };
 
   document.addEventListener('DOMContentLoaded', function () {
+    startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
     loadMetaAndOptions();
     document.getElementById('scanInput').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
@@ -1070,22 +1071,29 @@
     window.addEventListener('offline', function () { updateNetStatus(false); });
   }
 
-  /* ===== Spin loading overlay (ẩn sau lần load đầu tiên) ===== */
-  var OVERLAY_HIDDEN = false;
+  /* ===== Spin loading overlay ===== */
   function hideLoadingOverlay() {
-    if (OVERLAY_HIDDEN) return;
-    OVERLAY_HIDDEN = true;
     var o = document.getElementById('loadingOverlay');
     if (o) o.classList.add('hide');
   }
-  // P2: reset cờ để lần skip kế tiếp chạy được (trước đây OVERLAY_HIDDEN=true vĩnh viễn).
-  // Chỉ toggle class .hide (opacity/visibility transition) — KHÔNG đụng display:
-  // timer 500ms cũ có thể display:none overlay của task đang load (race).
   function showLoadingOverlay() {
-    OVERLAY_HIDDEN = false;
     var o = document.getElementById('loadingOverlay');
     if (!o) return;
     o.classList.remove('hide');
+  }
+
+  /* P2: watchdog an toàn — nếu RPC khởi động treo (cold start GAS / mạng chậm / offline),
+     vẫn ẩn overlay sau 8s + báo lỗi thay vì để app "chết" màn chờ. Chỉ arm 1 lần. */
+  var _startupOverlayTimer = null;
+  function startupOverlayWatchdog() {
+    if (_startupOverlayTimer) return;
+    _startupOverlayTimer = setTimeout(function () {
+      var o = document.getElementById('loadingOverlay');
+      if (o && !o.classList.contains('hide')) {
+        hideLoadingOverlay();
+        showToast('Tải dữ liệu chậm — đã bỏ qua màn chờ. Thử làm mới (⟳).', true);
+      }
+    }, 8000);
   }
 
   /* ===== Âm thanh toggle (tham khảo v1) ===== */
@@ -1658,9 +1666,10 @@
     }
     google.script.run
       .withSuccessHandler(function (tasks) {
+        hideLoadingOverlay();  // ẩn ngay khi callback về — KHÔNG phụ thuộc render (phòng render throw → overlay treo)
         LAST_TASK_LIST = { tasks: safeArr(tasks), ts: Date.now() };  // cập nhật cache
-        renderTaskList_(safeArr(tasks));
-        hideLoadingOverlay();
+        try { renderTaskList_(safeArr(tasks)); }
+        catch (e) { showToast('Lỗi hiển thị danh sách: ' + (e && e.message ? e.message : e), true); }
         markServerOk();  // P2: RPC thành công → server sống lại → netDot hồi phục
         _releaseRefreshLock();  // P2: RPC xong → nhả lock refresh (nếu dở)
       })
@@ -2402,9 +2411,11 @@
       'Mở lại task ' + taskId + '?\nNV bị đánh Vắng sẽ đặt lại "Chưa điểm danh" để quét tiếp.',
       function () {
         BUSY = true;
+        showLoadingOverlay();
         google.script.run
           .withSuccessHandler(function (res) {
             BUSY = false;
+            hideLoadingOverlay();
             showToast(res.message, !res.ok);
             invalidateClientCaches_();
             loadTaskList();
@@ -2415,6 +2426,7 @@
           .withFailureHandler(function (err) {
             markServerFail();
             BUSY = false;
+            hideLoadingOverlay();
             showToast('Lỗi mở lại: ' + err.message, true);
           })
           .reopenTaskApi(taskId);
@@ -2607,6 +2619,9 @@
 </script>
 </body>
 </html>
+
+
+
 
 
 
