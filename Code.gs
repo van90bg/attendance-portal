@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Code.gs — Entry point + API endpoints (google.script.run).
  *
  * API (gọi từ client index.html):
