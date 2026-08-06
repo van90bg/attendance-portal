@@ -2218,7 +2218,9 @@
       item.oldTimeRefText = target.timeRefText; item.oldTimeRefEpoch = target.timeRefEpoch;
       item.oldTimeScanText = target.timeScanText; item.oldTimeScanEpoch = target.timeScanEpoch;
       if (phase2) {
-        target.status = STATUS_C.PRESENT;          // Giờ quét → Có mặt
+        // F5: NV đã Dư (EXTRA) quét lại phase2 → giữ EXTRA (khớp server classifyScan),
+        // KHÔNG đổi thành Có mặt rồi nhảy về Dư (flicker). Chỉ dòng PENDING → PRESENT.
+        target.status = (target.status === STATUS_C.EXTRA) ? STATUS_C.EXTRA : STATUS_C.PRESENT;
         target.timeScanText = fmtDate(now);
         target.timeScanEpoch = now.getTime();      // sort key — quét tức thì nhảy lên đầu
       } else {
@@ -2253,7 +2255,8 @@
     // Toast optimistic — hiện ĐÚNG trạng thái; server KHÔNG toast lại nếu trùng
     // (tránh lặp/nháy). NV lạ (optimisticNew) đã có status đúng theo free/reconcile ở trên.
     if (!item.optimisticNew) {
-      item.optimisticStatus = phase2 ? STATUS_C.PRESENT : STATUS_C.PENDING;
+      // F5: optimistic status = target.status đã cập nhật (giữ EXTRA nếu dòng Dư) — khớp server.
+      item.optimisticStatus = target.status;
     }
     // Toast optimistic: NV lạ (chưa có tên) hiện mã NV thay vì dấu '-' (PENDING) gây
     // hiểu lầm "trống". Server sẽ toast lại status thật nếu khác.
