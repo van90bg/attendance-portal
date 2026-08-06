@@ -101,11 +101,10 @@ function findLogRow(logRows, staffId) {
  *
  * @param {Object} cfg — { STATUS: {...} }
  * @param {Array<Object>} logRows
- * @returns {{scanned: number, presentAt: number, absent: number, extra: number, total: number}}
+ * @returns {{scanned: number, absent: number, extra: number, total: number}}
  */
 function computeCounters(cfg, logRows) {
   let scanned = 0;   // Giờ quét có (timeScanEpoch>0) — điểm danh xong
-  let presentAt = 0; // Giờ có mặt có (timeRefEpoch>0) — đã quét lần 1
   let absent = 0;
   let extra = 0;
   const total = logRows ? logRows.length : 0;
@@ -113,13 +112,11 @@ function computeCounters(cfg, logRows) {
     // P2: epoch là nguồn sự thật duy nhất (text mất ngày xuyên nửa đêm; slim cache
     // không còn field timeScan Date) — khớp hướng scanCard/restoreScanCard.
     var hasScan = Number(row.timeScanEpoch) > 0;
-    var hasRef = Number(row.timeRefEpoch) > 0;
     if (hasScan) scanned++;
-    if (hasRef) presentAt++;
     if (row.status === cfg.STATUS.EXTRA) extra++;
     else if (!hasScan) absent++; // chưa quét (phase2) → Vắng khi kết thúc
   });
-  return { scanned: scanned, presentAt: presentAt, absent: absent, extra: extra, total: total };
+  return { scanned: scanned, absent: absent, extra: extra, total: total };
 }
 
 /**

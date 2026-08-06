@@ -920,7 +920,9 @@
 
   var META = null;
   var CURRENT_TASK = null;
-  var CURRENT_LOG = [];\n  // Cache tên NV client-side (từ server response) → quét lại cùng mã hiện tên tức thì.\n  var CLIENT_STAFF_INDEX = {};
+  var CURRENT_LOG = [];
+  // Cache tên NV client-side (từ server response) → quét lại cùng mã hiện tên tức thì.
+  var CLIENT_STAFF_INDEX = {};
   // I4: guard array từ server — nếu API trả object/string (bug tương lai) thì .forEach crash white screen
   function safeArr(x) { return Array.isArray(x) ? x : []; }
   var CURRENT_COUNTERS = null;  // state counters để optimistic cập nhật ngay
@@ -996,6 +998,7 @@
       var col = parseInt(th.dataset.sort, 10);
       if (SCAN_SORT.col === col) SCAN_SORT.asc = !SCAN_SORT.asc;
       else { SCAN_SORT.col = col; SCAN_SORT.asc = true; }
+      SCAN_SORT.userSet = true;  // F: user tự chọn cột → bỏ ép-theo-phase
       updateSortIndicators();
       renderScanTable(CURRENT_LOG);
     });
@@ -1265,7 +1268,7 @@
         refreshAll();
         // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
         // khi quét đầu thay vì về sau. KHÔNG block UI — chỉ warm cache.
-        try { google.script.run.warmStaffCacheApi(); } catch (e) { /* ignore */ }
+        try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) { /* ignore */ }
       })
       .withFailureHandler(function (err) {
         markServerFail();  // P2: RPC fail = server unreachable → netDot offline
@@ -1754,7 +1757,7 @@
           openScan(res.taskId);
           // Fix #1: task Quét tự do vừa tạo → warm staffIndex ngay (fire-and-forget)
           // để quét đầu đã có tên NV từ cache thay vì về sau.
-          if (input.noList) { try { google.script.run.warmStaffCacheApi(); } catch (e) {} }
+          if (input.noList) { try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {} }
         } else {
           showToast(res.message, true);
         }
@@ -1845,15 +1848,18 @@
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
     // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
-    // Giờ có mặt được). Task Quét tự do (FREE) phase1 KHÔNG cho quét — phải bấm
+    // Giờ có mặt được). Task Quét tự do (FREE) cũng 2-phase: phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét (V2 FREE la 2-phase) — phải bấm
     // "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
     var isReconcile = data.task.taskType === TASK_TYPE_C.RECONCILE;
-    var canScan = data.task.phase === TASK_STATUS_C.ATTEND || isReconcile;
+    var isFree = data.task.taskType === TASK_TYPE_C.FREE;
+    var canScan = data.task.phase === TASK_STATUS_C.ATTEND || isReconcile || isFree;
     var scanInput = document.getElementById('scanInput');
     scanInput.disabled = !canScan;
     scanInput.placeholder = canScan ? 'Quét mã nhân viên…'
       : 'Bấm "Chuyển điểm danh" để bắt đầu quét';
     updateFinishBtnState();
+    // F: đồng bộ indicator sort với phase vừa render (phase2 → cột Giờ quét)
+    updateSortIndicators();
     if (canScan) {
       scanInput.focus();
     }
@@ -1945,7 +1951,7 @@
   // C3: state lọc + sort bảng scan — mặc định sort theo phase:
   // phase1 (Mở) → Giờ có mặt (col 6) mới nhất; phase2 (Điểm danh) → Giờ quét (col 7).
   var SCAN_FILTER = { q: '', status: '' };
-  var SCAN_SORT = { col: 6, asc: false };  // mặc định Giờ có mặt (phase1); filterAndSortScan override theo phase
+  var SCAN_SORT = { col: 6, asc: false, userSet: false };  // userSet=true khi user chọn cột; false=mặc định theo phase
   var STATUS_ORDER = {};  // P3: dựng từ STATUS_C — tránh hardcode label
   STATUS_ORDER[STATUS_C.PENDING] = 0;
   STATUS_ORDER[''] = 0;
@@ -1963,10 +1969,10 @@
     var st = SCAN_FILTER.status;
     // 2-phase: sort mặc định theo phase — phase1 Giờ có mặt (col6), phase2 Giờ quét (col7)
     var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 7 : 6;
-    var col = SCAN_SORT.col, asc = SCAN_SORT.asc;
-    // Nếu user chưa chọn sort riêng → dùng phaseCol; nếu đã chọn → tôn trọng.
-    if (col !== 6 && col !== 7) { /* user chọn cột khác (staffId/status...) → giữ */ }
-    else { col = phaseCol; }
+    // F: nếu user chưa chọn sort riêng (userSet=false mặc định) → ép theo phaseCol;
+    // nếu đã chọn cột → tôn trọng cột user chọn (kể cả 6/7) — KHÔNG ép ngược lại.
+    var asc = SCAN_SORT.asc;
+    var col = SCAN_SORT.userSet ? SCAN_SORT.col : phaseCol;
     var out = [];
     safeArr(log).forEach(function (r) {
       if (st && r.status !== st) return;
@@ -1976,7 +1982,6 @@
       }
       out.push(r);
     });
-    var col = SCAN_SORT.col, asc = SCAN_SORT.asc;
     out.sort(function (a, b) {
       var va, vb;
       if (col === 8) {
@@ -2081,9 +2086,12 @@
 
   function updateSortIndicators() {
     var ths = document.querySelectorAll('#scanTable th.sortable');
+    // F: highlight cột sort THỰC TẾ — khớp filterAndSortScan (userSet ? cột user : phaseCol)
+    var effectiveCol = SCAN_SORT.userSet ? SCAN_SORT.col
+      : ((CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 7 : 6);
     for (var i = 0; i < ths.length; i++) {
       var col = parseInt(ths[i].dataset.sort, 10);
-      var active = col === SCAN_SORT.col;
+      var active = col === effectiveCol;
       ths[i].classList.toggle('sort-asc', active && SCAN_SORT.asc);
       ths[i].classList.toggle('sort-desc', active && !SCAN_SORT.asc);
       ths[i].setAttribute('aria-sort', active ? (SCAN_SORT.asc ? 'ascending' : 'descending') : 'none');
@@ -2619,6 +2627,9 @@
 </script>
 </body>
 </html>
+
+
+
 
 
 

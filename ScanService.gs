@@ -69,6 +69,7 @@ function scanStaff(taskId, rawStaffId) {
     let timeRefText = '';
     let timeRefEpoch = 0;
     let scannedName = null;
+    let extraRow = null;
     // field do classifyScan chỉ định: 'timeRef' (phase1: Giờ có mặt) | 'timeScan' (phase2: Giờ quét)
     const field = result.field;
     if (result.action === 'update') {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Code.gs — Entry point + API endpoints (google.script.run).
  *
  * API (gọi từ client index.html):
@@ -225,8 +225,8 @@ function reopenTaskApi(taskId) {
  *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn kiosk. */
 function warmStaffCacheApi() {
   try {
-    readStaffIndex_(); // gây cache (nếu chưa có) — các scan kế đọc từ cache, trả tên tức thì
-    return { ok: true };
+    const index = readStaffIndex_(); // warm cache + tra index cho client
+    return { ok: true, index: index };
   } catch (e) {
     return { ok: false, message: e && e.message ? e.message : 'warm failed' };
   }

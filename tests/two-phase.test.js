@@ -83,14 +83,13 @@ test('phase2: NV không trong log → append EXTRA + field timeScan', () => {
   assert.equal(res.status, CFG.STATUS.EXTRA);
 });
 
-test('computeCounters: presentAt (Giờ có mặt) ≠ scanned (Giờ quét)', () => {
+test('computeCounters: có Giờ có mặt nhưng chưa quét → Vắng (không phải Có mặt)', () => {
   const rows = [
     makeRow({ staffId: 'OPS1', timeRefEpoch: 1700000000000, timeScanEpoch: 0, status: CFG.STATUS.PENDING }),
     makeRow({ staffId: 'OPS2', timeRefEpoch: 1700000000001, timeScanEpoch: 1700000000002, status: CFG.STATUS.PRESENT }),
     makeRow({ staffId: 'OPS3', timeRefEpoch: 0, timeScanEpoch: 0, status: CFG.STATUS.PENDING }),
   ];
   const c = ScanLogic.computeCounters(CFG, rows);
-  assert.equal(c.presentAt, 2); // OPS1 + OPS2: có Giờ có mặt
   assert.equal(c.scanned, 1);   // OPS2: quét Giờ quét
   assert.equal(c.absent, 2);    // OPS1 (có mặt chưa quét) + OPS3 (chưa gì) → Vắng
   assert.equal(c.extra, 0);

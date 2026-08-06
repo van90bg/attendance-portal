@@ -129,7 +129,6 @@ test('buildExtraRow: tạo dòng Dư với thông tin staff nếu có', () => {
   // computeCounters phải đếm NV vừa append là scanned=1 (không phải 0)
   const c = ScanLogic.computeCounters(CFG, [row]);
   assert.equal(c.scanned, 1);
-  assert.equal(c.presentAt, 0);
   assert.equal(c.extra, 1);
   // Không có staffInfo → các trường rỗng, không crash
   const row2 = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS999999', null, now, 'timeScan');
