@@ -1834,12 +1834,16 @@
     restoreScanCard(safeArr(data.log));
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
-    var canScan = data.task.phase !== TASK_STATUS_C.DONE;
-    document.getElementById('scanInput').disabled = !canScan;
-    document.getElementById('scanInput').placeholder = canScan ? 'Quét mã nhân viên…' : 'Task đã kết thúc';
+    // Chỉ cho quét ở phase2 (Điểm danh) — quét ở phase1 (Mở) chỉ ghi Giờ có mặt,
+    // không ghi Giờ quét/Đã điểm danh → user hiểu nhầm "đã điểm danh" mà sheet trống.
+    // Task Mở: disable input, hint "Bấm Chuyển điểm danh để bắt đầu quét".
+    var canScan = data.task.phase === TASK_STATUS_C.ATTEND;
+    var scanInput = document.getElementById('scanInput');
+    scanInput.disabled = !canScan;
+    scanInput.placeholder = canScan ? 'Quét mã nhân viên…' : 'Bấm "Chuyển điểm danh" để bắt đầu quét';
     updateFinishBtnState();
     if (canScan) {
-      document.getElementById('scanInput').focus();
+      scanInput.focus();
     }
   }
 
@@ -1859,7 +1863,7 @@
       document.getElementById('scanTaskTitle').textContent = 'Đang tải…';
       document.getElementById('scanTaskMeta').textContent = '';
       document.getElementById('scanInput').value = '';
-      document.getElementById('scanInput').disabled = true;
+      document.getElementById('scanInput').disabled = true; // luôn khóa trong lúc load — chỉ mở ở phase2 (renderScanView)
       renderCounters({ scanned: 0, absent: 0, extra: 0 });
       resetScanCard();
       updateFinishBtnState();
@@ -2428,8 +2432,12 @@
                 esc(TT_LABEL[CURRENT_TASK.taskType] || 'Task') + ' · ' + esc(CURRENT_TASK.station) + ' · ' +
                 esc(CURRENT_TASK.slotCode) + ' · ' + esc(CURRENT_TASK.team) + ' · <b>Điểm danh</b>' + phaseHint;
             }
+            // Mở input để bắt đầu quét (phase2) — trước đó bị khóa ở phase1.
+            var scanInput = document.getElementById('scanInput');
+            scanInput.disabled = false;
+            scanInput.placeholder = 'Quét mã nhân viên…';
             updateFinishBtnState();
-            document.getElementById('scanInput').focus();
+            scanInput.focus();
           }
         }
       })
