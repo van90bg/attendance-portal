@@ -1,8 +1,9 @@
 # Spec — RollCall v2: Hệ thống Điểm danh Đối chiếu Nhân viên Kho
 
-> **Version:** 2.1.0 | **Status:** Final | **Cập nhật:** 2026-08-04
+> **Version:** 2.2.0 | **Status:** Final | **Cập nhật:** 2026-08-07
 >
-> **Ghi chú viết lại:** Spec này được viết lại **hoàn toàn theo codebase thực tế**.
+> **Ghi chú viết lại:** Spec viết lại **hoàn toàn theo codebase thực tế**.
+> v2.2 (2026-08-07): thêm **2 loại task (reconcile — đối chiếu, free — quét tự do)**, **3 trạng thái `open`/`attend`/`done` (2-phase quét)**, **role owner** cho scan phase Mở, **pasteCodesApi (dán danh sách mã)**, **view Giới thiệu (aboutView)**.
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -24,9 +25,11 @@
 **Luồng nghiệp vụ cốt lõi (1 vòng khép kín):**
 
 ```
-Chọn tổ hợp (Station + Ca + Team + [Date]) → Tạo task → pre-fill AttendanceLog 1 lần
-→ Quét barcode NV (1 lần = 1 NV) → Có mặt / Đã điểm danh / Dư
-→ Kết thúc task → NV chưa quét gán Vắng → (tuỳ chọn) Mở lại task → quét tiếp
+[Chọn tổ hợp (Station + Ca + Team + [Date]) → task Đối chiếu (tạo ở Điểm danh, pre-fill log)
+ | Chế độ Quét tự do (FREE) → task Mở (log rỗng, quét lần 1 xây danh sách)]
+→ Quét barcode NV → phase Mở: ghi Giờ có mặt · phase Điểm danh: ghi Giờ quét (Có mặt / Dư / reject)
+→ Chuyển điểm danh (FREE) → Kết thúc task → NV chưa quét gán Vắng
+→ (tuỳ chọn) Mở lại task (về Điểm danh) → quét tiếp
 ```
 
 ---
@@ -38,10 +41,10 @@ index.html (toàn bộ UI, 1 file)
     │  google.script.run (async, callback-based)
     ▼
 Code.gs        — doGet (WebApp) + API endpoints + isEditor_() + syncFromCsv/setupSheets + debugState
-TaskService.gs — nghiệp vụ task: createReconcileTask / completeTask / reopenTask / listTasks / getTaskDetail
-ScanService.gs — nghiệp vụ quét: scanStaff (guard Ops + LockService + update/append + benchmark)
+TaskService.gs — nghiệp vụ task: createTask (reconcile/free) / transitionToAttend / completeTask / reopenTask / listTasks / getTaskDetail (+permission)
+ScanService.gs — nghiệp vụ quét: scanStaff (guard Ops + owner gate + LockService + update/append + benchmark) + pasteCodes (dán danh sách mã)
 Database.gs    — truy cập GAS: SpreadsheetApp + CacheService (wrapper cache, batch read/write)
-ScanLogic.gs   — logic THUẦN phân loại quét + counters (KHÔNG gọi GAS API → test Node được)
+ScanLogic.gs   — logic THUẦN: classifyScan 2-phase + computeCounters + canScanOpen_ (owner gate) + planBatchScans (paste) — KHÔNG gọi GAS API → test Node được
 CsvUtil.gs     — logic THUẦN parse/normalize CSV + lọc/dedupe/distinct + isValidBarcodeId
 Config.gs      — mọi hằng số: sheet names, cột, trạng thái, cache keys/TTL, UI labels
 ```
@@ -98,13 +101,13 @@ Giữ **nguyên header chuẩn Att.csv** (ánh xạ header → field tại `CSV_
 | Cột | Field | Ghi chú |
 | :-- | :---- | :------ |
 | 1 | `taskId` | `RYYYYMMDD-HHMM` (+ `-2`, `-3`… nếu trùng phút) |
-| 2 | `taskType` | hiện chỉ `reconcile` |
+| 2 | `taskType` | `reconcile` (đối chiếu) / `free` (quét tự do) |
 | 3 | `station` | Station đã chọn (1) |
 | 4 | `slotCode` | Ca đã chọn — multi-select nối `", "` để hiển thị |
 | 5 | `team` | Team đã chọn — multi-select nối `", "` |
-| 6 | `status` | `open` / `done` |
+| 6 | `status` | `open` (Mở) / `attend` (Điểm danh) / `done` (Xong) |
 | 7 | `createdAt` | thời điểm tạo |
-| 8 | `createdBy` | mặc định `'web'` |
+| 8 | `createdBy` | email người tạo (webapp đăng nhập); task legacy tạo cũ = `'web'` — dùng cho owner gate (§5.5) |
 | 9 | `completedAt` | thời điểm kết thúc (rỗng khi open) |
 
 ### 3.4 AttendanceLog (11 cột, 1 dòng / NV)
@@ -131,7 +134,10 @@ Giữ **nguyên header chuẩn Att.csv** (ánh xạ header → field tại `CSV_
 
 ### 4.1 Loại task
 
-Phase 0 chỉ có **1 loại duy nhất**: `reconcile` (đối chiếu) — `TASK_TYPE.RECONCILE`.
+2 loại (`TASK_TYPE` trong Config.gs):
+
+- `reconcile` (Đối chiếu danh sách) — tạo từ tổ hợp StaffData; **pre-fill AttendanceLog 1 lần** (`timeRef = createdAt`, `status='-'`) và task tạo ra ở trạng thái **Điểm danh** (`attend`) — quét ngay là Giờ quét.
+- `free` (Quét tự do / noList) — **không cần tổ hợp**, log rỗng; task tạo ra ở trạng thái **Mở** (`open`). Quét lần 1 xây danh sách (ghi Giờ có mặt, `PENDING` — chưa điểm danh), bấm **Chuyển điểm danh** rồi quét lần 2 (Giờ quét).
 
 ### 4.2 Task ID
 
@@ -141,41 +147,51 @@ R + yyyyMMdd-HHmm   →  R20260802-0730
 - Đọc được, sắp xếp tự nhiên theo giờ tạo.
 - Trùng taskId cùng phút → suffix số tăng dần `-2`, `-3`, … (không phải `-x-x`).
 
-### 4.3 Trạng thái task (2 trạng thái — KHÔNG state machine 4 bước)
+### 4.3 Trạng thái task (3 trạng thái — 2-phase quét)
 
 ```
-open  ⇄  done
+open  →  attend  →  done
+         ▲           │
+         └───────────┘ (reopen — về Điểm danh, không về Mở)
 ```
-| Status | Ý nghĩa |
-| :----- | :------ |
-| `open` | Đang quét được |
-| `done` | Đã kết thúc — quét bị reject `task-closed` |
+| Status | Phase | Ý nghĩa |
+| :----- | :---- | :------ |
+| `open` | 1 — Mở | Quét ghi **Giờ có mặt** (TIME_REF); **chỉ owner/admin** quét được (§5.5) |
+| `attend` | 2 — Điểm danh | Quét ghi **Giờ quét** (TIME_SCAN); mọi người quét được |
+| `done` | — | Đã kết thúc — quét reject `task-closed` |
+
+Đặc điểm tạo task:
+- `reconcile` (có danh sách): **sinh ra ở `attend`** — đã pre-fill Giờ có mặt = giờ tạo task, quét ngay là Giờ quét.
+- `free` (noList): **sinh ra ở `open`** — quét lần 1 = Giờ có mặt, chuyển Điểm danh mới quét lần 2.
+
+`transitionToAttend(taskId)` — `open → attend`, guard `status === OPEN`; không sửa log (NV đã có Giờ có mặt giữ nguyên), mở nút Kết thúc. Mở cho mọi user (không gate role).
 
 ### 4.4 Tạo task (`createReconcileTask`)
 
-1. Validate: đủ `station` (1) + `slotCode` (≥1) + `team` (≥1); thiếu → `{ok:false, message:'Thiếu station/slotCode/team'}`.
+1. Validate: đủ `station` (1) + `slotCode` (≥1) + `team` (≥1); thiếu → `{ok:false, message:'Thiếu station/slotCode/team'}`. Chế độ Quét tự do (noList) **bỏ qua validate tổ hợp** — không cần group.
 2. `filterStaffByGroup` trên StaffData: khớp station **và** slot (bất kỳ slot chọn) **và** team (bất kỳ team chọn) **và** date (tuỳ chọn).
 3. `dedupeStaffByGroup`: **dedupe theo staffId trong cùng tổ hợp, giữ dòng đầu** (Att.csv thật có NV 2 dòng cùng ca → tránh phantom absent + row-key client lệch). Không dedupe toàn cục (NV nhiều ca hợp lệ phải giữ).
 4. Tổ hợp rỗng → `{ok:false, message:'Không có nhân viên nào trong tổ hợp đã chọn'}`.
-5. `insertTask_` (append 1 dòng) + `batchInsertLogRows_` — **pre-fill log 1 lần** (`timeRef=createdAt`, `status='-'`), batch `setValues` 1 lần (không appendRow trong loop).
-6. Toàn bộ nằm trong `LockService.waitLock(10000)`.
+5. `insertTask_` (append 1 dòng) + (nếu có list) `batchInsertLogRows_` — **pre-fill log 1 lần** (`timeRef=createdAt`, `status='-'`), batch `setValues` 1 lần (không appendRow trong loop). `TIME_REF = Giờ có mặt` (breaking 2026-08-05).
+6. Status khởi tạo: `noList ? OPEN : ATTEND` (§4.3).
+7. Toàn bộ nằm trong `LockService.waitLock(10000)`.
 
 ### 4.5 Kết thúc task (`completeTask`)
 
-- Guard: task phải `open`, nếu `done` → `'Task đã kết thúc'`.
+- Guard: task phải `attend` (phase 2); còn `open` → `UI_LABELS.COMPLETE_BLOCKED` ('Chỉ kết thúc khi ở Điểm danh'); `done` → 'Task đã kết thúc'.
 - **Thứ tự fail-safe**: `markUnscannedAbsent_` TRƯỚC → `updateTaskStatus_(DONE, completedAt)` SAU.
   - `markUnscannedAbsent_`: `transformLogStatuses_` — batch ghi 1 lần cả cột status; dòng `timeScan` rỗng + status `-` → `Vắng`; dòng có `timeScan` nhưng status `-` (legacy/sửa tay) → **chuẩn hóa `Có mặt`** (không đánh Vắng).
-  - Nếu mark fail (quota/timeout): task vẫn `open` → retry được. Nếu status-update fail: vẫn `open`, mark idempotent → retry an toàn.
+  - Nếu mark fail (quota/timeout): task vẫn `attend` → retry được. Nếu status-update fail: vẫn `attend`, mark idempotent → retry an toàn.
 
 ### 4.6 Mở lại task (`reopenTask`)
 
-- Guard: task phải `done`; `open` → `'Task đang mở — không cần mở lại'`.
-- `resetAbsentToPending_`: ABSENT → PENDING (NV Có mặt giữ nguyên timeScan/status) — batch 1 lần, rồi `updateTaskStatus_(OPEN)`. Thứ tự fail-safe giống completeTask.
+- Guard: task phải `done`; `open` → 'Task đang mở — không cần mở lại'.
+- `resetAbsentToPending_`: ABSENT → PENDING (NV Có mặt giữ nguyên timeScan/status) — batch 1 lần, rồi `updateTaskStatus_(ATTEND)` — **về Điểm danh** (không về Mở), quét tiếp được ngay. Thứ tự fail-safe giống completeTask.
 
 ### 4.7 Đọc dữ liệu
 
 - `listTasks()` → mới nhất lên đầu; merge counters (`total/scanned/extra`) từ AttendanceLog 1 lần + cache (`TASK_COUNTS` 30s) — không N+1.
-- `getTaskDetail(taskId)` → `{ok, task, log, counters}` qua cache `TASK_DETAIL` 15s.
+- `getTaskDetail(taskId)` → `{ok, task, log, counters}` qua cache `TASK_DETAIL` 15s. **`task.permission = {isAdmin, isOwner, canScanOpen}`** tính TƯƠI cho người đọc (sau cache, không lưu chung) — cache detail dùng chung mọi user nên không thể chứa permission theo email.
 
 ---
 
@@ -193,25 +209,42 @@ normalizeStaffId (trim + UPPERCASE)
   → isValidBarcodeId?  (sai format → reject 'Mã phải bắt đầu bằng "Ops"')
   → LockService.waitLock(10000)
   → readTask_ (không tồn tại → reject)
+  → owner gate (T-1): task status === open && !canScanOpen_() → reject UI_LABELS.SCAN_OPEN_OWNER_ONLY
   → readLogRowsCached_ (cache 30s + incremental — không getDataRange full sheet mỗi scan)
-  → classifyScan (ScanLogic — thuần)
-  → update: updateLogRowScan_ (1 setValues: timeScan + status) + update cache incremental
-  → append: buildExtraRow (lazy readStaffIndex_ — chỉ đọc khi NV lạ) + appendRow
+  → classifyScan (ScanLogic — thuần, 2-phase theo task.status)
+  → update: phase open → updateLogRowRef_ (timeRef) · phase attend → updateLogRowScan_ (1 setValues: timeScan + status)
+  → append: buildExtraRow (lazy readStaffIndex_ — chỉ đọc khi NV lạ) + appendRow (batch 1 dòng)
   → computeCounters → return {ok, message, status, timeScanText, timeScanEpoch, staffName, counters}
   → finally: lock.releaseLock()
 ```
 
-### 5.3 Phân loại quét (`classifyScan`)
+**Paste danh sách mã (`pasteCodes`, T-2)** — cùng gate + lock, khác đường ghi:
 
-| Điều kiện | Action | Status | Lý do reject |
-| :-------- | :----- | :----- | :----------- |
-| Task không `open` | `reject` | — | `task-closed` |
-| `staffId` rỗng | `reject` | — | `empty-staff-id` |
-| NV **trong log** + `timeScanEpoch > 0` | `reject` | — | `already-scanned` |
-| NV **trong log** + chưa quét | `update` | `Có mặt` | — |
-| NV **không trong log** | `append` | `Dư` | — (NV khác tổ hợp và NV không có trong StaffData **gộp chung EXTRA** — danh sách chốt là tham chiếu cố định) |
+```
+pasteCodesApi(taskId, lines) → clamp 1000 dòng (A4) → lock 1 lần
+  → gate: taskType === FREE && status === open && canScanOpen_ (A5)
+  → readLogRowsCached_ 1 lần → planBatchScans (pure ScanLogic — dedupe trong batch nhờ simulate log)
+  → append: batchAppendLogRows_ — 1 setValues N dòng + update LOG_ROWS cache 1 lần (300 RPC → 1)
+  → update dòng đã có: updateLogRowRef_/updateLogRowScan_ từng mã (số ít — giới hạn ghi chú)
+  → computeCounters → {ok, total, success, failed, results[], counters}
+```
 
-- **1 lần quét = 1 NV được điểm danh** — KHÔNG có check-in/check-out 2 lần quét.
+### 5.3 Phân loại quét (`classifyScan` — 2-phase theo `task.status`)
+
+| Phase (status) | Điều kiện | Action | Status | Ghi chú |
+| :-------- | :-------- | :----- | :----- | :------ |
+| `staffId` rỗng | — (mọi phase) | `reject` | — | `empty-staff-id` |
+| `open` — Mở | NV trong log + chưa có Giờ có mặt | `update` | `-` (PENDING) | ghi TIME_REF (Giờ có mặt) |
+| | NV trong log + đã có Giờ có mặt | `reject` | — | `already-present` |
+| | NV không trong log (reconcile) | `append` | `Dư` | ghi TIME_REF |
+| | NV không trong log (free) | `append` | `-` (PENDING) | hợp lệ — xây danh sách, KHÔNG Dư |
+| `attend` — Điểm danh | NV trong log + chưa quét (PENDING) | `update` | `Có mặt` | ghi TIME_SCAN |
+| | NV trong log + status `Dư` (EXTRA) | `update` | `Dư` | ghi TIME_SCAN — **GIỮ Dư**, không đổi Có mặt |
+| | NV trong log + đã quét | `reject` | — | `already-scanned` |
+| | NV không trong log | `append` | `Dư` | ghi TIME_SCAN (reconcile & free đều Dư) |
+| `done` / khác | — | `reject` | — | `task-closed` |
+
+- **2 phase quét riêng biệt** — KHÔNG check-in/check-out 2 lần trong cùng phase; mỗi phase NV quét 1 lần.
 - **Update-in-place**: NV đã có trong log được cập nhật tại dòng hiện tại (không append dòng mới, không append-only).
 - `findLogRow` so khớp case-insensitive theo `staffId` chuẩn hóa.
 
@@ -225,6 +258,22 @@ normalizeStaffId (trim + UPPERCASE)
 | `total` | tổng số dòng log |
 
 > **`timeScanEpoch` là nguồn sự thật duy nhất** cho counters + sort (text `HH:mm:ss` mất ngày — sort sai khi task xuyên nửa đêm). Client mirror đúng quy ước này (optimistic bump / rollback / sync đều recount theo epoch).
+> 2-phase: `timeRefEpoch` = Giờ có mặt (phase Mở) — chỉ dùng ghi/nhận diện `already-present`; counters **chỉ đếm theo `timeScanEpoch`** (Giờ quét).
+
+### 5.5 Role — quyền quét phase Mở & paste (T-1, T-2)
+
+Pure helper `canScanOpen_(cfg, createdBy, activeEmail, isAdmin)` (ScanLogic — Node-test được):
+
+- Task KHÔNG ở `open` → cho phép (gate chỉ áp dụng phase Mở).
+- `isAdmin` (= `isEditor_()`, deployer) → bypass.
+- `createdBy` là **email hợp lệ** (không rỗng, ≠ `'web'`, chứa `@`) → chỉ chủ sở hữu (`activeEmail === createdBy`, case-insensitive) được quét.
+- `createdBy` **không xác định** (`'web'`/rỗng — task legacy) → ai cũng quét được (**A1 fail-open** — tương thích task cũ, đổi 1 dòng nếu muốn chặt).
+
+Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** trong `getTaskDetail` (sau cache — không lưu vào cache 15s vì cache dùng chung mọi user). Client `applyScanPermission()` (gọi CUỐI `renderScanView` — nguồn quyết định cuối, cờ `scanOwnerLocked`):
+- `!canScanOpen` + phase Mở → `scanInput.disabled = true` + banner "Chỉ owner mới quét được ở phase Mở" + ẩn nút **Chuyển điểm danh** + ẩn nút **Dán danh sách mã**; `submitScan` guard lại (defense barcode vật lý).
+- `updateFinishBtnState` / `updateQueueFullState` tôn trọng `scanOwnerLocked` (không vô tình bật lại).
+
+**Paste (T-2)** gate cùng rule (A5): `taskType === FREE` + `status === open` + `canScanOpen` — `pasteCodes` server reject nếu không thoả.
 
 ---
 
@@ -261,7 +310,7 @@ normalizeStaffId (trim + UPPERCASE)
 
 ### 7.2 LockService
 
-- Script-level lock, `waitLock(10000)`, **release trong `finally`** — mọi luồng ghi: `createReconcileTask`, `completeTask`, `reopenTask`, `scanStaff`.
+- Script-level lock, `waitLock(10000)`, **release trong `finally`** — mọi luồng ghi: `createReconcileTask`, `transitionToAttend`, `completeTask`, `reopenTask`, `scanStaff`, `pasteCodes`.
 - `transformLogStatuses_` (kết thúc / mở lại): batch `setValues` 1 lần cả cột status — không `setValue` trong loop (241 NV = 1 RPC thay vì ~240).
 
 ---
@@ -277,10 +326,12 @@ normalizeStaffId (trim + UPPERCASE)
 | `previewStaffApi(input)` | `{ ok, count }` — số NV khớp tổ hợp (đã dedupe, khớp count tạo task thật) — không tạo gì |
 | `createReconcileTaskApi(input)` | `{ ok, taskId, count, message }` |
 | `getTaskListApi()` | `[{ taskId, station, slotCode, team, status, total, scanned, extra, createdAtText, createdBy }]` |
-| `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` |
+| `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` — `task.permission = {isAdmin, isOwner, canScanOpen}` (§5.5) |
 | `scanStaffApi(taskId, staffId)` | `{ ok, message, status, timeScanText, timeScanEpoch, staffName, counters }` |
+| `transitionToAttendApi(taskId)` | `{ ok, message }` — `open → attend` |
 | `completeTaskApi(taskId)` | `{ ok, message }` |
-| `reopenTaskApi(taskId)` | `{ ok, message }` |
+| `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` |
+| `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 1000 |
 
 > `google.script.run` **không trả `Date`** (serialize → null) → server trả text đã format; client check cả `xxx` + `xxxText`.
 
@@ -300,21 +351,30 @@ normalizeStaffId (trim + UPPERCASE)
 
 ---
 
-## 9. Giao diện & UX (`index.html` — 1 file, ~2200 dòng)
+## 9. Giao diện & UX (`index.html` — 1 file, ~3000 dòng)
 
-### 9.1 Hai view
+### 9.1 Ba view
 
 **View 1 — Danh sách task (`#viewList`):**
-- Header: logo SPX + title + net-dot/Online + 🔊 + ⟳ Làm mới + ⓘ.
-- Card "ĐỐI CHIẾU DANH SÁCH": nút **+ Tạo task** (disabled khi chưa có station/slot/team trong StaffData).
+- Header: logo SPX + title + net-dot/Online + 🔊 + ⟳ Làm mới + **ⓘ (mở view Giới thiệu)**.
+- Card "TẠO TASK": nút **+ Tạo task** — modal chọn chế độ **Đối chiếu (có danh sách)** / **Quét tự do (không cần danh sách)**.
 - Card "DANH SÁCH TASK": bảng STT / Mã task / Station / Ca / Team / Tổng NV / Đã quét / Dư / Trạng thái / Tạo lúc / Người tạo / Thao tác.
-  - Task `open` → nút **Quét**; task `done` → nút **Xem** + **Mở lại**.
+  - Task `open` → nút **Quét** (và **Chuyển điểm danh** trong màn quét); task `attend` → **Quét**; task `done` → **Xem** + **Mở lại**.
   - Skeleton loading; empty state.
 
 **View 2 — Màn quét (`#viewScan`):**
-- **Scan topbar (sticky)**: `← Danh sách task` · tiêu đề `taskId` + meta (loại · station · ca · team · Đang mở/Đã kết thúc) · nút **Kết thúc** (danger).
-- **Cột trái**: 3 counters (Đã quét / Chưa điểm danh / Dư) · ô quét to (laser-line animation khi focus) + nút Quét (chỉ mobile <992px) · **scan card projector** (ok/err/extra, stamp animation, nhìn từ 1–2m).
-- **Cột phải**: bảng NV — toolbar tìm kiếm (mã/tên) + lọc trạng thái + ✕ xoá lọc; 9 cột sortable (mặc định Giờ quét mới nhất lên đầu, sort theo epoch); dòng Dư nền cam; keyed row-diff (chỉ update cell thay đổi — chống flicker).
+- **Scan topbar (sticky)**: `← Danh sách task` · tiêu đề `taskId` + meta · nút **Chuyển điểm danh** (chỉ phase `open`) + **Kết thúc** (chỉ phase `attend`) — ẩn theo role (T-1).
+- **Cột trái**: 3 counters (Đã quét / Chưa điểm danh / Dư) · ô quét to (laser-line animation khi focus) + nút Quét (mobile <992px) · **scan card projector** (ok/err/extra, nhìn 1–2m) · nút **Dán danh sách mã** (chỉ FREE + open + owner).
+- **Cột phải**: bảng NV — tìm kiếm + lọc trạng thái + sort; cột Giờ có mặt / Giờ quét theo phase; dòng Dư nền cam; row-diff (chống flicker).
+- **Khoá theo role (T-1)**: `!canScanOpen` + phase Mở → input disabled + banner cam "Chỉ owner mới quét được ở phase Mở" + ẩn nút Chuyển điểm danh / Dán mã.
+
+**View 3 — Giới thiệu (`#aboutView`, thay modal cũ — T-3):**
+- Mở từ nút **ⓘ** (header) — `showSection('aboutView')` quản 3 view (`viewList` / `viewScan` / `aboutView`) + lưu `lastViewBeforeAbout` để nút `← Quay lại` trả đúng view trước.
+- Nội dung 3 mục: **Giới thiệu** (2 chế độ RECONCILE / FREE) · **Hướng dẫn từng bước** (7 bước) · **Quy tắc phân quyền (Role)** (bảng Owner/Admin/Khác theo rule §5.5 + ghi chú task legacy `web` không áp dụng gate).
+
+Modal còn lại: tạo task · confirm dùng chung · **pasteModal** (dán danh sách mã, T-2) — tất cả dùng lớp `.about-overlay` + `anyModalOpen()` (Escape/focus trap/autofocus loop).
+
+**Chuyển view:** `showSection(name)` — ẩn cả 3, dừng/kích auto-focus theo view (`viewScan` → `startAutoFocusLoop()`; khác → dừng).
 
 ### 9.2 Modal tạo task
 
@@ -353,6 +413,12 @@ normalizeStaffId (trim + UPPERCASE)
 
 - Mở `file://` trực tiếp (không có `google.script`) → tự nạp `mock/mock-google.js` (mock tự nạp khi không có `google.script.run`); verify UI bằng `scripts/cdp-helper.js`.
 
+### 9.8 Paste danh sách mã (T-2)
+
+- Nút **Dán danh sách mã** cạnh ô quét — chỉ hiện khi `FREE + open + permission.canScanOpen`; bấm → `#pasteModal` (lớp `.about-overlay` — nằm trong `anyModalOpen()` nên autofocus loop không cướp textarea).
+- Textarea 1 dòng = 1 mã; bỏ dòng rỗng; giới hạn 1000 dòng (client + server clamp).
+- Gọi `pasteCodesApi` → hiện **summary** (xanh/đỏ: `success/total` thành công, `failed` thất bại) + liệt kê mã hỏng (sai format / đã có mặt / đã điểm danh / chặn) dạng danh sách; refresh `CURRENT_LOG`/`CURRENT_COUNTERS` từ response + `loadTaskDetail` nền.
+
 ---
 
 ## 10. Testing
@@ -360,13 +426,13 @@ normalizeStaffId (trim + UPPERCASE)
 | Hạng mục | Giá trị |
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
-| Files | `tests/csv-normalize.test.js` + `tests/scan-classify.test.js` |
-| **Kết quả** | **47/47 pass** |
+| Files | `tests/csv-normalize.test.js` + `tests/scan-classify.test.js` + `tests/two-phase.test.js` + `tests/scanservice.test.js` + `tests/paste-batch.test.js` |
+| **Kết quả** | **57/57 pass** |
 | Mock | `mock/mock-google.js` |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) |
 
-Nhóm test: `distinctValues` · `isValidBarcodeId` · `dedupeStaffByGroup` · `filterStaffByGroup` (multi-select) · `normalizeStaffDate_` (Date object + string) · `buildStaffIndex/buildStaffListFromValues` · `classifyScan` (task-closed / empty / update PRESENT / already-scanned / append EXTRA) · `findLogRow` (case-insensitive) · `computeCounters` · `buildExtraRow`.
+Nhóm test: `distinctValues` · `isValidBarcodeId` · `dedupeStaffByGroup` · `filterStaffByGroup` (multi-select) · `normalizeStaffDate_` · `buildStaffIndex/buildStaffListFromValues` · `classifyScan` (2-phase: task-closed / empty / update PRESENT / already-scanned / already-present / append EXTRA) · `findLogRow` · `computeCounters` (PENDING+timeScan repair) · `buildExtraRow` · `canScanOpen_` (admin bypass / owner case-insensitive / non-owner chặn / `createdBy='web'` fail-open) · `planBatchScans` (3 mã hợp lệ append · trùng trong batch · invalid-format không dừng · thuần) · `scanStaff` wrapper (FREE phase1/phase2, Dư giữ Dư).
 
 > Chỉ test **logic thuần** (CsvUtil/ScanLogic — không gọi GAS). Không Jest/Playwright (bản spec 2.0.0 ghi sai).
 
@@ -393,6 +459,7 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 - `google.script.run` không trả `Date` → trả text, check cả `xxx` + `xxxText`.
 - Client check mã Ops `/^ops/i` trước queue (0ms); server guard `isValidBarcodeId()` chống bypass.
 - Modal pattern `.about-overlay` + dialog; `anyModalOpen()` cho Escape + focus trap + autofocus loop.
+- **Role gate**: `permission` tính TƯƠI trong `getTaskDetail` (không nhét cache chung); client `applyScanPermission()` chạy cuối `renderScanView` → nguồn quyết định cuối (`scanOwnerLocked`) — `updateFinishBtnState`/`updateQueueFullState` tôn trọng.
 - Mọi ghi log/đổi status phải gọi `invalidateTaskDetailCache_(taskId)`.
 - Không `console.log` production (chỉ `console.error`/`console.warn` + benchmark `scanStaff`).
 - Git: branch `main` là nguồn duy nhất; 1 issue / 1 commit; không commit `.clasprc.json`, `codegraph.json`, file tạm verify.
@@ -420,6 +487,12 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 | Mở lại task | ABSENT → PENDING (quét tiếp); PRESENT giữ nguyên |
 | Kiosk anonymous gọi `syncFromCsv`/`setupSheets`/`debug` | Gate `isEditor_()` fail-closed (chỉ deployer) |
 | Sheet cũ thiếu cột `date` (migration) | `ensureSheets_` tự thêm cột + header nếu `getLastColumn() < 11` |
+| Non-owner quét task phase Mở (T-1) | Reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY` — client disable input + banner + ẩn nút Chuyển điểm danh/Dán mã; server reject lần cuối |
+| Task legacy `createdBy='web'`/rỗng | **KHÔNG gate** — ai cũng quét được phase Mở (A1 fail-open) |
+| Dán mã lặp trong cùng 1 lần paste | `planBatchScans` simulate log → lần 2 reject `already-present`/`already-scanned` |
+| Dán mã > 1000 dòng | Clamp 1000 dòng đầu (cả client lẫn server — A4) |
+| Dán mã sai prefix | `invalid-format` — liệt kê lỗi nhưng KHÔNG dừng batch |
+| Escape trong view Giới thiệu (aboutView — không phải modal) | Quay về view trước (`lastViewBeforeAbout`), không tắt modal |
 
 ---
 
@@ -429,23 +502,23 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 
 | Mục | Spec 2.0.0 (cũ — ảo) | Thực tế (code) |
 | :-- | :-------------------- | :------------- |
-| Attendance | Check-in + Check-out (2 lần quét riêng) | **1 lần quét / NV** — Có mặt / Đã điểm danh / Dư / Vắng |
-| Task state | 4 states `Created→CheckIn→CheckOut→Closed` + phase restriction | **2 states `open`/`done`**, không phase |
-| Loại task | Handover + Attendance | Chỉ **`reconcile`** |
+| Attendance | Check-in + Check-out (2 lần quét riêng) | **2-phase quét** — Mở: Giờ có mặt (TIME_REF) · Điểm danh: Giờ quét (TIME_SCAN); mỗi phase quét 1 lần / NV |
+| Task state | 4 states `Created→CheckIn→CheckOut→Closed` + phase restriction | **3 states `open`/`attend`/`done`** + `transitionToAttend` (`open→attend`) + `reopen` (`done→attend`) |
+| Loại task | Handover + Attendance | **`reconcile`** (đối chiếu) + **`free`** (quét tự do, không danh sách) |
 | Task ID | `T-YYYYMMDD-XXXX` (random 4 số) | `RYYYYMMDD-HHMM` (+ `-2` nếu trùng phút) |
 | Offline mode | Queue localStorage 50–100, retry, flush on reconnect | **Không có** — queue client chỉ trong-bộ-nhớ, RPC fail = rollback |
-| Paste batch | 100 items/chunk, retry | **Không có** |
-| Phân quyền | Admin/User 2 cấp | Chỉ gate editor-only `isEditor_()` cho thao tác nguy hiểm (debug/sync/setup) |
+| Paste batch | 100 items/chunk, retry | **Có** — `pasteCodesApi` batch 1 setValues + clamp 1000 (A4), dedupe trong batch (T-2) |
+| Phân quyền | Admin/User 2 cấp | **Role owner cho scan phase Mở** (`canScanOpen_`, §5.5) + gate editor-only `isEditor_()` cho debug/sync/setup |
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 47/47, mock `mock-google.js` |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 57/57 (5 files), mock `mock-google.js` |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **4 sheets** (Config, StaffData giữ header Att.csv 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột) |
-| Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s |
+| Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Không có** (Phase 0 không cần) |
 | Cooldown 15s | Có | **Không có** (chỉ chặn duplicate scan) |
-| URL deep-linking / bottom nav / phase switch button | Có | **Không có** |
-| Pipeline 5 bước | Validate→Cooldown→Find→Execute→Flush | `classifyScan` 3 nhánh (update/append/reject) + LockService |
+| URL deep-linking / bottom nav | Có | **Không có** — nhưng **có nút Chuyển điểm danh** (`transitionToAttend`) |
+| Pipeline 5 bước | Validate→cooldown→Find→Execute→Flush | `classifyScan` 3 nhánh (update/append/reject) 2-phase + LockService + owner gate |
 
 ---
 
@@ -454,19 +527,27 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ### Đã hoàn thành (MVP — khớp code)
 
 ```plain
-✅ Tạo task đối chiếu theo tổ hợp Station / Ca (Slot Code, multi) / Team (multi) / Date (optional)
+✅ Tạo task: Đối chiếu (tổ hợp Station / Ca multi / Team multi / Date) + Quét tự do (FREE, không danh sách)
 ✅ Preview số NV khớp trước khi tạo
-✅ Pre-fill AttendanceLog 1 lần (dedupe staffId giữ dòng đầu)
-✅ Quét barcode Ops (case-insensitive): Có mặt / Đã điểm danh / Dư / Task đã kết thúc
-✅ Kết thúc task → NV chưa quét gán Vắng (batch 1 lần); Mở lại task → reset Vắng về Chưa điểm danh
+✅ Pre-fill AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = Giờ có mặt
+✅ 2-phase: Mở (Giờ có mặt, FREE) → Chuyển điểm danh → Điểm danh (Giờ quét) → Kết thúc
+✅ Quét barcode Ops (case-insensitive): Có mặt / Đã điểm danh / Đã ghi Giờ có mặt / Dư / Task đã kết thúc
+✅ Kết thúc task → NV chưa quét gán Vắng (batch 1 lần); Mở lại task → về Điểm danh, reset Vắng
+✅ Role owner phase Mở (T-1): server gate `canScanOpen_` + permission tươi + client khoá input/banner
+✅ Paste danh sách mã (T-2): pasteCodesApi batch (1 setValues + cache 1 put), clamp 1000, dedupe trong batch
+✅ View Giới thiệu (T-3): aboutView 3 mục (giới thiệu / hướng dẫn / role) + showSection 3 views
 ✅ Counters tức thì (optimistic + queue nền + rollback)
 ✅ Scan card projector + toast + Web Audio (beep/buzz) + toggle âm thanh
-✅ Bảng NV: tìm kiếm, lọc trạng thái, sort 9 cột (sort/đếm theo epoch)
+✅ Bảng NV: tìm kiếm, lọc trạng thái, sort theo epoch
 ✅ Cache versioned (7 keys) + LockService + batch read/write
 ✅ Gate editor-only cho debug/sync/setup (fail-closed)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
-✅ Test Node 47/47 · Deploy clasp (chỉ clasp deploy — không PUT deployments)
+✅ Test Node 57/57 (5 files) · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
+
+**Rủi ro đã chấp nhận (biết rõ, cố tình bỏ qua):**
+- `transitionToAttend` / `completeTask` / `reopenTask` **KHÔNG gate role** — non-owner tự chuyển Mở→Điểm danh được (A2). Muốn chặt sau: gate transition = 1 dòng.
+- Task legacy `createdBy='web'` không xác định owner → fail-open (A1).
 
 ### Post-MVP (chưa làm — KHÔNG nằm trong code hiện tại)
 
@@ -474,6 +555,6 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ⏳ Đồng bộ HR tự động (Phase 2: trigger từ Drive/URL thay vì syncFromCsv tay)
 ⏳ Dashboard thống kê real-time
 ⏳ Index/log tối ưu khi AttendanceLog lớn (hiện đọc full sheet mỗi task detail/list)
-⏳ Nhiều loại task ngoài reconcile
+⏳ Gate role cho transitionToAttend/complete/reopen (A2 — 1 dòng)
 ⏳ PWA / offline thực sự
 ```
