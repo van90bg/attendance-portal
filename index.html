@@ -869,23 +869,24 @@
           </div>
           <div class="table-wrap">
             <div class="skeleton-wrap" id="scanSkeleton" style="display:none;">
-              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
             </div>
             <table id="scanTable" style="display:none;">
               <thead>
                                 <tr>
                 <th scope="col" class="stt-col">STT</th>
-                <th scope="col" data-sort="0" class="sortable" aria-sort="none">Tên NV</th>
-                <th scope="col" data-sort="1" class="sortable" aria-sort="none">Agency</th>
-                <th scope="col" data-sort="2" class="sortable" aria-sort="none">Station</th>
-                <th scope="col" data-sort="3" class="sortable" aria-sort="none">Team</th>
-                <th scope="col" data-sort="4" class="sortable" aria-sort="none">Ca</th>
-                <th scope="col" data-sort="5" class="sortable" aria-sort="none">Ngày</th>
-                <th scope="col" data-sort="6" class="sortable" aria-sort="none">Giờ có mặt</th>
-                <th scope="col" data-sort="7" class="sortable" aria-sort="none">Giờ quét</th>
-                <th scope="col" data-sort="8" class="sortable" aria-sort="none">Trạng thái</th>
+                <th scope="col" data-sort="0" class="sortable" aria-sort="none">Mã NV</th>
+                <th scope="col" data-sort="1" class="sortable" aria-sort="none">Tên NV</th>
+                <th scope="col" data-sort="2" class="sortable" aria-sort="none">Agency</th>
+                <th scope="col" data-sort="3" class="sortable" aria-sort="none">Station</th>
+                <th scope="col" data-sort="4" class="sortable" aria-sort="none">Team</th>
+                <th scope="col" data-sort="5" class="sortable" aria-sort="none">Ca</th>
+                <th scope="col" data-sort="6" class="sortable" aria-sort="none">Ngày</th>
+                <th scope="col" data-sort="7" class="sortable" aria-sort="none">Giờ có mặt</th>
+                <th scope="col" data-sort="8" class="sortable" aria-sort="none">Giờ quét</th>
+                <th scope="col" data-sort="9" class="sortable" aria-sort="none">Trạng thái</th>
                 </tr>
               </thead>
               <tbody id="scanTableBody"></tbody>
@@ -2352,9 +2353,9 @@
   }
 
   // C3: state lọc + sort bảng scan — mặc định sort theo phase:
-  // phase1 (Mở) → Giờ có mặt (col 6) mới nhất; phase2 (Điểm danh) → Giờ quét (col 7).
+  // phase1 (Mở) → Giờ có mặt (col 7) mới nhất; phase2 (Điểm danh) → Giờ quét (col 8).
   var SCAN_FILTER = { q: '', status: '' };
-  var SCAN_SORT = { col: 6, asc: false, userSet: false };  // userSet=true khi user chọn cột; false=mặc định theo phase
+  var SCAN_SORT = { col: 7, asc: false, userSet: false };  // userSet=true khi user chọn cột; false=mặc định theo phase
   var STATUS_ORDER = {};  // P3: dựng từ STATUS_C — tránh hardcode label
   STATUS_ORDER[STATUS_C.PENDING] = 0;
   STATUS_ORDER[''] = 0;
@@ -2370,10 +2371,10 @@
   function filterAndSortScan(log) {
     var q = SCAN_FILTER.q.trim().toLowerCase();
     var st = SCAN_FILTER.status;
-    // 2-phase: sort mặc định theo phase — phase1 Giờ có mặt (col6), phase2 Giờ quét (col7)
-    var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 7 : 6;
+    // 2-phase: sort mặc định theo phase — phase1 Giờ có mặt (col7), phase2 Giờ quét (col8)
+    var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 8 : 7;
     // F: nếu user chưa chọn sort riêng (userSet=false mặc định) → ép theo phaseCol;
-    // nếu đã chọn cột → tôn trọng cột user chọn (kể cả 6/7) — KHÔNG ép ngược lại.
+    // nếu đã chọn cột → tôn trọng cột user chọn (kể cả 7/8) — KHÔNG ép ngược lại.
     var asc = SCAN_SORT.asc;
     var col = SCAN_SORT.userSet ? SCAN_SORT.col : phaseCol;
     var out = [];
@@ -2387,18 +2388,19 @@
     });
     out.sort(function (a, b) {
       var va, vb;
-      if (col === 8) {
+      if (col === 9) {
         va = statusRank(a.status);
         vb = statusRank(b.status);
-      } else if (col === 0) { va = String(a.staffName || '').toUpperCase(); vb = String(b.staffName || '').toUpperCase(); }
-      else if (col === 1) { var sa = CLIENT_STAFF_INDEX[String(a.staffId || '').toUpperCase()] || null; var sb = CLIENT_STAFF_INDEX[String(b.staffId || '').toUpperCase()] || null; va = String(sa && sa.agency || '').toUpperCase(); vb = String(sb && sb.agency || '').toUpperCase(); }
-      else if (col === 2) { va = String(a.station || ''); vb = String(b.station || ''); }
-      else if (col === 3) { va = String(a.team || ''); vb = String(b.team || ''); }
-      else if (col === 4) { va = String(a.slotCode || ''); vb = String(b.slotCode || ''); }
-      else if (col === 5) { va = String(a.dateText || ''); vb = String(b.dateText || ''); }
-      else if (col === 6) { va = String(a.timeRefText || ''); vb = String(b.timeRefText || ''); }
+      } else if (col === 0) { va = String(a.staffId || '').toUpperCase(); vb = String(b.staffId || '').toUpperCase(); }
+      else if (col === 1) { va = String(a.staffName || '').toUpperCase(); vb = String(b.staffName || '').toUpperCase(); }
+      else if (col === 2) { var sa = CLIENT_STAFF_INDEX[String(a.staffId || '').toUpperCase()] || null; var sb = CLIENT_STAFF_INDEX[String(b.staffId || '').toUpperCase()] || null; va = String(sa && sa.agency || '').toUpperCase(); vb = String(sb && sb.agency || '').toUpperCase(); }
+      else if (col === 3) { va = String(a.station || ''); vb = String(b.station || ''); }
+      else if (col === 4) { va = String(a.team || ''); vb = String(b.team || ''); }
+      else if (col === 5) { va = String(a.slotCode || ''); vb = String(b.slotCode || ''); }
+      else if (col === 6) { va = String(a.dateText || ''); vb = String(b.dateText || ''); }
+      else if (col === 7) { va = String(a.timeRefText || ''); vb = String(b.timeRefText || ''); }
       else {
-        // col 7 = Giờ quét — sort theo epoch (số) CHÍNH XÁC cả khi xuyên nửa đêm;
+        // col 8 = Giờ quét — sort theo epoch (số) CHÍNH XÁC cả khi xuyên nửa đêm;
         // timeScanText "HH:mm:ss" mất ngày → sort chuỗi sai. Chưa quét = epoch 0.
         va = Number(a.timeScanEpoch) || 0;
         vb = Number(b.timeScanEpoch) || 0;
@@ -2477,6 +2479,7 @@
     var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
     return [
       '<td class="stt">' + (idx + 1) + '</td>',
+      '<td><b>' + esc(r.staffId) + '</b></td>',
       '<td>' + esc(r.staffName) + '</td>',
       '<td>' + esc(staffRec && staffRec.agency ? staffRec.agency : '') + '</td>',
       '<td>' + esc(r.station || '') + '</td>',
@@ -2493,7 +2496,7 @@
     var ths = document.querySelectorAll('#scanTable th.sortable');
     // F: highlight cột sort THỰC TẾ — khớp filterAndSortScan (userSet ? cột user : phaseCol)
     var effectiveCol = SCAN_SORT.userSet ? SCAN_SORT.col
-      : ((CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 7 : 6);
+      : ((CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 8 : 7);
     for (var i = 0; i < ths.length; i++) {
       var col = parseInt(ths[i].dataset.sort, 10);
       var active = col === effectiveCol;
