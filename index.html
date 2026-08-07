@@ -322,7 +322,7 @@
     }
     .counter.scanned .num { color: var(--success); }
     .counter.absent .num { color: var(--danger); }   /* DONE: Vắng (đỏ) */
-    .counter.waiting .num { color: var(--primary); } /* Mở: Chờ điểm danh (xanh) */
+    .counter.waiting .num { color: var(--primary); } /* Mở: Chờ có mặt (xanh) */
     .counter.extra .num { color: var(--warning); }
 
     /* ===== C3: toolbar lọc bảng NV ===== */
@@ -1968,19 +1968,19 @@
     document.getElementById('cScanned').textContent = c.scanned || 0;
     document.getElementById('cAbsent').textContent = c.absent || 0;
     document.getElementById('cExtra').textContent = c.extra || 0;
-    // Label + màu động theo phase: phase1 (Mở) → "Chờ điểm danh" (xanh, chưa đến lượt,
+    // Label + màu động theo phase: phase1 (Mở) → "Chờ có mặt" (xanh, chưa đến lượt,
     // KHÔNG phải Vắng); phase2 chưa kết thúc → "Chưa điểm danh" (vàng); DONE → "Vắng" (đỏ).
     var absentCounter = document.querySelector('.counter.absent');
     var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
     if (lbl && CURRENT_TASK) {
-      // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chờ điểm danh'.
+      // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chờ có mặt'.
       var isDone = CURRENT_TASK.status === TASK_STATUS_C.DONE || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
       if (isDone) {
         lbl.textContent = 'Vắng';
         absentCounter.classList.add('absent');
         absentCounter.classList.remove('waiting');
       } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
-        lbl.textContent = 'Chờ điểm danh';
+        lbl.textContent = 'Chờ có mặt';
         absentCounter.classList.add('waiting');
         absentCounter.classList.remove('absent');
       } else { // ATTEND (phase) — chưa kết thúc
