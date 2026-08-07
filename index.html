@@ -1323,11 +1323,13 @@
     _refreshPending--;
     if (_refreshPending > 0) return;  // còn RPC kia chưa xong — giữ khóa
     _refreshLock = false;
+    hideModalSpin();  // B3: đóng spinModal khi toàn bộ refresh xong
     var btn = document.getElementById('btnRefresh');
     if (btn) { btn.disabled = false; btn.style.opacity = ''; }
   }
   function refreshAll() {
     if (_refreshLock) return;  // đang load rồi — bỏ qua, tránh chồng RPC
+    showModalSpin('Đang làm mới…');  // B3: spinModal khi bấm Làm mới (ẩn ở _releaseRefreshLock)
     _refreshLock = true;
     _refreshPending = 2;  // loadFilterOptions + loadTaskList
     var btn = document.getElementById('btnRefresh');
@@ -1818,7 +1820,7 @@
       loadTaskDetail(taskId, true);  // RPC nền — sync dữ liệu mới nhất (nếu có thay đổi)
       return;
     }
-    showLoadingOverlay();  // P2: spinner khi đang load danh sách NV (ẩn ở success/failure)
+    showModalSpin('Đang tải chi tiết…');  // B3: spinModal thay loadingOverlay (chỉ dùng overlay khi mở app)
     loadTaskDetail(taskId);
   }
 
@@ -2294,7 +2296,9 @@
     }
     // Toast optimistic: NV lạ (chưa có tên) hiện mã NV thay vì dấu '-' (PENDING) gây
     // hiểu lầm "trống". Server sẽ toast lại status thật nếu khác.
+    // Toast: không hiện dấu '-' (PENDING) — thay bằng label rõ nghĩa 'Chưa điểm danh'.
     var toastMsg = (item.optimisticNew && !target.staffName) ? staffId : item.optimisticStatus;
+    if (toastMsg === STATUS_C.PENDING) toastMsg = 'Chưa điểm danh';
     playBeep('scan');
     showToast(toastMsg, false);
     // optimistic: NV lạ free=PENDING (warn-ish) nhưng chưa confirm → dùng 'ok' tạm,
