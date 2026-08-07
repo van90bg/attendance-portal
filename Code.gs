@@ -2,8 +2,8 @@
  * Code.gs — Entry point + API endpoints (google.script.run).
  *
  * API (gọi từ client index.html):
- *   getMeta()                    → { appTitle, labels, tableHeaders }
- *   getFilterOptions()           → { stations, slotCodes, teams }
+ *   getMeta()                    → { ok, appTitle, userEmail }
+ *   getFilterOptions()           → { ok, stationGroups }
  *   createReconcileTask(input)   → { ok, taskId, count, message }
  *   getTaskList()                → [{ taskId, station, slotCode, team, status, createdAt }]
  *   getTaskDetail(taskId)        → { ok, task, log, counters }
