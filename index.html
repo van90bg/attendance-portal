@@ -225,6 +225,21 @@
     .mode-tabs { display: flex; background: #eef0f2; border-radius: 10px; padding: 4px; gap: 4px; }
     .mode-tab { flex: 1; padding: 9px 6px; font-size: 13px; font-weight: 600; color: var(--muted); background: transparent; border: none; border-radius: 8px; cursor: pointer; text-align: center; }
     .mode-tab.active { background: #fff; color: #1f1f1f; box-shadow: 0 1px 3px rgba(0,0,0,.12); font-weight: 700; }
+    /* Mô tả mode đang chọn — operator kiosk phân biệt rõ 2 chế độ (sketch A3) */
+    .mode-desc { font-size: 12px; color: var(--muted); margin: 8px 2px 0; line-height: 1.45; }
+    .mode-desc b { color: var(--text); }
+    /* Audit UI (contrast): chữ amber 12px trên nền trắng ~3.5:1 fail AA — amber đậm #9a4d00 = 6.1:1 */
+    #createModal .grp-col-title { color: #9a4d00; }
+    #createModal .grp-row#rowDate { grid-column: 1 / -1; }  /* hàng Ngày trải full 2 cột — hết lệch cột */
+    #createModal .grp-row#rowDate .grp-tree { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    /* Footer gộp preview + nút hành động (sketch A1: feedback ngay nơi bấm, tiết chiều cao modal) */
+    #createModal .create-footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+    }
+    #createModal .create-preview { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); }
+    #createModal .create-preview-count { font-weight: 700; color: #9a4d00; margin-top: 2px; }
+    #createModal .create-actions { display: flex; gap: 8px; flex-shrink: 0; }
     #createModal .grp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
     /* modal trong luoi 2 cot: moi panel khong con det duoc (giu option doc 1 cot, text dai khong biop) */
     #createModal .grp-tree { grid-template-columns: 1fr; }
@@ -276,7 +291,17 @@
       min-width: 22px; text-align: center; display: inline-block;
     }
     /* Kích thước modal + header amber (v1) */
-    #createModal .about-dialog { width: 680px; max-width: 680px; padding: 18px 20px; }
+    /* Audit UI (2026-08-07): modal cao ~850px (3 hàng filter) từng bị CẮT nút Tạo task trên
+       màn <900px — overlay không cuộn + dialog không max-height. Fix: dialog scroll trong +
+       margin:auto (căn giữa khi vừa, không kẹt top khi cao) + overlay cuộn dự phòng. */
+    #createModal.about-overlay { overflow-y: auto; }
+    #createModal .about-dialog {
+      width: 680px; max-width: 680px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      margin: auto;
+      padding: 18px 20px;
+    }
     #createModal .about-dialog h2#createModalTitle {
       font-size: 16px; font-weight: 700; color: var(--text, #1f1f1f);
       padding-bottom: 10px; margin-bottom: 12px;
@@ -878,43 +903,46 @@
 <!-- Modal tạo task (cây nhóm Station → Ca → Team, checkbox) -->
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">
-    <h2 id="createModalTitle" style="font-size:15px;margin:0 0 3px;">+ Tạo task điểm danh</h2>
-    <p style="color:var(--muted);font-size:11px;margin:0 0 10px;">Quét mã <b>Ops</b> để điểm danh — Station / Ngày chọn 1; Team / Ca / Hình thức chọn nhiều.</p>
+    <h2 id="createModalTitle">+ Tạo task điểm danh</h2>
+    <!-- Audit UI: bỏ hint cũ — cột đã ghi rõ "· chọn 1 / · chọn nhiều" + modeDesc giải thích mode -->
     <!-- modalA: 2 chế độ tạo task — Quét tự do thay checkbox nổi vàng -->
-    <div class="mode-tabs">
-      <button type="button" id="tabReconcile" class="mode-tab active" onclick="setCreateMode(true)">Đối chiếu danh sách</button>
-      <button type="button" id="tabFree" class="mode-tab" onclick="setCreateMode(false)">Quét tự do</button>
+    <div class="mode-tabs" role="tablist" aria-label="Chế độ tạo task">
+      <button type="button" role="tab" aria-selected="true" aria-controls="grpCols" id="tabReconcile" class="mode-tab active" onclick="setCreateMode(true)">Đối chiếu danh sách</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="grpCols" id="tabFree" class="mode-tab" onclick="setCreateMode(false)">Quét tự do</button>
     </div>
+    <p id="modeDesc" class="mode-desc">Tạo task kèm danh sách NV sẵn theo Station / Ca / Team / Ngày — quét mã <b>Ops</b> để điểm danh.</p>
     <input type="checkbox" id="chkNoList" style="display:none">
-    <div class="grp-cols" id="grpCols">
+    <div class="grp-cols" id="grpCols" role="tabpanel" aria-labelledby="tabReconcile">
       <div class="grp-row">
-        <label class="grp-col-title">Station</label>
+        <span class="grp-col-title">Station · chọn 1</span>
         <div id="colStation" class="grp-tree" data-single="true"></div>
       </div>
       <div class="grp-row">
-        <label class="grp-col-title">Team</label>
+        <span class="grp-col-title">Team · chọn nhiều</span>
         <div id="colTeam" class="grp-tree" data-all="true"></div>
       </div>
       <div class="grp-row">
-        <label class="grp-col-title">Ca (Slot Code)</label>
+        <span class="grp-col-title">Ca (Slot Code) · chọn nhiều</span>
         <div id="colSlot" class="grp-tree" data-all="true"></div>
       </div>
       <div class="grp-row">
-        <label class="grp-col-title">Hình thức (Contract)</label>
+        <span class="grp-col-title">Hình thức (Contract) · chọn nhiều</span>
         <div id="colContract" class="grp-tree" data-all="true"></div>
       </div>
-      <div class="grp-row">
-        <label class="grp-col-title">Ngày</label>
+      <div class="grp-row" id="rowDate">
+        <span class="grp-col-title">Ngày · chọn 1</span>
         <div id="colDate" class="grp-tree" data-single="true"></div>
       </div>
     </div>
-    <div id="createPreview" style="margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--card-radius);background:var(--surface-muted);font-size:12px;">
-      <div id="createPreviewSummary" style="color:var(--muted);margin-bottom:4px;">Chưa chọn filter nào</div>
-      <div id="createPreviewCount" style="font-weight:700;color:var(--amber);">Tick chọn Station / Team / Ca / Hình thức / Ngày để xem số lượng NV</div>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-      <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
-      <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task</button>
+    <div class="create-footer">
+      <div id="createPreview" class="create-preview" role="status" aria-live="polite">
+        <div id="createPreviewSummary">Chưa chọn filter nào</div>
+        <div id="createPreviewCount" class="create-preview-count">Tick chọn Station / Ca / Team để xem số lượng NV</div>
+      </div>
+      <div class="create-actions">
+        <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
+        <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1220,17 +1248,53 @@
     var chk = document.getElementById('chkNoList');
     var noList = !!(chk && chk.checked);
     SEL.noList = noList;
-    // đồng bộ tab active
+    // đồng bộ tab active + aria-selected + roving tabindex (a11y: chỉ tab active vào tab-order)
     var tr = document.getElementById('tabReconcile'); if (tr) tr.classList.toggle('active', !noList);
     var tf = document.getElementById('tabFree'); if (tf) tf.classList.toggle('active', noList);
+    if (tr) { tr.setAttribute('aria-selected', noList ? 'false' : 'true'); tr.tabIndex = noList ? -1 : 0; }
+    if (tf) { tf.setAttribute('aria-selected', noList ? 'true' : 'false'); tf.tabIndex = noList ? 0 : -1; }
+    // Mô tả mode (audit UI): operator kiosk hiểu ngay 2 chế độ khác nhau (sketch A3)
+    var desc = document.getElementById('modeDesc');
+    if (desc) {
+      desc.innerHTML = noList
+        ? 'Không cần danh sách sẵn — quét lần 1 để <b>lấy danh sách</b>, lần 2 để <b>điểm danh</b>; NV quét lần 2 chưa có ở lần 1 tính là <b>Dư</b>.'
+        : 'Tạo task kèm danh sách NV sẵn theo Station / Ca / Team / Ngày — quét mã <b>Ops</b> để điểm danh.';
+    }
     var grp = document.getElementById('grpCols');
     if (grp) {
       grp.style.opacity = noList ? '.4' : '';
-      grp.style.pointerEvents = noList ? 'none' : '';
+      // Audit UI: pointer-events:none chỉ chặn CHUỘT — bàn phím vẫn tick được checkbox trong
+      // chế độ đã dim. Disable THẬT input + aria-hidden cho đồng nhất (mắt + tay + screen reader).
+      var inputs = grp.querySelectorAll('input[type=checkbox]');
+      for (var i = 0; i < inputs.length; i++) inputs[i].disabled = noList;
+      grp.setAttribute('aria-hidden', noList ? 'true' : 'false');
+      grp.setAttribute('aria-labelledby', noList ? 'tabFree' : 'tabReconcile');  // a11y: tabpanel theo tab active
     }
     updateCreatePreview();
   }
 
+  // Audit UI (a11y): focus trap cho modal tạo task + chuyển tab bằng phím mũi tên
+  // (Tab không thoát ra nền; ArrowLeft/Right đổi mode như tablist chuẩn)
+  function trapCreateModalFocus(e) {
+    var dlg = document.querySelector('#createModal.open .about-dialog');
+    if (!dlg) return;
+    if (e.key === 'Tab') {
+      var f = dlg.querySelectorAll('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])');
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      var tabs = dlg.querySelectorAll('.mode-tabs [role=tab]');
+      if (!tabs.length) return;
+      var idx = Array.prototype.indexOf.call(tabs, document.activeElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      var next = e.key === 'ArrowRight' ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
+      tabs[next].focus();
+      setCreateMode(next === 0);  // tab 0 = Đối chiếu (reconcile=true), tab 1 = Quét tự do
+    }
+  }
   function openCreateModal() {
     var m = document.getElementById('createModal');
     if (!m) return;
@@ -1243,12 +1307,14 @@
     onNoListChange();
     m.setAttribute('aria-hidden', 'false');  // I10
     m.classList.add('open');
+    document.addEventListener('keydown', trapCreateModalFocus);  // Audit UI: giữ focus trong modal
     var first = document.querySelector('#createModal .grp-item input');
     if (first && first.focus) first.focus();
   }
   function closeCreateModal() {
     var m = document.getElementById('createModal');
     if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    document.removeEventListener('keydown', trapCreateModalFocus);  // Audit UI: nhả focus trap
     var btn = document.getElementById('btnCreate');
     if (btn && btn.focus) btn.focus();
   }
@@ -1403,14 +1469,15 @@
       if (team.length) parts.push('Team: ' + team.length);
       if (contractType.length) parts.push('Hình thức: ' + contractType.length);
       if (date) parts.push('Ngày: ' + esc(date));
-      sumEl.innerHTML = parts.length ? 'Đã chọn: <strong style="color:var(--amber)">' + parts.join('</strong> · <strong style="color:var(--amber)">') + '</strong>' : 'Chưa chọn filter nào';
+      sumEl.innerHTML = parts.length ? 'Đã chọn: <strong style="color:#9a4d00">' + parts.join('</strong> · <strong style="color:#9a4d00">') + '</strong>' : 'Chưa chọn filter nào';
     }
     if (SEL.noList) {
       cntEl.textContent = 'Quét tự do: không cần danh sách sẵn. Quét lần 1 để lấy danh sách, lần 2 để điểm danh; NV quét lần 2 mà chưa có trong lần 1 sẽ tính là Dư.';
       return;
     }
     if (!station || !slotCode.length || !team.length) {
-      cntEl.textContent = 'Tick chọn Ca / Team / Hình thức / Ngày để xem số lượng NV';
+      // Audit UI: text khớp validation createTask (chỉ bắt buộc Station + Ca + Team)
+      cntEl.textContent = 'Tick chọn Ca / Team để xem số lượng NV';
       return;
     }
     clearTimeout(_previewTimer);
