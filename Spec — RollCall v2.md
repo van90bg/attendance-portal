@@ -295,7 +295,7 @@ normalizeStaffId (trim + UPPERCASE)
 
 ### 8.3 WebApp manifest
 
-- `executeAs: USER_DEPLOYING`, `access: ANYONE_ANONYMOUS` — kiosk không cần đăng nhập.
+- `executeAs: USER_DEPLOYING`, `access: DOMAIN` — chỉ user @spxexpress.com (môi trường máy tính đăng nhập, không kiosk).
 - `doGet` tự `ensureSheets_()` mỗi lần load (chỉ set header khi sheet trống — rẻ).
 
 ---
@@ -361,7 +361,7 @@ normalizeStaffId (trim + UPPERCASE)
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
 | Files | `tests/csv-normalize.test.js` + `tests/scan-classify.test.js` |
-| **Kết quả** | **26/26 pass** (2026-08-04) |
+| **Kết quả** | **47/47 pass** |
 | Mock | `mock/mock-google.js` |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) |
@@ -439,7 +439,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 26/26, mock `mock-google.js` |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 47/47, mock `mock-google.js` |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **4 sheets** (Config, StaffData giữ header Att.csv 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Không có** (Phase 0 không cần) |
@@ -465,7 +465,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ Cache versioned (7 keys) + LockService + batch read/write
 ✅ Gate editor-only cho debug/sync/setup (fail-closed)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
-✅ Test Node 26/26 · Deploy clasp (chỉ clasp deploy — không PUT deployments)
+✅ Test Node 47/47 · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
 
 ### Post-MVP (chưa làm — KHÔNG nằm trong code hiện tại)
