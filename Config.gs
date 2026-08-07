@@ -48,6 +48,15 @@ const STAFF_DATA_COLS = {
   STATION: 19,
 };
 const STAFF_DATA_COL_COUNT = 20;
+// Header sheet StaffData — giữ đúng tên cột Att.csv (map qua CSV_HEADER_FIELD →
+// buildStaffIndex/buildStaffListFromValues đọc theo TÊN, không theo index). Đặt header
+// này khi setupSheets tạo sheet StaffData mới để syncFromCsv parse được ngay.
+const STAFF_DATA_HEADER = [
+  'No.', 'Date', 'Staff ID', 'Staff Name', 'Staff Email', 'Agency', 'Contract Type',
+  'Event ID', 'Matching Type', 'Gender', 'Department', 'Clock In Time', 'Clock Out Time',
+  'Actual Hours', 'Clock In Remark', 'Clock Out Remark', 'Slot Code', 'Workstation',
+  'Team', 'Station',
+];
 
 // ===== Cột AttendanceTask =====
 const TASK_COLS = {

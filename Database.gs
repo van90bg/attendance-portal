@@ -54,7 +54,9 @@ function getSpreadsheet_() {
 /** Đảm bảo toàn bộ sheet tồn tại (dùng khi khởi tạo). */
 function ensureSheets_() {
   getSheet_(SHEETS.CONFIG, ['Key', 'Value']);
-  getSheet_(SHEETS.STAFF_DATA, []); // header giữ nguyên như csv — syncFromCsv() sẽ ghi
+  // Header chuẩn Att.csv (20 cột) — getSheet_ chỉ set khi sheet trống; syncFromCsv()
+  // ghi đè dữ liệu từ dòng 2 (header dòng 1 giữ nguyên).
+  getSheet_(SHEETS.STAFF_DATA, STAFF_DATA_HEADER);
   getSheet_(SHEETS.ATTENDANCE_TASK, [
     'taskId', 'taskType', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt',
   ]);
