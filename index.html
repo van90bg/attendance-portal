@@ -462,6 +462,9 @@
     .scan-card.err .sc-status { color: var(--danger); }
     .scan-card.extra .sc-status { color: var(--warning); }
     .scan-card.warn .sc-status { color: var(--warning); }
+    /* FREE phase1: NV mới quét lần 1 = 'Chưa điểm danh' (chưa phải lỗi/cảnh báo) → xanh dương. */
+    .scan-card.pending .sc-status { color: var(--primary); }
+    .scan-card.pending { border-color: var(--primary); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
     .scan-card .sc-name { font-size: 30px; font-weight: 800; line-height: 1.25; margin-top: 2px; }
     .scan-card .sc-meta { font-size: 14px; color: var(--muted); margin-top: 4px; }
     .scan-card .sc-empty { color: var(--muted); font-size: 14px; }
@@ -2621,7 +2624,9 @@
     if (!card) return;
     if (!target) { resetScanCard(); return; }
     // C2: Dư = cam (extra), đã điểm danh/đã có mặt = cam (warn, không phải lỗi), lỗi = đỏ, ok = xanh.
-    var cls = (mode === 'err') ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok'));
+    // FREE phase1: status PENDING ('Chưa điểm danh') → xanh (primary) — chưa phải lỗi/cảnh báo.
+    var cls = (status === STATUS_C.PENDING || status === 'Chưa điểm danh') ? 'pending'
+      : (mode === 'err' ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok')));
     card.className = 'scan-card ' + cls;
     card.innerHTML = scanCardHTML(status, target);
   }
