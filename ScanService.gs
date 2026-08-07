@@ -110,13 +110,26 @@ function scanStaff(taskId, rawStaffId) {
         workstation: existing.workstation || '',
       } : buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now, field);
       if (existing) {
-        // Đã có (race) → coi như đã append, KHÔNG append nữa (tránh duplicate).
+        // Đã có (race) → commit thời gian vào row hiện hữu thay vì chỉ trả local.
+        // Minor#2 (audit): trước đây chỉ set local text/epoch, KHÔNG ghi sheet → nếu
+        // kiosk B quét phase2 khi A mới ghi phase1, thời gian hợp lệ bị rơi (NV phải quét lại).
         if (field === 'timeScan') {
           timeScanText = existing.timeScanText || formatTime_(now);
           timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
+          if (!existing.timeScanEpoch) {  // chưa có Giờ quét → GHI VÀO sheet (not skip)
+            updateLogRowScan_(existing, now, result.status || STATUS.EXTRA);
+            existing.timeScanText = timeScanText;
+            existing.timeScanEpoch = timeScanEpoch;
+            existing.status = result.status || STATUS.EXTRA;
+          }
         } else {
           timeRefText = existing.timeRefText || formatTime_(now);
           timeRefEpoch = Number(existing.timeRefEpoch) || now.getTime();
+          if (!existing.timeRefEpoch) {  // chưa có Giờ có mặt — GHI vào sheet
+            updateLogRowRef_(existing, now);
+            existing.timeRefText = timeRefText;
+            existing.timeRefEpoch = timeRefEpoch;
+          }
         }
         scannedName = existing.staffName || null;
         result.status = existing.status || STATUS.EXTRA;
