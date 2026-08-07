@@ -824,8 +824,8 @@
         <div class="task-title" id="scanTaskTitle"></div>
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
-      <button class="btn btn-primary" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
       <button class="btn btn-outline" id="btnPaste" onclick="openPasteModal()" style="display:none" aria-label="Dán danh sách mã" title="Dán danh sách mã">Dán danh sách mã</button>
+      <button class="btn btn-primary" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Kết thúc task">Kết thúc</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
     </div>
@@ -1397,17 +1397,17 @@
           showToast(errMsg, true);
           return;
         }
-        // Tổng kết ngắn (bỏ preview chi tiết từng mã — danh sách đã refresh ở viewScan)
-        var html = '<div style="font-size:13px;line-height:1.5;">';
-        html += '<div><b>Kết quả:</b> ' + res.success + '/' + res.total + ' thành công, ' + res.failed + ' thất bại</div>';
-        if (dup > 0) html += '<div class="muted" style="margin-top:2px;">Đã bỏ ' + dup + ' mã trùng trong lần dán.</div>';
-        html += '<div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="closePasteModal()">Đóng</button></div>';
-        if (preview) { preview.innerHTML = html; preview.style.display = ''; }
-        // Refresh counters & log from server response
+        // Refresh counters & log từ server response, rồi (đúng yêu cầu) TỰ ĐÓNG modal
+        // khi dữ liệu NV đã load xong — tổng kết ngọn qua toast thay vì preview trong modal.
         if (res.counters) { CURRENT_COUNTERS = res.counters; renderCounters(res.counters); }
         if (CURRENT_TASK && CURRENT_TASK.taskId === res.taskId) {
           loadTaskDetail(CURRENT_TASK.taskId, true);
         }
+        var msg = 'Đã dán ' + res.success + '/' + res.total + ' mã'
+          + (res.failed > 0 ? (' — ' + res.failed + ' thất bại') : '');
+        if (dup > 0) msg += ' — bỏ ' + dup + ' mã trùng';
+        showToast(msg, res.failed > 0);
+        closePasteModal();
       })
       .withFailureHandler(function (err) {
         if (submitBtn) submitBtn.disabled = false;
@@ -2732,9 +2732,10 @@
     }
     if (scanBusy()) {
       if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
-    } else if (btn) {
-      btn.disabled = false;
-      btn.title = '';
+      if (btnTo) { btnTo.disabled = true; btnTo.title = 'Đang xử lý quét — chờ xong rồi chuyển'; }
+    } else {
+      if (btn) { btn.disabled = false; btn.title = ''; }
+      if (btnTo) { btnTo.disabled = false; btnTo.title = ''; }
     }
     updateQueueFullState();
   }
