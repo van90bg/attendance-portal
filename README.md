@@ -63,7 +63,7 @@ RollCall_2/
 ### Test local
 
 ```bash
-npm test          # 26/26 — node --test
+npm test          # 47/47 — node --test
 ```
 
 ### Mock UI local
@@ -116,6 +116,6 @@ git push origin main
 - ✅ Simplify pass (4 reviewer): gộp helper trùng (scanBusy/scanCardHTML/statusRank/isEditor_), xoá duplicate counter bump, guard response scan theo task
 - ✅ Config trỏ script `1HmmGcLI…` + spreadsheet `1NQQnLn…` (HR tự đồng bộ vào StaffData)
 - ✅ Review pass (2026-08-03, reviewer độc lập + verify): P0 `updateTaskStatus_` ghi nhầm cột CREATED_AT → ghi đúng STATUS+COMPLETED_AT · P1 `debugState()` gate editor-only · P1 dedupe staffId trong cùng tổ hợp (Att.csv thật có NV 2 dòng cùng ca) · P2 a11y, format ngày, xóa CSS chết
-- ✅ Test: 26/26 pass
+- ✅ Test: 47/47 pass
 - ✅ README + Spec viết lại khớp codebase thực tế (bỏ phần ảo: check-in/out, state machine 4 bước, offline, paste batch, Bootstrap, IndexedDB)
 - ⏳ P2 phase: QA prod quét NV thật
