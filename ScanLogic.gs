@@ -156,7 +156,9 @@ function buildExtraRow(cfg, taskId, staffId, staffInfo, now, field, status) {
     timeRefEpoch: timeRefEpoch,
     // append phase2 cũng phải set timeScanEpoch (nguồn sự thật counters/sort).
     timeScanEpoch: timeScanEpoch,
-    date: '',  // NV quét lạ không có trong StaffData → không có ngày vào làm
+    // 2026-08-07: FREE giữ staffInfo.date (ngày lên làm) cho cột Ngày — lấy từ StaffData,
+    // không phải ngày quét. NV quét lạ không có trong StaffData → để rỗng.
+    date: staffInfo ? (staffInfo.date || '') : '',
     // status do caller truyền (mặc định EXTRA giữ behaviour roster lạ = Dư);
     // noList quét đầu (phase1) truyền PENDING — Fix #3.
     status: status || cfg.STATUS.EXTRA,

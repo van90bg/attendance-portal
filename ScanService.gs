@@ -220,8 +220,8 @@ function scanStaff(taskId, rawStaffId) {
  */
 function pasteCodes(taskId, rawLines) {
   const t0 = Date.now();
-  // Clamp at 1000 lines (A4)
-  const lines = (rawLines || []).slice(0, 1000);
+  // Clamp at 200 lines (A4) — yêu cầu 2026-08-07: giới hạn 200 mã/lần dán.
+  const lines = (rawLines || []).slice(0, 200);
   // DEFENSE: bọc toàn bộ logic — bất kỳ lỗi nào (kể cả ReferenceError) trả ok:false
   // thay vì ném ra → client hiện toast gọn, KHÔNG "Server lỗi" chung (pattern scanStaff).
   try {

@@ -231,12 +231,12 @@ function pasteCodesApi(taskId, lines) {
 function warmStaffCacheApi() {
   try {
     const index = readStaffIndex_(); // warm cache + tra index cho client
-    // P1-2: chi tra field UI can (ten/Ca/Station/Team) — boc cardIn/cardOut/agency/
-    // date (recon schedule nhan su) khoi payload; server van giu full index trong cache.
+    // P1-2: chi tra field UI can (ten/Ca/Station/Team/Agency) — boc cardIn/cardOut/date
+    // (recon schedule nhan su) khoi payload; server van giu full index trong cache.
     const slim = {};
     Object.keys(index).forEach(function (id) {
       const s = index[id];
-      slim[id] = { staffId: s.staffId, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation };
+      slim[id] = { staffId: s.staffId, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '' };
     });
     return { ok: true, index: slim };
   } catch (e) {

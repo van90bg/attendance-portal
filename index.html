@@ -413,6 +413,8 @@
     .badge.open    { background: #e8f0fe; color: var(--primary); }
     .badge.attend { background: #e6f4ea; color: #1e7e34; }
     .badge.done    { background: #f0f1f3; color: var(--muted); }
+    .badge.badge-free      { background: #f3e8fd; color: #7c3aed; }
+    .badge.badge-reconcile { background: #e8f0fe; color: var(--primary); }
 
     /* ===== Scan input ===== */
     .scan-row { display: flex; gap: 10px; }
@@ -717,6 +719,8 @@
       .badge.open    { background: var(--primary); color: #fff; }
       .badge.attend { background: #1e7e34; color: #fff; }
       .badge.done    { background: #000; color: #fff; }
+      .badge.badge-free      { background: #2a1f3d; color: #c9a2f2; }
+      .badge.badge-reconcile { background: #1b2b4a; color: #8ab4f8; }
       .counter { border-width: 2px; }
     }
 
@@ -788,9 +792,10 @@
             <tr>
               <th scope="col">STT</th>
               <th scope="col">Mã task</th>
+              <th scope="col">Loại</th>
               <th scope="col">Station</th>
-              <th scope="col">Ca</th>
               <th scope="col">Team</th>
+              <th scope="col">Ca</th>
               <th scope="col">Tổng NV</th>
               <th scope="col">Đã quét</th>
               <th scope="col">Dư</th>
@@ -871,11 +876,12 @@
             <table id="scanTable" style="display:none;">
               <thead>
                                 <tr>
-                <th scope="col" data-sort="0" class="sortable" aria-sort="none">Mã NV</th>
-                <th scope="col" data-sort="1" class="sortable" aria-sort="none">Tên NV</th>
-                <th scope="col" data-sort="2" class="sortable" aria-sort="none">Ca</th>
+                <th scope="col" class="stt-col">STT</th>
+                <th scope="col" data-sort="0" class="sortable" aria-sort="none">Tên NV</th>
+                <th scope="col" data-sort="1" class="sortable" aria-sort="none">Agency</th>
+                <th scope="col" data-sort="2" class="sortable" aria-sort="none">Station</th>
                 <th scope="col" data-sort="3" class="sortable" aria-sort="none">Team</th>
-                <th scope="col" data-sort="4" class="sortable" aria-sort="none">Station</th>
+                <th scope="col" data-sort="4" class="sortable" aria-sort="none">Ca</th>
                 <th scope="col" data-sort="5" class="sortable" aria-sort="none">Ngày</th>
                 <th scope="col" data-sort="6" class="sortable" aria-sort="none">Giờ có mặt</th>
                 <th scope="col" data-sort="7" class="sortable" aria-sort="none">Giờ quét</th>
@@ -948,7 +954,7 @@
 <div id="pasteModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pasteModalTitle" onclick="if(event.target===this)closePasteModal()">
   <div class="about-dialog" style="max-width:560px;">
     <h2 id="pasteModalTitle" style="margin:0 0 12px;font-size:16px;color:var(--text);">Dán danh sách mã</h2>
-    <p class="muted" style="margin:0 0 10px;font-size:13px;">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa ~1000 dòng/lần.</p>
+    <p class="muted" style="margin:0 0 10px;font-size:13px;">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần.</p>
     <textarea id="pasteTextarea" style="width:100%;min-height:200px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px;line-height:1.5;resize:vertical;" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
         <div id="pasteCountHint" style="margin-top:6px;font-size:12px;color:var(--muted);">Nhập mã NV để đếm tự động</div>
         <div id="pasteProgress" style="display:none;margin-top:8px;">
@@ -1360,7 +1366,7 @@
     if (submitBtn && submitBtn.disabled) return; // đang xử lý — chống double-submit
     var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
     if (!lines.length) { showToast('Chưa có mã nào', true); return; }
-    if (lines.length > 1000) { lines = lines.slice(0, 1000); showToast('Đã giới hạn 1000 dòng đầu', true); }
+    if (lines.length > 200) { lines = lines.slice(0, 200); showToast('Đã giới hạn 200 dòng đầu', true); }
     // Dedup client-side — mã trùng cùng lần dán chỉ gửi 1 (server cũng chặn, tránh payload thừa)
     var seen = {}, dup = 0;
     var uniq = [];
@@ -1431,17 +1437,22 @@
     var desc = document.getElementById('modeDesc');
     if (desc) {
       desc.innerHTML = noList
-        ? 'Không cần danh sách sẵn — quét lần 1 để <b>lấy danh sách</b>, lần 2 để <b>điểm danh</b>; NV quét lần 2 chưa có ở lần 1 tính là <b>Dư</b>.'
+        ? 'Chọn <b>Station + Team</b> (Ca tự động = Tự do). Quét lần 1 để <b>lấy danh sách</b>, lần 2 để <b>điểm danh</b>; NV quét lần 2 chưa có ở lần 1 tính là <b>Dư</b>.'
         : 'Tạo task kèm danh sách NV sẵn theo Station / Ca / Team / Ngày — quét mã <b>Ops</b> để điểm danh.';
     }
     var grp = document.getElementById('grpCols');
     if (grp) {
       grp.style.opacity = noList ? '.4' : '';
-      // Audit UI: pointer-events:none chỉ chặn CHUỘT — bàn phím vẫn tick được checkbox trong
-      // chế độ đã dim. Disable THẬT input + aria-hidden cho đồng nhất (mắt + tay + screen reader).
-      var inputs = grp.querySelectorAll('input[type=checkbox]');
-      for (var i = 0; i < inputs.length; i++) inputs[i].disabled = noList;
-      grp.setAttribute('aria-hidden', noList ? 'true' : 'false');
+      // 2026-08-07: FREE vẫn chọn Station + Team (yêu cầu mới); chỉ Ca (colSlot) tự
+      // 'Tự do' + Contract/Date bỏ qua → disable đúng các cột đó, giữ Station/Team active.
+      var disabledCols = noList ? ['colSlot', 'colContract', 'colDate'] : [];
+      var all = grp.querySelectorAll('input[type=checkbox]');
+      for (var i = 0; i < all.length; i++) {
+        var row = all[i].closest ? all[i].closest('.grp-row') : null;
+        var col = row ? row.querySelector('.grp-tree') : null;
+        all[i].disabled = disabledCols.indexOf(col && col.id) !== -1;
+      }
+      grp.setAttribute('aria-hidden', 'false');
       grp.setAttribute('aria-labelledby', noList ? 'tabFree' : 'tabReconcile');  // a11y: tabpanel theo tab active
     }
     updateCreatePreview();
@@ -1710,7 +1721,11 @@
       sumEl.innerHTML = parts.length ? 'Đã chọn: <strong style="color:#9a4d00">' + parts.join('</strong> · <strong style="color:#9a4d00">') + '</strong>' : 'Chưa chọn filter nào';
     }
     if (SEL.noList) {
-      cntEl.textContent = 'Quét tự do: không cần danh sách sẵn. Quét lần 1 để lấy danh sách, lần 2 để điểm danh; NV quét lần 2 mà chưa có trong lần 1 sẽ tính là Dư.';
+      if (!station || !team.length) {
+        cntEl.textContent = 'Chọn Station + Team (Ca tự động = Tự do)';
+      } else {
+        cntEl.textContent = 'Quét tự do: không cần danh sách sẵn. Quét lần 1 để lấy danh sách, lần 2 để điểm danh; NV quét lần 2 mà chưa có trong lần 1 sẽ tính là Dư.';
+      }
       return;
     }
     if (!station || !slotCode.length || !team.length) {
@@ -2077,9 +2092,10 @@
       tr.innerHTML =
         '<td class="stt">' + (idx + 1) + '</td>' +
         '<td>' + esc(t.taskId) + '</td>' +
+        '<td>' + taskTypeBadge(t.taskType) + '</td>' +
         '<td>' + esc(t.station) + '</td>' +
-        '<td>' + esc(t.slotCode) + '</td>' +
         '<td>' + esc(t.team) + '</td>' +
+        '<td>' + esc(t.slotCode) + '</td>' +
         '<td class="num">' + (t.total || 0) + '</td>' +
         '<td class="num">' + (t.scanned || 0) + '</td>' +
         '<td class="num">' + (t.extra || 0) + '</td>' +
@@ -2102,11 +2118,15 @@
       noList: SEL.noList
       // createdBy KHÔNG gửi — server lấy từ Session.getActiveUser() (P2-8)
     };
-    if (!input.noList && (!input.station || !input.slotCode.length || !input.team.length)) {
-      showToast('Vui lòng chọn Station và tick ít nhất 1 Ca / Team', true);
+    if (!input.station || !input.team.length) {
+      showToast('Vui lòng chọn Station và ít nhất 1 Team', true);
       return;
     }
-    if (input.noList && !input.station) input.station = '';
+    if (!input.noList && !input.slotCode.length) {
+      showToast('Vui lòng chọn ít nhất 1 Ca', true);
+      return;
+    }
+    if (input.noList) input.slotCode = ['Tự do'];
     BUSY = true;
     var btn = document.getElementById('btnCreateSubmit');
     if (btn) btn.disabled = true;
@@ -2370,11 +2390,11 @@
       if (col === 8) {
         va = statusRank(a.status);
         vb = statusRank(b.status);
-      } else if (col === 0) { va = String(a.staffId || '').toUpperCase(); vb = String(b.staffId || '').toUpperCase(); }
-      else if (col === 1) { va = String(a.staffName || '').toUpperCase(); vb = String(b.staffName || '').toUpperCase(); }
-      else if (col === 2) { va = String(a.slotCode || ''); vb = String(b.slotCode || ''); }
+      } else if (col === 0) { va = String(a.staffName || '').toUpperCase(); vb = String(b.staffName || '').toUpperCase(); }
+      else if (col === 1) { var sa = CLIENT_STAFF_INDEX[String(a.staffId || '').toUpperCase()] || null; var sb = CLIENT_STAFF_INDEX[String(b.staffId || '').toUpperCase()] || null; va = String(sa && sa.agency || '').toUpperCase(); vb = String(sb && sb.agency || '').toUpperCase(); }
+      else if (col === 2) { va = String(a.station || ''); vb = String(b.station || ''); }
       else if (col === 3) { va = String(a.team || ''); vb = String(b.team || ''); }
-      else if (col === 4) { va = String(a.station || ''); vb = String(b.station || ''); }
+      else if (col === 4) { va = String(a.slotCode || ''); vb = String(b.slotCode || ''); }
       else if (col === 5) { va = String(a.dateText || ''); vb = String(b.dateText || ''); }
       else if (col === 6) { va = String(a.timeRefText || ''); vb = String(b.timeRefText || ''); }
       else {
@@ -2430,7 +2450,7 @@
       tr = existing[r.staffId];
       if (!tr) { tr = document.createElement('tr'); tr.dataset.id = r.staffId; }
       tr.className = r.status === STATUS_C.EXTRA ? 'extra-row' : '';  // C4: nổi bật NV lạ
-      var cells = scanRowCells(r);
+      var cells = scanRowCells(r, i);
       if (tr.children.length !== cells.length) {
         tr.innerHTML = cells.join('');
       } else {
@@ -2452,14 +2472,16 @@
     }
   }
 
-  function scanRowCells(r) {
+  function scanRowCells(r, idx) {
     var badge = badgeFor(r.status);
+    var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
     return [
-      '<td><b>' + esc(r.staffId) + '</b></td>',
+      '<td class="stt">' + (idx + 1) + '</td>',
       '<td>' + esc(r.staffName) + '</td>',
-      '<td>' + esc(r.slotCode) + '</td>',
-      '<td>' + esc(r.team) + '</td>',
+      '<td>' + esc(staffRec && staffRec.agency ? staffRec.agency : '') + '</td>',
       '<td>' + esc(r.station || '') + '</td>',
+      '<td>' + esc(r.team || '') + '</td>',
+      '<td>' + esc(r.slotCode || '') + '</td>',
       '<td>' + esc(r.dateText || '') + '</td>',
       '<td>' + esc(r.timeRefText || '') + '</td>',
       '<td>' + esc(r.timeScanText || '') + '</td>',
@@ -2487,6 +2509,13 @@
     if (status === STATUS_C.ABSENT) return '<span class="badge absent">Vắng</span>';
     if (status === STATUS_C.EXTRA) return '<span class="badge extra">Dư</span>';
     return esc(status || '');
+  }
+
+  // 2026-08-07: badge Loại task ở danh sách task (FREE = Quét tự do, RECONCILE = Đối chiếu).
+  function taskTypeBadge(taskType) {
+    if (taskType === TASK_TYPE_C.FREE) return '<span class="badge badge-free">Quét tự do</span>';
+    if (taskType === TASK_TYPE_C.RECONCILE) return '<span class="badge badge-reconcile">Đối chiếu</span>';
+    return '<span class="badge">Task</span>';
   }
 
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.
