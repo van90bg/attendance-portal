@@ -1144,7 +1144,7 @@
       b.classList.toggle('muted', !SOUND_ON);
       b.title = SOUND_ON ? 'Tắt âm thanh' : 'Bật âm thanh';
     }
-    showToast(SOUND_ON ? 'Âm thanh: Bật' : 'Âm thanh: Tắt');
+    // (bỏ toast chuyển âm thanh — hiệu ứng nút đã đủ phản hồi)
   }
 
   /* ===== Âm thanh phản hồi quét (C1) — Web Audio API, không cần file =====
@@ -2300,7 +2300,7 @@
     var toastMsg = (item.optimisticNew && !target.staffName) ? staffId : item.optimisticStatus;
     if (toastMsg === STATUS_C.PENDING) toastMsg = 'Chưa điểm danh';
     playBeep('scan');
-    showToast(toastMsg, false);
+    // (bỏ toast optimistic này — scan card đã đủ thông tin; tránh toast lặp/nháy)
     // optimistic: NV lạ free=PENDING (warn-ish) nhưng chưa confirm → dùng 'ok' tạm,
     // server sẽ confirm đúng mode sau.
     var optMode = item.optimisticStatus === STATUS_C.EXTRA ? 'extra' : 'ok';
