@@ -97,11 +97,18 @@ function cachedJson_(key, load, ttlSeconds) {
   return value;
 }
 
-/** Cache timezone 1 lần (tránh gọi trong loop). */
+/** Cache timezone 1 lần (tránh gọi trong loop).
+ * P2 (review): memo theo invocation — formatTime_ gọi mọi dòng log (2 lần/dòng × N NV);
+ * getTimeZone_() trước đây mỗi lần gọi lại CacheService.get (đã cache 24h nhưng vẫn hit store).
+ * Với 500-1000 NV/task = 1000-2000 cache GET mỗi lần load detail — memo module cắt về 1 lần.
+ */
+var _tzCache_ = null;
 function getTimeZone_() {
-  return cachedJson_(CACHE_KEYS.TZ, function () {
+  if (_tzCache_ !== null) return _tzCache_;
+  _tzCache_ = cachedJson_(CACHE_KEYS.TZ, function () {
     return Session.getScriptTimeZone();
   }, CACHE_TTL.TZ);
+  return _tzCache_;
 }
 
 /** Format Date theo timezone script — dùng cho hiển thị/ghi cột giờ. */
