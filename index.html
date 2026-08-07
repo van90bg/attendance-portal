@@ -1955,6 +1955,11 @@
           }
           return;
         }
+        // Minor#3 (audit): silent reload trong lúc SCAN_QUEUE/SCAN_PROCESSING đang chạy
+        // → renderScanView thay CURRENT_LOG bằng array MỚI, làm item.target trong queue
+        // trỏ object cũ → dòng vừa quét optimistic 'biến mất'. Gate: đang scan thì bỏ qua
+        // RPC silent (giữ view optimistic đang hiển thị — server vẫn ghi đúng phía sau).
+        if (silent && scanBusy()) return;
         renderScanView(res);
         LAST_SCAN_VIEW = { taskId: taskId, ts: Date.now() };
         hideLoadingOverlay();  // P2: load xong → ẩn spinner
