@@ -819,6 +819,7 @@
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
       <button class="btn btn-primary" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
+      <button class="btn btn-outline" id="btnPaste" onclick="openPasteModal()" style="display:none" aria-label="Dán danh sách mã" title="Dán danh sách mã">Dán danh sách mã</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Kết thúc task">Kết thúc</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
     </div>
@@ -948,7 +949,7 @@
     <h2 id="pasteModalTitle" style="margin:0 0 12px;font-size:16px;color:var(--text);">Dán danh sách mã</h2>
     <p class="muted" style="margin:0 0 10px;font-size:13px;">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa ~1000 dòng/lần.</p>
     <textarea id="pasteTextarea" style="width:100%;min-height:200px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px;line-height:1.5;resize:vertical;" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
-    <div id="pastePreview" style="margin-top:10px;max-height:150px;overflow:auto;display:none;"></div>
+    <div id="pastePreview" style="margin-top:10px;max-height:260px;overflow:auto;display:none;"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
       <button class="btn btn-ghost" onclick="closePasteModal()">Huỷ</button>
       <button class="btn" id="btnPasteSubmit" onclick="submitPaste()">Dán</button>
@@ -1316,6 +1317,8 @@
     m.classList.add('open');
     var ta = document.getElementById('pasteTextarea');
     if (ta) { ta.value = ''; ta.focus(); }
+    var sb = document.getElementById('btnPasteSubmit');
+    if (sb) sb.disabled = false; // reset nếu lần trước đóng giữa chừng đang xử lý
     var preview = document.getElementById('pastePreview');
     if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
   }
@@ -1328,30 +1331,40 @@
   function submitPaste() {
     var ta = document.getElementById('pasteTextarea');
     if (!ta) return;
+    var submitBtn = document.getElementById('btnPasteSubmit');
+    if (submitBtn && submitBtn.disabled) return; // đang xử lý — chống double-submit
     var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
     if (!lines.length) { showToast('Chưa có mã nào', true); return; }
     if (lines.length > 1000) { lines = lines.slice(0, 1000); showToast('Đã giới hạn 1000 dòng đầu', true); }
     var preview = document.getElementById('pastePreview');
+    // GIỮ modal mở: "Đang xử lý" + kết quả render ngay trong modal (không đóng trước —
+    // trước đây đóng modal rồi render vào preview ẩn → danh sách đã dán không thấy).
     preview.innerHTML = '<div class="muted">Đang xử lý ' + lines.length + ' mã…</div>';
     preview.style.display = '';
-    closePasteModal();
+    if (submitBtn) submitBtn.disabled = true;
     google.script.run
       .withSuccessHandler(function (res) {
-        if (!res.ok) { showToast(res.message, true); return; }
-        // Render summary
+        if (submitBtn) submitBtn.disabled = false;
+        if (!res || !res.ok) {
+          var errMsg = (res && res.message) || 'Lỗi khi dán mã';
+          preview.innerHTML = '<div style="color:var(--danger);font-weight:600;">' + esc(errMsg) + '</div>';
+          showToast(errMsg, true);
+          return;
+        }
+        // Render summary + chi tiết mã hỏng TRONG modal (vẫn mở để xem danh sách)
         var html = '<div style="font-size:13px;line-height:1.5;">';
         html += '<div><b>Kết quả:</b> ' + res.success + '/' + res.total + ' thành công, ' + res.failed + ' thất bại</div>';
         if (res.results && res.results.length) {
           html += '<div style="margin-top:8px;"><b>Chi tiết:</b></div>';
-          html += '<div style="max-height:150px;overflow:auto;margin-top:4px;font-family:monospace;font-size:12px;">';
-          res.results.forEach(function (r) {
-            var cls = r.ok ? 'style="color:var(--success)"' : 'style="color:var(--danger)"';
-            var msg = r.ok ? (r.status || 'OK') : (r.message || 'Lỗi');
-            html += '<div ' + cls + '>' + esc(r.code) + ' → ' + esc(msg) + '</div>';
+          html += '<div style="max-height:180px;overflow:auto;margin-top:4px;font-family:monospace;font-size:12px;">';
+          res.results.forEach(function (pr) {
+            var cls = pr.ok ? 'color:var(--success)' : 'color:var(--danger)';
+            var msg = pr.ok ? (pr.status || 'OK') : (pr.message || 'Lỗi');
+            html += '<div style="' + cls + '">' + esc(pr.code) + ' → ' + esc(msg) + '</div>';
           });
           html += '</div>';
         }
-        html += '</div>';
+        html += '<div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="closePasteModal()">Đóng</button></div>';
         preview.innerHTML = html;
         preview.style.display = '';
         // Refresh counters & log from server response
@@ -1360,7 +1373,12 @@
           loadTaskDetail(CURRENT_TASK.taskId, true);
         }
       })
-      .withFailureHandler(function (err) { showToast('Lỗi dán mã: ' + err.message, true); })
+      .withFailureHandler(function (err) {
+        if (submitBtn) submitBtn.disabled = false;
+        var errMsg = (err && err.message) || 'unknown';
+        preview.innerHTML = '<div style="color:var(--danger);font-weight:600;">Lỗi server: ' + esc(errMsg) + '</div>';
+        showToast('Lỗi dán mã: ' + errMsg, true);
+      })
       .pasteCodesApi(CURRENT_TASK.taskId, lines);
   }
 
@@ -1492,14 +1510,16 @@
       if (banner) { banner.remove(); }
     }
 
-    // Hide btnToAttend when not owner in OPEN phase
-    if (btnToAttend) {
-      btnToAttend.style.display = scanOwnerLocked ? 'none' : '';
+    // Ẩn "Chuyển điểm danh" khi non-owner bị khoá phase Mở — CHỈ ẩn, KHÔNG re-show:
+    // khi không khoá, hiển thị theo phase do updateFinishBtnState quyết định
+    // (chỉ phase OPEN mới hiện nút này — tránh hiện nhầm ở Điểm danh/Xong).
+    if (btnToAttend && scanOwnerLocked) {
+      btnToAttend.style.display = 'none';
     }
 
-    // Hide paste button when not owner in OPEN phase (will be created in renderScanView)
-    if (pasteBtn) {
-      pasteBtn.style.display = (isOpenPhase && !canScan) ? 'none' : '';
+    // Nút Dán (topbar): CHỈ ẩn khi khoá — hiện/ẩn theo FREE+OPEN do renderScanView quyết.
+    if (pasteBtn && scanOwnerLocked) {
+      pasteBtn.style.display = 'none';
     }
   }
 
@@ -2161,28 +2181,14 @@
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
 
-    // T-2: Add paste button next to scan input (only for FREE + OPEN + canScanOpen)
-    var scanRow = document.querySelector('.scan-row');
+    // T-2: Nút "Dán danh sách mã" trên scan-topbar — chỉ hiện khi FREE + open + canScanOpen.
+    // (nút tĩnh trong HTML; ở đây chỉ bật/tắt display theo task vừa render)
     var pasteBtn = document.getElementById('btnPaste');
     var isFree = data.task.taskType === TASK_TYPE_C.FREE;
     var isOpenPhase = data.task.phase === TASK_STATUS_C.OPEN || data.task.status === TASK_STATUS_C.OPEN;
     var perm = data.task.permission || {};
-    var showPasteBtn = isFree && isOpenPhase && perm.canScanOpen;
-    if (showPasteBtn) {
-      if (!pasteBtn) {
-        pasteBtn = document.createElement('button');
-        pasteBtn.id = 'btnPaste';
-        pasteBtn.className = 'btn btn-outline';
-        pasteBtn.style.marginLeft = '8px';
-        pasteBtn.textContent = 'Dán danh sách mã';
-        pasteBtn.onclick = openPasteModal;
-        pasteBtn.setAttribute('aria-label', 'Dán danh sách mã');
-        if (scanRow) scanRow.appendChild(pasteBtn);
-      } else {
-        pasteBtn.style.display = '';
-      }
-    } else if (pasteBtn) {
-      pasteBtn.style.display = 'none';
+    if (pasteBtn) {
+      pasteBtn.style.display = (isFree && isOpenPhase && perm.canScanOpen) ? '' : 'none';
     }
 
     // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
@@ -2641,6 +2647,7 @@
     var btn = document.getElementById('btnFinish');
     var btnRe = document.getElementById('btnReopen');
     var btnTo = document.getElementById('btnToAttend');
+    var btnPast = document.getElementById('btnPaste');
     if (!btn) return;
     var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
     var done = phase === TASK_STATUS_C.DONE;
@@ -2649,6 +2656,13 @@
     if (btnTo) btnTo.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked) ? '' : 'none';
     if (btnRe) btnRe.style.display = done ? '' : 'none';
     if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
+    // T-2: nút "Dán danh sách mã" chỉ hiện ở FREE + Mở + owner — cập nhật cả khi
+    // chuyển phase KHÔNG re-render (transitionToAttend / reopen / complete).
+    if (btnPast) {
+      btnPast.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
+        && CURRENT_TASK && CURRENT_TASK.taskType === TASK_TYPE_C.FREE
+        && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
+    }
     if (scanBusy()) {
       if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
     } else if (btn) {
