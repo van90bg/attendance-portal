@@ -187,8 +187,6 @@ function previewStaffCountsApi(input) {
 
 /** Tạo task đối chiếu + pre-fill. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */
 function createReconcileTaskApi(input) {
-  // P1: gate domain thao tác quản lý (kiosk mở nếu chưa cấu hình ALLOWED_DOMAINS).
-  if (!allowedDomain_()) return handleOp_();
   return createReconcileTask(input);
 }
 
@@ -209,22 +207,16 @@ function scanStaffApi(taskId, staffId) {
 
 /** Kết thúc task. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */
 function completeTaskApi(taskId) {
-  // P1: gate domain thao tác quản lý (kiosk mở nếu chưa cấu hình ALLOWED_DOMAINS).
-  if (!allowedDomain_()) return handleOp_();
   return completeTask(taskId);
 }
 
 /** Chuyển task Mở (phase1) → Điểm danh (phase2). MỞ cho mọi nhân viên. */
 function transitionToAttendApi(taskId) {
-  // P1: gate domain thao tác quản lý (kiosk mở nếu chưa cấu hình ALLOWED_DOMAINS).
-  if (!allowedDomain_()) return handleOp_();
   return transitionToAttend(taskId);
 }
 
 /** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). MỞ cho mọi nhân viên. */
 function reopenTaskApi(taskId) {
-  // P1: gate domain thao tác quản lý (kiosk mở nếu chưa cấu hình ALLOWED_DOMAINS).
-  if (!allowedDomain_()) return handleOp_();
   return reopenTask(taskId);
 }
 
@@ -273,30 +265,6 @@ function getDeployerEmail_() {
   } catch (e) {
     return '';
   }
-}
-
-/**
- * P1 (review 2026-08-07): gate domain tùy chọn cho thao tác quản lý.
- * KHÔNG phá kiosk: nếu Script Property 'ALLOWED_DOMAINS' rỗng/chưa set → coi như mở.
- * Chỉ khi đã set (vd 'spxexpress.com') thì bắt buộc user đăng nhập thuộc domain;
- * anonymous (getActiveUser rỗng) bị chặn khi đã set. Cho phép khoá dần sau deploy.
- */
-function allowedDomain_() {
-  try {
-    const allowed = PropertiesService.getScriptProperties().getProperty('ALLOWED_DOMAINS') || '';
-    if (!String(allowed).trim()) return true; // chưa cấu hình → giữ mở
-    const active = Session.getActiveUser().getEmail();
-    if (!active) return false;
-    const at = active.lastIndexOf('@');
-    const dom = at >= 0 ? active.slice(at + 1).toLowerCase() : '';
-    return String(allowed).split(',').map(function (d) { return d.trim().toLowerCase(); })
-      .indexOf(dom) !== -1;
-  } catch (e) {
-    return false;
-  }
-}
-function handleOp_() {
-  return { ok: false, message: 'Chỉ tài khoản thuộc domain nội bộ được thực hiện thao tác này' };
 }
 
 /**
