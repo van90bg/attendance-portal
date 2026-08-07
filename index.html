@@ -220,7 +220,13 @@
     }
 
     /* ===== Modal tạo task: vay style v1 (amber accent, scroll list, badge nhẹ) ===== */
-    .grp-cols { display: flex; flex-direction: column; gap: 10px; }
+    .grp-cols.vertical { display: flex; flex-direction: column; gap: 10px; }
+    /* modalA: 2 tab chọn mode tạo task (Đối chiếu / Quét tự do) */
+    .mode-tabs { display: flex; background: #eef0f2; border-radius: 10px; padding: 4px; gap: 4px; }
+    .mode-tab { flex: 1; padding: 9px 6px; font-size: 13px; font-weight: 600; color: var(--muted); background: transparent; border: none; border-radius: 8px; cursor: pointer; text-align: center; }
+    .mode-tab.active { background: #fff; color: #1f1f1f; box-shadow: 0 1px 3px rgba(0,0,0,.12); font-weight: 700; }
+    #createModal .grp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+
     .grp-row { display: flex; flex-direction: column; gap: 4px; }
     .grp-row .grp-col-title {
       font-weight: 700; font-size: 12px;
@@ -868,11 +874,13 @@
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">
     <h2 id="createModalTitle" style="font-size:15px;margin:0 0 3px;">+ Tạo task điểm danh</h2>
-    <p style="color:var(--muted);font-size:11px;margin:0 0 10px;">Tick chọn nhóm nhân viên cho task — quét mã <b>Ops</b> để điểm danh. (Station / Date chọn 1, Team / Ca / Hình thức chọn nhiều.)</p>
-    <label class="grp-item nolist-card" id="noListCard" style="margin:0 0 12px;padding:10px 12px;gap:8px;align-items:center;font-size:13px;cursor:pointer;border:1px solid var(--warning, #e85d04);border-radius:var(--card-radius);background:#fef7e0;">
-      <input type="checkbox" id="chkNoList" onchange="onNoListChange()">
-      <span><strong style="color:var(--warning, #e85d04);">Quét tự do</strong> (không danh sách) — mọi mã quét là NV lạ, quét 2 lần: Giờ có mặt → Giờ quét</span>
-    </label>
+    <p style="color:var(--muted);font-size:11px;margin:0 0 10px;">Quét mã <b>Ops</b> để điểm danh — Station / Ngày chọn 1; Team / Ca / Hình thức chọn nhiều.</p>
+    <!-- modalA: 2 chế độ tạo task — Quét tự do thay checkbox nổi vàng -->
+    <div class="mode-tabs">
+      <button type="button" id="tabReconcile" class="mode-tab active" onclick="setCreateMode(true)">Đối chiếu danh sách</button>
+      <button type="button" id="tabFree" class="mode-tab" onclick="setCreateMode(false)">Quét tự do</button>
+    </div>
+    <input type="checkbox" id="chkNoList" style="display:none">
     <div class="grp-cols" id="grpCols">
       <div class="grp-row">
         <label class="grp-col-title">Station</label>
@@ -891,7 +899,7 @@
         <div id="colContract" class="grp-tree" data-all="true"></div>
       </div>
       <div class="grp-row">
-        <label class="grp-col-title">Date</label>
+        <label class="grp-col-title">Ngày</label>
         <div id="colDate" class="grp-tree" data-single="true"></div>
       </div>
     </div>
@@ -1197,18 +1205,24 @@
     if (aboutFocusBack && aboutFocusBack.focus) aboutFocusBack.focus();
     aboutFocusBack = null;
   }
+  // modalA: chọn tab mode — true = Đối chiếu (có danh sách), false = Quét tự do
+  function setCreateMode(reconcile) {
+    var chk = document.getElementById('chkNoList');
+    if (chk) chk.checked = !reconcile;
+    onNoListChange();
+  }
   function onNoListChange() {
     var chk = document.getElementById('chkNoList');
-    SEL.noList = !!(chk && chk.checked);
+    var noList = !!(chk && chk.checked);
+    SEL.noList = noList;
+    // đồng bộ tab active
+    var tr = document.getElementById('tabReconcile'); if (tr) tr.classList.toggle('active', !noList);
+    var tf = document.getElementById('tabFree'); if (tf) tf.classList.toggle('active', noList);
     var grp = document.getElementById('grpCols');
     if (grp) {
-      grp.style.opacity = SEL.noList ? '.4' : '';
-      // V1: bật Quét tự do → vô hiệu hoá filter (không cần danh sách); tắt → mở lại
-      var inputs = grp.querySelectorAll('input, .grp-item');
-      for (var i = 0; i < inputs.length; i++) inputs[i].style.pointerEvents = SEL.noList ? 'none' : '';
+      grp.style.opacity = noList ? '.4' : '';
+      grp.style.pointerEvents = noList ? 'none' : '';
     }
-    var card = document.getElementById('noListCard');
-    if (card) card.style.background = SEL.noList ? '#fdeccf' : '#fef7e0';
     updateCreatePreview();
   }
 
@@ -1218,7 +1232,7 @@
     // P2: reset lựa chọn 4 cột mỗi lần mở — không giữ giá trị cũ (tránh tạo nhầm task)
     resetSel();
     renderAllCols();
-    // V1: reset checkbox Quét tự do mỗi lần mở (không giữ trạng thái cũ)
+    // reset về chế độ Đối chiếu mỗi lần mở (không giữ trạng thái cũ)
     var chk = document.getElementById('chkNoList');
     if (chk) chk.checked = false;
     onNoListChange();
