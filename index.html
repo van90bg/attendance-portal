@@ -301,6 +301,7 @@
       overflow-y: auto;
       margin: auto;
       padding: 18px 20px;
+      border: 1px solid var(--border, #e2e5ea);  /* D: đồng viền với card */
     }
     #createModal .about-dialog h2#createModalTitle {
       font-size: 16px; font-weight: 700; color: var(--text, #1f1f1f);
@@ -1013,7 +1014,7 @@
       </div>
       <div class="create-actions">
         <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
-        <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task</button>
+        <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task<span id="createBtnCount"></span></button>
       </div>
     </div>
   </div>
@@ -1443,10 +1444,18 @@
     }
     var grp = document.getElementById('grpCols');
     if (grp) {
-      grp.style.opacity = noList ? '.4' : '';
-      // 2026-08-07: FREE vẫn chọn Station + Team (yêu cầu mới); chỉ Ca (colSlot) tự
-      // 'Tự do' + Contract/Date bỏ qua → disable đúng các cột đó, giữ Station/Team active.
-      var disabledCols = noList ? ['colSlot', 'colContract', 'colDate'] : [];
+      // B: Free ẩn hàng Ca (colSlot) + Hình thức (colContract) — modal gọn, tránh nhiễu.
+      // Reconcile hiện lại đẩy đủ. (colDate vẫn hiện nhưng disable — giữ staffInfo.date.)
+      var setRowVis = function (colId, show) {
+        var el = document.getElementById(colId);
+        var row = el && el.closest ? el.closest('.grp-row') : null;
+        if (row) row.style.display = show ? '' : 'none';
+      };
+      setRowVis('colSlot', !noList);
+      setRowVis('colContract', !noList);
+      // Free: Ca (colSlot) + Hình thức (colContract) đã ẩn → không cần disable chúng nữa;
+      // còn Ngày (colDate) disable vì FREE dùng staffInfo.date.
+      var disabledCols = noList ? ['colDate'] : [];
       var all = grp.querySelectorAll('input[type=checkbox]');
       for (var i = 0; i < all.length; i++) {
         var row = all[i].closest ? all[i].closest('.grp-row') : null;
@@ -1454,8 +1463,9 @@
         all[i].disabled = disabledCols.indexOf(col && col.id) !== -1;
       }
       grp.setAttribute('aria-hidden', 'false');
-      grp.setAttribute('aria-labelledby', noList ? 'tabFree' : 'tabReconcile');  // a11y: tabpanel theo tab active
+      grp.setAttribute('aria-labelledby', noList ? 'tabFree' : 'tabReconcile');
     }
+    setCreateBtnCount(0);   // reset số NV trên nút khi chuyển mode
     updateCreatePreview();
   }
 
@@ -1702,6 +1712,12 @@
 
   // P2: xem truoc so NV khop bo loc khi tao task (modal) — goi previewStaffApi
   var _previewTimer = null;
+  // A: hiển thị số NV lên nút "+ Tạo task" (vd: "+ Tạo task (48 NV)"). count<=0 → bỏ thêm.
+  function setCreateBtnCount(count) {
+    var c = document.getElementById('createBtnCount');
+    if (!c) return;
+    c.textContent = (typeof count === 'number' && count > 0) ? (' (' + count + ' NV)') : '';
+  }
   function updateCreatePreview() {
     var station = SEL.station;
     var slotCode = groupSelectedSlots();
@@ -1726,6 +1742,7 @@
         cntEl.textContent = 'Chọn Station + Team (Ca tự động = Tự do)';
       } else {
         cntEl.textContent = 'Quét tự do: không cần danh sách sẵn. Quét lần 1 để lấy danh sách, lần 2 để điểm danh; NV quét lần 2 mà chưa có trong lần 1 sẽ tính là Dư.';
+        setCreateBtnCount(0);
       }
       return;
     }
@@ -1738,8 +1755,9 @@
     _previewTimer = setTimeout(function () {  // debounce 200ms — nhanh hơn
       google.script.run
         .withSuccessHandler(function (res) {
-          if (!res || !res.ok) { cntEl.textContent = 'Không tải được preview'; return; }
+          if (!res || !res.ok) { cntEl.textContent = 'Không tải được preview'; setCreateBtnCount(0); return; }
           cntEl.textContent = 'Dự kiến: ' + res.count + ' nhân viên';
+          setCreateBtnCount(res.count);
         })
         .withFailureHandler(function (err) { markServerFail(); cntEl.textContent = 'Lỗi preview: ' + err.message; })
         .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
