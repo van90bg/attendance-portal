@@ -1967,16 +1967,18 @@
     var absentCounter = document.querySelector('.counter.absent');
     var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
     if (lbl && CURRENT_TASK) {
-      if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
+      // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chờ điểm danh'.
+      var isDone = CURRENT_TASK.status === TASK_STATUS_C.DONE || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
+      if (isDone) {
+        lbl.textContent = 'Vắng';
+        absentCounter.classList.add('absent');
+        absentCounter.classList.remove('waiting');
+      } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
         lbl.textContent = 'Chờ điểm danh';
         absentCounter.classList.add('waiting');
         absentCounter.classList.remove('absent');
-      } else if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
+      } else { // ATTEND (phase) — chưa kết thúc
         lbl.textContent = 'Chưa điểm danh';
-        absentCounter.classList.add('absent');
-        absentCounter.classList.remove('waiting');
-      } else { // DONE
-        lbl.textContent = 'Vắng';
         absentCounter.classList.add('absent');
         absentCounter.classList.remove('waiting');
       }
@@ -2578,7 +2580,9 @@
   // ===== Helpers =====
   // D1: HTML scan card dùng chung — showScanCard/restoreScanCard chỉ lo className.
   function scanCardHTML(status, target) {
-    return '<div class="sc-status">' + esc(status) + '</div>' +
+    // PENDING lưu '-' (STATUS_C.PENDING) — hiển thị 'Chưa điểm danh' cho dễ đọc.
+    var _st = (status === STATUS_C.PENDING || !status) ? 'Chưa điểm danh' : status;
+    return '<div class="sc-status">' + esc(_st) + '</div>' +
       '<div class="sc-name">' + esc(target.staffName || target.staffId) + '</div>' +
       '<div class="sc-meta">Mã: ' + esc(target.staffId) +
       (target.slotCode ? ' · Ca: ' + esc(target.slotCode) : '') +
