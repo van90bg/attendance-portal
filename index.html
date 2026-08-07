@@ -2491,7 +2491,12 @@
     // T-1: Guard against disabled input (owner gate)
     var input = document.getElementById('scanInput');
     if (input && input.disabled) {
-      showToast('Chỉ owner mới quét được ở phase Mở (task này)', true);
+      // Phân biệt lý do khoá input để toast đúng (không luôn nói 'Chỉ owner'):
+      // scanOwnerLocked (non-owner phase Mở) | task done | queue đầy.
+      var lockMsg = scanOwnerLocked
+        ? 'Chỉ owner mới quét được ở phase Mở (task này)'
+        : (CURRENT_TASK.phase === TASK_STATUS_C.DONE ? 'Task đã kết thúc' : 'Hàng đợi đang đầy — chờ giây lát');
+      showToast(lockMsg, true);
       playBeep('error');
       input.value = '';
       input.focus();
