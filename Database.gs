@@ -112,14 +112,31 @@ function getTimeZone_() {
 }
 
 /** Format Date theo timezone script — dùng cho hiển thị/ghi cột giờ. */
+/** Major#1 (audit 2026-08-07): chuyển cell thời gian (Date object HOẶC string legacy,
+ * vd "Mon Aug 03 2026 00:00:00 GMT+0700") về Date hợp lệ — KHÔNG throw nếu cell rác.
+ * Utilities.formatDate/.getTime() sẽ throw khi nhận string → trước đây 1 cell string
+ * trong timeRef/timeScan/createdAt làm toàn bộ getTaskDetail bricked.
+ */
+function safeDate_(v) {
+  if (v === null || v === undefined || v === '') return null;
+  try {
+    if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+    const t = Date.parse(v); // string "Mon Aug ..." / "8/1/2026" / ISO
+    return isNaN(t) ? null : new Date(t);
+  } catch (e) {
+    return null;
+  }
+}
 function formatTime_(date) {
-  if (!date) return '';
-  return Utilities.formatDate(date, getTimeZone_(), 'HH:mm:ss');
+  const d = safeDate_(date);
+  if (!d) return '';
+  return Utilities.formatDate(d, getTimeZone_(), 'HH:mm:ss');
 }
 
 /** P2: format có ngày (dd/MM HH:mm:ss) — danh sách task nhiều ngày phân biệt được. */
 function formatDateTime_(date) {
-  if (!date) return '';
+  const d = safeDate_(date);
+  if (!d) return '';
   // yyyy-MM-dd HH:mm:ss (đủ năm — task list Tạo lúc/Kết thúc); trước là dd/MM thiếu
   // năm → "30/12 12:48" gây nhầm (bug 2026-07-29). Giờ quét (formatTime_) vẫn HH:mm:ss.
   return Utilities.formatDate(date, getTimeZone_(), 'yyyy-MM-dd HH:mm:ss');
@@ -352,8 +369,8 @@ function logFromRow_(taskId, row) {
     timeScanText: formatTime_(timeScan),
     // Sort key số (epoch ms) — text "HH:mm:ss" mất ngày → sort chuỗi sai khi task
     // xuyên nửa đêm. Client sort theo con số này (chính xác tuyệt đối).
-    timeRefEpoch: timeRef ? timeRef.getTime() : 0,
-    timeScanEpoch: timeScan ? timeScan.getTime() : 0,
+    timeRefEpoch: (safeDate_(timeRef) || {}).getTime ? safeDate_(timeRef).getTime() : 0,
+    timeScanEpoch: (safeDate_(timeScan) || {}).getTime ? safeDate_(timeScan).getTime() : 0,
     status: String(row[LOG_COLS.STATUS] || ''),
     // Date = ngay vao lam (copy tu StaffData) — format yyyy-MM-dd (ISO) cho hien thi
     dateText: formatDateShort_(row[LOG_COLS.DATE]),
