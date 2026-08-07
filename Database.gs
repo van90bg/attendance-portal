@@ -674,6 +674,68 @@ function updateLogRowCache_(taskId, rowIndex, mutate) {
   }
 }
 
+/**
+ * M1 (audit): ghi 1 đợi update log rows — gom (row, field, time, status) → setValues
+ * theo các contiguous run (3 cột timeRef/timeScan/status) + invalidate CHUNG 1 lần +
+ * LOG_ROWS cache updated trong cùng get/put 1 pass.
+ * @param {string} taskId
+ * @param {Array<{rowIndex:number, field:'timeRef'|'timeScan', time:Date, newStatus?:string, keepStatus?:string}>} updates
+ */
+function batchUpdateLogRows_(taskId, updates) {
+  if (!updates || !updates.length) return 0;
+  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+  const sorted = updates.slice().sort(function (a, b) { return a.rowIndex - b.rowIndex; });
+  const timeRefBoundary = LOG_COLS.TIME_REF + 1; // 1-based
+  let i = 0;
+  while (i < sorted.length) {
+    const start = sorted[i].rowIndex;
+    let end = start, j = i;
+    while (j + 1 < sorted.length && sorted[j + 1].rowIndex === end + 1) { end++; j++; }
+    const block = [];
+    for (let r = start; r <= end; r++) {
+      const up = sorted.find(function (u) { return u.rowIndex === r; });
+      let tRef = '', tScan = '', st = '';
+      if (up) {
+        if (up.field === 'timeScan') { tScan = up.time; st = (up.newStatus !== undefined) ? up.newStatus : ''; }
+        else { tRef = up.time; st = (up.keepStatus !== undefined) ? up.keepStatus : ''; }
+      }
+      block.push([tRef, tScan, st]);
+    }
+    sheet.getRange(start, timeRefBoundary, block.length, 3).setValues(block);
+    i = j + 1;
+  }
+  invalidateTaskDetailCache_(taskId);
+  invalidateTaskListCache_();
+  try {
+    const key = CACHE_KEYS.LOG_ROWS + taskId;
+    const cached = cache_().get(key);
+    if (cached !== null) {
+      const rows = JSON.parse(cached);
+      updates.forEach(function (u) {
+        for (let k = 0; k < rows.length; k++) {
+          if (rows[k]._rowIndex === u.rowIndex) {
+            if (u.field === 'timeScan') {
+              rows[k].timeScanText = formatTime_(u.time);
+              rows[k].timeScanEpoch = u.time.getTime();
+              if (u.newStatus !== undefined) rows[k].status = u.newStatus;
+            } else {
+              rows[k].timeRefText = formatTime_(u.time);
+              rows[k].timeRefEpoch = u.time.getTime();
+              if (u.keepStatus !== undefined) rows[k].status = u.keepStatus;
+            }
+            break;
+          }
+        }
+      });
+      cache_().put(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
+    }
+  } catch (e) {
+    console.warn('batchUpdateLogRows_ cache fail', taskId, e.message);
+    invalidateLogRows_(taskId);
+  }
+  return updates.length;
+}
+
 /** Append dòng mới (quét lạ → Dư). */
 function appendLogRow_(row) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);

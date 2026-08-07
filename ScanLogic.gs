@@ -237,6 +237,21 @@ function planBatchScans(cfg, task, logRows, codes) {
     };
     plans.push(plan);
     
+    // m4 (audit): simulate update trong batch — trước chỉ append được simulate nên mã
+    // trùng (plan đầu = update) ra 2 update + success sai. Giờ update cũng cập nhật
+    // simulated log để lượt kế classify ra already-*. 
+    if (result.action === 'update' && result.row) {
+      const nowU = new Date();
+      if (result.field === 'timeScan') {
+        result.row.timeScanEpoch = nowU.getTime();
+        result.row.timeScan = nowU;
+        result.row.status = result.status;
+      } else {
+        result.row.timeRefEpoch = nowU.getTime();
+        result.row.timeRef = nowU;
+      }
+    }
+    
     // If append, add to simulated log for subsequent codes in same batch
     if (result.action === 'append') {
       // Build a minimal row object for simulation

@@ -143,6 +143,7 @@ const CACHE_KEYS = {
 const UI_LABELS = {
   APP_TITLE: 'Điểm danh kho',
   ALREADY_SCANNED: 'Đã điểm danh',
+  ALREADY_PRESENT: 'Đã có mặt',
   TASK_CLOSED: 'Task đã kết thúc',
   STAFF_NOT_FOUND: 'Không tìm thấy nhân viên',
   CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn',

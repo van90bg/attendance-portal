@@ -34,6 +34,11 @@ function scanStaff(taskId, rawStaffId) {
   try {
     const t1 = Date.now();
     const task = readTask_(taskId);
+    // m1 (audit): null-check task — taskId không tồn tại → message sạch thay vì TypeError.
+    if (!task) {
+      console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, phase: 'reject-no-task', ms: Date.now() - t0 });
+      return { ok: false, message: 'Không tìm thấy task', status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
+    }
     // T-1: Owner gate cho scan khi task ở phase OPEN
     // Chỉ áp dụng khi task.status === OPEN. Admin bypass, owner match, legacy 'web'/rỗng cho phép.
     let activeEmail = '';
@@ -70,6 +75,7 @@ function scanStaff(taskId, rawStaffId) {
       const REJECT_MSG = {
         'task-closed': UI_LABELS.TASK_CLOSED,
         'already-scanned': UI_LABELS.ALREADY_SCANNED,
+        'already-present': UI_LABELS.ALREADY_PRESENT,
       };
       // P2 benchmark: reject path KHÔNG log — quét trùng/task đóng chiếm phần lớn
       // lượt quét, log chúng sẽ drown các warn thật (cache fail) trong Stackdriver.
@@ -221,7 +227,8 @@ function scanStaff(taskId, rawStaffId) {
 function pasteCodes(taskId, rawLines) {
   const t0 = Date.now();
   // Clamp at 200 lines (A4) — yêu cầu 2026-08-07: giới hạn 200 mã/lần dán.
-  const lines = (rawLines || []).slice(0, 200);
+  // m3 (audit): guard array — payload string (lỗi client/bug tương lai) → xử lý như rỗng.
+  const lines = Array.isArray(rawLines) ? rawLines.slice(0, 200) : [];
   // DEFENSE: bọc toàn bộ logic — bất kỳ lỗi nào (kể cả ReferenceError) trả ok:false
   // thay vì ném ra → client hiện toast gọn, KHÔNG "Server lỗi" chung (pattern scanStaff).
   try {
@@ -268,6 +275,8 @@ function pasteCodes(taskId, rawLines) {
       results.push({ code: inv.code, ok: false, status: null, message: 'Sai định dạng (phải bắt đầu bằng Ops)' });
       failed++;
     });
+        // M1 (audit): gom update plans → 1 batch (không N setValues + N cache invalidation riêng lẻ).
+    const updateBatch = [];
     
     // Process each plan
     plans.forEach(function (plan) {
@@ -294,16 +303,19 @@ function pasteCodes(taskId, rawLines) {
         results.push({ code: plan.code, ok: true, status: plan.status, message: plan.status });
         success++;
       } else if (plan.action === 'update') {
-        // Update existing row
-        if (plan.field === 'timeScan') {
-          updateLogRowScan_(plan.row, now, plan.status);
-        } else {
-          updateLogRowRef_(plan.row, now);
-        }
+        // M1: gom vào batch — ghi 1 đợt sau loop thay vì N setValues riêng biệt.
+        updateBatch.push({
+          rowIndex: plan.row._rowIndex, field: plan.field, time: now,
+          newStatus: plan.status,
+          keepStatus: plan.row.status,
+        });
         results.push({ code: plan.code, ok: true, status: plan.status, message: plan.status });
         success++;
       }
     });
+    if (updateBatch.length > 0) {
+      batchUpdateLogRows_(taskId, updateBatch);
+    }
     
     // Batch append new rows
     if (appendRows.length > 0) {
