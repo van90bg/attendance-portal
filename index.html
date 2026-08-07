@@ -102,7 +102,7 @@
       border: 1px solid var(--border);
     }
     .btn-ghost:hover { background: #f0f1f3; }
-    .btn-sm { padding: 6px 12px; font-size: 13px; }  /* nút nhỏ trong bảng — hết inline style */
+    .btn-sm { padding: 6px 12px; font-size: 13px; min-height: 40px; }  /* nút nhỏ trong bảng — hết inline style */
     td.stt { width: 40px; text-align: center; color: var(--muted); font-size: 13px; }  /* STT hẹp, không đẩy widths */
 
     main { max-width: 1920px; margin: 0 auto; padding: var(--space-4); }  /* wide-screen: tận dụng màn lớn cho nhiều cột */
@@ -341,7 +341,7 @@
     .btn-clear-filter {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
       border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer;
-      min-height: 36px; line-height: 1;
+      min-height: 44px; line-height: 1;
     }
     .btn-clear-filter:hover { border-color: var(--danger); color: var(--danger); background: #fce8e6; }
     /* C3: header bảng scan sortable */
@@ -567,6 +567,7 @@
     header .net-dot.offline { background: var(--danger); box-shadow: 0 0 4px var(--danger); }
     header #netText { color: #7f8ea3; font-size: 12px; font-weight: 600; }
     header .btn-icon-dark {
+      min-height: 40px;  /* P2 touch >= 44 - header compact */
       background: transparent;
       border: 1px solid var(--header-border);
       color: #7f8ea3;
