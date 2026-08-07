@@ -528,14 +528,31 @@ function readTaskDetailCached_(taskId) {
   return cachedJson_(CACHE_KEYS.TASK_DETAIL + taskId, function () {
     const task = readTask_(taskId);
     if (!task) return null;
-    const log = readLogRows_(taskId);
+    // m6 (audit): slim log TRƯỚC khi cache — trước đây ném full 12-field (readLogRows_)
+    // → task 1000 NV JSON >100KB/key → cache_().put throw + warn → miss âm thầm →
+    // mỗi lần load lại đọc cả sheet. Cùng schema slim như readLogRowsCached_ (text+epoch,
+    // không Date) để giữ dưới 100KB khi task lớn.
+    const log = readLogRows_(taskId).map(function (r) {
+      return {
+        taskId: r.taskId,
+        staffId: r.staffId,
+        staffName: r.staffName,
+        slotCode: r.slotCode,
+        station: r.station,
+        team: r.team,
+        workstation: r.workstation,
+        timeRefText: r.timeRefText,
+        timeRefEpoch: r.timeRefEpoch,
+        timeScanText: r.timeScanText,
+        timeScanEpoch: r.timeScanEpoch,
+        status: r.status,
+        dateText: r.dateText,
+      };
+    });
     const counters = computeCounters({ STATUS: STATUS }, log);
-    // P3: strip _rowIndex + phase khỏi cache — rowIndex chỉ dùng khi GHI; phase là
-    // function closure (taskFromRow_) → JSON.stringify crash (throw "undefined") khi
-    // cache miss → client bắt lỗi "unidentified". Client tính phase lại từ status.
+    // P3: strip _rowIndex + phase khỏi cache — khách cache miss client tính phase lại.
     delete task._rowIndex;
     delete task.phase;
-    log.forEach(function (r) { delete r._rowIndex; });
     return { task: task, log: log, counters: counters };
   }, CACHE_TTL.TASK_DETAIL);
 }
@@ -563,9 +580,12 @@ function transformLogStatuses_(taskId, mutate) {
   const values = sheet.getDataRange().getValues();
   let done = 0;
   let anyChanged = false;
+  let firstRow = null, lastRow = null; // 1-based dải dòng của task
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     if (String(row[LOG_COLS.TASK_ID] || '').trim() !== taskId) continue;
+    if (firstRow === null) firstRow = i + 1;
+    lastRow = i + 1;
     const timeScan = row[LOG_COLS.TIME_SCAN];
     const status = String(row[LOG_COLS.STATUS] || '');
     const next = mutate(status, timeScan);
@@ -575,15 +595,16 @@ function transformLogStatuses_(taskId, mutate) {
       anyChanged = true;
     }
   }
-  if (anyChanged) {
+  if (anyChanged && firstRow !== null) {
     const statusCol = LOG_COLS.STATUS + 1;
-    // P2: ghi từ row 2 — values[0] là header, không được ghi đè (dù idempotent hôm nay,
-    // fragile nếu đổi tên header); col.slice(1) bỏ header khỏi payload.
+    // m5 (audit): ghi CHỈ dải [firstRow..lastRow] của task thay vì toàn bộ sheet
+    // (trước: getRange(2, statusCol, values.length-1) = O(toàn bộ log) mỗi complete/reopen;
+    // 50k+ dòng = 1 setValues khổng lồ). Idempotent — dòng ngoài dải không đụng tới.
     const col = [];
-    for (let r = 1; r < values.length; r++) col.push([values[r][LOG_COLS.STATUS]]);
-    sheet.getRange(2, statusCol, values.length - 1, 1).setValues(col);
+    for (let r = firstRow; r <= lastRow; r++) col.push([values[r - 1][LOG_COLS.STATUS]]);
+    sheet.getRange(firstRow, statusCol, col.length, 1).setValues(col);
     invalidateTaskDetailCache_(taskId);
-    invalidateLogRows_(taskId); // U2: status hàng loạt đổi → cache log rows cũ lệch, xoá
+    invalidateLogRows_(taskId); // u2: status hàng loạt đổi → cache log rows cũ lệch, xoá
   }
   return done;
 }
