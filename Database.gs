@@ -67,9 +67,14 @@ function ensureSheets_() {
   // thêm cột cuối + đặt header, nếu không batchInsertLogRows_ ghi 11 giá trị sẽ vỡ.
   // Migration an toàn: sheet cũ (8-10 cột) thiếu cột date → thêm cột tới đủ LOG_COL_COUNT
   // (while loop, không chỉ 1 cột — nếu thiếu nhiều cột thì batchInsertLogRows_ vỡ).
+  // Minor#5 (audit): header cột mới phải tường minh theo index — trước đây luôn
+  // đặt 'date' nên sheet cũ 9 cột bị đặt nhầm header cột status (10) thành 'date'.
+  // Cột 1-based: STATUS=10 ('status'), DATE=11 ('date').
+  const LOG_HEADER_BY_COL = { '10': 'status', '11': 'date' };
   while (logSheet.getLastColumn() < LOG_COL_COUNT) {
+    const colIdx = logSheet.getLastColumn() + 1; // cột mới (1-based)
     logSheet.insertColumnAfter(logSheet.getLastColumn());
-    logSheet.getRange(1, logSheet.getLastColumn()).setValue('date');
+    logSheet.getRange(1, colIdx).setValue(LOG_HEADER_BY_COL[String(colIdx)] || '');
   }
 }
 
