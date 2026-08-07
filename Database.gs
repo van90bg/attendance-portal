@@ -469,6 +469,11 @@ function batchAppendLogRows_(rows) {
   if (!rows || !rows.length) return { startRow: 0, count: 0, rowIndices: [] };
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   const startRow = sheet.getLastRow() + 1;
+  // FIX: hoist const taskId len dau ham — truoc do khai ben trong try (block-scoped)
+  // nen cac goi catch/ngoai try (invalidateLogRows_/invalidateTaskDetailCache_) throw
+  // ReferenceError: taskId is not defined SAU khi setValues da ghi xong -> sheet co data
+  // nhung pasteCodes tra ok:false -> client khong loadTaskDetail -> danh sach khong refresh.
+  const taskId = String(rows[0][0] || '').trim(); // taskId is first column
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
   // Build row indices for cache update
   const rowIndices = [];
@@ -477,7 +482,6 @@ function batchAppendLogRows_(rows) {
   }
   // Update LOG_ROWS cache in ONE put (not per-row pushLogRowToCache_)
   try {
-    const taskId = rows[0][0]; // taskId is first column
     const key = CACHE_KEYS.LOG_ROWS + taskId;
     const cached = cache_().get(key);
     if (cached !== null) {
