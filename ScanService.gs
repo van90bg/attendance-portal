@@ -159,7 +159,13 @@ function scanStaff(taskId, rawStaffId) {
     // bottleneck (read sheet vs write). Phân tích: t1→t2 = đọc task+log (full sheet),
     // t2→t3 = classify + write. Nếu read > 1.5s → cần index log (xem Database.gs).
     const t3 = Date.now();
-    console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, action: result.action, totalMs: t3 - t0, readMs: t2 - t1, writeMs: t3 - t2 });
+    // Minor#6 (audit): log benchmark CHỈ khi bất thường (> ngưỡng) — trước đây log
+    // mọi lượt thể hiện, ở nhịp kiosk ~1400 log/h/tab → tốn Stackdriver quota/chi phí.
+    // Ngưỡng: total > 400ms (bất thường) HOẶC read/write > 300ms (bottleneck tiềm ẩn).
+    const __dt = { totalMs: t3 - t0, readMs: t2 - t1, writeMs: t3 - t2 };
+    if (__dt.totalMs > 400 || __dt.readMs > 300 || __dt.writeMs > 300) {
+      console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, action: result.action, totalMs: __dt.totalMs, readMs: __dt.readMs, writeMs: __dt.writeMs });
+    }
     return {
       ok: true,
       message: result.status,
