@@ -555,6 +555,7 @@ function updateLogRowScan_(row, timeScan, status) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   sheet.getRange(row._rowIndex, LOG_COLS.TIME_SCAN + 1, 1, 2).setValues([[timeScan, status]]);
   invalidateTaskDetailCache_(row.taskId);
+  invalidateTaskListCache_();  // Minor#4
   // U2: cập nhật row trong LOG_ROWS cache (incremental) — scan kế không chạm sheet.
   // KHÔNG nhét Date timeScan vào cache: JSON→string; schema slim chỉ có text+epoch.
   updateLogRowCache_(row.taskId, row._rowIndex, function (r) {
@@ -573,6 +574,7 @@ function updateLogRowRef_(row, timeRef) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   sheet.getRange(row._rowIndex, LOG_COLS.TIME_REF + 1, 1, 1).setValue(timeRef);
   invalidateTaskDetailCache_(row.taskId);
+  invalidateTaskListCache_();  // Minor#4
   // U2: cập nhật row trong LOG_ROWS cache (incremental) — scan kế không chạm sheet.
   updateLogRowCache_(row.taskId, row._rowIndex, function (r) {
     r.timeRefText = formatTime_(timeRef);
@@ -620,6 +622,7 @@ function appendLogRow_(row) {
   // Chen vao cache giu nguyen incremental (khong bat rebuild full sheet).
   pushLogRowToCache_(row);
   invalidateTaskDetailCache_(row.taskId);
+  invalidateTaskListCache_();  // Minor#4: scan xong counters list phải cập nhật ngay (không lag 30s)
 }
 
 /**
