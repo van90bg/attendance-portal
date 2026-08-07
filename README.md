@@ -33,7 +33,7 @@
 
 ```
 RollCall_2/
-├── appsscript.json        # manifest — webapp block (executeAs USER_DEPLOYING, access ANYONE_ANONYMOUS)
+├── appsscript.json        # manifest — webapp block (executeAs USER_DEPLOYING, access DOMAIN) — chỉ user @spxexpress.com
 ├── Code.gs                # entry point doGet + gate isEditor_() cho ?debug=*/sync/setup
 ├── Config.gs              # hằng số: sheet names, cột, cache keys/TTL, STATUS, UI labels
 ├── CsvUtil.gs             # parse/normalize CSV + isValidBarcodeId() (pure, test được)
@@ -43,7 +43,7 @@ RollCall_2/
 ├── TaskService.gs         # task CRUD + kết thúc task → markUnscannedAbsent_
 ├── index.html             # toàn bộ UI (task list + scan view) — 1 file
 ├── mock/mock-google.js    # mock GAS API cho test local
-├── tests/                 # unit tests (26/26 pass)
+├── tests/                 # unit tests (47/47 pass)
 └── scripts/cdp-helper.js  # CDP helper (open/eval/shot) cho verify UI thật
 ```
 
