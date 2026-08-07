@@ -373,9 +373,9 @@
       font-weight: 700;
     }
     .badge.pending { background: var(--surface-muted); color: var(--muted); }
-    .badge.present { background: #e6f4ea; color: var(--success); }
+    .badge.present { background: #e6f4ea; color: #137333; }
     .badge.absent  { background: #fce8e6; color: var(--danger); }
-    .badge.extra   { background: #fef7e0; color: var(--warning); }
+    .badge.extra   { background: #fef7e0; color: #b45309; }
     .badge.open    { background: #e8f0fe; color: var(--primary); }
     .badge.attend { background: #e6f4ea; color: #1e7e34; }
     .badge.done    { background: #f0f1f3; color: var(--muted); }
@@ -705,7 +705,7 @@
 <body>
 <a href="#main-content" class="skip-link">Chuyển đến nội dung chính</a>
 
-<div id="loadingOverlay">
+<div id="loadingOverlay" role="status" aria-live="polite">
   <div class="spin-big"></div>
   <p>Đang tải dữ liệu…</p>
 </div>
@@ -918,10 +918,10 @@
   </div>
 </div>
 
-<div id="spinModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Đang xử lý">
+<div id="spinModal" class="about-overlay" role="status" aria-modal="true" aria-live="polite" aria-hidden="true" aria-label="Đang xử lý">
   <div class="about-dialog" style="width:auto;max-width:280px;text-align:center;padding:26px 30px;border-top:3px solid var(--amber);">
     <div class="spin-big"></div>
-    <p id="spinModalMsg" style="margin-top:14px;color:var(--muted);font-size:14px;font-weight:600;"></p>
+    <p id="spinModalMsg" role="status" aria-live="polite" style="margin-top:14px;color:var(--muted);font-size:14px;font-weight:600;"></p>
   </div>
 </div>
 
@@ -1239,8 +1239,10 @@
   // Modal confirm dùng chung — thay alert/confirm trình duyệt.
   // showConfirm(title, message, onConfirm): mở modal, bấm "Đồng ý" → chạy onConfirm.
   var confirmOnOk = null;
+  var confirmOpener = null;  // P2: nút mở modal confirm (để restore focus)
   function showConfirm(title, message, onConfirm) {
     confirmOnOk = onConfirm || null;
+    confirmOpener = document.activeElement;   // P2: lưu nút mở để restore focus khi đóng
     document.getElementById('confirmModalTitle').textContent = title;
     document.getElementById('confirmModalMsg').textContent = message;
     document.getElementById('confirmOkBtn').onclick = function () {
@@ -1256,6 +1258,9 @@
     var m = document.getElementById('confirmModal');
     if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
     confirmOnOk = null;
+    // P2-3c: trả focus về nút mở modal (nếu còn tồn tại)
+    if (confirmOpener && document.contains(confirmOpener)) confirmOpener.focus();
+    confirmOpener = null;
   }
   document.addEventListener('keydown', function (e) {
     // P3: Escape đóng modal (focus trap cơ bản)
