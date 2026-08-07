@@ -143,6 +143,7 @@ const UI_LABELS = {
   TASK_PHASE_DONE: 'Xong',        // đã kết thúc
   TRANSITION_BLOCKED: 'Chỉ chuyển sang điểm danh khi task đang ở trạng thái Mở',
   COMPLETE_BLOCKED: 'Chỉ kết thúc task khi đang ở trạng thái Điểm danh',
+  SCAN_OPEN_OWNER_ONLY: 'Chỉ owner mới quét được ở phase Mở (task này)',
 };
 
 // ===== Cấu hình WebApp =====

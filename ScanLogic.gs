@@ -163,6 +163,104 @@ function buildExtraRow(cfg, taskId, staffId, staffInfo, now, field, status) {
   };
 }
 
+/**
+ * Kiểm tra quyền quét khi task ở phase OPEN.
+ * Quy tắc (A1/A3):
+ * - Task không ở OPEN → cho phép (gate chỉ áp dụng phase OPEN).
+ * - Admin (isEditor_) → bypass.
+ * - createdBy là email hợp lệ (khác 'web', không rỗng, chứa '@') → chỉ owner (activeEmail === createdBy, case-insensitive) được quét.
+ * - Ngược lại (owner không xác định: 'web', rỗng, không chứa '@') → cho phép tất cả (A1: fail-open cho task legacy).
+ *
+ * @param {Object} cfg — { TASK_STATUS: {...} }
+ * @param {string} createdBy — email người tạo task (từ task.createdBy)
+ * @param {string} activeEmail — email người đang quét (Session.getActiveUser().getEmail())
+ * @param {boolean} isAdmin — true nếu là admin (isEditor_())
+ * @returns {boolean} true = được quét, false = bị chặn
+ */
+function canScanOpen_(cfg, createdBy, activeEmail, isAdmin) {
+  // Gate chỉ áp dụng khi task ở phase OPEN — task status check do caller thực hiện.
+  if (isAdmin) return true;
+  const cb = String(createdBy || '').trim().toLowerCase();
+  const ae = String(activeEmail || '').trim().toLowerCase();
+  // Email hợp lệ: có '@' và khác 'web'/''
+  const isValidEmail = cb.includes('@') && cb !== 'web' && cb !== '';
+  if (!isValidEmail) return true; // A1: owner không xác định → cho phép
+  return ae === cb;
+}
+
+/**
+ * Plan batch scans for paste feature (T-2).
+ * Pure function - no side effects, testable on Node.
+ * For each code: normalize, validate format, then classifyScan against current logRows.
+ * Deduplicates naturally within the batch (second occurrence of same code in paste will be rejected).
+ *
+ * @param {Object} cfg — { STATUS, TASK_STATUS, TASK_TYPE }
+ * @param {Object} task — { taskId, status, taskType }
+ * @param {Array<Object>} logRows — current log rows (with timeRefEpoch/timeScanEpoch)
+ * @param {Array<string>} codes — array of raw codes from paste (one per line)
+ * @returns {{plans: Array<{code, action, phase, field, status, reason, row}>, invalid: Array<{code, reason}>}}
+ */
+function planBatchScans(cfg, task, logRows, codes) {
+  const plans = [];
+  const invalid = [];
+  // Clone logRows so we can simulate appends/updates for dedup within batch
+  const simulatedLogRows = logRows ? [...logRows] : [];
+  
+  for (let i = 0; i < codes.length; i++) {
+    const rawCode = codes[i];
+    const code = String(rawCode || '').trim();
+    
+    if (!code) continue; // skip empty lines
+    
+    // Normalize
+    const staffId = code.toUpperCase();
+    
+    // Validate format (must start with OPS)
+    if (!/^OPS/i.test(staffId)) {
+      invalid.push({ code: code, ok: false, reason: 'invalid-format' });
+      continue;
+    }
+    
+    // Classify against simulated log (includes previous appends in this batch)
+    const result = classifyScan(cfg, task, simulatedLogRows, staffId);
+    
+    const plan = {
+      code: code,
+      action: result.action,
+      phase: result.phase,
+      field: result.field,
+      status: result.status,
+      reason: result.reason,
+      row: result.row,
+    };
+    plans.push(plan);
+    
+    // If append, add to simulated log for subsequent codes in same batch
+    if (result.action === 'append') {
+      // Build a minimal row object for simulation
+      const now = new Date();
+      const newRow = {
+        taskId: task.taskId,
+        staffId: staffId,
+        staffName: '',
+        slotCode: '',
+        station: '',
+        team: '',
+        workstation: '',
+        timeRef: result.field === 'timeRef' ? now : null,
+        timeScan: result.field === 'timeScan' ? now : null,
+        timeRefEpoch: result.field === 'timeRef' ? now.getTime() : 0,
+        timeScanEpoch: result.field === 'timeScan' ? now.getTime() : 0,
+        status: result.status,
+        date: '',
+      };
+      simulatedLogRows.push(newRow);
+    }
+  }
+  
+  return { plans: plans, invalid: invalid };
+}
+
 // ===== Node test support (GAS bỏ qua) =====
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -170,5 +268,7 @@ if (typeof module !== 'undefined' && module.exports) {
     findLogRow: findLogRow,
     computeCounters: computeCounters,
     buildExtraRow: buildExtraRow,
+    canScanOpen_: canScanOpen_,
+    planBatchScans: planBatchScans,
   };
 }

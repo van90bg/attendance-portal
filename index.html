@@ -757,7 +757,7 @@
     <small id="netText">Online</small>
     <button class="btn-icon-dark" id="btnSound" onclick="toggleSound()" title="Tắt/Mở âm thanh" aria-label="Tắt/Mở âm thanh">🔊</button>
     <button class="btn-icon-dark" id="btnRefresh" onclick="refreshAll()" title="Làm mới" aria-label="Làm mới">⟳ Làm mới</button>
-    <button class="btn-icon-dark" onclick="showAbout()" title="Giới thiệu" aria-label="Giới thiệu">ⓘ</button>
+    <button class="btn-icon-dark" onclick="showSection('aboutView')" title="Giới thiệu" aria-label="Giới thiệu">ⓘ</button>
   </div>
 </header>
 
@@ -890,12 +890,68 @@
   </section>
 </main>
 
-<div id="aboutModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="aboutTitle" onclick="if(event.target===this)closeAbout()">
-  <div class="about-dialog">
-    <h3 id="aboutTitle" style="margin:0 0 8px;font-size:16px;color:var(--text);">Giới thiệu</h3>
-    <p class="muted" id="aboutBody">RollCall v2 — Điểm danh kho SPX</p>
-    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
-      <button class="btn" onclick="closeAbout()">Đóng</button>
+<!-- T-3: About view (replaces aboutModal) -->
+<section id="aboutView" class="hidden">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0;font-size:20px;font-weight:700;">Giới thiệu RollCall v2</h2>
+      <button class="btn btn-ghost" onclick="showSection('viewList')" aria-label="Quay lại">← Quay lại</button>
+    </div>
+    <div style="line-height:1.7;font-size:14px;color:var(--text);">
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">1. Giới thiệu</h3>
+      <p>RollCall v2 là ứng dụng điểm danh kho cho phép quản lý ca làm việc theo 2 giai đoạn: <b>Mở (Giờ có mặt)</b> và <b>Điểm danh (Giờ quét)</b>. Hỗ trợ 2 chế độ:</p>
+      <ul style="margin:8px 0 8px 20px;padding:0;">
+        <li><b>Đối chiếu danh sách (RECONCILE):</b> Tạo task từ dữ liệu StaffData có sẵn — NV trong danh sách pre-fill sẵn Giờ có mặt.</li>
+        <li><b>Quét tự do (FREE):</b> Không cần danh sách sẵn — quét lần 1 xây danh sách (Giờ có mặt), quét lần 2 điểm danh (Giờ quét).</li>
+      </ul>
+
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">2. Hướng dẫn từng bước</h3>
+      <ol style="margin:8px 0 8px 20px;padding:0;line-height:1.8;">
+        <li><b>Tạo task:</b> Chọn Station → Ca (Slot Code) → Team → (tùy chọn) Hình thức/Nhân viên → nhấn <b>+ Tạo task</b>.</li>
+        <li><b>Mở task:</b> Task mới ở trạng thái <b>Mở</b> (phase 1).</li>
+        <li><b>Quét Giờ có mặt:</b> Quét mã NV (bắt đầu bằng <b>Ops</b>) để ghi Giờ có mặt. NV trong danh sách: PENDING. NV lạ: EXTRA (Dư).</li>
+        <li><b>Chuyển Điểm danh:</b> Nhấn <b>Chuyển điểm danh</b> → task sang trạng thái <b>Điểm danh</b> (phase 2).</li>
+        <li><b>Quét Giờ quét (điểm danh):</b> Quét lại mã NV để ghi Giờ quét. NV trong danh sách: PRESENT (Có mặt). NV lạ: EXTRA (Dư).</li>
+        <li><b>Kết thúc:</b> Nhấn <b>Kết thúc</b> → NV chưa quét Giờ quét tự đánh <b>Vắng</b>. Task về trạng thái <b>Xong</b>.</li>
+        <li><b>Mở lại (nếu cần):</b> Nhấn <b>Mở lại</b> → NV Vắng về Chưa điểm danh, task về <b>Điểm danh</b> để quét tiếp.</li>
+      </ol>
+
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">3. Quy tắc phân quyền (Role)</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+        <thead>
+          <tr style="background:var(--surface-muted);">
+            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Hành động</th>
+            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Owner</th>
+            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Admin</th>
+            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Người khác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Quét Giờ có mặt (phase Mở)</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">❌</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Quét Giờ quét (phase Điểm danh)</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Chuyển Điểm danh</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Kết thúc task</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Mở lại task</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Dán danh sách mã (Paste)</td><td style="padding:8px;border:1px solid var(--border);">✅ (FREE+OPEN)</td><td style="padding:8px;border:1px solid var(--border);">✅ (FREE+OPEN)</td><td style="padding:8px;border:1px solid var(--border);">❌</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:12px;font-size:12px;">
+        <i>Lưu ý: Task cũ (createdBy = 'web' hoặc rỗng) không áp dụng gate owner — ai cũng quét được phase Mở (tương thích ngược).</i>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- T-2: Modal dán danh sách mã (paste codes) -->
+<div id="pasteModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pasteModalTitle" onclick="if(event.target===this)closePasteModal()">
+  <div class="about-dialog" style="max-width:560px;">
+    <h2 id="pasteModalTitle" style="margin:0 0 12px;font-size:16px;color:var(--text);">Dán danh sách mã</h2>
+    <p class="muted" style="margin:0 0 10px;font-size:13px;">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa ~1000 dòng/lần.</p>
+    <textarea id="pasteTextarea" style="width:100%;min-height:200px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px;line-height:1.5;resize:vertical;" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
+    <div id="pastePreview" style="margin-top:10px;max-height:150px;overflow:auto;display:none;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closePasteModal()">Huỷ</button>
+      <button class="btn" id="btnPasteSubmit" onclick="submitPaste()">Dán</button>
     </div>
   </div>
 </div>
@@ -1221,23 +1277,93 @@
     } catch (e) { /* kiosk không hỗ trợ audio — bỏ qua */ }
   }
 
-  /* ===== About modal (tham khảo v1) ===== */
-  var aboutFocusBack = null;
-  function showAbout() {
-    var m = document.getElementById('aboutModal');
+  /* ===== T-3: View management (3 views: viewList, viewScan, aboutView) ===== */
+  var lastViewBeforeAbout = 'viewList'; // remember where we came from
+  function showSection(sectionName) {
+    // Track last non-about view for back navigation
+    if (sectionName === 'aboutView') {
+      var currentView = document.getElementById('viewScan');
+      if (currentView && !currentView.classList.contains('hidden')) {
+        lastViewBeforeAbout = 'viewScan';
+      } else {
+        lastViewBeforeAbout = 'viewList';
+      }
+    }
+    // Hide all views
+    document.getElementById('viewList').classList.add('hidden');
+    document.getElementById('viewScan').classList.add('hidden');
+    document.getElementById('aboutView').classList.add('hidden');
+    // Stop auto-focus loop when leaving scan view
+    stopAutoFocusLoop();
+    // Show target view
+    var target = document.getElementById(sectionName);
+    if (target) {
+      target.classList.remove('hidden');
+      if (sectionName === 'viewScan') {
+        startAutoFocusLoop();
+      }
+    }
+  }
+
+  /* ===== Paste modal (T-2: dán danh sách mã) ===== */
+  var pasteFocusBack = null;
+  function openPasteModal() {
+    if (!CURRENT_TASK || !CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
+    var m = document.getElementById('pasteModal');
     if (!m) return;
-    aboutFocusBack = document.activeElement; // P3: focus restore khi đóng
-    m.setAttribute('aria-hidden', 'false');  // I10: screen reader đọc dialog
+    pasteFocusBack = document.activeElement;
+    m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
-    var closeBtn = m.querySelector('.about-dialog button');
-    if (closeBtn) closeBtn.focus(); // focus trap: đưa focus vào dialog
+    var ta = document.getElementById('pasteTextarea');
+    if (ta) { ta.value = ''; ta.focus(); }
+    var preview = document.getElementById('pastePreview');
+    if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
   }
-  function closeAbout() {
-    var m = document.getElementById('aboutModal');
+  function closePasteModal() {
+    var m = document.getElementById('pasteModal');
     if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
-    if (aboutFocusBack && aboutFocusBack.focus) aboutFocusBack.focus();
-    aboutFocusBack = null;
+    if (pasteFocusBack && pasteFocusBack.focus) pasteFocusBack.focus();
+    pasteFocusBack = null;
   }
+  function submitPaste() {
+    var ta = document.getElementById('pasteTextarea');
+    if (!ta) return;
+    var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
+    if (!lines.length) { showToast('Chưa có mã nào', true); return; }
+    if (lines.length > 1000) { lines = lines.slice(0, 1000); showToast('Đã giới hạn 1000 dòng đầu', true); }
+    var preview = document.getElementById('pastePreview');
+    preview.innerHTML = '<div class="muted">Đang xử lý ' + lines.length + ' mã…</div>';
+    preview.style.display = '';
+    closePasteModal();
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res.ok) { showToast(res.message, true); return; }
+        // Render summary
+        var html = '<div style="font-size:13px;line-height:1.5;">';
+        html += '<div><b>Kết quả:</b> ' + res.success + '/' + res.total + ' thành công, ' + res.failed + ' thất bại</div>';
+        if (res.results && res.results.length) {
+          html += '<div style="margin-top:8px;"><b>Chi tiết:</b></div>';
+          html += '<div style="max-height:150px;overflow:auto;margin-top:4px;font-family:monospace;font-size:12px;">';
+          res.results.forEach(function (r) {
+            var cls = r.ok ? 'style="color:var(--success)"' : 'style="color:var(--danger)"';
+            var msg = r.ok ? (r.status || 'OK') : (r.message || 'Lỗi');
+            html += '<div ' + cls + '>' + esc(r.code) + ' → ' + esc(msg) + '</div>';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+        preview.innerHTML = html;
+        preview.style.display = '';
+        // Refresh counters & log from server response
+        if (res.counters) { CURRENT_COUNTERS = res.counters; renderCounters(res.counters); }
+        if (CURRENT_TASK && CURRENT_TASK.taskId === res.taskId) {
+          loadTaskDetail(CURRENT_TASK.taskId, true);
+        }
+      })
+      .withFailureHandler(function (err) { showToast('Lỗi dán mã: ' + err.message, true); })
+      .pasteCodesApi(CURRENT_TASK.taskId, lines);
+  }
+
   // modalA: chọn tab mode — true = Đối chiếu (có danh sách), false = Quét tự do
   function setCreateMode(reconcile) {
     var chk = document.getElementById('chkNoList');
@@ -1321,6 +1447,62 @@
   function anyModalOpen() {
     return document.querySelector('.about-overlay.open') !== null;
   }
+
+  /* ===== T-1: Apply scan permission (owner gate) ===== */
+  // Cờ khoá owner (non-owner ở phase OPEN) — các hàm UI khác (updateFinishBtnState,
+  // updateQueueFullState) phải tôn trọng để không vô tình bật lại input/nút.
+  var scanOwnerLocked = false;
+  function applyScanPermission() {
+    if (!CURRENT_TASK || !CURRENT_TASK.permission) return;
+    var perm = CURRENT_TASK.permission;
+    var scanInput = document.getElementById('scanInput');
+    var btnToAttend = document.getElementById('btnToAttend');
+    var pasteBtn = document.getElementById('btnPaste'); // may not exist yet, guard
+    var banner = document.getElementById('scanPermissionBanner');
+    var canScan = perm.canScanOpen;
+    var isOpenPhase = CURRENT_TASK.phase === TASK_STATUS_C.OPEN || CURRENT_TASK.status === TASK_STATUS_C.OPEN;
+
+    // Chỉ khoá khi non-owner ở phase OPEN — ATTEND (Điểm danh) mọi người quét được
+    // (kể cả khi permission stale sau transition/reopen).
+    scanOwnerLocked = isOpenPhase && !canScan;
+
+    // Disable/enable scan input
+    if (scanInput) {
+      var taskDone = CURRENT_TASK.phase === TASK_STATUS_C.DONE || CURRENT_TASK.status === TASK_STATUS_C.DONE;
+      var queueFull = SCAN_QUEUE.length >= SCAN_QUEUE_MAX;
+      scanInput.disabled = taskDone || queueFull || scanOwnerLocked;
+      if (scanOwnerLocked) {
+        scanInput.placeholder = 'Chỉ owner mới quét được ở phase Mở (task này)';
+      } else if (canScan) {
+        scanInput.placeholder = 'Quét mã nhân viên…';
+      }
+    }
+
+    // Show/hide banner
+    if (!canScan && isOpenPhase) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'scanPermissionBanner';
+        banner.style.cssText = 'background:#fff3e0;border:1px solid var(--warning);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--warning);font-weight:600;';
+        banner.textContent = 'Chỉ owner mới quét được ở phase Mở (task này)';
+        var card = document.querySelector('.scan-col-left .card');
+        if (card && card.parentNode) card.parentNode.insertBefore(banner, card);
+      }
+    } else {
+      if (banner) { banner.remove(); }
+    }
+
+    // Hide btnToAttend when not owner in OPEN phase
+    if (btnToAttend) {
+      btnToAttend.style.display = scanOwnerLocked ? 'none' : '';
+    }
+
+    // Hide paste button when not owner in OPEN phase (will be created in renderScanView)
+    if (pasteBtn) {
+      pasteBtn.style.display = (isOpenPhase && !canScan) ? 'none' : '';
+    }
+  }
+
   // Modal confirm dùng chung — thay alert/confirm trình duyệt.
   // showConfirm(title, message, onConfirm): mở modal, bấm "Đồng ý" → chạy onConfirm.
   var confirmOnOk = null;
@@ -1354,8 +1536,14 @@
       if (m && m.classList.contains('open')) { closeCreateModal(); return; }
       m = document.getElementById('confirmModal');
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
-      m = document.getElementById('aboutModal');
-      if (m && m.classList.contains('open')) closeAbout();
+      m = document.getElementById('pasteModal');
+      if (m && m.classList.contains('open')) { closePasteModal(); return; }
+      // aboutView is now a section, not a modal - go back to previous view
+      var aboutView = document.getElementById('aboutView');
+      if (aboutView && !aboutView.classList.contains('hidden')) {
+        showSection(lastViewBeforeAbout || 'viewList');
+        return;
+      }
     }
     // Tab giữ trong dialog khi mở
     if (e.key === 'Tab') {
@@ -1898,8 +2086,7 @@
   }
 
   function openScan(taskId) {
-    document.getElementById('viewList').classList.add('hidden');
-    document.getElementById('viewScan').classList.remove('hidden');
+    showSection('viewScan');
     // P2 (audit): interval auto-focus đã bị dừng khi về danh sách → khởi động lại
     startAutoFocusLoop();
     // P2 (SWR an toàn): vừa xem task này xong (<15s) → render NGAY từ bộ nhớ,
@@ -1926,8 +2113,7 @@
         : 'Đang xử lý lượt quét — chờ xong rồi quay lại', true);
       return;
     }
-    document.getElementById('viewScan').classList.add('hidden');
-    document.getElementById('viewList').classList.remove('hidden');
+    showSection('viewList');
     loadTaskList();
   }
 
@@ -1961,7 +2147,7 @@
     CURRENT_LOG = safeArr(data.log);
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
-    var TT_LABEL = { reconcile: 'Đối chiếu' };
+    var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
     var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
     var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
     metaEl.innerHTML =
@@ -1974,11 +2160,35 @@
     restoreScanCard(safeArr(data.log));
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
+
+    // T-2: Add paste button next to scan input (only for FREE + OPEN + canScanOpen)
+    var scanRow = document.querySelector('.scan-row');
+    var pasteBtn = document.getElementById('btnPaste');
+    var isFree = data.task.taskType === TASK_TYPE_C.FREE;
+    var isOpenPhase = data.task.phase === TASK_STATUS_C.OPEN || data.task.status === TASK_STATUS_C.OPEN;
+    var perm = data.task.permission || {};
+    var showPasteBtn = isFree && isOpenPhase && perm.canScanOpen;
+    if (showPasteBtn) {
+      if (!pasteBtn) {
+        pasteBtn = document.createElement('button');
+        pasteBtn.id = 'btnPaste';
+        pasteBtn.className = 'btn btn-outline';
+        pasteBtn.style.marginLeft = '8px';
+        pasteBtn.textContent = 'Dán danh sách mã';
+        pasteBtn.onclick = openPasteModal;
+        pasteBtn.setAttribute('aria-label', 'Dán danh sách mã');
+        if (scanRow) scanRow.appendChild(pasteBtn);
+      } else {
+        pasteBtn.style.display = '';
+      }
+    } else if (pasteBtn) {
+      pasteBtn.style.display = 'none';
+    }
+
     // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
     // Giờ có mặt được). Task Quét tự do (FREE) cũng 2-phase: phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét (V2 FREE la 2-phase) — phải bấm
     // "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
     var isReconcile = data.task.taskType === TASK_TYPE_C.RECONCILE;
-    var isFree = data.task.taskType === TASK_TYPE_C.FREE;
     var canScan = data.task.phase === TASK_STATUS_C.ATTEND || isReconcile || isFree;
     var scanInput = document.getElementById('scanInput');
     scanInput.disabled = !canScan;
@@ -1987,7 +2197,10 @@
     updateFinishBtnState();
     // F: đồng bộ indicator sort với phase vừa render (phase2 → cột Giờ quét)
     updateSortIndicators();
-    if (canScan) {
+    // T-1: áp dụng owner gate CUỐI CÙNG — nguồn quyết định cuối cho disabled/placeholder/
+    // nút Chuyển điểm danh/nút paste (không bị logic phase ở trên ghi đè).
+    applyScanPermission();
+    if (canScan && !scanOwnerLocked) {
       scanInput.focus();
     }
   }
@@ -2269,6 +2482,15 @@
 
   function submitScan() {
     if (!CURRENT_TASK) return;
+    // T-1: Guard against disabled input (owner gate)
+    var input = document.getElementById('scanInput');
+    if (input && input.disabled) {
+      showToast('Chỉ owner mới quét được ở phase Mở (task này)', true);
+      playBeep('error');
+      input.value = '';
+      input.focus();
+      return;
+    }
     // P2 (audit): chặn sớm khi task đã đóng (tab khác kết thúc task giữa chừng) —
     // tránh optimistic rồi rollback; server vẫn reject nếu race.
     // 2-phase: chặn chỉ khi task DONE (Xong). Phase OPEN (ghi Giờ có mặt) và
@@ -2423,7 +2645,8 @@
     var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
     var done = phase === TASK_STATUS_C.DONE;
     // Nút "Kết thúc" chỉ hiện ở phase2 (Điểm danh).
-    if (btnTo) btnTo.style.display = (phase === TASK_STATUS_C.OPEN) ? '' : 'none';
+    // T-1: ẩn "Chuyển điểm danh" khi non-owner đang bị khoá phase OPEN (scanOwnerLocked).
+    if (btnTo) btnTo.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked) ? '' : 'none';
     if (btnRe) btnRe.style.display = done ? '' : 'none';
     if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
     if (scanBusy()) {
@@ -2448,7 +2671,8 @@
     var inp = document.getElementById('scanInput');
     if (inp) {
       var taskDone = !CURRENT_TASK || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
-      inp.disabled = taskDone || full;
+      // T-1: tôn trọng khoá owner (non-owner phase OPEN) — không bật lại input.
+      inp.disabled = taskDone || full || scanOwnerLocked;
     }
   }
 
@@ -2620,6 +2844,8 @@
             scanInput.disabled = false;
             scanInput.placeholder = 'Quét mã nhân viên…';
             updateFinishBtnState();
+            // T-1: Re-apply permission after phase transition
+            applyScanPermission();
             scanInput.focus();
           }
         }

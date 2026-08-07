@@ -28,7 +28,7 @@ function makeCtx(overrides) {
     STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
     TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
     TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
-    UI_LABELS: { TASK_CLOSED: 'Task đã kết thúc', ALREADY_SCANNED: 'Đã điểm danh', STAFF_NOT_FOUND: 'Không tìm thấy nhân viên' },
+    UI_LABELS: { TASK_CLOSED: 'Task đã kết thúc', ALREADY_SCANNED: 'Đã điểm danh', STAFF_NOT_FOUND: 'Không tìm thấy nhân viên', SCAN_OPEN_OWNER_ONLY: 'Chỉ owner mới quét được ở phase Mở (task này)' },
     // helpers (default no-op — ghi đè tuỳ test)
     normalizeStaffId: (s) => (s || '').trim().toUpperCase(),
     isValidBarcodeId: (s) => /^OPS/i.test(s),
@@ -44,6 +44,15 @@ function makeCtx(overrides) {
     },
     readStaffIndex_: () => STAFF_INDEX,
     computeCounters: () => ({ scanned: 0, absent: 0, extra: 0, total: 0 }),
+    isEditor_: () => false,
+    canScanOpen_: (cfg, createdBy, activeEmail, isAdmin) => {
+      if (isAdmin) return true;
+      const cb = String(createdBy || '').trim().toLowerCase();
+      const ae = String(activeEmail || '').trim().toLowerCase();
+      const isValidEmail = cb.includes('@') && cb !== 'web' && cb !== '';
+      if (!isValidEmail) return true;
+      return ae === cb;
+    },
   };
   return ctx;
 }

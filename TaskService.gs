@@ -212,6 +212,15 @@ function getTaskDetail(taskId) {
   if (!taskId) return detailError_('Thiếu taskId');
   const detail = readTaskDetailCached_(taskId);
   if (!detail || !detail.task) return detailError_('Không tìm thấy task');
+  // T-1: Tính permission tươi cho user đang đọc — KHÔNG lưu vào cache (cache 15s dùng chung mọi user).
+  let activeEmail = '';
+  try { activeEmail = Session.getActiveUser().getEmail() || ''; } catch (e) { activeEmail = ''; }
+  const isAdmin = isEditor_();
+  const isOwner = String(detail.task.createdBy || '').trim().toLowerCase() === String(activeEmail || '').trim().toLowerCase()
+    && String(detail.task.createdBy || '').trim().toLowerCase() !== 'web'
+    && String(detail.task.createdBy || '').trim().includes('@');
+  const canScanOpen = canScanOpen_({ TASK_STATUS: TASK_STATUS }, detail.task.createdBy, activeEmail, isAdmin);
+  detail.task.permission = { isAdmin: isAdmin, isOwner: isOwner, canScanOpen: canScanOpen };
   return { ok: true, task: detail.task, log: detail.log, counters: detail.counters };
 }
 

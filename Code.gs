@@ -220,6 +220,11 @@ function reopenTaskApi(taskId) {
   return reopenTask(taskId);
 }
 
+/** T-2: Dán danh sách mã (batch paste). Mở cho kiosk — KHÔNG cần editor. */
+function pasteCodesApi(taskId, lines) {
+  return pasteCodes(taskId, lines);
+}
+
 /** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ
  *  hiện NGAY khi quét đầu thay vì về sau mới có (do StaffData index bị lazy + cache 5p).
  *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn kiosk. */

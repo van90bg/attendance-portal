@@ -460,6 +460,60 @@ function batchInsertLogRows_(taskId, staffList, createdAt) {
 }
 
 /**
+ * T-2: Batch append log rows for paste feature.
+ * 1 setValues for N new rows + 1 LOG_ROWS cache update (not per-row).
+ * Each row in `rows` should be a full LOG_COL_COUNT array.
+ * Returns { startRow, count, rowIndices[] } for cache update.
+ */
+function batchAppendLogRows_(rows) {
+  if (!rows || !rows.length) return { startRow: 0, count: 0, rowIndices: [] };
+  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+  const startRow = sheet.getLastRow() + 1;
+  sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
+  // Build row indices for cache update
+  const rowIndices = [];
+  for (let i = 0; i < rows.length; i++) {
+    rowIndices.push(startRow + i);
+  }
+  // Update LOG_ROWS cache in ONE put (not per-row pushLogRowToCache_)
+  try {
+    const taskId = rows[0][0]; // taskId is first column
+    const key = CACHE_KEYS.LOG_ROWS + taskId;
+    const cached = cache_().get(key);
+    if (cached !== null) {
+      const cachedRows = JSON.parse(cached);
+      // Append slim versions of new rows
+      rows.forEach(function (row, idx) {
+        const timeRef = row[LOG_COLS.TIME_REF];
+        const timeScan = row[LOG_COLS.TIME_SCAN];
+        cachedRows.push({
+          taskId: taskId,
+          staffId: row[LOG_COLS.STAFF_ID],
+          staffName: row[LOG_COLS.STAFF_NAME],
+          slotCode: row[LOG_COLS.SLOT_CODE],
+          station: row[LOG_COLS.STATION],
+          team: row[LOG_COLS.TEAM],
+          timeRefText: timeRef ? formatTime_(timeRef) : '',
+          timeRefEpoch: timeRef ? (safeDate_(timeRef) || {}).getTime ? safeDate_(timeRef).getTime() : 0 : 0,
+          timeScanText: timeScan ? formatTime_(timeScan) : '',
+          timeScanEpoch: timeScan ? (safeDate_(timeScan) || {}).getTime ? safeDate_(timeScan).getTime() : 0 : 0,
+          status: row[LOG_COLS.STATUS],
+          dateText: row[LOG_COLS.DATE] || '',
+          _rowIndex: rowIndices[idx],
+        });
+      });
+      cache_().put(key, JSON.stringify(cachedRows), CACHE_TTL.LOG_ROWS);
+    }
+  } catch (e) {
+    console.warn('batchAppendLogRows_ cache update fail', e.message);
+    invalidateLogRows_(taskId); // force rebuild
+  }
+  invalidateTaskDetailCache_(taskId);
+  invalidateTaskListCache_();
+  return { startRow: startRow, count: rows.length, rowIndices: rowIndices };
+}
+
+/**
  * Đọc chi tiết task + log có cache (giảm đọc sheet khi chuyển task qua lại).
  * Invalidate bằng invalidateTaskDetailCache_(taskId) mỗi khi ghi log/đổi status.
  * Lưu ý: task/log chỉ chứa text (formatTime_) — cache JSON an toàn (không Date).

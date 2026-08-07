@@ -34,6 +34,23 @@ function scanStaff(taskId, rawStaffId) {
   try {
     const t1 = Date.now();
     const task = readTask_(taskId);
+    // T-1: Owner gate cho scan khi task ở phase OPEN
+    // Chỉ áp dụng khi task.status === OPEN. Admin bypass, owner match, legacy 'web'/rỗng cho phép.
+    let activeEmail = '';
+    try { activeEmail = Session.getActiveUser().getEmail() || ''; } catch (e) { activeEmail = ''; }
+    const isAdmin = isEditor_();
+    if (task.status === TASK_STATUS.OPEN) {
+      const canScan = canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, activeEmail, isAdmin);
+      if (!canScan) {
+        console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, phase: 'reject-owner-gate', ms: Date.now() - t0 });
+        return {
+          ok: false,
+          message: UI_LABELS.SCAN_OPEN_OWNER_ONLY,
+          status: null,
+          counters: { scanned: 0, absent: 0, extra: 0, total: 0 },
+        };
+      }
+    }
     // U2: dùng cache log rows (30s + incremental) — scan liên tiếp không getDataRange
     // full sheet log mỗi lần (v1 lesson: dynamic tail → v2 cache vì update-in-place).
     const logRows = readLogRowsCached_(taskId);
@@ -190,5 +207,140 @@ function scanStaff(taskId, rawStaffId) {
     // DEFENSE: bất kỳ lỗi runtime → trả ok:false (kiosk toast) thay vì crash "Server lỗi".
     console.error({ bench: 'scanStaff', taskId: taskId, staffId: staffId, error: e && e.message, stack: e && e.stack });
     return { ok: false, message: 'Lỗi server: ' + (e && e.message ? e.message : 'unknown'), status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
+  }
+}
+
+/**
+ * T-2: Paste multiple codes in batch (dán danh sách mã).
+ * Gate: FREE + OPEN + canScanOpen_ (owner/admin).
+ * Uses 1 LockService + 1 readLogRowsCached_ + batch write.
+ * @param {string} taskId
+ * @param {Array<string>} rawLines — array of raw code lines from paste
+ * @returns {{ok, total, success, failed, results:[{code, ok, status, message}], counters}}
+ */
+function pasteCodes(taskId, rawLines) {
+  const t0 = Date.now();
+  // Clamp at 1000 lines (A4)
+  const lines = (rawLines || []).slice(0, 1000);
+  // DEFENSE: bọc toàn bộ logic — bất kỳ lỗi nào (kể cả ReferenceError) trả ok:false
+  // thay vì ném ra → client hiện toast gọn, KHÔNG "Server lỗi" chung (pattern scanStaff).
+  try {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const task = readTask_(taskId);
+    if (!task) return { ok: false, message: 'Không tìm thấy task', total: 0, success: 0, failed: 0, results: [], counters: null };
+    
+    // Gate: FREE + OPEN + canScanOpen
+    let activeEmail = '';
+    try { activeEmail = Session.getActiveUser().getEmail() || ''; } catch (e) { activeEmail = ''; }
+    const isAdmin = isEditor_();
+    
+    if (task.taskType !== TASK_TYPE.FREE) {
+      return { ok: false, message: 'Chỉ áp dụng quét tự do (FREE)', total: 0, success: 0, failed: 0, results: [], counters: null };
+    }
+    if (task.status !== TASK_STATUS.OPEN) {
+      return { ok: false, message: 'Chỉ phase Mở mới dán mã được', total: 0, success: 0, failed: 0, results: [], counters: null };
+    }
+    const canScan = canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, activeEmail, isAdmin);
+    if (!canScan) {
+      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, total: 0, success: 0, failed: 0, results: [], counters: null };
+    }
+    
+    const logRows = readLogRowsCached_(taskId);
+    
+    // Plan batch using pure logic
+    const { plans, invalid } = planBatchScans(
+      { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+      task,
+      logRows,
+      lines
+    );
+    
+    const now = new Date();
+    const appendRows = []; // rows to batch append
+    const results = [];
+    let success = 0;
+    let failed = 0;
+    
+    // Process invalid format codes
+    invalid.forEach(function (inv) {
+      results.push({ code: inv.code, ok: false, status: null, message: 'Sai định dạng (phải bắt đầu bằng Ops)' });
+      failed++;
+    });
+    
+    // Process each plan
+    plans.forEach(function (plan) {
+      if (plan.action === 'reject') {
+        var msg = plan.reason === 'already-present' ? 'Đã có mặt' :
+                  plan.reason === 'already-scanned' ? 'Đã điểm danh' :
+                  plan.reason === 'task-closed' ? 'Task đã kết thúc' :
+                  'Không thể quét';
+        results.push({ code: plan.code, ok: false, status: null, message: msg });
+        failed++;
+      } else if (plan.action === 'append') {
+        // Build row for batch append
+        const newRow = [
+          taskId,
+          plan.code.toUpperCase(),
+          '', // staffName - will be filled from staffIndex if available
+          '', '', '', '', // slotCode, station, team, workstation
+          plan.field === 'timeRef' ? now : '',
+          plan.field === 'timeScan' ? now : '',
+          plan.status,
+          '', // date
+        ];
+        appendRows.push(newRow);
+        results.push({ code: plan.code, ok: true, status: plan.status, message: plan.status });
+        success++;
+      } else if (plan.action === 'update') {
+        // Update existing row
+        if (plan.field === 'timeScan') {
+          updateLogRowScan_(plan.row, now, plan.status);
+        } else {
+          updateLogRowRef_(plan.row, now);
+        }
+        results.push({ code: plan.code, ok: true, status: plan.status, message: plan.status });
+        success++;
+      }
+    });
+    
+    // Batch append new rows
+    if (appendRows.length > 0) {
+      // Try to fill staffInfo from staffIndex for appended rows
+      let staffIndex = null;
+      try { staffIndex = readStaffIndex_(); } catch (e) { console.warn('readStaffIndex fail', e.message); }
+      if (staffIndex) {
+        appendRows.forEach(function (row) {
+          const info = staffIndex[row[1]]; // staffId is column 1
+          if (info) {
+            row[2] = info.staffName || '';
+            row[3] = info.slotCode || '';
+            row[4] = info.station || '';
+            row[5] = info.team || '';
+            row[6] = info.workstation || '';
+            row[10] = info.date || '';
+          }
+        });
+      }
+      batchAppendLogRows_(appendRows);
+    }
+    
+    // Read updated log for fresh counters
+    const updatedLogRows = readLogRowsCached_(taskId);
+    const counters = computeCounters({ STATUS: STATUS }, updatedLogRows);
+    
+    const t3 = Date.now();
+    if (t3 - t0 > 400) {
+      console.log({ bench: 'pasteCodes', taskId: taskId, totalLines: lines.length, success: success, failed: failed, totalMs: t3 - t0 });
+    }
+    
+    return { ok: true, total: lines.length, success: success, failed: failed, results: results, counters: counters, taskId: taskId };
+    
+  } finally {
+    lock.releaseLock();
+  }
+  } catch (e) {
+    return { ok: false, message: 'Lỗi server: ' + (e && e.message ? e.message : 'unknown'), total: 0, success: 0, failed: 0, results: [], counters: null };
   }
 }
