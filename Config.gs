@@ -22,6 +22,13 @@ const SHEETS = {
  * Giữ giá trị placeholder này chỉ để local mock/test chạy được; production phải rỗng.
  */
 const DEFAULT_SPREADSHEET_ID = '';
+/**
+ * m7 (audit): cấm tự tạo DB mới rỗng khi chưa cấu hình spreadsheet.
+ * Mặc định FALSE → getSpreadsheet_ sẽ THROW thay vì SpreadsheetApp.create() —
+ * deploy sai cấu hình (quên set SPREADSHEET_ID) phải fail rõ ràng, KHÔNG tạo
+ * DB rỗng phân mảnh dữ liệu âm thầm. Chỉ bật true khi cần bootstrap lần đầu.
+ */
+const ALLOW_DB_AUTO_CREATE = false;
 
 // ===== Header StaffData (giữ đúng header Att.csv — index theo thứ tự cột) =====
 // Sheet StaffData lưu nguyên cấu trúc csv hệ thống (1 dòng = 1 NV–1 ca–1 station).

@@ -45,7 +45,13 @@ function getSpreadsheet_() {
   }
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) return active;
-  // Standalone + chưa set ID → tạo sheet mới, lưu ID để dùng tiếp.
+  // m7 (audit): fail cứng thay vì tự tạo DB mới rỗng âm thầm. Deploy sai cấu hình
+  // (chưa set DEFAULT_SPREADSHEET_ID + Script Properties, không có active) phải ném
+  // lỗi rõ ràng để operator sửa ngay — tránh phân mảnh dữ liệu sang DB mới.
+  if (!ALLOW_DB_AUTO_CREATE) {
+    throw new Error('[m7] Chưa cấu hình spreadsheet. Đặt DEFAULT_SPREADSHEET_ID (Config.gs) '
+      + 'hoặc Script Property SPREADSHEET_ID. Để tránh tự tạo DB rỗng.');
+  }
   const created = SpreadsheetApp.create('RollCall v2 DB');
   props.setProperty('SPREADSHEET_ID', created.getId());
   return created;
