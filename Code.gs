@@ -225,6 +225,13 @@ function pasteCodesApi(taskId, lines) {
   return pasteCodes(taskId, lines);
 }
 
+/** F-search: tìm log của 1 mã NV (Ops) XUYÊN TASK. Mở cho kiosk — chỉ đọc.
+ *  Trả danh sách task mà NV đó từng hiện hữu, kèm thông tin NV trong từng task.
+ *  Gate: KHÔNG giới hạn role (chỉ đọc toàn bộ — tương như listTasksApi). */
+function searchLogsByStaffApi(rawStaffId) {
+  return searchLogsByStaff(rawStaffId);
+}
+
 /** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ
  *  hiện NGAY khi quét đầu thay vì về sau mới có (do StaffData index bị lazy + cache 5p).
  *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn kiosk. */

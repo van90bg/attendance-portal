@@ -281,6 +281,62 @@ function planBatchScans(cfg, task, logRows, codes) {
   return { plans: plans, invalid: invalid };
 }
 
+/**
+ * matchLogsByStaff — logic THUẦN: lọc log rows theo mã NV (xuyên task) + join task meta.
+ * Dùng cho tính năng search header (F-search). Server (Database.searchLogsByStaff) chỉ
+ * đọc sheet rồi gọi hàm này — tránh duplicate logic, test được Node mà không cần mock sheet.
+ *
+ * @param {Array<Object>} logRows — toàn bộ dòng log (đã map logFromRow_: staffId, staffName,
+ *   status (scan status NV), taskId, timeRefText, timeScanText, ...).
+ * @param {Array<Object>} tasks — danh sách task (taskFromRow_: taskId, taskType, station,
+ *   slotCode, team, status, createdAtText, createdBy, ...). Map nhanh theo taskId.
+ * @param {string} staffId — mã NV đã normalize (uppercase) để so khớp.
+ * @returns {Array<Object>} — [{ taskId, staffId, staffName, status, taskType, station,
+ *   team, slotCode, taskStatus, createdAtText, createdBy, timeRefText, timeScanText }],
+ *   sort Tạo lúc giảm dần, limit 200.
+ */
+function matchLogsByStaff(logRows, tasks, staffId) {
+  if (!staffId) return [];
+  const needle = String(staffId).toUpperCase();
+  const taskMap = {};
+  if (tasks) {
+    for (let i = 0; i < tasks.length; i++) {
+      const t = tasks[i];
+      if (t && t.taskId != null) taskMap[String(t.taskId)] = t;
+    }
+  }
+  const rows = logRows || [];
+  const out = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r) continue;
+    if (String(r.staffId || '').toUpperCase() !== needle) continue;
+    const taskId = String(r.taskId || '').trim();
+    if (!taskId) continue;
+    const t = taskMap[taskId] || null;
+    out.push({
+      taskId: taskId,
+      staffId: r.staffId,
+      staffName: r.staffName || '',
+      status: r.status || '',                   // scan status NV trong task (Có mặt/Vắng/Dư/-) — giữ nguyên để client quyết định có hiện không
+      taskType: t ? t.taskType : '',
+      station: t ? t.station : '',
+      team: t ? t.team : '',
+      slotCode: t ? t.slotCode : '',
+      taskStatus: t ? t.status : '',
+      createdAtText: t ? t.createdAtText : '',
+      createdBy: t ? t.createdBy : '',
+      timeRefText: r.timeRefText || '',
+      timeScanText: r.timeScanText || '',
+    });
+  }
+  // Tạo lúc giảm dần (yyyy-MM-dd HH:mm:ss — sort chuỗi được). limit 200 bảo vệ sheet lớn.
+  out.sort(function (a, b) {
+    return b.createdAtText < a.createdAtText ? -1 : (b.createdAtText > a.createdAtText ? 1 : 0);
+  });
+  return out.slice(0, 200);
+}
+
 // ===== Node test support (GAS bỏ qua) =====
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -290,5 +346,6 @@ if (typeof module !== 'undefined' && module.exports) {
     buildExtraRow: buildExtraRow,
     canScanOpen_: canScanOpen_,
     planBatchScans: planBatchScans,
+    matchLogsByStaff: matchLogsByStaff,
   };
 }

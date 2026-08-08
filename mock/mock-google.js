@@ -208,6 +208,40 @@
       else { log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '', timeRefText: '', timeScanText: ts, timeScanEpoch: nowMs, status: 'Dư' }); }
       return { ok: true, message: 'Có mặt', status: 'Có mặt', timeScanText: ts, timeScanEpoch: nowMs, staffName: hit ? hit.staffName : 'NV LẠ', counters: counters(log) };
     },
+    searchLogsByStaffApi: function (rawStaffId) {
+      // Mock F-search: quét toàn bộ task log + roster NV, filter staffId (case-insensitive).
+      var needle = String(rawStaffId || '').trim().toUpperCase();
+      var out = [];
+      if (!needle) return [];
+      MOCK_DATA.tasks.forEach(function (t) {
+        var log = getLog(t.taskId);
+        log.forEach(function (r) {
+          if (String(r.staffId || '').toUpperCase() !== needle) return;
+          out.push({
+            taskId: t.taskId, staffId: r.staffId, staffName: r.staffName, status: r.status,
+            taskType: t.taskType, station: t.station, team: t.team, slotCode: t.slotCode,
+            taskStatus: t.status, createdAtText: t.createdAtText, createdBy: t.createdBy,
+            timeRefText: r.timeRefText, timeScanText: r.timeScanText,
+          });
+        });
+      });
+      // Thêm roster NV (các NV chưa trong log của task này) — mock tìm trong staff list.
+      MOCK_DATA.staff.forEach(function (s) {
+        if (String(s.staffId || '').toUpperCase() !== needle) return;
+        MOCK_DATA.tasks.forEach(function (t) {
+          var exists = out.some(function (o) { return o.taskId === t.taskId && o.staffId === s.staffId; });
+          if (exists) return;
+          out.push({
+            taskId: t.taskId, staffId: s.staffId, staffName: s.staffName, status: '-',
+            taskType: t.taskType, station: t.station, team: t.team, slotCode: t.slotCode,
+            taskStatus: t.status, createdAtText: t.createdAtText, createdBy: t.createdBy,
+            timeRefText: '', timeScanText: '',
+          });
+        });
+      });
+      out.sort(function (a, b) { return b.createdAtText < a.createdAtText ? -1 : (b.createdAtText > a.createdAtText ? 1 : 0); });
+      return out.slice(0, 200);
+    },
     reopenTaskApi: function (taskId) {
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'open'; });
       return { ok: true, message: 'Đã mở lại task ' + taskId };

@@ -446,6 +446,41 @@ function readLogRows_(taskId) {
 }
 
 /**
+ * Tìm kiếm log của 1 mã NV (Opsxxxxx) XUYÊN TASK — cho tính năng search header.
+ * Đọc ATTENDANCE_LOG toàn bộ (filter STAFF_ID), join thông tin task từ readTaskList_()
+ * (cache 30s). Logic lọc/join/sort/limit do matchLogsByStaff (ScanLogic.gs, pure) thực hiện —
+ * test được Node mà không cần mock sheet.
+ *
+ * LƯU Ý: chỉ trả GIÁ TRỊ GỐC (taskType/taskStatus tên createdBy nguyên email). Các label
+ * (Đối chiếu/Tự do, Mở/Điểm danh/Xong, displayName) do CLIENT tính — tránh phụ thuộc hàm
+ * client-only (taskTypeBadge/displayName) vào server (ReferenceError trong GAS).
+ *
+ * @param {string} rawStaffId — mã NV người dùng nhập (có thể có case/space)
+ * @returns {Array<Object>} — kết quả từ matchLogsByStaff
+ */
+function searchLogsByStaff(rawStaffId) {
+  const sid = normalizeStaffId(rawStaffId);
+  if (!sid) return [];
+  try {
+    const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+    const values = logSheet.getDataRange().getValues();
+    // Map toán bộ dòng log (cross-task) thành đối tượng — tái dùng logFromRow_.
+    const logRows = [];
+    for (let i = 1; i < values.length; i++) {
+      const tid = String(values[i][LOG_COLS.TASK_ID] || '').trim();
+      if (!tid) continue;
+      logRows.push(logFromRow_(tid, values[i]));
+    }
+    var tasks = [];
+    try { tasks = readTaskList_() || []; } catch (e) { console.warn('searchLogsByStaff readTaskList_ fail', e.message); }
+    return matchLogsByStaff(logRows, tasks, sid);
+  } catch (e) {
+    console.error({ bench: 'searchLogsByStaff', staffId: sid, error: e && e.message });
+    return [];
+  }
+}
+
+/**
  * Đọc log rows của task có cache (30s) — dành cho ĐƯỜNG QUÉT (U2/scanStaff).
  * V2 khác v1: update-in-place (không append-only) nên không áp dynamic tail-rows;
  * thay bằng cache ngắn hạn + INCREMENTAL update (updateLogRowCache_) — scan chạy
