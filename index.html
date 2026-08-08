@@ -2698,26 +2698,28 @@
    * - ≥2 dòng → mở paste modal + chạy batch hiện có (reuse submitPaste / pasteCodesApi).
    */
   function onScanInputPaste(e) {
-    var pasted = (e.clipboardData || window.clipboardData).getData('text/plain');
-    if (!pasted) return;
-    var lines = pasted.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
-    if (lines.length <= 1) return; // single line → để scan bình thường
-    e.preventDefault();
-    // Mở modal (openPasteModal guard gate: chỉ mở khi canScanOpen). Nếu không đủ quyền
-    // / chưa có task → modal KHÔNG mở → không gọi submitPaste (tránh gửi server âm thầm
-    // rồi render kết quả vào #pastePreview đang ẩn, user không thấy phản hồi).
-    var m = document.getElementById('pasteModal');
-    openPasteModal();
-    if (!m || !m.classList.contains('open')) {
-      showToast('Chỉ owner mới dán được mã ở phase Mở (task này)', true);
-      return;
+      var pasted = (e.clipboardData || window.clipboardData).getData('text/plain');
+      if (!pasted) return;
+      var lines = pasted.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
+      if (lines.length <= 1) return; // single line → để scan bình thường
+      e.preventDefault();
+      // Mở modal (openPasteModal guard gate: chỉ mở khi canScanOpen). Nếu không đủ quyền
+      // / chưa có task → modal KHÔNG mở → không gọi submitPaste (tránh gửi server âm thầm
+      // rồi render kết quả vào #pastePreview đang ẩn, user không thấy phản hồi).
+      var m = document.getElementById('pasteModal');
+      openPasteModal();
+      if (!m || !m.classList.contains('open')) {
+        // Phân biệt lý do: task đã kết thúc vs không có quyền dán ở phase Mở — toast đúng ngữ cảnh.
+        var done = CURRENT_TASK && (CURRENT_TASK.phase === TASK_STATUS_C.DONE || CURRENT_TASK.status === TASK_STATUS_C.DONE);
+        showToast(done ? 'Task đã kết thúc — không thể dán mã' : 'Chỉ owner mới dán được mã ở phase Mở (task này)', true);
+        return;
+      }
+      var ta = document.getElementById('pasteTextarea');
+      if (ta) { ta.value = lines.join('\n'); }
+      // Reuse hoàn toàn: submitPaste đọc ta.value, clamp 1000, gọi pasteCodesApi,
+      // render kết quả vào #pastePreview, refresh counters + log.
+      submitPaste();
     }
-    var ta = document.getElementById('pasteTextarea');
-    if (ta) { ta.value = lines.join('\n'); }
-    // Reuse hoàn toàn: submitPaste đọc ta.value, clamp 1000, gọi pasteCodesApi,
-    // render kết quả vào #pastePreview, refresh counters + log.
-    submitPaste();
-  }
 
   function submitScan() {
     if (!CURRENT_TASK) return;
@@ -2815,6 +2817,7 @@
           oldTimeScanText: null, oldTimeScanEpoch: null,
           scanSeq: SCAN_CARD_SEQ,  // P2: đánh dấu lượt quét này là mới nhất — response cũ không đè card
         };
+      if (target) {
       item.oldStatus = target.status;
       item.oldTimeRefText = target.timeRefText; item.oldTimeRefEpoch = target.timeRefEpoch;
       item.oldTimeScanText = target.timeScanText; item.oldTimeScanEpoch = target.timeScanEpoch;
