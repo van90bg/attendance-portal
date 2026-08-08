@@ -22,6 +22,13 @@ const SHEETS = {
  * Giữ giá trị placeholder này chỉ để local mock/test chạy được; production phải rỗng.
  */
 const DEFAULT_SPREADSHEET_ID = '';
+/**
+ * m7 (audit): cấm tự tạo DB mới rỗng khi chưa cấu hình spreadsheet.
+ * Mặc định FALSE → getSpreadsheet_ sẽ THROW thay vì SpreadsheetApp.create() —
+ * deploy sai cấu hình (quên set SPREADSHEET_ID) phải fail rõ ràng, KHÔNG tạo
+ * DB rỗng phân mảnh dữ liệu âm thầm. Chỉ bật true khi cần bootstrap lần đầu.
+ */
+const ALLOW_DB_AUTO_CREATE = false;
 
 // ===== Header StaffData (giữ đúng header Att.csv — index theo thứ tự cột) =====
 // Sheet StaffData lưu nguyên cấu trúc csv hệ thống (1 dòng = 1 NV–1 ca–1 station).
@@ -48,6 +55,15 @@ const STAFF_DATA_COLS = {
   STATION: 19,
 };
 const STAFF_DATA_COL_COUNT = 20;
+// Header sheet StaffData — giữ đúng tên cột Att.csv (map qua CSV_HEADER_FIELD →
+// buildStaffIndex/buildStaffListFromValues đọc theo TÊN, không theo index). Đặt header
+// này khi setupSheets tạo sheet StaffData mới để syncFromCsv parse được ngay.
+const STAFF_DATA_HEADER = [
+  'No.', 'Date', 'Staff ID', 'Staff Name', 'Staff Email', 'Agency', 'Contract Type',
+  'Event ID', 'Matching Type', 'Gender', 'Department', 'Clock In Time', 'Clock Out Time',
+  'Actual Hours', 'Clock In Remark', 'Clock Out Remark', 'Slot Code', 'Workstation',
+  'Team', 'Station',
+];
 
 // ===== Cột AttendanceTask =====
 const TASK_COLS = {
@@ -113,6 +129,8 @@ const CACHE_TTL = {
   FILTER_OPTIONS: 5 * 60,    // 5m — distinct station/slotCode/team
   TASK_LIST: 30,             // 30s — danh sách task
   TASK_DETAIL: 15,           // 15s — chi tiết task + log (invalidate khi ghi log/đổi status)
+  TASK: 60,                  // m3: task-by-id cho ĐƯỜNG QUÉT (scanStaff đọc mỗi lượt) —
+                             // invalidate mọi write (insertTask_/updateTaskStatus_) → 60s không stale
   LOG_ROWS: 30,              // 30s — log rows theo taskId (đường quét — cập nhật incremental, không invalidate mỗi scan)
   TASK_COUNTS: 30,
   TZ: 24 * 60 * 60,          // 24h — timezone (cache 1 lần, KHÔNG gọi trong loop)
@@ -124,6 +142,7 @@ const CACHE_KEYS = {
   FILTER_OPTIONS: 'rc2_filterOptions_v1',
   TASK_LIST: 'rc2_taskList_v1',
   TASK_DETAIL: 'rc2_taskDetail_v1_',  // prefix + taskId
+  TASK: 'rc2_task_v1_',                   // prefix + taskId — m3: task cache đường quét (TTL 60s, invalidate mọi write)
   LOG_ROWS: 'rc2_logRows_v1_',          // prefix + taskId — đường quét (incremental update)
   TASK_COUNTS: 'rc2_taskCounts_v1_',      // prefix — counters theo taskId cho list (đếm 1 lần + cache 30s)
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)
@@ -134,6 +153,7 @@ const CACHE_KEYS = {
 const UI_LABELS = {
   APP_TITLE: 'Điểm danh kho',
   ALREADY_SCANNED: 'Đã điểm danh',
+  ALREADY_PRESENT: 'Đã có mặt',
   TASK_CLOSED: 'Task đã kết thúc',
   STAFF_NOT_FOUND: 'Không tìm thấy nhân viên',
   CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn',

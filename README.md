@@ -1,7 +1,7 @@
 # RollCall v2 — Điểm danh kho
 
 > Hệ thống điểm danh nhân viên kho (warehouse) bằng barcode, chạy trên **Google Apps Script WebApp** + **Google Sheets**.
-> Repo: `van90bg/rollcall-kiosk-v2` (private) · Spec đầy đủ: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
+> Repo: `van90bg/rollcall-kiosk-v2x` (private) · Spec đầy đủ: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
 
 ## Tính năng
 
@@ -39,13 +39,13 @@ RollCall_2/
 ├── Code.gs                # entry point doGet + gate isEditor_() cho ?debug=*/sync/setup + pasteCodesApi
 ├── Config.gs              # hằng số: sheet names, cột, cache keys/TTL, STATUS, taskType/taskStatus, UI labels
 ├── CsvUtil.gs             # parse/normalize CSV + isValidBarcodeId() (pure, test được)
-├── Database.gs            # đọc StaffData, task CRUD, cache (index 5m / list 30s / detail 15s / log rows 30s), batchAppendLogRows_
+├── Database.gs            # đọc StaffData, task CRUD, cache (index 5m / task 60s / list 30s / detail 15s / log rows 30s), batchAppendLogRows_
 ├── ScanLogic.gs           # phân loại scan 2-phase + counters + canScanOpen_ (owner gate) + planBatchScans (pure, test được)
 ├── ScanService.gs         # scanStaff — guard Ops + owner gate + LockService + update/append log · pasteCodes (batch dán)
 ├── TaskService.gs         # task CRUD + transitionToAttend + kết thúc task → markUnscannedAbsent_ + getTaskDetail (+permission)
 ├── index.html             # toàn bộ UI (task list + scan view + about view + paste modal) — 1 file
 ├── mock/mock-google.js    # mock GAS API cho test local
-├── tests/                 # unit tests (57/57 pass)
+├── tests/                 # unit tests (66/66 pass — node:test)
 └── scripts/cdp-helper.js  # CDP helper (open/eval/shot) cho verify UI thật
 ```
 
@@ -65,7 +65,7 @@ RollCall_2/
 ### Test local
 
 ```bash
-npm test          # 57/57 — node --test (5 files)
+npm test          # 66/66 — node --test (6 files)
 ```
 
 ### Mock UI local
@@ -126,4 +126,11 @@ git push origin main
   - ✅ **Paste danh sách mã (T-2)**: `pasteCodesApi` — FREE+Mở+owner/admin, 1 `setValues` batch + cache 1 put, dedupe trong batch, clamp 1000, báo cáo mã lỗi + modal paste
   - ✅ **View Giới thiệu (T-3)**: thay modal bằng `#aboutView` (3 mục), `showSection` quản 3 views + `lastViewBeforeAbout`
   - ✅ **Test 57/57** (+10: `paste-batch.test.js` — planBatchScans/canScanOpen_)
+- ✅ **2026-08-08 — simplify pass F1–F6** (4 reviewer song song + verify):
+  - ✅ F1/F2: gom thân lặp `updateTaskStatus_` (2 nhánh RMW) dùng chung `writeTaskRow_`/`resolvedStatus_`,
+    `invalidateTaskCaches_` gom 3 cache 1 lời gọi (insertTask/updateTaskStatus)
+  - ✅ F3: status resolution 1 nguồn (newStatus → keepStatus) cho cache lẫn sheet
+  - ✅ F4: TASK cache 10s → 60s (có invalidate mọi write, scanStaff đọc qua `readTaskCached_`)
+  - ✅ F5: race m4 — silent reload defer khi đang quét (`_pendingSilentReload`, reload khi queue cạn)
+  - ✅ F6: test khóa quét phải ĐỌC QUA cache; **66/66 pass**
 - ⏳ P2 phase: QA prod quét NV thật (verify UI owner vs non-owner theo checkpoint plan)

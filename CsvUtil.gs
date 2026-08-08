@@ -131,33 +131,6 @@ function splitCsvLine(line) {
 }
 
 /**
- * Parse raw csv text → [{ header field: value }...] (bỏ dòng header).
- * Giá trị giữ nguyên text; riêng staffId/staffName được normalize.
- * @param {string} csvText
- * @returns {Array<Object>}
- */
-function parseCsvToStaff(csvText) {
-  const lines = String(csvText || '').split(/\r?\n/).filter(function (l) { return l.trim() !== ''; });
-  if (lines.length < 2) return [];
-  const header = splitCsvLine(lines[0]).map(function (h) { return h.trim(); });
-  const fields = header.map(function (h) {
-    return CSV_HEADER_FIELD[h] || h.toLowerCase().replace(/\s+/g, '');
-  });
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cells = splitCsvLine(lines[i]);
-    const row = {};
-    for (let c = 0; c < fields.length; c++) {
-      row[fields[c]] = cells[c] !== undefined ? cells[c].trim() : '';
-    }
-    row.staffId = normalizeStaffId(row.staffId);
-    row.staffName = normalizeStaffName(row.staffName);
-    if (row.staffId) rows.push(row);
-  }
-  return rows;
-}
-
-/**
  * Đọc sheet StaffData (mảng 2D từ getValues) → map { staffId: staff }.
  * Skip dòng header; duplicate staffId → dòng sau thắng (dữ liệu mới nhất).
  * KHÁC dedupeStaffByGroup (giữ dòng đầu): index dùng cho staffInfo của NV lạ
@@ -197,7 +170,7 @@ function buildStaffIndex(values) {
 
 /**
  * Build staff list từ mảng 2D của sheet (getValues) — KHÔNG qua trung gian CSV text.
- * An toàn với giá trị chứa dấu phẩy/nháy (khác parseCsvToStaff phải join lại).
+ * An toàn với giá trị chứa dấu phẩy/nháy (không phải join lại thành CSV text).
  * Trả list đầy đủ field (không dedupe theo staffId) để giữ mọi dòng NV nhiều ca.
  * @param {Array<Array<*>>} values — dòng 0 = header
  * @returns {Array<Object>}
@@ -244,7 +217,7 @@ function buildStaffListFromValues(values) {
 
 /**
  * Lọc danh sách NV theo tổ hợp (station, slotCode, team).
- * @param {Array<Object>} staffList — mảng từ parseCsvToStaff hoặc Object.values(staffIndex)
+ * @param {Array<Object>} staffList — mảng từ buildStaffListFromValues hoặc Object.values(staffIndex)
  * @param {{station: string, slotCode: string|string[], team: string|string[], date: string}} group
  * @returns {Array<Object>}
  */
@@ -256,6 +229,20 @@ function toFilterArray_(val) {
   }
   const s = String(val).trim();
   return s ? [s] : [];
+}
+
+/**
+ * Commit 2026-08-08: lát cắt FREE bằng slotCode magic 'Tự do'. fail-safe:
+ * - ['Tự do'] → FREE (đúng 1 phần tử); ['Tự do','08:00-17:00'] → KHÔNG free
+ *   (client bug → chạy reconcile → CREATE_FAILED_EMPTY nếu không khớp)
+ * - string 'Tự do' (tương thích cũ JSON string) → FREE
+ * @param {string|string[]} slotCode
+ * @returns {boolean}
+ */
+function isFreeSlotSelection_(slotCode) {
+  return Array.isArray(slotCode)
+    ? slotCode.length === 1 && String(slotCode[0]).trim() === 'Tự do'
+    : String(slotCode || '').trim() === 'Tự do';
 }
 
 function filterStaffByGroup(staffList, group) {
@@ -324,7 +311,7 @@ function distinctValues(staffList, field, filterField, filterValue) {
  * Build cây nhóm Station → Ca (Slot Code) → Team cho modal tạo task (3 cấp, checkbox).
  * Chỉ gồm các tổ hợp THỰC TẾ tồn tại trong staffList (station có dữ liệu mới xuất hiện).
  * Sort theo tên để UI ổn định giữa các lần load.
- * @param {Array<Object>} staffList — mảng staff (buildStaffListFromValues / parseCsvToStaff)
+ * @param {Array<Object>} staffList — mảng staff (buildStaffListFromValues)
  * @returns {Array<{station: string, slotCodes: Array<{slotCode: string, teams: string[]}>}>}
  */
 function buildStationGroups(staffList) {
@@ -368,7 +355,6 @@ if (typeof module !== 'undefined' && module.exports) {
     normalizeStaffDate_: normalizeStaffDate_,
     isValidBarcodeId: isValidBarcodeId,
     splitCsvLine: splitCsvLine,
-    parseCsvToStaff: parseCsvToStaff,
     buildStaffListFromValues: buildStaffListFromValues,
     buildStaffIndex: buildStaffIndex,
     filterStaffByGroup: filterStaffByGroup,

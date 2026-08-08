@@ -156,7 +156,9 @@ function buildExtraRow(cfg, taskId, staffId, staffInfo, now, field, status) {
     timeRefEpoch: timeRefEpoch,
     // append phase2 cũng phải set timeScanEpoch (nguồn sự thật counters/sort).
     timeScanEpoch: timeScanEpoch,
-    date: '',  // NV quét lạ không có trong StaffData → không có ngày vào làm
+    // 2026-08-07: FREE giữ staffInfo.date (ngày lên làm) cho cột Ngày — lấy từ StaffData,
+    // không phải ngày quét. NV quét lạ không có trong StaffData → để rỗng.
+    date: staffInfo ? (staffInfo.date || '') : '',
     // status do caller truyền (mặc định EXTRA giữ behaviour roster lạ = Dư);
     // noList quét đầu (phase1) truyền PENDING — Fix #3.
     status: status || cfg.STATUS.EXTRA,
@@ -204,7 +206,10 @@ function planBatchScans(cfg, task, logRows, codes) {
   const plans = [];
   const invalid = [];
   // Clone logRows so we can simulate appends/updates for dedup within batch
-  const simulatedLogRows = logRows ? [...logRows] : [];
+  // Fix 2 (audit 2): shallow [...logRows] vẫn dùng CHUNG object phần tử với caller —
+  // nhánh update (timeRefEpoch/timeRef) mut bản gốc. Deep copy phần tử → pure,
+  // nếu ghi sheet throw thì chỉ ảnh hưởng simulated local, không lệch logRows caller.
+  const simulatedLogRows = logRows ? logRows.map(function (r) { return Object.assign({}, r, { timeRef: r.timeRef ? new Date(r.timeRef) : r.timeRef }); }) : [];
   
   for (let i = 0; i < codes.length; i++) {
     const rawCode = codes[i];
@@ -234,6 +239,21 @@ function planBatchScans(cfg, task, logRows, codes) {
       row: result.row,
     };
     plans.push(plan);
+    
+    // m4 (audit): simulate update trong batch — trước chỉ append được simulate nên mã
+    // trùng (plan đầu = update) ra 2 update + success sai. Giờ update cũng cập nhật
+    // simulated log để lượt kế classify ra already-*. 
+    if (result.action === 'update' && result.row) {
+      const nowU = new Date();
+      if (result.field === 'timeScan') {
+        result.row.timeScanEpoch = nowU.getTime();
+        result.row.timeScan = nowU;
+        result.row.status = result.status;
+      } else {
+        result.row.timeRefEpoch = nowU.getTime();
+        result.row.timeRef = nowU;
+      }
+    }
     
     // If append, add to simulated log for subsequent codes in same batch
     if (result.action === 'append') {

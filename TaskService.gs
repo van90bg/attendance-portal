@@ -29,7 +29,10 @@ function createReconcileTask(input) {
   // noList: quét tự do KHÔNG danh sách (luồng vận hành quét 2 lần không cần roster).
   // Khi bật, bỏ qua validate group + KHÔNG pre-fill log → mọi quét là Dư (phase1 ghi
   // Giờ có mặt, phase2 ghi Giờ quét). Task vẫn Mở (phase1) như bình thường.
-  const noList = !!(input && input.noList);
+  // Commit 2026-08-08: slotCode='Tự do' (magic trong dropdown Ca) tự quyết FREE.
+  // isFreeSlotSelection_ fail-safe: ['Tự do','X'] → false → đi reconcile path
+  // (filter không khớp → CREATE_FAILED_EMPTY). Giữ (input.noList) cũ cho tương thích.
+  const noList = isFreeSlotSelection_(input && input.slotCode) || !!(input && input.noList);
   // Multi-select: slotCode/team có thể là mảng (từ modal) — task sheet chỉ có 1 cột,
   // nối ", " để lưu hiển thị; filter vẫn dùng mảng gốc (dòng NV khớp BẤT KỲ team/slot chọn).
   const slotCode = Array.isArray(input && input.slotCode)
@@ -50,10 +53,13 @@ function createReconcileTask(input) {
   let createdBy = 'web';
   try { createdBy = Session.getActiveUser().getEmail() || 'web'; } catch (e) { createdBy = 'web'; }
 
-  // noList: bỏ qua validate group (không cần roster). Station vẫn optional (để trống
-  // → 'Tự do'). Các filter khác (slot/team/contract/date) bỏ qua hoàn toàn.
-  if (!noList && (!station || !filterSlots.length || !filterTeams.length)) {
-    return { ok: false, taskId: null, count: 0, message: 'Thiếu station/slotCode/team' };
+  // 2026-08-07: CẢ 2 luồng (reconcile + FREE) đều cần station + team.
+  // Reconcile thêm slotCode; FREE tự gán slotCode='Tự do' (xem build task dưới).
+  if (!station || !filterTeams.length) {
+    return { ok: false, taskId: null, count: 0, message: 'Thiếu station/team' };
+  }
+  if (!noList && !filterSlots.length) {
+    return { ok: false, taskId: null, count: 0, message: 'Thiếu slotCode (Ca)' };
   }
 
   const lock = LockService.getScriptLock();
@@ -86,8 +92,9 @@ function createReconcileTask(input) {
           // noList (Quét tự do) dùng taskType FREE để classifyScan nhận biết:
           // NV lạ quét đầu (phase1) ghi PENDING (chưa điểm danh), KHÔNG Dư.
           taskType: noList ? TASK_TYPE.FREE : TASK_TYPE.RECONCILE,
-          station: noList ? (station || 'Tự do') : station,
-      slotCode: slotCode,
+          station: station,
+      // 2026-08-07: FREE không chọn Ca — tự gán 'Tự do' (task sheet hiển thị Ca=Tự do).
+      slotCode: noList ? 'Tự do' : slotCode,
       team: team,
       contractType: contractType,
       // 2.10: RECONCILE (có list pre-fill) tạo task vào thẳng phase2 (attend) — KHÔNG
