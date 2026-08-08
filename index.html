@@ -527,11 +527,29 @@
     #toast .toast-close:hover { opacity: 1; }
 
     .empty { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 15px; }
-    .empty .empty-arrow {
-      font-size: 22px; font-weight: 700; color: var(--amber);
-      animation: empty-bounce 1.4s ease-in-out infinite; margin-bottom: 6px;
-    }
-    @keyframes empty-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+        .empty .empty-arrow {
+          font-size: 22px; font-weight: 700; color: var(--amber);
+          animation: empty-bounce 1.4s ease-in-out infinite; margin-bottom: 6px;
+        }
+        @keyframes empty-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+        /* ===== Pagination (tham khảo v1 scan.html — 50 dòng/trang) ===== */
+        .pag-wrap { padding: 8px 2px 2px; }
+        .pag-bar {
+          display: flex; align-items: center; justify-content: space-between; gap: 8px;
+          font-size: 13px; color: var(--muted);
+        }
+        .pag-info { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .pag-buttons { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+        .pag-btn {
+          background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+          color: var(--text); padding: 3px 9px; font-size: 13px; font-weight: 600;
+          cursor: pointer; min-width: 28px; text-align: center; line-height: 1.6;
+          transition: border-color .15s, background .15s, color .15s;
+        }
+        .pag-btn:hover:not(:disabled) { border-color: var(--amber); color: var(--amber); background: var(--surface-muted); }
+        .pag-btn:disabled { opacity: .35; cursor: default; }
+        .pag-btn.active { background: var(--amber); border-color: var(--amber); color: #fff; font-weight: 700; }
+        .pag-ellipsis { padding: 3px 4px; color: var(--muted); letter-spacing: 1px; }
     .muted { color: var(--muted); font-size: 13px; }
     .task-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .task-meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
@@ -836,10 +854,11 @@
           <tbody id="taskListBody"></tbody>
         </table>
         <div class="empty" id="taskEmpty" style="display:none;">
-          <div class="empty-arrow">↑</div>
-          <div><span id="taskEmptyText">Chưa có task nàu — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b></span></div>
-        </div>
-      </div>
+                  <div class="empty-arrow">↑</div>
+                  <div><span id="taskEmptyText">Chưa có task nàu — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b></span></div>
+                </div>
+                <div id="taskPagination" class="pag-wrap" style="display:none;"></div>
+              </div>
     </div>
   </section>
 
@@ -920,7 +939,8 @@
               <tbody id="scanTableBody"></tbody>
             </table>
             <div class="empty" id="scanEmpty" style="display:none;">Không có nhân viên nào trong danh sách</div>
-          </div>
+                        <div id="scanPagination" class="pag-wrap" style="display:none;"></div>
+                      </div>
         </div>
       </div>
     </div>
@@ -1141,9 +1161,87 @@
     '<th scope="col">Trạng thái</th><th scope="col">Tạo lúc</th><th scope="col">Người tạo</th>' +
     '<th scope="col">Thao tác</th></tr>';
   var SEARCH_HEAD = '<tr>' +
-      '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
-      '<th scope="col">Điểm danh</th><th scope="col">Loại</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
-      '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
+        '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
+        '<th scope="col">Điểm danh</th><th scope="col">Loại</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
+        '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
+
+    // ===== Pagination (tham khảo v1 scan.html — 50 dòng/trang) =====
+    var PAGE_SIZE = 50;
+    var LIST_PAGE = 1; // trang hiện tại: task list / kết quả tìm
+    var SCAN_PAGE = 1; // trang hiện tại: bảng quét scanTable
+
+    // Render phân trang vào container (v1: _renderPagination). Dùng inline onclick
+    // (nhất quán với các button khác trong v2 — không cần delegation listener).
+    // total = số dòng tổng (trước slice); current = trang đang xem; goFn = tên hàm
+    // global nhận page, ví dụ goListPage / goScanPage.
+    function renderPaginator_(containerId, total, current, goFn) {
+      var el = document.getElementById(containerId);
+      if (!el) return;
+      if (!total || total <= PAGE_SIZE) {
+        el.innerHTML = '';
+        el.style.display = 'none';
+        return;
+      }
+      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      var page = Math.min(current, totalPages);
+      var start = (page - 1) * PAGE_SIZE + 1;
+      var end = Math.min(page * PAGE_SIZE, total);
+
+      var html = '<div class="pag-bar">';
+      html += '<span class="pag-info">' + start + '–' + end + ' / ' + total + '</span>';
+      html += '<div class="pag-buttons">';
+      // Đầu + Trước
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(1)"' + (page <= 1 ? ' disabled' : '') + ' aria-label="Trang đầu">«</button>';
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(' + (page - 1) + ')"' + (page <= 1 ? ' disabled' : '') + ' aria-label="Trang trước">‹</button>';
+      // Số trang có ellipsis
+      var pageRange = [];
+      for (var p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+          pageRange.push(p);
+        } else if (pageRange[pageRange.length - 1] !== '...') {
+          pageRange.push('...');
+        }
+      }
+      for (var pi = 0; pi < pageRange.length; pi++) {
+        if (pageRange[pi] === '...') {
+          html += '<span class="pag-ellipsis">…</span>';
+        } else {
+          html += '<button type="button" class="pag-btn' + (pageRange[pi] === page ? ' active' : '') + '" onclick="' + goFn + '(' + pageRange[pi] + ')" aria-label="Trang ' + pageRange[pi] + '">' + pageRange[pi] + '</button>';
+        }
+      }
+      // Sau + Cuối
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(' + (page + 1) + ')"' + (page >= totalPages ? ' disabled' : '') + ' aria-label="Trang sau">›</button>';
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(' + totalPages + ')"' + (page >= totalPages ? ' disabled' : '') + ' aria-label="Trang cuối">»</button>';
+      html += '</div></div>';
+      el.innerHTML = html;
+      el.style.display = '';
+    }
+
+    // Phân trang task list: set trang + render lại (slice theo trang).
+    function goListPage(page) {
+      var p = Math.max(1, parseInt(page, 10) || 1);
+      if (p === LIST_PAGE) return;
+      LIST_PAGE = p;
+      if (LIST_MODE === 'search') {
+        renderSearchResults_(LAST_SEARCH_ROWS || []);
+      } else if (LIST_MODE === 'task') {
+        renderTaskList_(LAST_TASK_SEARCH || []);
+      } else {
+        renderTaskList_(LAST_TASK_LIST.tasks || []);
+      }
+    }
+
+    // Phân trang bảng scan: set trang + render lại scanTable (đã slice).
+    function goScanPage(page) {
+      var p = Math.max(1, parseInt(page, 10) || 1);
+      if (p === SCAN_PAGE) return;
+      SCAN_PAGE = p;
+      renderScanTable(CURRENT_LOG);
+    }
+
+    // Reset trang khi có dữ liệu mới (không giữ trang cũ trên bộ lọc khác).
+    function resetListPage() { LIST_PAGE = 1; }
+    function resetScanPage() { SCAN_PAGE = 1; }
 
   document.addEventListener('DOMContentLoaded', function () {
     startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
@@ -1192,10 +1290,12 @@
     }
     if (searchEl) searchEl.addEventListener('input', function () {
       SCAN_FILTER.q = searchEl.value;
+      SCAN_PAGE = 1; // bộ lọc lởi → về trang đầu
       renderScanTable(CURRENT_LOG);
     });
     if (statusEl) statusEl.addEventListener('change', function () {
       SCAN_FILTER.status = statusEl.value;
+      SCAN_PAGE = 1; // bộ lọc đổi → về trang đầu
       renderScanTable(CURRENT_LOG);
     });
     if (clearEl) clearEl.addEventListener('click', function () {
@@ -1203,6 +1303,7 @@
       SCAN_FILTER.status = '';
       if (searchEl) searchEl.value = '';
       if (statusEl) statusEl.value = '';
+      SCAN_PAGE = 1; // xoá lọc → về trang đầu
       renderScanTable(CURRENT_LOG);
     });
     if (scanTbl) scanTbl.addEventListener('click', function (e) {
@@ -1212,6 +1313,7 @@
       if (SCAN_SORT.col === col) SCAN_SORT.asc = !SCAN_SORT.asc;
       else { SCAN_SORT.col = col; SCAN_SORT.asc = true; }
       SCAN_SORT.userSet = true;  // F: user tự chọn cột → bỏ ép-theo-phase
+      SCAN_PAGE = 1; // sort đổi thứ tự → về trang đầu
       updateSortIndicators();
       renderScanTable(CURRENT_LOG);
     });
@@ -2097,41 +2199,52 @@
   }
 
   // Render bảng danh sách task (dùng chung cho full-load và cache-reuse)
-  function renderTaskList_(tasks) {
-    var skel = document.getElementById('taskSkeleton');
-    var tbl = document.getElementById('taskListTable');
-    var empty = document.getElementById('taskEmpty');
-    var body = document.getElementById('taskListBody');
-    var cnt = document.getElementById('taskCount');
-    body.innerHTML = '';
-    if (skel) skel.style.display = 'none';
-    if (tbl) tbl.style.display = '';
-    if (cnt) cnt.textContent = (tasks ? tasks.length : 0);
-    if (!tasks || !tasks.length) {
-      if (empty) empty.style.display = '';
-      return;
+    function renderTaskList_(tasks) {
+      var skel = document.getElementById('taskSkeleton');
+      var tbl = document.getElementById('taskListTable');
+      var empty = document.getElementById('taskEmpty');
+      var body = document.getElementById('taskListBody');
+      var cnt = document.getElementById('taskCount');
+      var all = safeArr(tasks);
+      body.innerHTML = '';
+      if (skel) skel.style.display = 'none';
+      if (tbl) tbl.style.display = '';
+      if (cnt) cnt.textContent = all.length;
+      if (!all.length) {
+        if (empty) empty.style.display = '';
+        renderPaginator_('taskPagination', 0, 1, 'goListPage');
+        return;
+      }
+      if (empty) empty.style.display = 'none';
+      // Pagination: slice theo trang hiện tại (PAGE_SIZE=50)
+      var total = all.length;
+      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (LIST_PAGE > totalPages) LIST_PAGE = totalPages;
+      if (LIST_PAGE < 1) LIST_PAGE = 1;
+      var start = (LIST_PAGE - 1) * PAGE_SIZE;
+      var pageItems = all.slice(start, start + PAGE_SIZE);
+      for (var pi = 0; pi < pageItems.length; pi++) {
+        var t = pageItems[pi];
+        var tr = document.createElement('tr');
+        var statusBadge = t.status === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>' : (t.status === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>' : '<span class="badge open">Mở</span>');
+        tr.innerHTML =
+          '<td class="stt">' + (start + pi + 1) + '</td>' +
+          '<td>' + esc(t.taskId) + '</td>' +
+          '<td>' + taskTypeBadge(t.taskType) + '</td>' +
+          '<td>' + esc(t.station) + '</td>' +
+          '<td>' + esc(t.team) + '</td>' +
+          '<td>' + esc(t.slotCode) + '</td>' +
+          '<td class="num">' + (t.total || 0) + '</td>' +
+          '<td class="num">' + (t.scanned || 0) + '</td>' +
+          '<td class="num">' + (t.extra || 0) + '</td>' +
+          '<td>' + statusBadge + '</td>' +
+          '<td>' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
+          '<td>' + esc(displayName(t.createdBy || '')) + '</td>' +
+          '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
+        body.appendChild(tr);
+      }
+      renderPaginator_('taskPagination', total, LIST_PAGE, 'goListPage');
     }
-    if (empty) empty.style.display = 'none';
-    tasks.forEach(function (t, idx) {
-      var tr = document.createElement('tr');
-      var statusBadge = t.status === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>' : (t.status === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>' : '<span class="badge open">Mở</span>');
-      tr.innerHTML =
-        '<td class="stt">' + (idx + 1) + '</td>' +
-        '<td>' + esc(t.taskId) + '</td>' +
-        '<td>' + taskTypeBadge(t.taskType) + '</td>' +
-        '<td>' + esc(t.station) + '</td>' +
-        '<td>' + esc(t.team) + '</td>' +
-        '<td>' + esc(t.slotCode) + '</td>' +
-        '<td class="num">' + (t.total || 0) + '</td>' +
-        '<td class="num">' + (t.scanned || 0) + '</td>' +
-        '<td class="num">' + (t.extra || 0) + '</td>' +
-        '<td>' + statusBadge + '</td>' +
-        '<td>' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
-        '<td>' + esc(displayName(t.createdBy || '')) + '</td>' +
-        '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
-      body.appendChild(tr);
-    });
-  }
 
   /* F-search: === TÌM KIẾM MÃ OPS XUYÊN TASK === */
   // Chuyển thead + empty msg của taskListTable giữa chế độ danh sách (all) và tìm kiếm (search).
@@ -2165,10 +2278,38 @@
       runSearchTask(raw);
     }
     // Tìm theo mã NV (xuyên task) — existing flow.
-    function runSearchStaff(q) {
-      var q2 = q.toUpperCase();
-      showSection("viewList");
-      setListMode("search");
+        function runSearchStaff(q) {
+          var q2 = q.toUpperCase();
+          LIST_PAGE = 1; // dữ liệu mới → về trang đầu
+          showSection("viewList");
+          setListMode("search");
+          var skel = document.getElementById("taskSkeleton");
+          var tbl = document.getElementById("taskListTable");
+          var body = document.getElementById("taskListBody");
+          if (skel) skel.style.display = "";
+          if (tbl) tbl.style.display = "none";
+          if (body) body.innerHTML = "";
+          var cnt = document.getElementById("taskCount");
+          if (cnt) cnt.textContent = "…";
+          google.script.run
+            .withSuccessHandler(function (rows) {
+              LAST_SEARCH_ROWS = safeArr(rows);
+              renderSearchResults_(LAST_SEARCH_ROWS);
+              markServerOk();
+            })
+            .withFailureHandler(function (err) {
+              markServerFail();
+              LAST_SEARCH_ROWS = [];
+              renderSearchResults_([]);
+              showToast("Lỗi tìm kiếm: " + (err && err.message ? err.message : err), true);
+            })
+            .searchLogsByStaffApi(q2);
+        }
+        // Tìm theo mã task — dùng ALL_HEAD + renderTaskList_ (giữ nút Quét/Xem + counters).
+        function runSearchTask(q) {
+          LIST_PAGE = 1; // dữ liệu mới → về trang đầu
+          showSection("viewList");
+          setListMode("task");
       var skel = document.getElementById("taskSkeleton");
       var tbl = document.getElementById("taskListTable");
       var body = document.getElementById("taskListBody");
@@ -2178,75 +2319,64 @@
       var cnt = document.getElementById("taskCount");
       if (cnt) cnt.textContent = "…";
       google.script.run
-        .withSuccessHandler(function (rows) {
-          renderSearchResults_(safeArr(rows));
-          markServerOk();
-        })
-        .withFailureHandler(function (err) {
-          markServerFail();
-          renderSearchResults_([]);
-          showToast("Lỗi tìm kiếm: " + (err && err.message ? err.message : err), true);
-        })
-        .searchLogsByStaffApi(q2);
-    }
-    // Tìm theo mã task — dùng ALL_HEAD + renderTaskList_ (giữ nút Quét/Xem + counters).
-    function runSearchTask(q) {
-      showSection("viewList");
-      setListMode("task");
-      var skel = document.getElementById("taskSkeleton");
-      var tbl = document.getElementById("taskListTable");
-      var body = document.getElementById("taskListBody");
-      if (skel) skel.style.display = "";
-      if (tbl) tbl.style.display = "none";
-      if (body) body.innerHTML = "";
-      var cnt = document.getElementById("taskCount");
-      if (cnt) cnt.textContent = "…";
-      google.script.run
-        .withSuccessHandler(function (rows) {
-          renderTaskList_(safeArr(rows));
-          markServerOk();
-        })
-        .withFailureHandler(function (err) {
-          markServerFail();
-          renderTaskList_([]);
-          showToast("Lỗi tìm kiếm task: " + (err && err.message ? err.message : err), true);
-        })
-        .searchTasksByQueryApi(q);
-    }
+              .withSuccessHandler(function (rows) {
+                LAST_TASK_SEARCH = safeArr(rows);
+                renderTaskList_(LAST_TASK_SEARCH);
+                markServerOk();
+              })
+              .withFailureHandler(function (err) {
+                markServerFail();
+                LAST_TASK_SEARCH = [];
+                renderTaskList_([]);
+                showToast("Lỗi tìm kiếm task: " + (err && err.message ? err.message : err), true);
+              })
+              .searchTasksByQueryApi(q);
+          }
   // F-search: render kết quả tìm kiếm vào #taskListBody (reuse #taskListTable + skeleton + empty).
-  function renderSearchResults_(rows) {
-    var skel = document.getElementById("taskSkeleton");
-    var tbl = document.getElementById("taskListTable");
-    var empty = document.getElementById("taskEmpty");
-    var body = document.getElementById("taskListBody");
-    var cnt = document.getElementById("taskCount");
-    body.innerHTML = "";
-    if (skel) skel.style.display = "none";
-    if (tbl) tbl.style.display = "";
-    if (cnt) cnt.textContent = rows.length;
-    if (!rows.length) {
-      if (empty) empty.style.display = "";
-      return;
+    function renderSearchResults_(rows) {
+      var skel = document.getElementById("taskSkeleton");
+      var tbl = document.getElementById("taskListTable");
+      var empty = document.getElementById("taskEmpty");
+      var body = document.getElementById("taskListBody");
+      var cnt = document.getElementById("taskCount");
+      var all = safeArr(rows);
+      body.innerHTML = "";
+      if (skel) skel.style.display = "none";
+      if (tbl) tbl.style.display = "";
+      if (cnt) cnt.textContent = all.length;
+      if (!all.length) {
+        if (empty) empty.style.display = "";
+        renderPaginator_("taskPagination", 0, 1, "goListPage");
+        return;
+      }
+      if (empty) empty.style.display = "none";
+      // Pagination: slice theo trang hiện tại (PAGE_SIZE=50)
+      var total = all.length;
+      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (LIST_PAGE > totalPages) LIST_PAGE = totalPages;
+      if (LIST_PAGE < 1) LIST_PAGE = 1;
+      var start = (LIST_PAGE - 1) * PAGE_SIZE;
+      var pageItems = all.slice(start, start + PAGE_SIZE);
+      for (var pi = 0; pi < pageItems.length; pi++) {
+        var r = pageItems[pi];
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td class=\\\"stt\\\">" + (start + pi + 1) + "</td>" +
+          "<td class=\\\"tid-cell\\\">" + esc(r.taskId) + "</td>" +
+          "<td>" + esc(r.staffId) + "</td>" +
+          "<td>" + esc(r.staffName || "") + "</td>" +
+          "<td>" + badgeFor(r.status) + "</td>" +
+          "<td>" + taskTypeBadge(r.taskType) + "</td>" +
+          "<td>" + esc(r.station || "") + "</td>" +
+          "<td>" + esc(r.team || "") + "</td>" +
+          "<td>" + esc(r.slotCode || "") + "</td>" +
+          "<td>" + esc(r.createdAtText || "") + "</td>" +
+          "<td>" + esc(displayName(r.createdBy || "")) + "</td>" +
+          '<td><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
+        body.appendChild(tr);
+      }
+      renderPaginator_("taskPagination", total, LIST_PAGE, "goListPage");
     }
-    if (empty) empty.style.display = "none";
-    rows.forEach(function (r, idx) {
-      var tr = document.createElement("tr");
-      tr.innerHTML =
-        "<td class=\\\"stt\\\">" + (idx + 1) + "</td>" +
-        "<td class=\\\"tid-cell\\\">" + esc(r.taskId) + "</td>" +
-        "<td>" + esc(r.staffId) + "</td>" +
-        "<td>" + esc(r.staffName || "") + "</td>" +
-        "<td>" + badgeFor(r.status) + "</td>" +
-        "<td>" + taskTypeBadge(r.taskType) + "</td>" +
-        "<td>" + esc(r.station || "") + "</td>" +
-        "<td>" + esc(r.team || "") + "</td>" +
-        "<td>" + esc(r.slotCode || "") + "</td>" +
-        "<td>" + esc(r.createdAtText || "") + "</td>" +
-        "<td>" + esc(displayName(r.createdBy || "")) + "</td>" +
-        '<td><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
-      body.appendChild(tr);
-        });
-  }
   // Mở task từ kết quả tìm kiếp → thoát search (reset mode+header) rồi mở scan.
   // KHÔNG gọi loadTaskList (tránh skeleton/fetch list rồi mới chuyển view) — chuyển trực tiếp viewScan.
   function openScanAndCloseSearch(e, taskId) {
@@ -2361,6 +2491,10 @@
   // render NGAY từ bộ nhớ (không skeleton) + RPC nền sync im lặng.
   // TTL dùng chung CACHE_TTL_MS — không bao giờ hiển thị data stale hơn server.
   var LAST_TASK_LIST = { tasks: null, ts: 0 };
+  // Lưu kết quả tìm NV hiện tại (để goListPage render lại đúng trang).
+  var LAST_SEARCH_ROWS = [];
+  // Lưu kết quả tìm TASK hiện tại (mode 'task') — render lại trang không mất kết quả.
+  var LAST_TASK_SEARCH = [];
   function invalidateClientCaches_() {
     LAST_TASK_LIST = { tasks: null, ts: 0 };
     LAST_SCAN_VIEW = { taskId: null, ts: 0 };
@@ -2380,6 +2514,7 @@
         : (CURRENT_TASK.status === TASK_STATUS_C.DONE ? 'done' : 'open');
     }
     CURRENT_LOG = safeArr(data.log);
+    SCAN_PAGE = 1; // dữ liệu mới (task vừa mở) → về trang đầu
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
     var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
@@ -2583,66 +2718,77 @@
   }
 
   function renderScanTable(log) {
-    var body = document.getElementById('scanTableBody');
-    var empty = document.getElementById('scanEmpty');
-    var tbl = document.getElementById('scanTable');
-    if (!log || !log.length) {
-      // P3: log rỗng → ẩn luôn bảng (header trống + empty div gây rối mắt)
-      body.innerHTML = '';
-      if (tbl) tbl.style.display = 'none';
-      empty.textContent = 'Không có nhân viên nào trong danh sách';
-      empty.style.display = '';
-      return;
-    }
-    var rows = filterAndSortScan(log);
-    if (!rows.length) {
-      // C3: có log nhưng bộ lọc loại hết → báo khác empty thật
-      body.innerHTML = '';
-      if (tbl) tbl.style.display = 'none';
-      empty.textContent = 'Không có NV khớp bộ lọc';
-      empty.style.display = '';
-      return;
-    }
-    empty.style.display = 'none';
-    if (tbl) tbl.style.display = '';
-    _paintScanRows(body, rows);
-  }
-
-  // I2: keyed row-diff — chỉ update cell thay đổi, không replace toàn bộ (chống flicker)
-  function _paintScanRows(body, rows) {
-    var existing = {};
-    var i, tr;
-    for (i = 0; i < body.children.length; i++) {
-      tr = body.children[i];
-      if (tr.dataset && tr.dataset.id) existing[tr.dataset.id] = tr;
-    }
-    var keep = {};
-    for (i = 0; i < rows.length; i++) {
-      var r = rows[i];
-      tr = existing[r.staffId];
-      if (!tr) { tr = document.createElement('tr'); tr.dataset.id = r.staffId; }
-      tr.className = r.status === STATUS_C.EXTRA ? 'extra-row' : '';  // C4: nổi bật NV lạ
-      var cells = scanRowCells(r, i);
-      if (tr.children.length !== cells.length) {
-        tr.innerHTML = cells.join('');
-      } else {
-        for (var c = 0; c < cells.length; c++) {
-          if (tr.children[c].innerHTML !== cells[c]) tr.children[c].innerHTML = cells[c];
-        }
+      var body = document.getElementById('scanTableBody');
+      var empty = document.getElementById('scanEmpty');
+      var tbl = document.getElementById('scanTable');
+      if (!log || !log.length) {
+        // P3: log rỗng → ẩn luôn bảng (header trống + empty div gây rối mắt)
+        body.innerHTML = '';
+        if (tbl) tbl.style.display = 'none';
+        empty.textContent = 'Không có nhân viên nào trong danh sách';
+        empty.style.display = '';
+        renderPaginator_('scanPagination', 0, 1, 'goScanPage');
+        return;
       }
-      keep[r.staffId] = tr;
+      var rows = filterAndSortScan(log);
+      if (!rows.length) {
+        // C3: có log nhưng bộ lọc loại hết → báo khác empty thật
+        body.innerHTML = '';
+        if (tbl) tbl.style.display = 'none';
+        empty.textContent = 'Không có NV khớp bộ lọc';
+        empty.style.display = '';
+        renderPaginator_('scanPagination', 0, 1, 'goScanPage');
+        return;
+      }
+      empty.style.display = 'none';
+      if (tbl) tbl.style.display = '';
+      // Pagination: slice theo trang hiện tại (PAGE_SIZE=50)
+      var total = rows.length;
+      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (SCAN_PAGE > totalPages) SCAN_PAGE = totalPages;
+      if (SCAN_PAGE < 1) SCAN_PAGE = 1;
+      var start = (SCAN_PAGE - 1) * PAGE_SIZE;
+      _paintScanRows(body, rows, start);
+      renderPaginator_('scanPagination', total, SCAN_PAGE, 'goScanPage');
     }
-    // Xoá tr không còn trong dữ liệu lọc
-    for (i = body.children.length - 1; i >= 0; i--) {
-      tr = body.children[i];
-      if (!keep[tr.dataset && tr.dataset.id]) tr.remove();
+
+    // I2: keyed row-diff — chỉ update cell thay đổi, không replace toàn bộ (chống flicker)
+    function _paintScanRows(body, rows, startIdx) {
+      var existing = {};
+      var i, tr;
+      var start = startIdx || 0;
+      var pageItems = rows.slice(start, start + PAGE_SIZE);
+      for (i = 0; i < body.children.length; i++) {
+        tr = body.children[i];
+        if (tr.dataset && tr.dataset.id) existing[tr.dataset.id] = tr;
+      }
+      var keep = {};
+      for (i = 0; i < pageItems.length; i++) {
+        var r = pageItems[i];
+        tr = existing[r.staffId];
+        if (!tr) { tr = document.createElement('tr'); tr.dataset.id = r.staffId; }
+        tr.className = r.status === STATUS_C.EXTRA ? 'extra-row' : '';  // C4: nổi bật NV lạ
+        var cells = scanRowCells(r, start + i);
+        if (tr.children.length !== cells.length) {
+          tr.innerHTML = cells.join('');
+        } else {
+          for (var c = 0; c < cells.length; c++) {
+            if (tr.children[c].innerHTML !== cells[c]) tr.children[c].innerHTML = cells[c];
+          }
+        }
+        keep[r.staffId] = tr;
+      }
+      // Xoá tr không còn trong dữ liệu lọc
+      for (i = body.children.length - 1; i >= 0; i--) {
+        tr = body.children[i];
+        if (!keep[tr.dataset && tr.dataset.id]) tr.remove();
+      }
+      // Đưa về đúng thứ tự lọc/sort (appendChild tự chuyển về cuối)
+      for (i = 0; i < pageItems.length; i++) {
+        tr = keep[pageItems[i].staffId];
+        if (body.lastChild !== tr) body.appendChild(tr);
+      }
     }
-    // Đưa về đúng thứ tự lọc/sort (appendChild tự chuyển về cuối)
-    for (i = 0; i < rows.length; i++) {
-      tr = keep[rows[i].staffId];
-      if (body.lastChild !== tr) body.appendChild(tr);
-    }
-  }
 
   function scanRowCells(r, idx) {
     var badge = badgeFor(r.status);
