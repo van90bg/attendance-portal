@@ -25,8 +25,8 @@
       /* Design tokens (doc #2: token-driven — không magic numbers) */
       --amber: #e85d04;            /* accent v1 — header/toolbar/focus */
       --header-bg: #0d111a;        /* header command center v1 */
-      --header-text: #e2e8f0;
-      --header-border: #2a3142;
+      --header-text: #f4f7fb;
+      --header-border: #3a4a66;
       --surface-muted: #f1f3f4;    /* badge pending, counter lbl, th */
       --focus-ring: rgba(232, 93, 4, .45);
       /* Spacing 4pt grid (S1) */
@@ -604,7 +604,7 @@
       background: var(--success); box-shadow: 0 0 4px var(--success);
     }
     header .net-dot.offline { background: var(--danger); box-shadow: 0 0 4px var(--danger); }
-    header #netText { color: #7f8ea3; font-size: 12px; font-weight: 600; }
+    header #netText { color: #b6c2d4; font-size: 12px; font-weight: 600; }
     header .header-search {
       display: flex; align-items: center; gap: 4px;
       background: var(--surface, #1b202e);
@@ -619,13 +619,19 @@
       background: transparent; color: var(--header-text, #e2e8f0); font-size: 14px;
       width: 100%; min-width: 140px; padding: 6px 4px;
     }
-    header .header-search input[type=search]::placeholder { color: #7f8ea3; }
+    /* Ẩn nút ✕ native của WebKit/Blink — tránh 2 nút xoá trong ô tìm kiếm (dùng #btnSearchClear). */
+    header .header-search input[type=search]::-webkit-search-cancel-button,
+    header .header-search input[type=search]::-webkit-search-decoration {
+      -webkit-appearance: none; appearance: none; display: none;
+    }
+    header .header-search input[type=search]::-ms-clear { display: none; }  /* IE/Edge legacy */
+    header .header-search input[type=search]::placeholder { color: #aebccf; }
     header .header-search .btn-icon-dark { padding: 4px 6px; }
     header .btn-icon-dark {
       min-height: 40px;  /* P2 touch >= 44 - header compact */
       background: transparent;
       border: 1px solid var(--header-border);
-      color: #7f8ea3;
+      color: #c3cddb;
       border-radius: 6px;
       padding: 6px 12px;
       font-size: 14px;
@@ -2224,25 +2230,21 @@
     }
     if (empty) empty.style.display = "none";
     rows.forEach(function (r, idx) {
-          var tr = document.createElement("tr");
-          // Trạng thái task (Mở/Điểm danh/Xong) hiện badge nhỏ cạnh Mã task; cột Điểm danh = trạng thái NV (Có mặt/Vắng/Dư/…).
-          var taskStatusBadge = r.taskStatus === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>'
-            : (r.taskStatus === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>'
-            : (r.taskStatus === TASK_STATUS_C.OPEN ? '<span class="badge open">Mở</span>' : '<span class="badge">' + esc(r.taskStatus || "") + '</span>'));
-          tr.innerHTML =
-            "<td class=\\\"stt\\\">" + (idx + 1) + "</td>" +
-            '<td><a href="#" onclick="openScanAndCloseSearch(event,' + escAttr(r.taskId) + ')" class="tid-link">' + esc(r.taskId) + '</a> ' + taskStatusBadge + '</td>' +
-            "<td>" + esc(r.staffId) + "</td>" +
-            "<td>" + esc(r.staffName || "") + "</td>" +
-            "<td>" + badgeFor(r.status) + "</td>" +
-            "<td>" + taskTypeBadge(r.taskType) + "</td>" +
-            "<td>" + esc(r.station || "") + "</td>" +
-            "<td>" + esc(r.team || "") + "</td>" +
-            "<td>" + esc(r.slotCode || "") + "</td>" +
-            "<td>" + esc(r.createdAtText || "") + "</td>" +
-            "<td>" + esc(displayName(r.createdBy || "")) + "</td>" +
-            '<td><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
-          body.appendChild(tr);
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td class=\\\"stt\\\">" + (idx + 1) + "</td>" +
+        "<td class=\\\"tid-cell\\\">" + esc(r.taskId) + "</td>" +
+        "<td>" + esc(r.staffId) + "</td>" +
+        "<td>" + esc(r.staffName || "") + "</td>" +
+        "<td>" + badgeFor(r.status) + "</td>" +
+        "<td>" + taskTypeBadge(r.taskType) + "</td>" +
+        "<td>" + esc(r.station || "") + "</td>" +
+        "<td>" + esc(r.team || "") + "</td>" +
+        "<td>" + esc(r.slotCode || "") + "</td>" +
+        "<td>" + esc(r.createdAtText || "") + "</td>" +
+        "<td>" + esc(displayName(r.createdBy || "")) + "</td>" +
+        '<td><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
+      body.appendChild(tr);
         });
   }
   // Mở task từ kết quả tìm kiếp → thoát search (reset mode+header) rồi mở scan.
