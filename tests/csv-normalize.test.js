@@ -1,6 +1,6 @@
 /**
  * tests/csv-normalize.test.js — Node thuần (không cần GAS)
- * Test: parseCsvToStaff, normalizeStaffName/Id, buildStaffIndex, filterStaffByGroup, distinctValues
+ * Test: normalizeStaffName/Id, buildStaffListFromValues, buildStaffIndex, filterStaffByGroup, distinctValues
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -10,6 +10,17 @@ const path = require('node:path');
 const CsvUtil = require('../CsvUtil.gs');
 
 const FIXTURE = path.join(__dirname, '..', 'test-fixtures', 'Att.sample.csv');
+
+/** Đọc fixture dạng mảng 2D (mô phỏng getValues() của sheet). */
+function fixtureValues() {
+  const csvText = fs.readFileSync(FIXTURE, 'utf8');
+  return csvText.split(/\r?\n/).filter((l) => l.trim() !== '').map((l) => CsvUtil.splitCsvLine(l));
+}
+
+/** Staff list từ fixture (giống readStaffListUncached_ — buildStaffListFromValues). */
+function fixtureStaff() {
+  return CsvUtil.buildStaffListFromValues(fixtureValues());
+}
 
 test('normalizeStaffName: trim + gộp double-space', () => {
   assert.equal(CsvUtil.normalizeStaffName('  Đào   Quang  Hà  '), 'Đào Quang Hà');
@@ -27,47 +38,15 @@ test('splitCsvLine: cơ bản + quoted', () => {
   assert.deepEqual(CsvUtil.splitCsvLine('"a""b",c'), ['a"b', 'c']);
 });
 
-test('parseCsvToStaff: parse fixture Att.sample.csv (12 dòng data)', () => {
-  const csvText = fs.readFileSync(FIXTURE, 'utf8');
-  const staff = CsvUtil.parseCsvToStaff(csvText);
-  assert.equal(staff.length, 12);
-  // staffId đã uppercase + trim
-  assert.equal(staff[0].staffId, 'OPS000001');
-  // slotCode giữ nguyên text
-  assert.equal(staff[0].slotCode, '08:00-17:00');
-  assert.equal(staff[6].slotCode, '22:00-06:00');
-  // station/team
-  assert.equal(staff[0].station, 'HN2 SOC');
-  assert.equal(staff[0].team, 'Outbound');
-  // cardIn/cardOut
-  assert.equal(staff[0].cardIn, '7:57:01');
-  assert.equal(staff[0].cardOut, '');
-  assert.equal(staff[7].cardOut, '6:03:03');
-});
-
-test('parseCsvToStaff: bỏ dòng trống + header-only', () => {
-  assert.equal(CsvUtil.parseCsvToStaff('').length, 0);
-  assert.equal(CsvUtil.parseCsvToStaff('No.,Date,Staff ID\n').length, 0);
-});
-
 test('buildStaffIndex: map theo header sheet', () => {
-  const csvText = fs.readFileSync(FIXTURE, 'utf8');
-  const staff = CsvUtil.parseCsvToStaff(csvText);
-  // Mô phỏng getValues(): header + rows (chỉ cột cần thiết)
-  const header = ['No.', 'Date', 'Staff ID', 'Staff Name', 'Staff Email', 'Agency', 'Contract Type', 'Event ID', 'Matching Type', 'Gender', 'Department', 'Clock In Time', 'Clock Out Time', 'Actual Hours', 'Clock In Remark', 'Clock Out Remark', 'Slot Code', 'Workstation', 'Team', 'Station'];
-  const values = [header];
-  staff.forEach((s) => {
-    values.push([s.no, s.date, s.staffId, s.staffName, s.staffEmail, s.agency, s.contractType, s.eventId, s.matchingType, s.gender, s.department, s.cardIn, s.cardOut, s.actualHours, s.cardInRemark, s.cardOutRemark, s.slotCode, s.workstation, s.team, s.station]);
-  });
-  const index = CsvUtil.buildStaffIndex(values);
+  const index = CsvUtil.buildStaffIndex(fixtureValues());
   assert.equal(Object.keys(index).length, 12);
   assert.equal(index['OPS000001'].staffName, 'NhanVien Mau 001');
   assert.equal(index['OPS000001'].station, 'HN2 SOC');
 });
 
 test('filterStaffByGroup: lọc theo station+slotCode+team', () => {
-  const csvText = fs.readFileSync(FIXTURE, 'utf8');
-  const staff = CsvUtil.parseCsvToStaff(csvText);
+  const staff = fixtureStaff();
   const morning = CsvUtil.filterStaffByGroup(staff, { station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound' });
   assert.equal(morning.length, 6); // dòng 1-6 (Ops000001..000006)
   const night = CsvUtil.filterStaffByGroup(staff, { station: 'HN2 SOC', slotCode: '22:00-06:00', team: 'Outbound' });
@@ -105,8 +84,7 @@ test('buildStaffListFromValues: header sai → trả []', () => {
 });
 
 test('distinctValues: distinct + sort + filter theo field', () => {
-  const csvText = fs.readFileSync(FIXTURE, 'utf8');
-  const staff = CsvUtil.parseCsvToStaff(csvText);
+  const staff = fixtureStaff();
   const stations = CsvUtil.distinctValues(staff, 'station');
   assert.deepEqual(stations, ['HN2 SOC']);
   const slotCodes = CsvUtil.distinctValues(staff, 'slotCode');
