@@ -939,6 +939,39 @@
       <p class="muted" style="margin-top:12px;font-size:12px;">
         <i>Lưu ý: Task cũ (createdBy = 'web' hoặc rỗng) không áp dụng gate owner — ai cũng quét được phase Mở (tương thích ngược).</i>
       </p>
+
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">4. Trạng thái đối chiếu (badge)</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+        <thead>
+          <tr style="background:var(--surface-muted);">
+            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Badge</th>
+            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Ý nghĩa</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Chưa điểm danh</td><td style="padding:8px;border:1px solid var(--border);">Trong danh sách nhưng chưa quét Giờ quét — chưa tính là vắng.</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Có mặt</td><td style="padding:8px;border:1px solid var(--border);">Quét lần 2 (Giờ quét) đúng NV trong danh sách.</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Vắng</td><td style="padding:8px;border:1px solid var(--border);">Chỉ gán khi <b>Kết thúc task</b> — những dòng chưa quét Giờ quét.</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Dư</td><td style="padding:8px;border:1px solid var(--border);">Quét NV <b>không có</b> trong danh sách task (điểm danh sai ca/không có tên).</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:8px;font-size:12px;">Task đang mở: hiển thị "Chưa điểm danh" — chưa quét ≠ vắng. Sau khi Kết thúc mới đổi thành "Vắng".</p>
+
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">5. Thao tác nhanh</h3>
+      <ul style="margin:8px 0 8px 20px;padding:0;">
+        <li><b>Dán danh sách mã:</b> Task FREE/Mở (owner/admin) — dán hàng loạt mã NV 1 lần thay vì quét từng người; hệ thống gộp 1 lần ghi và báo mã lỗi.</li>
+        <li><b>Làm mới:</b> nút ⟳ trên header — tải lại danh sách task + dữ liệu HR.</li>
+        <li><b>Âm thanh:</b> 🔊/🔇 bật/tắt tiếng bíp khi quét thành công / báo lỗi.</li>
+        <li><b>Quét liên tục:</b> ô quét tự xóa + giữ focus — quét NV thứ 2 ngay khi bíp, không cần click lại.</li>
+      </ul>
+
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">6. Hiệu năng & kỹ thuật</h3>
+      <ul style="margin:8px 0 8px 20px;padding:0;line-height:1.8;">
+        <li><b>Cache 5 tầng</b> — task theo mã 60s, danh sách 30s, chi tiết 15s; mọi ghi đều xóa cache đúng chỗ nên dữ liệu không bao giờ cũ vô hạn.</li>
+        <li><b>Ghi batch:</b> kết thúc task 1000 NV = 1 lần ghi (setValues), không lặp từng dòng.</li>
+        <li><b>Khóa ghi (LockService):</b> nhiều máy quét cùng 1 task an toàn — không ghi đè nhau.</li>
+        <li><b>Ôm sóc lỗi:</b> quét mã lạ/sai người pha → phản hồi rõ (toast + card) chứ không để yên lặng.</li>
+      </ul>
     </div>
   </div>
 </section>
