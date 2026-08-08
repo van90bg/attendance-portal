@@ -34,6 +34,9 @@ function makeCtx(overrides) {
     isValidBarcodeId: (s) => /^OPS/i.test(s),
     formatTime_: () => '00:00:00',
     readTask_: () => overrides.readTask_ ? overrides.readTask_() : null,
+    // m3: scanStaff giờ đọc task QUA cache — mock delegate về readTask_ (hành vi tương đương).
+    // Test có thể override riêng readTaskCached_ để khóa đường dùng cache.
+    readTaskCached_: () => overrides.readTaskCached_ ? overrides.readTaskCached_() : (overrides.readTask_ ? overrides.readTask_() : null),
     readLogRowsCached_: () => overrides.logRows || [],
     appendLogRow_: () => {},
     updateLogRowScan_: () => {},
@@ -87,6 +90,19 @@ test('scanStaff: quét tự do (FREE) phase1 — KHÔNG ghi Dư, trả PENDING',
   assert.equal(res.ok, true);
   assert.equal(res.status, ctx.STATUS.PENDING, 'free quét đầu = Chưa điểm danh, KHÔNG Dư');
   assert.equal(res.message, ctx.STATUS.PENDING, 'toast message không được là "Dư"');
+});
+
+test('scanStaff: ĐỌC task QUA readTaskCached_, không gọi readTask_ trực tiếp (m3)', () => {
+  const ctx = makeCtx({
+    // Nếu scanStaff quay lại đọc thẳng readTask_ là TEST THẤT BẠI (đập cache tiết kiệm)
+    readTask_: () => { throw new Error('readTask_ trực tiếp bị gọi — scanStaff phải đi qua cache'); },
+    readTaskCached_: () => freshTask('reconcile', 'open'),
+    logRows: [],
+  });
+  const svc = loadScanService(ctx);
+  const res = svc.scanStaff('R1', 'ops999999');
+  assert.equal(res.ok, true, 'phải ok qua cache — ' + res.message);
+  assert.equal(res.status, ctx.STATUS.EXTRA, 'roster NV lạ = Dư (vẫn đi qua cache)');
 });
 
 test('scanStaff: quét tự do (FREE) phase2 — NV lạ ngoài danh sách phase1 → Dư / EXTRA', () => {

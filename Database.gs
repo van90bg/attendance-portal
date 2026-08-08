@@ -269,44 +269,82 @@ function readTask_(taskId) {
   return null;
 }
 
+/**
+ * m3 (audit): đọc task theo taskId CÓ CACHE ngắn (TTL 60s) — dành cho ĐƯỜNG QUÉT
+ * (scanStaff đọc mỗi lượt, không getDataRange full AttendanceTask mỗi scan).
+ * AN TOÀN: mọi write vào AttendanceTask đều qua insertTask_/updateTaskStatus_
+ * (cùng LockService) và invalidate key này → cache không bao giờ stale lâu hơn
+ * khoảng giữa 2 write; status đọc ra luôn là trạng thái mới nhất đã ghi.
+ * Đường quyết định trạng thái (complete/transition/reopen) vẫn dùng readTask_ tươi.
+ * @param {string} taskId
+ * @returns {Object|null}
+ */
+function readTaskCached_(taskId) {
+  return cachedJson_(CACHE_KEYS.TASK + taskId, function () {
+    return readTask_(taskId);
+  }, CACHE_TTL.TASK);
+}
+
+/** Xoá task cache 1 task (gọi sau insertTask_/updateTaskStatus_). */
+function invalidateTaskCache_(taskId) {
+  if (!taskId) return;
+  try { cache_().remove(CACHE_KEYS.TASK + taskId); }
+  catch (e) { console.warn('invalidateTaskCache_ fail', taskId, e.message); }
+}
+
+/** Xoá mọi cache task sau khi ghi AttendanceTask — thêm TASK cache chỉ đổi ở 1 chỗ. */
+function invalidateTaskCaches_(taskId) {
+  invalidateTaskListCache_();
+  invalidateTaskDetailCache_(taskId);
+  invalidateTaskCache_(taskId);
+}
+
 /** Ghi task mới (append — tần suất thấp, chấp nhận appendRow). */
 function insertTask_(task) {
   getSheet_(SHEETS.ATTENDANCE_TASK).appendRow([
     task.taskId, task.taskType, task.station, task.slotCode, task.team,
     task.contractType || '', task.status, task.createdAt, task.createdBy, task.completedAt || '',
   ]);
-  invalidateTaskListCache_();
-  // F5: phá negative-cache (readTaskDetailCached_ cache null 15s nếu getTaskDetail gọi
-  // trước khi task tồn tại — taskId dạng giờ-tạo có thể trùng giữa 2 lần create gần nhau).
-  invalidateTaskDetailCache_(task.taskId);
+  // F5 + m3: phá negative cache (readTaskDetailCached_/readTaskCached_ cache null 15s/60s
+  // nếu RPC đọc trước khi task tồn tại — taskId dạng giờ-tạo có thể trùng giữa 2 create).
+  invalidateTaskCaches_(task.taskId);
+}
+
+/** Đặt trạng thái mới cho 1 update (newStatus ưu tiên, fallback keepStatus). */
+function resolvedStatus_(u) {
+  if (u.newStatus !== undefined) return u.newStatus;
+  if (u.keepStatus !== undefined) return u.keepStatus;
+  console.warn('resolvedStatus_: thiếu newStatus AND keepStatus — ghi cell status rỗng', JSON.stringify(u));
+  return '';
+}
+
+/** Ghi 1 dòng task: sửa 3 cell trong memory rồi setValues 1 lần (idempotent cột không đụng). */
+function writeTaskRow_(sheet, r, vals, status, completedAt, contractType) {
+  vals[TASK_COLS.CONTRACT_TYPE] = contractType || '';
+  vals[TASK_COLS.STATUS] = status;
+  vals[TASK_COLS.COMPLETED_AT] = completedAt || '';
+  sheet.getRange(r, 1, 1, TASK_COL_COUNT).setValues([vals]);
 }
 
 /** Cập nhật trạng thái task (status, completedAt). */
 function updateTaskStatus_(taskId, status, completedAt, rowIndex, contractType) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_TASK);
-  const write = function (r) {
-    // P0 FIX: ghi 3 cột rời nhau (CONTRACT_TYPE cột 5, STATUS cột 6, COMPLETED_AT cột 9 — KHÔNG liền nhau,
-    // TASK_COLS: CONTRACT_TYPE=5, STATUS=6, CREATED_AT=7, CREATED_BY=8, COMPLETED_AT=9).
-    // Lỗi cũ (v1): getRange(r, STATUS+1, 1, 2) ghi [status, completedAt] vào cột 6,7
-    // → completedAt ĐÈ LÊN CREATED_AT (phá hủy thời điểm tạo), COMPLETED_AT không bao giờ ghi.
-    sheet.getRange(r, TASK_COLS.CONTRACT_TYPE + 1).setValue(contractType || '');
-    sheet.getRange(r, TASK_COLS.STATUS + 1).setValue(status);
-    sheet.getRange(r, TASK_COLS.COMPLETED_AT + 1).setValue(completedAt || '');
-  };
-  // F4: rowIndex optional — completeTask đã đọc task (có _rowIndex) → bỏ 1 lần
-  // getDataRange + scan lại sheet (chỉ 1 caller duy nhất: TaskService.completeTask).
+  // m3 (audit): ghi 1 setValues cho cả dòng — CONTRACT_TYPE=5, STATUS=6, COMPLETED_AT=9
+  // KHÔNG liền nhau (CREATED_AT=7/CREATED_BY=8 xen giữa) nên phải đọc dòng → sửa trong
+  // memory → ghi cả dòng (idempotent cột không đụng, chống lỗi v1 completedAt đè CREATED_AT).
+  // 2 nhánh dùng CHUNG writeTaskRow_ — trước có 2 bản copy (rủi ro drift).
+  // F4: rowIndex optional — CẢ 3 caller (completeTask/transitionToAttend/reopenTask) đều
+  // truyền _rowIndex (đã readTask_ tươi), nhánh loop chỉ là fallback legacy thủ công.
   if (rowIndex) {
-    write(rowIndex);
-    invalidateTaskListCache_();
-    invalidateTaskDetailCache_(taskId);
+    writeTaskRow_(sheet, rowIndex, sheet.getRange(rowIndex, 1, 1, TASK_COL_COUNT).getValues()[0], status, completedAt, contractType);
+    invalidateTaskCaches_(taskId);
     return true;
   }
   const values = sheet.getDataRange().getValues();
   for (let i = 1; i < values.length; i++) {
     if (String(values[i][TASK_COLS.TASK_ID] || '').trim() === taskId) {
-      write(i + 1);
-      invalidateTaskListCache_();
-      invalidateTaskDetailCache_(taskId);
+      writeTaskRow_(sheet, i + 1, values[i].slice(), status, completedAt, contractType);
+      invalidateTaskCaches_(taskId);
       return true;
     }
   }
@@ -702,9 +740,11 @@ function updateLogRowCache_(taskId, rowIndex, mutate) {
 }
 
 /**
- * M1 (audit): ghi 1 đợi update log rows — gom (row, field, time, status) → setValues
- * theo các contiguous run (3 cột timeRef/timeScan/status) + invalidate CHUNG 1 lần +
- * LOG_ROWS cache updated trong cùng get/put 1 pass.
+ * M1 (audit): ghi 1 đợt update log rows — gom (row, field, time, status) + invalidate
+ * CHUNG 1 lần + LOG_ROWS cache updated trong cùng get/put 1 pass.
+ * Audit 2 (ghi THEO FIELD): timeRef → chỉ cột TIME_REF (1 cột); timeScan →
+ * TIME_SCAN + STATUS (2 cột) — KHÔNG setValues cả 3 cột, tránh ghi '' vào cột không
+ * đụng tới → xóa giá trị hiện hữu (legacy v1 / sửa tay). Khớp updateLogRowRef_/updateLogRowScan_.
  * @param {string} taskId
  * @param {Array<{rowIndex:number, field:'timeRef'|'timeScan', time:Date, newStatus?:string, keepStatus?:string}>} updates
  */
@@ -730,7 +770,8 @@ function batchUpdateLogRows_(taskId, updates) {
             if (u.field === 'timeScan') {
               rows[k].timeScanText = formatTime_(u.time);
               rows[k].timeScanEpoch = u.time.getTime();
-              if (u.newStatus !== undefined) rows[k].status = u.newStatus;
+              // n2: resolve status 1 nguồn, cache khớp sheet (resolvedStatus_: newStatus → keepStatus)
+              rows[k].status = resolvedStatus_(u);
             } else {
               rows[k].timeRefText = formatTime_(u.time);
               rows[k].timeRefEpoch = u.time.getTime();
@@ -771,7 +812,9 @@ function writeBatchRuns_(sheet, updates, field) {
       if (field === 'timeRef') {
         block.push([up.time]);
       } else {
-        block.push([up.time, (up.newStatus !== undefined) ? up.newStatus : '']);
+        // n2 (audit): KHÔNG bao giờ ghi '' vào STATUS khi thiếu newStatus — fallback
+        // keepStatus (ghi lại giá trị hiện hữu = idempotent) thay vì xoá sạch cell.
+        block.push([up.time, resolvedStatus_(u)]);
       }
     }
     sheet.getRange(start, col, block.length, width).setValues(block);

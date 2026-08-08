@@ -129,6 +129,8 @@ const CACHE_TTL = {
   FILTER_OPTIONS: 5 * 60,    // 5m — distinct station/slotCode/team
   TASK_LIST: 30,             // 30s — danh sách task
   TASK_DETAIL: 15,           // 15s — chi tiết task + log (invalidate khi ghi log/đổi status)
+  TASK: 60,                  // m3: task-by-id cho ĐƯỜNG QUÉT (scanStaff đọc mỗi lượt) —
+                             // invalidate mọi write (insertTask_/updateTaskStatus_) → 60s không stale
   LOG_ROWS: 30,              // 30s — log rows theo taskId (đường quét — cập nhật incremental, không invalidate mỗi scan)
   TASK_COUNTS: 30,
   TZ: 24 * 60 * 60,          // 24h — timezone (cache 1 lần, KHÔNG gọi trong loop)
@@ -140,6 +142,7 @@ const CACHE_KEYS = {
   FILTER_OPTIONS: 'rc2_filterOptions_v1',
   TASK_LIST: 'rc2_taskList_v1',
   TASK_DETAIL: 'rc2_taskDetail_v1_',  // prefix + taskId
+  TASK: 'rc2_task_v1_',                   // prefix + taskId — m3: task cache đường quét (TTL 60s, invalidate mọi write)
   LOG_ROWS: 'rc2_logRows_v1_',          // prefix + taskId — đường quét (incremental update)
   TASK_COUNTS: 'rc2_taskCounts_v1_',      // prefix — counters theo taskId cho list (đếm 1 lần + cache 30s)
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)

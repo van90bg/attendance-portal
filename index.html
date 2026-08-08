@@ -738,7 +738,7 @@
 <body>
 <a href="#main-content" class="skip-link">Chuyển đến nội dung chính</a>
 
-<div id="loadingOverlay" role="status">
+<div id="loadingOverlay">
   <div class="spin-big"></div>
   <p>Đang tải dữ liệu…</p>
 </div>
@@ -1393,6 +1393,8 @@
         // khi dữ liệu NV đã load xong — tổng kết ngọn qua toast thay vì preview trong modal.
         if (res.counters) { CURRENT_COUNTERS = res.counters; renderCounters(res.counters); }
         if (CURRENT_TASK && CURRENT_TASK.taskId === res.taskId) {
+          // m4: silent reload — gate loadTaskDetail xử cả defer (đang quét → hoãn, queue cạn
+          // → maybeReloadPending chạy). Bỏ check scanBusy local: khỏi 2 cơ chế cho 1 vấn đề.
           loadTaskDetail(CURRENT_TASK.taskId, true);
         }
         var msg = 'Đã dán ' + res.success + '/' + res.total + ' mã'
@@ -1429,19 +1431,9 @@
     if (d) d.disabled = free;
   }
 
-  // Audit UI (a11y): focus trap cho modal tạo task + chuyển tab bằng phím mũi tên
-  // (Tab không thoát ra nền; ArrowLeft/Right đổi mode như tablist chuẩn)
-  function trapCreateModalFocus(e) {
-    var dlg = document.querySelector('#createModal.open .about-dialog');
-    if (!dlg) return;
-    if (e.key === 'Tab') {
-      var f = dlg.querySelectorAll('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])');
-      if (!f.length) return;
-      var first = f[0], last = f[f.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
-  }
+  // n1 (audit): focus trap createModal do document-level Tab handler chung xử lý
+  // (.about-overlay.open — createModal là about-overlay) — bỏ trap riêng để khỏi 2
+  // handler cùng chạy trên 1 keydown (thừa, khó đọc).
   function openCreateModal() {
     var m = document.getElementById('createModal');
     if (!m) return;
@@ -1451,14 +1443,12 @@
     refreshModeUI();
     m.setAttribute('aria-hidden', 'false');  // I10
     m.classList.add('open');
-    document.addEventListener('keydown', trapCreateModalFocus);  // Audit UI: giữ focus trong modal
     var first = document.querySelector('#createModal .msel .box');
     if (first && first.focus) first.focus();
   }
   function closeCreateModal() {
     var m = document.getElementById('createModal');
     if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
-    document.removeEventListener('keydown', trapCreateModalFocus);  // Audit UI: nhả focus trap
     var btn = document.getElementById('btnCreate');
     if (btn && btn.focus) btn.focus();
   }
@@ -2144,6 +2134,7 @@
   function invalidateClientCaches_() {
     LAST_TASK_LIST = { tasks: null, ts: 0 };
     LAST_SCAN_VIEW = { taskId: null, ts: 0 };
+    _pendingSilentReload = null; // m4: data mới → bỏ reload dồn lại (task sẽ load tươi khi mở)
   }
 
   // Render view scan từ data (dùng chung cho full-load và cache-reuse)
@@ -2242,7 +2233,7 @@
         // → renderScanView thay CURRENT_LOG bằng array MỚI, làm item.target trong queue
         // trỏ object cũ → dòng vừa quét optimistic 'biến mất'. Gate: đang scan thì bỏ qua
         // RPC silent (giữ view optimistic đang hiển thị — server vẫn ghi đúng phía sau).
-        if (silent && scanBusy()) return;
+        if (silent && scanBusy()) { _pendingSilentReload = taskId; return; } // m4: hoãn, reload khi queue cạn
         renderScanView(res);
         LAST_SCAN_VIEW = { taskId: taskId, ts: Date.now() };
         hideLoadingOverlay();  // P2: load xong → ẩn spinner
@@ -2468,6 +2459,16 @@
   var SCAN_QUEUE = [];
   var SCAN_PROCESSING = false;
   var SCAN_QUEUE_MAX = 2; // giảm backlog (5 → 2) để tên NV hiện tức thì, ít delay queue
+  // m4 (audit): silent reload (paste/finish/refresh) xảy ra giữa lượt quét → gate trong
+  // loadTaskDetail HOÃN thay vì bỏ (đặt _pendingSilentReload) → reload khi queue sạch.
+  var _pendingSilentReload = null;
+  function maybeReloadPending() {
+    if (!_pendingSilentReload) return;
+    if (scanBusy()) return; // còn lượt quét đang xử lý — chờ tiếp
+    var tid = _pendingSilentReload;
+    _pendingSilentReload = null;
+    if (CURRENT_TASK && CURRENT_TASK.taskId === tid) loadTaskDetail(tid, true);
+  }
   // P2: seq chống response cũ đè scan card mới — quét B lúc response A đang bay,
   // response A về sẽ showScanCard(A) nhảy card về NV quét trước đó vài giây.
   var SCAN_CARD_SEQ = 0;
@@ -2702,7 +2703,10 @@
   }
 
   function processScanQueue() {
-    if (SCAN_PROCESSING || !SCAN_QUEUE.length) return;
+    if (SCAN_PROCESSING || !SCAN_QUEUE.length) {
+      maybeReloadPending(); // m4: queue cạn → reload silent đã hoãn (nếu đang xem task đó)
+      return;
+    }
     SCAN_PROCESSING = true;
     var item = SCAN_QUEUE.shift();
     updateFinishBtnState();

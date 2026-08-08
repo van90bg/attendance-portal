@@ -33,7 +33,10 @@ function scanStaff(taskId, rawStaffId) {
   lock.waitLock(10000);
   try {
     const t1 = Date.now();
-    const task = readTask_(taskId);
+    // m3 (audit): dùng task cache (TTL 60s, invalidate mọi write) — trước đây readTask_
+    // getDataRange full AttendanceTask MỖI lượt quét. An toàn: complete/transition/reopen
+    // vẫn readTask_ tươi + invalidate cache dưới cùng lock nên status không bao giờ stale.
+    const task = readTaskCached_(taskId);
     // m1 (audit): null-check task — taskId không tồn tại → message sạch thay vì TypeError.
     if (!task) {
       console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, phase: 'reject-no-task', ms: Date.now() - t0 });
