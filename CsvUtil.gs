@@ -256,6 +256,20 @@ function toFilterArray_(val) {
   return s ? [s] : [];
 }
 
+/**
+ * Commit 2026-08-08: lát cắt FREE bằng slotCode magic 'Tự do'. fail-safe:
+ * - ['Tự do'] → FREE (đúng 1 phần tử); ['Tự do','08:00-17:00'] → KHÔNG free
+ *   (client bug → chạy reconcile → CREATE_FAILED_EMPTY nếu không khớp)
+ * - string 'Tự do' (tương thích cũ JSON string) → FREE
+ * @param {string|string[]} slotCode
+ * @returns {boolean}
+ */
+function isFreeSlotSelection_(slotCode) {
+  return Array.isArray(slotCode)
+    ? slotCode.length === 1 && String(slotCode[0]).trim() === 'Tự do'
+    : String(slotCode || '').trim() === 'Tự do';
+}
+
 function filterStaffByGroup(staffList, group) {
   const station = String((group && group.station) || '').trim();
   // Multi-select: teams/slots/contractTypes nhận mảng (mới) HOẶC string (tương thích cũ).
