@@ -340,6 +340,27 @@ function matchLogsByStaff(logRows, tasks, staffId) {
   return out.slice(0, 200);
 }
 
+/**
+ * matchTasksByQuery — logic THUẦN: lọc danh sách task theo mã task (prefix/contains,
+ * case-insensitive). Dùng cho tìm kiếm task ở header (F-search mở rộng): người dùng nhập
+ * "R202608" hoặc "2352" → trả các task khớp. KHÔNG join log — chỉ filter task meta.
+ *
+ * @param {Array<Object>} tasks — danh sách task (taskFromRow_ + counters, đã có từ readTaskList_).
+ * @param {string} q — chuỗi tìm (đã normalize uppercase ở caller, có thể kèm space).
+ * @returns {Array<Object>} — tasks khớp, giữ nguyên thứ tự (mới nhất trước), limit 50.
+ */
+function matchTasksByQuery(tasks, q) {
+  if (!q) return [];
+  const needle = String(q).trim().toUpperCase();
+  if (!needle) return [];
+  const out = [];
+  (tasks || []).forEach(function (t) {
+    if (!t || !t.taskId) return;
+    if (String(t.taskId).toUpperCase().indexOf(needle) >= 0) out.push(t);
+  });
+  return out.slice(0, 50);
+}
+
 // ===== Node test support (GAS bỏ qua) =====
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -350,5 +371,6 @@ if (typeof module !== 'undefined' && module.exports) {
     canScanOpen_: canScanOpen_,
     planBatchScans: planBatchScans,
     matchLogsByStaff: matchLogsByStaff,
+    matchTasksByQuery: matchTasksByQuery,
   };
 }

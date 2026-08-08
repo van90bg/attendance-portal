@@ -774,7 +774,7 @@
     </div>
     <!-- F-search: ô tìm mã Ops toàn cục (reuse taskListTable để hiển thị kết quả) -->
     <div id="headerSearch" class="header-search" role="search" aria-label="Tìm mã Ops">
-      <input type="search" id="globalSearch" placeholder="Tìm mã Ops, ví dụ Ops6219" autocomplete="off" spellcheck="false" aria-label="Tìm mã Ops">
+      <input type="search" id="globalSearch" placeholder="Tìm Ops (Ops6219) hoặc task (R2026)" autocomplete="off" spellcheck="false" aria-label="Tìm mã Ops">
       <button class="btn-icon-dark" id="btnGlobalSearch" onclick="runSearch()" title="Tìm (Enter)" aria-label="Tìm">🔍</button>
       <button class="btn-icon-dark" id="btnSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
     </div>
@@ -1135,9 +1135,9 @@
     '<th scope="col">Trạng thái</th><th scope="col">Tạo lúc</th><th scope="col">Người tạo</th>' +
     '<th scope="col">Thao tác</th></tr>';
   var SEARCH_HEAD = '<tr>' +
-    '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
-    '<th scope="col">Loại</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
-    '<th scope="col">Trạng thái</th><th scope="col">Tạo lúc</th><th scope="col">Người tạo</th></tr>';
+      '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
+      '<th scope="col">Điểm danh</th><th scope="col">Loại</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
+      '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
 
   document.addEventListener('DOMContentLoaded', function () {
     startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
@@ -2132,48 +2132,81 @@
   // STATE nguồn sống: LIST_MODE === 'search' (có trong search). Auto-focus loop + manual refresh
   // không xung đột vì viewScan ẩn khi ở viewList.
   function setListMode(mode) {
-    LIST_MODE = mode;
-    var head = document.getElementById("taskListHead");
-    if (head) head.innerHTML = (mode === "search" ? SEARCH_HEAD : ALL_HEAD);
-    var empty = document.getElementById("taskEmptyText");
-    if (empty) {
-      empty.innerHTML = (mode === "search")
-        ? "Không tìm thấy mã <b>Ops…</b> trong bất kỳ task nào. Kiểm tra lại mã hoặc bỏ lọc."
-        : "Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b>";
+  LIST_MODE = mode;
+  var head = document.getElementById("taskListHead");
+  if (head) head.innerHTML = (mode === "search" ? SEARCH_HEAD : ALL_HEAD);
+  var empty = document.getElementById("taskEmptyText");
+  if (empty) {
+    if (mode === "search") {
+      empty.innerHTML = "Không tìm thấy mã <b>Ops…</b> trong bất kỳ task nào. Kiểm tra lại mã hoặc bỏ lọc.";
+    } else if (mode === "task") {
+      empty.innerHTML = "Không tìm thấy task trùng. Nhập mã task mẫu: <b>R2026</b> hoặc thử lại.";
+    } else {
+      empty.innerHTML = "Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b>";
     }
+  }
     var cl = document.getElementById("btnSearchClear");
-    if (cl) cl.style.display = mode === "search" ? "" : "none";
+    if (cl) cl.style.display = (mode === "search" || mode === "task") ? "" : "none";
   }
 
-  // F-search: chạy tìm theo giá trị #globalSearch (validate format trước khi gọi server).
-  function runSearch() {
-    var inp = document.getElementById("globalSearch");
-    var q = inp ? inp.value.trim().toUpperCase() : "";
-    if (!q) { showToast("Nhập mã Ops, ví dụ Ops6219", true); return; }
-    // F1: chỉ tìm mã hợp lệ Ops + số — không gửi server nếu sai format.
-    if (!/^OPS\d+$/.test(q)) { showToast('Mã phải là "Ops" + số, ví dụ: Ops6219', true); return; }
-    showSection("viewList");
-    setListMode("search");
-    var skel = document.getElementById("taskSkeleton");
-    var tbl = document.getElementById("taskListTable");
-    var body = document.getElementById("taskListBody");
-    if (skel) skel.style.display = "";
-    if (tbl) tbl.style.display = "none";
-    if (body) body.innerHTML = "";
-    var cnt = document.getElementById("taskCount");
-    if (cnt) cnt.textContent = "…";
-    google.script.run
-      .withSuccessHandler(function (rows) {
-        renderSearchResults_(safeArr(rows));
-        markServerOk();
-      })
-      .withFailureHandler(function (err) {
-        markServerFail();
-        renderSearchResults_([]);
-        showToast("Lỗi tìm kiếm: " + (err && err.message ? err.message : err), true);
-      })
-      .searchLogsByStaffApi(q);
-  }
+  // F-search: chạy tìm theo giá trị #globalSearch. Mã Ops => tìm NV xuyên task;
+    // còn lại (bắt đầu R + số / chuỗi bất kỳ) => tìm task theo mã.
+    function runSearch() {
+      var inp = document.getElementById("globalSearch");
+      var raw = inp ? inp.value.trim() : "";
+      if (!raw) { showToast("Nhập mã Ops (Ops6219) hoặc mã task (R2026) để tìm", true); return; }
+      if (/^ops\d+$/i.test(raw)) { runSearchStaff(raw); return; }
+      runSearchTask(raw);
+    }
+    // Tìm theo mã NV (xuyên task) — existing flow.
+    function runSearchStaff(q) {
+      var q2 = q.toUpperCase();
+      showSection("viewList");
+      setListMode("search");
+      var skel = document.getElementById("taskSkeleton");
+      var tbl = document.getElementById("taskListTable");
+      var body = document.getElementById("taskListBody");
+      if (skel) skel.style.display = "";
+      if (tbl) tbl.style.display = "none";
+      if (body) body.innerHTML = "";
+      var cnt = document.getElementById("taskCount");
+      if (cnt) cnt.textContent = "…";
+      google.script.run
+        .withSuccessHandler(function (rows) {
+          renderSearchResults_(safeArr(rows));
+          markServerOk();
+        })
+        .withFailureHandler(function (err) {
+          markServerFail();
+          renderSearchResults_([]);
+          showToast("Lỗi tìm kiếm: " + (err && err.message ? err.message : err), true);
+        })
+        .searchLogsByStaffApi(q2);
+    }
+    // Tìm theo mã task — dùng ALL_HEAD + renderTaskList_ (giữ nút Quét/Xem + counters).
+    function runSearchTask(q) {
+      showSection("viewList");
+      setListMode("task");
+      var skel = document.getElementById("taskSkeleton");
+      var tbl = document.getElementById("taskListTable");
+      var body = document.getElementById("taskListBody");
+      if (skel) skel.style.display = "";
+      if (tbl) tbl.style.display = "none";
+      if (body) body.innerHTML = "";
+      var cnt = document.getElementById("taskCount");
+      if (cnt) cnt.textContent = "…";
+      google.script.run
+        .withSuccessHandler(function (rows) {
+          renderTaskList_(safeArr(rows));
+          markServerOk();
+        })
+        .withFailureHandler(function (err) {
+          markServerFail();
+          renderTaskList_([]);
+          showToast("Lỗi tìm kiếm task: " + (err && err.message ? err.message : err), true);
+        })
+        .searchTasksByQueryApi(q);
+    }
   // F-search: render kết quả tìm kiếm vào #taskListBody (reuse #taskListTable + skeleton + empty).
   function renderSearchResults_(rows) {
     var skel = document.getElementById("taskSkeleton");
@@ -2191,24 +2224,26 @@
     }
     if (empty) empty.style.display = "none";
     rows.forEach(function (r, idx) {
-      var tr = document.createElement("tr");
-      var taskStatusBadge = r.taskStatus === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>'
-        : (r.taskStatus === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>'
-        : (r.taskStatus === TASK_STATUS_C.OPEN ? '<span class="badge open">Mở</span>' : '<span class="badge">' + esc(r.taskStatus || "") + '</span>'));
-      tr.innerHTML =
-        "<td class=\"stt\">" + (idx + 1) + "</td>" +
-        '<td><a href="#" onclick="openScanAndCloseSearch(event,' + escAttr(r.taskId) + ')" class="tid-link">' + esc(r.taskId) + '</a></td>' +
-        "<td>" + esc(r.staffId) + "</td>" +
-        "<td>" + esc(r.staffName || "") + "</td>" +
-        "<td>" + taskTypeBadge(r.taskType) + "</td>" +
-        "<td>" + esc(r.station || "") + "</td>" +
-        "<td>" + esc(r.team || "") + "</td>" +
-        "<td>" + esc(r.slotCode || "") + "</td>" +
-        "<td>" + taskStatusBadge + "</td>" +
-        "<td>" + esc(r.createdAtText || "") + "</td>" +
-        "<td>" + esc(displayName(r.createdBy || "")) + "</td>";
-      body.appendChild(tr);
-    });
+          var tr = document.createElement("tr");
+          // Trạng thái task (Mở/Điểm danh/Xong) hiện badge nhỏ cạnh Mã task; cột Điểm danh = trạng thái NV (Có mặt/Vắng/Dư/…).
+          var taskStatusBadge = r.taskStatus === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>'
+            : (r.taskStatus === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>'
+            : (r.taskStatus === TASK_STATUS_C.OPEN ? '<span class="badge open">Mở</span>' : '<span class="badge">' + esc(r.taskStatus || "") + '</span>'));
+          tr.innerHTML =
+            "<td class=\\\"stt\\\">" + (idx + 1) + "</td>" +
+            '<td><a href="#" onclick="openScanAndCloseSearch(event,' + escAttr(r.taskId) + ')" class="tid-link">' + esc(r.taskId) + '</a> ' + taskStatusBadge + '</td>' +
+            "<td>" + esc(r.staffId) + "</td>" +
+            "<td>" + esc(r.staffName || "") + "</td>" +
+            "<td>" + badgeFor(r.status) + "</td>" +
+            "<td>" + taskTypeBadge(r.taskType) + "</td>" +
+            "<td>" + esc(r.station || "") + "</td>" +
+            "<td>" + esc(r.team || "") + "</td>" +
+            "<td>" + esc(r.slotCode || "") + "</td>" +
+            "<td>" + esc(r.createdAtText || "") + "</td>" +
+            "<td>" + esc(displayName(r.createdBy || "")) + "</td>" +
+            '<td><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
+          body.appendChild(tr);
+        });
   }
   // Mở task từ kết quả tìm kiếp → thoát search (reset mode+header) rồi mở scan.
   // KHÔNG gọi loadTaskList (tránh skeleton/fetch list rồi mới chuyển view) — chuyển trực tiếp viewScan.
@@ -2227,9 +2262,9 @@
     setListMode("all");
     loadTaskList();
   }
-  // Tắt search khi ấn Escape (nếu đang search + không có modal mở).
+  // Tắt search khi ấn Escape (nếu đang search/task-search + không có modal mở).
   function onSearchKeydown(e) {
-    if (e && e.key === "Escape" && LIST_MODE === "search") {
+    if (e && e.key === "Escape" && (LIST_MODE === "search" || LIST_MODE === "task")) {
       clearSearch();
     }
   }

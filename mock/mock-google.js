@@ -242,6 +242,14 @@
       out.sort(function (a, b) { return b.createdAtText < a.createdAtText ? -1 : (b.createdAtText > a.createdAtText ? 1 : 0); });
       return out.slice(0, 200);
     },
+    searchTasksByQueryApi: function (rawQ) {
+      // Mock tìm kiếm task theo mã (prefix/contains, case-insensitive) — copy matchTasksByQuery.
+      var q = String(rawQ || '').trim().toUpperCase();
+      if (!q) return [];
+      return MOCK_DATA.tasks.filter(function (t) {
+        return t.taskId && String(t.taskId).toUpperCase().indexOf(q) >= 0;
+      }).slice(0, 50);
+    },
     reopenTaskApi: function (taskId) {
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'open'; });
       return { ok: true, message: 'Đã mở lại task ' + taskId };

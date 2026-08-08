@@ -232,6 +232,12 @@ function searchLogsByStaffApi(rawStaffId) {
   return searchLogsByStaff(rawStaffId);
 }
 
+/** F-search mở rộng: tìm task theo mã (prefix/contains). Mở cho kiosk — chỉ đọc
+ *  (dùng readTaskList_ cache + counters, không đọc sheet riêng). */
+function searchTasksByQueryApi(rawQ) {
+  return searchTasksByQuery(rawQ);
+}
+
 /** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ
  *  hiện NGAY khi quét đầu thay vì về sau mới có (do StaffData index bị lazy + cache 5p).
  *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn kiosk. */

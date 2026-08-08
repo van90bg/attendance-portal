@@ -488,6 +488,26 @@ function searchLogsByStaff(rawStaffId) {
 }
 
 /**
+ * Tìm kiếm task theo mã (prefix/contains, case-insensitive) — cho ô tìm header mở rộng.
+ * Dùng readTaskList_ (đã cache 30s + counters) → KHÔNG đọc sheet riêng. Logic lọc do
+ * matchTasksByQuery (ScanLogic.gs, pure) — test Node được.
+ *
+ * @param {string} rawQ — chuỗi nhập (mã task, ví dụ "R202608" / "2352")
+ * @returns {Array<Object>} — tasks khớp (giữ counters từ readTaskList_), limit 50
+ */
+function searchTasksByQuery(rawQ) {
+  const q = String(rawQ || '').trim();
+  if (!q) return [];
+  try {
+    const tasks = readTaskList_() || [];
+    return matchTasksByQuery(tasks, q);
+  } catch (e) {
+    console.error({ bench: 'searchTasksByQuery', q: q, error: e && e.message });
+    return [];
+  }
+}
+
+/**
  * Đọc log rows của task có cache (30s) — dành cho ĐƯỜNG QUÉT (U2/scanStaff).
  * V2 khác v1: update-in-place (không append-only) nên không áp dynamic tail-rows;
  * thay bằng cache ngắn hạn + INCREMENTAL update (updateLogRowCache_) — scan chạy
