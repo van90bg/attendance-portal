@@ -229,9 +229,7 @@
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
     }
-    #createModal .create-preview { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); }
-    #createModal .create-preview-count { font-weight: 700; color: #9a4d00; margin-top: 2px; }
-    #createModal .create-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    #createModal .create-actions { display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
 
     /* v1: badge count nhẹ — nền xám nhạt, bo tròn, chữ muted (không lấn át) */
     .opt-count {
@@ -1005,10 +1003,6 @@
       </div>
     </div>
     <div class="create-footer">
-      <div id="createPreview" class="create-preview" role="status" aria-live="polite">
-        <div id="createPreviewSummary">Chưa chọn filter nào</div>
-        <div id="createPreviewCount" class="create-preview-count">Tick chọn Station / Ca / Team để xem số lượng NV</div>
-      </div>
       <div class="create-actions">
         <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
         <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task<span id="createBtnCount"></span></button>
@@ -1678,42 +1672,24 @@
     var team = groupSelectedTeams();
     var contractType = SEL.contractTypes;
     var date = SEL.date;
-    var cntEl = document.getElementById('createPreviewCount');
-    var sumEl = document.getElementById('createPreviewSummary');
-    if (!cntEl) return;
-    // Summary động (v1): tổng hợp filter đã chọn — cập nhật NGAY (không đợi RPC)
-    if (sumEl) {
-      var parts = [];
-      if (station) parts.push('Station: ' + esc(station));
-      if (slotCode.length) parts.push('Ca: ' + slotCode.length);
-      if (team.length) parts.push('Team: ' + team.length);
-      if (contractType.length) parts.push('Hình thức: ' + contractType.length);
-      if (date) parts.push('Ngày: ' + esc(date));
-      sumEl.innerHTML = parts.length ? 'Đã chọn: <strong style="color:#9a4d00">' + parts.join('</strong> · <strong style="color:#9a4d00">') + '</strong>' : 'Chưa chọn filter nào';
-    }
     if (isFreeSel()) {
-      if (!station || !team.length) {
-        cntEl.textContent = 'Chọn Station + Team';
-      } else {
-        cntEl.textContent = 'Quét tự do: chưa có danh sách sẵn. Quét lần 1 để lấy danh sách, lần 2 để điểm danh; NV quét lần 2 mà chưa có trong lần 1 sẽ tính là Dư.';
-        setCreateBtnCount(0);
-      }
+      clearTimeout(_previewTimer);
+      setCreateBtnCount(0);
       return;
     }
     if (!station || !slotCode.length || !team.length) {
-      // Audit UI: text khớp validation createTask (chỉ bắt buộc Station + Ca + Team)
-      cntEl.textContent = 'Tick chọn Ca / Team để xem số lượng NV';
+      clearTimeout(_previewTimer);
+      setCreateBtnCount(0);
       return;
     }
     clearTimeout(_previewTimer);
-    _previewTimer = setTimeout(function () {  // debounce 200ms — nhanh hơn
+    _previewTimer = setTimeout(function () {  // debounce 200ms — cập nhật số NV trên nút Tạo
       google.script.run
         .withSuccessHandler(function (res) {
-          if (!res || !res.ok) { cntEl.textContent = 'Không tải được preview'; setCreateBtnCount(0); return; }
-          cntEl.textContent = 'Dự kiến: ' + res.count + ' nhân viên';
+          if (!res || !res.ok) { setCreateBtnCount(0); return; }
           setCreateBtnCount(res.count);
         })
-        .withFailureHandler(function (err) { markServerFail(); cntEl.textContent = 'Lỗi preview: ' + err.message; })
+        .withFailureHandler(function () { setCreateBtnCount(0); })
         .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
     }, 200);
   }
