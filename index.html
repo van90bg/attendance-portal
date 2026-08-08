@@ -93,10 +93,15 @@
     }
     .btn-outline:hover { background: #eaf1fe; }
     .btn-danger {
-      background: var(--danger);
-    }
-    .btn-danger:hover { background: #b3261e; }
-    .btn-ghost {
+          background: var(--danger);
+        }
+        .btn-danger:hover { background: #b3261e; }
+        .btn-amber {
+          background: var(--amber);
+          color: #fff;
+        }
+        .btn-amber:hover { background: #d45504; }
+        .btn-ghost {
       background: transparent;
       color: var(--muted);
       border: 1px solid var(--border);
@@ -243,9 +248,9 @@
       min-width: 22px; text-align: center; display: inline-block;
     }
     /* ===== Commit 2026-08-08: modal tạo task gọn — dropdown thay 5 cây checkbox ===== */
-    .create-form { display: grid; gap: 10px; margin-top: 10px; }
-    .create-form .frow { display: grid; grid-template-columns: 132px 1fr; align-items: center; gap: 10px; }
-    .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: var(--amber, #e85d04); }
+        .create-form { display: grid; gap: 10px; margin-top: 10px; }
+        .create-form .frow { display: grid; grid-template-columns: 132px 1fr; align-items: center; gap: 10px; }
+        .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: #9a4d00; }
     .create-form .frow .fnote { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.3; }
     select.field-select {
       width: 100%; padding: 8px 30px 8px 10px; border: 1px solid var(--border, #e2e5ea); border-radius: 8px;
@@ -1081,7 +1086,7 @@
   </div>
 </div>
 
-<div id="spinModal" class="about-overlay" role="status" aria-modal="true" aria-live="polite" aria-hidden="true" aria-label="Đang xử lý">
+<div id="spinModal" class="about-overlay" role="dialog" aria-modal="true" aria-label="Đang xử lý" aria-hidden="true">
   <div class="about-dialog" style="width:auto;max-width:280px;text-align:center;padding:26px 30px;border-top:3px solid var(--amber);">
     <div class="spin-big"></div>
     <p id="spinModalMsg" role="status" aria-live="polite" style="margin-top:14px;color:var(--muted);font-size:14px;font-weight:600;"></p>
@@ -2365,23 +2370,26 @@
     }
 
     // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
-    // Giờ có mặt được). Task Quét tự do (FREE) cũng 2-phase: phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét (V2 FREE la 2-phase) — phải bấm
-    // "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
-    var isReconcile = data.task.taskType === TASK_TYPE_C.RECONCILE;
-    var canScan = data.task.phase === TASK_STATUS_C.ATTEND || isReconcile || isFree;
-    var scanInput = document.getElementById('scanInput');
-    scanInput.disabled = !canScan;
-    scanInput.placeholder = canScan ? 'Quét mã nhân viên…'
-      : 'Bấm "Chuyển điểm danh" để bắt đầu quét';
-    updateFinishBtnState();
-    // F: đồng bộ indicator sort với phase vừa render (phase2 → cột Giờ quét)
-    updateSortIndicators();
-    // T-1: áp dụng owner gate CUỐI CÙNG — nguồn quyết định cuối cho disabled/placeholder/
-    // nút Chuyển điểm danh/nút paste (không bị logic phase ở trên ghi đè).
-    applyScanPermission();
-    if (canScan && !scanOwnerLocked) {
-      scanInput.focus();
-    }
+        // Giờ có mặt được). Task Quét tự do (FREE) cũng 2-phase: phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét (V2 FREE là 2-phase) — phải bấm
+        // "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
+        var isReconcile = data.task.taskType === TASK_TYPE_C.RECONCILE;
+        // P1: canScan chỉ dựa trên phase (không dùng isReconcile/isFree) — source of truth.
+        // task DONE (status DONE hoặc phase DONE) => canScan = false. applyScanPermission() sẽ gộp owner-gate + queue-full.
+        var isDone = data.task.phase === TASK_STATUS_C.DONE || data.task.status === TASK_STATUS_C.DONE;
+        var canScan = !isDone;
+        var scanInput = document.getElementById('scanInput');
+        scanInput.disabled = !canScan;
+        scanInput.placeholder = canScan ? 'Quét mã nhân viên…'
+          : 'Task đã kết thúc — không thể quét';
+        updateFinishBtnState();
+        // F: đồng bộ indicator sort với phase vừa render (phase2 → cột Giờ quét)
+        updateSortIndicators();
+        // T-1: áp dụng owner gate CUỐI CÙNG — nguồn quyết định cuối cho disabled/placeholder/
+        // nút Chuyển điểm danh/nút paste (không bị logic phase ở trên ghi đè).
+        applyScanPermission();
+        if (canScan && !scanOwnerLocked) {
+          scanInput.focus();
+        }
   }
 
   // silent=true: gọi RPC nền (đã render từ cache) — KHÔNG show spinner, KHÔNG reset UI
@@ -2447,32 +2455,35 @@
   }
 
   function renderCounters(c) {
-    if (!c) return;
-    document.getElementById('cScanned').textContent = c.scanned || 0;
-    document.getElementById('cAbsent').textContent = c.absent || 0;
-    document.getElementById('cExtra').textContent = c.extra || 0;
-    // Label + màu động theo phase: phase1 (Mở) → "Chờ có mặt" (xanh, chưa đến lượt,
-    // KHÔNG phải Vắng); phase2 chưa kết thúc → "Chưa điểm danh" (vàng); DONE → "Vắng" (đỏ).
-    var absentCounter = document.querySelector('.counter.absent');
-    var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
-    if (lbl && CURRENT_TASK) {
-      // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chờ có mặt'.
-      var isDone = CURRENT_TASK.status === TASK_STATUS_C.DONE || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
-      if (isDone) {
-        lbl.textContent = 'Vắng';
-        absentCounter.classList.add('absent');
-        absentCounter.classList.remove('waiting');
-      } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
-        lbl.textContent = 'Chờ có mặt';
-        absentCounter.classList.add('waiting');
-        absentCounter.classList.remove('absent');
-      } else { // ATTEND (phase) — chưa kết thúc
-        lbl.textContent = 'Chưa điểm danh';
-        absentCounter.classList.add('absent');
-        absentCounter.classList.remove('waiting');
+      if (!c) return;
+      document.getElementById('cScanned').textContent = c.scanned || 0;
+      document.getElementById('cAbsent').textContent = c.absent || 0;
+      document.getElementById('cExtra').textContent = c.extra || 0;
+      // Label + màu động theo phase: phase1 (Mở) → counter "Có mặt" dùng presentAt (xanh);
+      // phase2 chưa kết thúc → "Chưa điểm danh" (vàng); DONE → "Vắng" (đỏ).
+      var absentCounter = document.querySelector('.counter.absent');
+      var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
+      if (lbl && CURRENT_TASK) {
+        // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chờ có mặt'.
+        var isDone = CURRENT_TASK.status === TASK_STATUS_C.DONE || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
+        if (isDone) {
+          lbl.textContent = 'Vắng';
+          absentCounter.classList.add('absent');
+          absentCounter.classList.remove('waiting');
+        } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
+          // phase OPEN: dùng presentAt (có mặt) thay vì absent; label đổi sang "Có mặt", màu primary.
+          var presentAt = c.presentAt || 0;
+          document.getElementById('cAbsent').textContent = presentAt;
+          lbl.textContent = 'Có mặt';
+          absentCounter.classList.add('waiting');
+          absentCounter.classList.remove('absent');
+        } else { // ATTEND (phase) — chưa kết thúc
+          lbl.textContent = 'Chưa điểm danh';
+          absentCounter.classList.add('absent');
+          absentCounter.classList.remove('waiting');
+        }
       }
     }
-  }
 
   // C3: state lọc + sort bảng scan — mặc định sort theo phase:
   // phase1 (Mở) → Giờ có mặt (col 7) mới nhất; phase2 (Điểm danh) → Giờ quét (col 8).
@@ -2745,7 +2756,6 @@
     }
     var staffId = input.value.trim();
     if (!staffId) return;
-    SCAN_CARD_SEQ++;  // F7: bump 1 lần sau guard — phủ mọi path (sai mã / đã điểm danh / enqueue)
 
     // F1: Chỉ chấp nhận mã barcode nhân viên dạng "Ops" + chữ số (case-insensitive).
     // Ví dụ hợp lệ: Ops6219, Ops000001. Sai: OpsABC, OPS, Ops12a.
@@ -2792,18 +2802,19 @@
     }
 
     var phase2 = CURRENT_TASK.phase === TASK_STATUS_C.ATTEND;
-    var now = new Date();
-    var item = {
-      staffId: staffId,
-      taskId: CURRENT_TASK.taskId,  // F1: capture task lúc enqueue — guard response cũ
-      target: target,
-      optimisticNew: false,
-      phase2: phase2,
-      oldStatus: null,
-      oldTimeRefText: null, oldTimeRefEpoch: null,
-      oldTimeScanText: null, oldTimeScanEpoch: null,
-    };
-    if (target) {
+        var now = new Date();
+        SCAN_CARD_SEQ++;  // F7: bump 1 lần sau guard — phủ mọi path (sai mã / đã điểm danh / enqueue)
+        var item = {
+          staffId: staffId,
+          taskId: CURRENT_TASK.taskId,  // F1: capture task lúc enqueue — guard response cũ
+          target: target,
+          optimisticNew: false,
+          phase2: phase2,
+          oldStatus: null,
+          oldTimeRefText: null, oldTimeRefEpoch: null,
+          oldTimeScanText: null, oldTimeScanEpoch: null,
+          scanSeq: SCAN_CARD_SEQ,  // P2: đánh dấu lượt quét này là mới nhất — response cũ không đè card
+        };
       item.oldStatus = target.status;
       item.oldTimeRefText = target.timeRefText; item.oldTimeRefEpoch = target.timeRefEpoch;
       item.oldTimeScanText = target.timeScanText; item.oldTimeScanEpoch = target.timeScanEpoch;

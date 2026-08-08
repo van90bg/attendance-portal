@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A3 — Tab mode + count chips + stacked footer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1f1f1f;background:#f2f3f5;line-height:1.5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+:root{--amber:#e85d04;--border:#e2e4e8;--muted:#6b7280;--bg-muted:#f8f9fa}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:50}
+.dialog{background:#fff;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.18);width:560px;max-width:96vw;padding:0;max-height:90vh;overflow:auto}
+h2{font-size:16px;font-weight:700;color:#1f1f1f;padding:18px 24px 12px;border-bottom:2px solid var(--amber)}
+.modes{display:flex;gap:8px;padding:14px 24px 0}
+.mode{flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.mode.active{border-color:var(--amber);background:#fef0e4}
+.mode b{font-size:13px;color:#1f1f1f}
+.mode span{font-size:11px;color:var(--muted)}
+.body{padding:12px 24px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col-title{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--amber);margin-bottom:4px}
+.tree{border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;max-height:120px;overflow:auto}
+.item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:5px;font-size:13px;cursor:pointer}
+.item input{accent-color:var(--amber)}
+.item .cnt{margin-left:auto;color:var(--muted);font-size:11px}
+.footer{padding:14px 24px 18px;border-top:1px solid var(--border);background:var(--bg-muted);border-radius:0 0 14px 14px}
+.sumline{font-size:13px;margin-bottom:10px;text-align:center}
+.sumline b{color:var(--amber);font-size:16px}
+.actions{display:flex;gap:8px;justify-content:center}
+.btn{border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-ghost{background:#e8eaed;color:#374151}
+.btn-primary{background:var(--amber);color:#fff;flex:1;max-width:220px}
+</style>
+</head>
+<body>
+<div class="overlay">
+  <div class="dialog">
+    <h2>+ Tạo task điểm danh</h2>
+    <div class="modes">
+      <div class="mode active"><b>Đối chiếu danh sách</b><span>Có danh sách nhân viên sẵn</span></div>
+      <div class="mode"><b>Quét tự do</b><span>Không cần danh sách, mọi mã là NV lạ</span></div>
+    </div>
+    <div class="body">
+      <div>
+        <span class="col-title">Station · chọn 1</span>
+        <div class="tree">
+          <label class="item"><input type="radio" name="station" checked> Kho Tân Bình <span class="cnt">18</span></label>
+          <label class="item"><input type="radio" name="station"> Kho Bình Dương <span class="cnt">12</span></label>
+        </div>
+      </div>
+      <div>
+        <span class="col-title">Ngày · chọn 1</span>
+        <div class="tree">
+          <label class="item"><input type="radio" name="date" checked>07/08/2026</label>
+          <label class="item"><input type="radio" name="date">08/08/2026</label>
+        </div>
+      </div>
+      <div>
+        <span class="col-title">Team</span>
+        <div class="tree">
+          <label class="item"><input type="checkbox" checked>Team A <span class="cnt">10</span></label>
+          <label class="item"><input type="checkbox" checked>Team B <span class="cnt">8</span></label>
+          <label class="item"><input type="checkbox">Team C <span class="cnt">6</span></label>
+        </div>
+      </div>
+      <div>
+        <span class="col-title">Ca &amp; Hình thức</span>
+        <div class="tree">
+          <label class="item"><input type="checkbox" checked>Ca 1</label>
+          <label class="item"><input type="checkbox">Ca 2</label>
+          <label class="item"><input type="checkbox" checked>Fulltime</label>
+          <label class="item"><input type="checkbox">Parttime</label>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="sumline">Đã chọn <b>24 NV</b> · Kho Tân Bình · Team A,B</div>
+      <div class="actions">
+        <button class="btn btn-ghost">Huỷ</button>
+        <button class="btn btn-primary">+ Tạo task</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
