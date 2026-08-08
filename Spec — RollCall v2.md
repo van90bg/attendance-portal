@@ -59,7 +59,7 @@ Config.gs      — mọi hằng số: sheet names, cột, trạng thái, cache k
 
 ## 3. Dữ liệu — Google Sheets (4 sheets)
 
-Spreadsheet: `1NQQnLnVDITrUIII59ibk6vVfuDnMHKqsDtfGmHgjNYo` (Config `DEFAULT_SPREADSHEET_ID`; nếu rỗng, Database tự tạo `RollCall v2 DB` khi chạy lần đầu).
+Spreadsheet: `1NQQnLnVDITrUIII59ibk6vVfuDnMHKqsDtfGmHgjNYo` (Config `DEFAULT_SPREADSHEET_ID`; nếu rỗng + chưa set Script Property `SPREADSHEET_ID` → `getSpreadsheet_` **THROW** — `ALLOW_DB_AUTO_CREATE=false` (m7): không tự tạo DB rỗng, tránh phân mảnh dữ liệu sang DB mới âm thầm).
 
 ### 3.1 Config
 

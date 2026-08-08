@@ -112,7 +112,7 @@ function debugState_() {
   return out;
 }
 
-/** Meta cho UI: title. */
+/** Meta cho UI: title + user email (hiển thị header). */
 function getMeta() {
   // Deploy "Anyone within @spxexpress.com" → getActiveUser() có email (user đăng nhập Google).
   // Anonymous thật (không login) → rỗng. Hiển thị ở header như v1.
