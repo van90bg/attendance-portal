@@ -215,8 +215,8 @@ function planBatchScans(cfg, task, logRows, codes) {
     // Normalize
     const staffId = code.toUpperCase();
     
-    // Validate format (must start with OPS)
-    if (!/^OPS/i.test(staffId)) {
+    // Validate format (must start with OPS followed by digits only)
+    if (!/^OPS\d+$/i.test(staffId)) {
       invalid.push({ code: code, ok: false, reason: 'invalid-format' });
       continue;
     }

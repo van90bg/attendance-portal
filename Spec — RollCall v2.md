@@ -199,14 +199,14 @@ open  →  attend  →  done
 
 ### 5.1 Mã barcode
 
-- **Chỉ chấp nhận prefix `Ops`** (case-insensitive): `isValidBarcodeId` = `/^ops/i`.
-- Client check `/^ops/i` chạy **trước queue** (0ms, không gọi server); server có guard lại (chống bypass qua console).
+- **Chỉ chấp nhận "Ops" + số** (case-insensitive): `isValidBarcodeId` = `/^ops\d+$/i`.
+- Client check `/^ops\d+$/i` chạy **trước queue** (0ms, không gọi server); server có guard lại (chống bypass qua console).
 
 ### 5.2 Pipeline `scanStaff` (ScanService)
 
 ```
 normalizeStaffId (trim + UPPERCASE)
-  → isValidBarcodeId?  (sai format → reject 'Mã phải bắt đầu bằng "Ops"')
+  → isValidBarcodeId?  (sai format → reject 'Mã phải bắt đầu bằng "Ops" và chỉ chứa số')
   → LockService.waitLock(10000)
   → readTask_ (không tồn tại → reject)
   → owner gate (T-1): task status === open && !canScanOpen_() → reject UI_LABELS.SCAN_OPEN_OWNER_ONLY
@@ -457,7 +457,7 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 - Mọi hằng số tập trung tại `Config.gs` — không hardcode; client mirror `STATUS_C`/`TASK_STATUS_C` trong `index.html`.
 - Cache key có version (`rc2_*_vN`) — bump để invalidate.
 - `google.script.run` không trả `Date` → trả text, check cả `xxx` + `xxxText`.
-- Client check mã Ops `/^ops/i` trước queue (0ms); server guard `isValidBarcodeId()` chống bypass.
+- Client check mã Ops `/^ops\d+$/i` trước queue (0ms); server guard `isValidBarcodeId()` chống bypass.
 - Modal pattern `.about-overlay` + dialog; `anyModalOpen()` cho Escape + focus trap + autofocus loop.
 - **Role gate**: `permission` tính TƯƠI trong `getTaskDetail` (không nhét cache chung); client `applyScanPermission()` chạy cuối `renderScanView` → nguồn quyết định cuối (`scanOwnerLocked`) — `updateFinishBtnState`/`updateQueueFullState` tôn trọng.
 - Mọi ghi log/đổi status phải gọi `invalidateTaskDetailCache_(taskId)`.

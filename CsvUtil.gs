@@ -97,7 +97,9 @@ function normalizeStaffDate_(date) {
  */
 function isValidBarcodeId(id) {
   if (id === undefined || id === null || id === '') return false;
-  return /^ops/i.test(String(id).trim());
+  // F1: mã phải bắt đầu bằng "Ops" (case-insensitive) VÀ chỉ chứa chữ số sau đó.
+  // Ví dụ hợp lệ: Ops6219, Ops7562, Ops000001. Ví dụ sai: OpsABC, OPS, Ops12a.
+  return /^ops\d+$/i.test(String(id).trim());
 }
 
 /**

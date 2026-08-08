@@ -115,10 +115,16 @@ test('distinctValues: distinct + sort + filter theo field', () => {
   assert.deepEqual(teams, ['Outbound']);
 });
 
-test('isValidBarcodeId: chỉ chấp nhận mã bắt đầu "Ops" (case-insensitive)', () => {
+test('isValidBarcodeId: chỉ chấp nhận "Ops" + số nguyên (không ký tự khác)', () => {
   assert.equal(CsvUtil.isValidBarcodeId('ops229444'), true);
   assert.equal(CsvUtil.isValidBarcodeId('OPS229444'), true);
-  assert.equal(CsvUtil.isValidBarcodeId('Ops 229444'), true);
+  assert.equal(CsvUtil.isValidBarcodeId('Ops6219'), true);   // 4 chữ số
+  assert.equal(CsvUtil.isValidBarcodeId('  ops229444  '), true); // leading/trailing whitespace bị trim
+  // F1: ký tự khác (kể cả khoảng trắng giữa Ops và số) → sai
+  assert.equal(CsvUtil.isValidBarcodeId('Ops 229444'), false);
+  assert.equal(CsvUtil.isValidBarcodeId('OpsABC'), false);   // Ops + chữ
+  assert.equal(CsvUtil.isValidBarcodeId('Ops'), false);      // Ops không có số
+  assert.equal(CsvUtil.isValidBarcodeId('Ops12a3'), false);   // hỗn hợp số + chữ
   assert.equal(CsvUtil.isValidBarcodeId('229444'), false);
   assert.equal(CsvUtil.isValidBarcodeId('NV003'), false);
   assert.equal(CsvUtil.isValidBarcodeId(''), false);

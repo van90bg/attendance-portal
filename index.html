@@ -838,11 +838,11 @@
         <div class="card">
           <div class="scan-row">
             <div class="scan-input-wrap">
-              <input type="text" id="scanInput" placeholder="Quét mã nhân viên…" aria-label="Quét mã nhân viên" autocomplete="off" autocapitalize="off" spellcheck="false">
+              <input type="text" id="scanInput" pattern="[Oo][Pp][Ss][0-9]+" placeholder="Quét mã NV (Ops…) hoặc dán danh sách…" aria-label="Quét mã nhân viên" autocomplete="off" autocapitalize="off" spellcheck="false">
             </div>
             <button class="btn" id="btnScan" onclick="submitScan()">Quét</button>
           </div>
-          <div class="scan-hint">Quét mã NV bằng máy quét hoặc gõ mã rồi nhấn Enter</div>
+          <div class="scan-hint">Quét mã NV bắt đầu bằng Ops + số, hoặc dán danh sách mã (Enter để quét)</div>
           <div id="scanCard" class="scan-card" role="status" aria-live="polite">
             <div class="sc-empty">Chưa có lượt quét</div>
           </div>
@@ -1064,6 +1064,9 @@
         submitScan();
       }
     });
+    // F2: cho phép dán danh sách mã trực tiếp vào scanInput (thay thế nút "Dán danh sách mã").
+    // Barcode scanner = keyboard emulation → không bao giờ trigger paste event; chỉ clipboard (Ctrl+V) mới đến.
+    document.getElementById('scanInput').addEventListener('paste', onScanInputPaste);
     initNetworkStatus();
     initColEvents();
     startAutoFocusLoop();
@@ -2486,6 +2489,34 @@
     renderCounters(CURRENT_COUNTERS);
   }
 
+  /* F2: Dán danh sách mã trực tiếp vào #scanInput (thay thế nút "Dán danh sách mã").
+   * - Barcode scanner = keyboard emulation → KHÔNG bao giờ trigger paste event.
+   * - Chỉ clipboard (Ctrl+V / menu) mới đến handler này.
+   * - 1 dòng → để submitScan xử lý bình thường (không preventDefault).
+   * - ≥2 dòng → mở paste modal + chạy batch hiện có (reuse submitPaste / pasteCodesApi).
+   */
+  function onScanInputPaste(e) {
+    var pasted = (e.clipboardData || window.clipboardData).getData('text/plain');
+    if (!pasted) return;
+    var lines = pasted.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
+    if (lines.length <= 1) return; // single line → để scan bình thường
+    e.preventDefault();
+    // Mở modal (openPasteModal guard gate: chỉ mở khi canScanOpen). Nếu không đủ quyền
+    // / chưa có task → modal KHÔNG mở → không gọi submitPaste (tránh gửi server âm thầm
+    // rồi render kết quả vào #pastePreview đang ẩn, user không thấy phản hồi).
+    var m = document.getElementById('pasteModal');
+    openPasteModal();
+    if (!m || !m.classList.contains('open')) {
+      showToast('Chỉ owner mới dán được mã ở phase Mở (task này)', true);
+      return;
+    }
+    var ta = document.getElementById('pasteTextarea');
+    if (ta) { ta.value = lines.join('\n'); }
+    // Reuse hoàn toàn: submitPaste đọc ta.value, clamp 1000, gọi pasteCodesApi,
+    // render kết quả vào #pastePreview, refresh counters + log.
+    submitPaste();
+  }
+
   function submitScan() {
     if (!CURRENT_TASK) return;
     // T-1: Guard against disabled input (owner gate)
@@ -2520,10 +2551,11 @@
     if (!staffId) return;
     SCAN_CARD_SEQ++;  // F7: bump 1 lần sau guard — phủ mọi path (sai mã / đã điểm danh / enqueue)
 
-    // Chỉ chấp nhận mã barcode nhân viên bắt đầu "Ops" (case-insensitive).
+    // F1: Chỉ chấp nhận mã barcode nhân viên dạng "Ops" + chữ số (case-insensitive).
+    // Ví dụ hợp lệ: Ops6219, Ops000001. Sai: OpsABC, OPS, Ops12a.
     // Check client-side TRƯỚC khi vào queue → 0ms, không gọi server → KHÔNG làm chậm scan.
-    if (!/^ops/i.test(staffId)) {
-      showToast('Mã phải bắt đầu bằng "Ops"', true);
+    if (!/^ops\d+$/i.test(staffId)) {
+      showToast('Mã phải bắt đầu bằng "Ops" và chỉ chứa số, ví dụ: Ops6219', true);
       playBeep('error');
       showScanCard('Sai mã', { staffId: staffId }, 'err');
       input.value = '';

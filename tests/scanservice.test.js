@@ -31,7 +31,7 @@ function makeCtx(overrides) {
     UI_LABELS: { TASK_CLOSED: 'Task đã kết thúc', ALREADY_SCANNED: 'Đã điểm danh', STAFF_NOT_FOUND: 'Không tìm thấy nhân viên', SCAN_OPEN_OWNER_ONLY: 'Chỉ owner mới quét được ở phase Mở (task này)' },
     // helpers (default no-op — ghi đè tuỳ test)
     normalizeStaffId: (s) => (s || '').trim().toUpperCase(),
-    isValidBarcodeId: (s) => /^OPS/i.test(s),
+    isValidBarcodeId: (s) => /^OPS\d+$/i.test(s || ''),
     formatTime_: () => '00:00:00',
     readTask_: () => overrides.readTask_ ? overrides.readTask_() : null,
     readLogRowsCached_: () => overrides.logRows || [],
@@ -97,4 +97,26 @@ test('scanStaff: quét tự do (FREE) phase2 — NV lạ ngoài danh sách phase
   // FREE phase2: NV chưa trong danh sách phase1 → Dư (EXTRA) — ghi Giờ quét, đếm Dư.
   assert.equal(res.status, ctx.STATUS.EXTRA, 'free phase2 NV lạ = Dư');
   assert.equal(res.message, ctx.STATUS.EXTRA, 'toast hiện "Dư"');
+});
+
+test('scanStaff: mã "Ops" + chữ cái (OpsABC) → reject format', () => {
+  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const svc = loadScanService(ctx);
+  const res = svc.scanStaff('R1', 'OpsABC');
+  assert.equal(res.ok, false, ' không được là Ops + chữ');
+  assert.equal(res.message, 'Mã phải bắt đầu bằng "Ops"');
+});
+
+test('scanStaff: mã "Ops" không có số (Ops) → reject format', () => {
+  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const svc = loadScanService(ctx);
+  const res = svc.scanStaff('R1', 'Ops');
+  assert.equal(res.ok, false, 'Ops không có số phải bị từ chối');
+});
+
+test('scanStaff: mã hỗn hợp số + chữ (Ops12a3) → reject format', () => {
+  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const svc = loadScanService(ctx);
+  const res = svc.scanStaff('R1', 'Ops12a3');
+  assert.equal(res.ok, false, 'Ops12a3 phải bị từ chối (có chữ a)');
 });

@@ -92,7 +92,7 @@ clasp deploy             # tạo version + deployment webapp MỚI — CÁCH Đ�
 - Mọi hằng số tập trung tại `Config.gs` — không hardcode rải rác; client mirror `STATUS_C`/`TASK_STATUS_C` trong `index.html` (1 nguồn mỗi phía)
 - Cache key có version (`rc2_*_vN`) — bump để invalidate
 - `google.script.run` không trả `Date` (trả null) — trả text, check cả `xxx` + `xxxText`
-- Client check mã Ops: regex `/^ops/i` chạy trước queue (0ms, không gọi server); server có guard `isValidBarcodeId()` chống bypass
+- Client check mã Ops: regex `/^ops\d+$/i` chạy trước queue (0ms, không gọi server); server có guard `isValidBarcodeId()` chống bypass
 - Modal pattern: `.about-overlay` + dialog; `anyModalOpen()` cho Escape + focus trap
 - **Role gate (phase Mở)**: server tính `permission` TƯƠI trong `getTaskDetail` (KHÔNG nhét vào cache chung 15s); client `applyScanPermission()` chạy **cuối** `renderScanView` + cờ `scanOwnerLocked` — nguồn quyết định cuối cho disabled/placeholder/ẩn nút (updateFinishBtnState/updateQueueFullState phải tôn trọng)
 - Mọi ghi log/đổi status phải gọi `invalidateTaskDetailCache_(taskId)` — cache detail 15s
@@ -111,7 +111,7 @@ git push origin main
 
 ## Trạng thái (2026-08-04)
 
-- ✅ 4 yêu cầu UI: counters 1 hàng · gradient scanLine · Ops prefix · modal tạo task
+- ✅ 4 yêu cầu UI: counters 1 hàng · gradient scanLine · Ops + digits only · modal tạo task
 - ✅ Modal confirm dùng chung thay `confirm()` (finishTask)
 - ✅ Scan-topbar card nổi giống v1 (hết "treo lơ lửng")
 - ✅ P1+P2+P3: rollback splice đúng row · torn-write chuẩn hóa · gate debug · chặn backToList khi xử lý · counter theo timeScan · hằng số status

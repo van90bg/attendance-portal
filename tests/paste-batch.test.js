@@ -70,6 +70,32 @@ test('planBatchScans: mã sai prefix → invalid-format không dừng batch', ()
   assert.equal(res.invalid[0].reason, 'invalid-format');
 });
 
+test('planBatchScans: Ops + chữ (OpsABC) → invalid-format (phải là Ops + số)', () => {
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const res = ScanLogic.planBatchScans(CFG, task, [], ['OpsABC']);
+  assert.equal(res.plans.length, 0); // không có mã hợp lệ nào
+  assert.equal(res.invalid.length, 1);
+  assert.equal(res.invalid[0].code, 'OpsABC');
+  assert.equal(res.invalid[0].reason, 'invalid-format');
+});
+
+test('planBatchScans: Ops không có số (Ops) → invalid-format', () => {
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const res = ScanLogic.planBatchScans(CFG, task, [], ['Ops']);
+  assert.equal(res.plans.length, 0);
+  assert.equal(res.invalid.length, 1);
+  assert.equal(res.invalid[0].reason, 'invalid-format');
+});
+
+test('planBatchScans: Ops12a3 (số + chữ hỗn hợp) → invalid-format', () => {
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const res = ScanLogic.planBatchScans(CFG, task, [], ['Ops12a3']);
+  assert.equal(res.plans.length, 0);
+  assert.equal(res.invalid.length, 1);
+  assert.equal(res.invalid[0].code, 'Ops12a3');
+  assert.equal(res.invalid[0].reason, 'invalid-format');
+});
+
 test('planBatchScans: task FREE + OPEN vs ATTEND → đúng nhánh (ATTEND chặn ở service, pure chỉ classify)', () => {
   // Phase OPEN (present) → field timeRef
   const taskOpen = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
