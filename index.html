@@ -1552,6 +1552,7 @@
   document.addEventListener('keydown', function (e) {
     // P3: Escape đóng modal (focus trap cơ bản)
     if (e.key === 'Escape') {
+      if (document.querySelector('.msel.open')) { closeMselMenu(); return; }
       var m = document.getElementById('createModal');
       if (m && m.classList.contains('open')) { closeCreateModal(); return; }
       m = document.getElementById('confirmModal');
@@ -1883,6 +1884,15 @@
     if (phId === 'msSlotPh') { var i = SEL.slots.indexOf('Tự do'); if (i >= 0) SEL.slots.splice(i, 1); clearOptCountCache(); fetchOptCounts('slot', selSlotOptions()); }
     renderAllSelects(); refreshModeUI(); updateCreatePreview();
   }
+  function closeMselMenu() {
+    ['msTeam', 'msSlot', 'msContract'].forEach(function (mid) {
+      var el = document.getElementById(mid);
+      if (!el) return;
+      el.classList.remove('open');
+      var box = el.querySelector('.box');
+      if (box) box.setAttribute('aria-expanded', 'false');
+    });
+  }
   function toggleMsel(id) {
     ['msTeam', 'msSlot', 'msContract'].forEach(function (mid) {
       var el = document.getElementById(mid);
@@ -1897,6 +1907,12 @@
   function initSelEvents() {
     var form = document.getElementById('createForm');
     if (!form) return;
+    document.addEventListener('click', function (e) {
+      if (!document.querySelector('.msel.open')) return;
+      var tgt = e.target;
+      if (tgt.closest && tgt.closest('.msel')) return;
+      closeMselMenu();
+    });
     form.addEventListener('change', function (e) {
       var t = e.target;
       if (t.id === 'selStation') {
