@@ -206,7 +206,10 @@ function planBatchScans(cfg, task, logRows, codes) {
   const plans = [];
   const invalid = [];
   // Clone logRows so we can simulate appends/updates for dedup within batch
-  const simulatedLogRows = logRows ? [...logRows] : [];
+  // Fix 2 (audit 2): shallow [...logRows] vẫn dùng CHUNG object phần tử với caller —
+  // nhánh update (timeRefEpoch/timeRef) mut bản gốc. Deep copy phần tử → pure,
+  // nếu ghi sheet throw thì chỉ ảnh hưởng simulated local, không lệch logRows caller.
+  const simulatedLogRows = logRows ? logRows.map(function (r) { return Object.assign({}, r, { timeRef: r.timeRef ? new Date(r.timeRef) : r.timeRef }); }) : [];
   
   for (let i = 0; i < codes.length; i++) {
     const rawCode = codes[i];

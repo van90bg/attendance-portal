@@ -281,10 +281,10 @@ function pasteCodes(taskId, rawLines) {
     // Process each plan
     plans.forEach(function (plan) {
       if (plan.action === 'reject') {
-        var msg = plan.reason === 'already-present' ? 'Đã có mặt' :
-                  plan.reason === 'already-scanned' ? 'Đã điểm danh' :
-                  plan.reason === 'task-closed' ? 'Task đã kết thúc' :
-                  'Không thể quét';
+        var msg = plan.reason === 'already-present' ? UI_LABELS.ALREADY_PRESENT :
+                  plan.reason === 'already-scanned' ? UI_LABELS.ALREADY_SCANNED :
+                  plan.reason === 'task-closed' ? UI_LABELS.TASK_CLOSED :
+                  UI_LABELS.STAFF_NOT_FOUND;
         results.push({ code: plan.code, ok: false, status: null, message: msg });
         failed++;
       } else if (plan.action === 'append') {

@@ -711,26 +711,12 @@ function updateLogRowCache_(taskId, rowIndex, mutate) {
 function batchUpdateLogRows_(taskId, updates) {
   if (!updates || !updates.length) return 0;
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
-  const sorted = updates.slice().sort(function (a, b) { return a.rowIndex - b.rowIndex; });
-  const timeRefBoundary = LOG_COLS.TIME_REF + 1; // 1-based
-  let i = 0;
-  while (i < sorted.length) {
-    const start = sorted[i].rowIndex;
-    let end = start, j = i;
-    while (j + 1 < sorted.length && sorted[j + 1].rowIndex === end + 1) { end++; j++; }
-    const block = [];
-    for (let r = start; r <= end; r++) {
-      const up = sorted.find(function (u) { return u.rowIndex === r; });
-      let tRef = '', tScan = '', st = '';
-      if (up) {
-        if (up.field === 'timeScan') { tScan = up.time; st = (up.newStatus !== undefined) ? up.newStatus : ''; }
-        else { tRef = up.time; st = (up.keepStatus !== undefined) ? up.keepStatus : ''; }
-      }
-      block.push([tRef, tScan, st]);
-    }
-    sheet.getRange(start, timeRefBoundary, block.length, 3).setValues(block);
-    i = j + 1;
-  }
+  // Fix 1 (audit 2): ghi CHỈ đúng cột của field — trước đây setValues cả 3 cột
+  // (timeRef/timeScan/status) nên update timeRef ghi '' vào TIME_SCAN → xoá sạch giá
+  // trị hiện hữu (legacy v1 / sửa tay). Tách: timeRef → 1 cột TIME_REF,
+  // timeScan → 2 cột TIME_SCAN+STATUS (khớp updateLogRowRef_/updateLogRowScan_ cũ).
+  writeBatchRuns_(sheet, updates, 'timeRef');
+  writeBatchRuns_(sheet, updates, 'timeScan');
   invalidateTaskDetailCache_(taskId);
   invalidateTaskListCache_();
   try {
@@ -761,6 +747,36 @@ function batchUpdateLogRows_(taskId, updates) {
     invalidateLogRows_(taskId);
   }
   return updates.length;
+}
+
+/**
+ * Helper ghi batch theo field — mỗi field chỉ đụng đúng cột mình cần.
+ * timeRef: cột TIME_REF (1 cột); timeScan: TIME_SCAN + STATUS (2 cột).
+ * Nhóm dòng liên tiếp (contiguous run) để tối đa 1 setValues/run.
+ */
+function writeBatchRuns_(sheet, updates, field) {
+  const runData = updates.filter(function (u) { return u.field === field; });
+  if (!runData.length) return;
+  const sorted = runData.slice().sort(function (a, b) { return a.rowIndex - b.rowIndex; });
+  const col = (field === 'timeRef' ? LOG_COLS.TIME_REF : LOG_COLS.TIME_SCAN) + 1;
+  const width = field === 'timeRef' ? 1 : 2;
+  let i = 0;
+  while (i < sorted.length) {
+    const start = sorted[i].rowIndex;
+    let end = start, j = i;
+    while (j + 1 < sorted.length && sorted[j + 1].rowIndex === end + 1) { end++; j++; }
+    const block = [];
+    for (let r = start; r <= end; r++) {
+      const up = sorted.find(function (u) { return u.rowIndex === r; });
+      if (field === 'timeRef') {
+        block.push([up.time]);
+      } else {
+        block.push([up.time, (up.newStatus !== undefined) ? up.newStatus : '']);
+      }
+    }
+    sheet.getRange(start, col, block.length, width).setValues(block);
+    i = j + 1;
+  }
 }
 
 /** Append dòng mới (quét lạ → Dư). */
