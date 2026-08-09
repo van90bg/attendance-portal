@@ -186,6 +186,19 @@ function readStaffIndex_() {
 function invalidateStaffIndex_() {
   cache_().remove(CACHE_KEYS.STAFF_INDEX);
   cache_().remove(CACHE_KEYS.FILTER_OPTIONS);
+  cache_().remove(CACHE_KEYS.STAFF_STATS);
+}
+
+/**
+ * Đọc TOÀN BỘ StaffData dạng list objects — FULL 20 field (view thống kê StaffData).
+ * Cache riêng (STAFF_STATS, 30s) — KHÔNG chung FILTER_OPTIONS để không phình cache
+ * dùng cho create-modal. Dùng buildStaffListFromValues (CsvUtil — giữ mọi dòng, không dedupe).
+ */
+function readStaffFullList_() {
+  return cachedJson_(CACHE_KEYS.STAFF_STATS, function () {
+    const sheet = getSheet_(SHEETS.STAFF_DATA);
+    return buildStaffListFromValues(sheet.getDataRange().getValues());
+  }, CACHE_TTL.STAFF_STATS);
 }
 
 /** Đọc toàn bộ StaffData dạng mảng objects (cache 5m — version-key FILTER_OPTIONS). */
