@@ -2103,7 +2103,6 @@
     if (empty) empty.style.display = 'none';
     tasks.forEach(function (t, idx) {
       var tr = document.createElement('tr');
-      var statusBadge = t.status === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>' : (t.status === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>' : '<span class="badge open">Mở</span>');
       tr.innerHTML =
         '<td class="stt">' + (idx + 1) + '</td>' +
         '<td>' + esc(t.taskId) + '</td>' +
@@ -2114,7 +2113,7 @@
         '<td class="num">' + (t.total || 0) + '</td>' +
         '<td class="num">' + (t.scanned || 0) + '</td>' +
         '<td class="num">' + (t.extra || 0) + '</td>' +
-        '<td>' + statusBadge + '</td>' +
+        '<td>' + taskStatusBadge(t.status) + '</td>' +
         '<td>' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
         '<td>' + esc(displayName(t.createdBy || '')) + '</td>' +
         '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
@@ -2187,9 +2186,6 @@
     if (empty) empty.style.display = "none";
     rows.forEach(function (r, idx) {
       var tr = document.createElement("tr");
-      var taskStatusBadge = r.taskStatus === TASK_STATUS_C.DONE ? '<span class="badge done">Xong</span>'
-        : (r.taskStatus === TASK_STATUS_C.ATTEND ? '<span class="badge attend">Điểm danh</span>'
-        : (r.taskStatus === TASK_STATUS_C.OPEN ? '<span class="badge open">Mở</span>' : '<span class="badge">' + esc(r.taskStatus || "") + '</span>'));
       tr.innerHTML =
         "<td class=\"stt\">" + (idx + 1) + "</td>" +
         '<td><a href="#" onclick="openScanAndCloseSearch(event,' + escAttr(r.taskId) + ')" class="tid-link">' + esc(r.taskId) + '</a></td>' +
@@ -2199,7 +2195,7 @@
         "<td>" + esc(r.station || "") + "</td>" +
         "<td>" + esc(r.team || "") + "</td>" +
         "<td>" + esc(r.slotCode || "") + "</td>" +
-        "<td>" + taskStatusBadge + "</td>" +
+        "<td>" + taskStatusBadge(r.taskStatus) + "</td>" +
         "<td>" + esc(r.createdAtText || "") + "</td>" +
         "<td>" + esc(displayName(r.createdBy || "")) + "</td>";
       body.appendChild(tr);
@@ -2641,6 +2637,14 @@
     if (taskType === TASK_TYPE_C.FREE) return '<span class="badge badge-free">Quét tự do</span>';
     if (taskType === TASK_TYPE_C.RECONCILE) return '<span class="badge badge-reconcile">Đối chiếu</span>';
     return '<span class="badge">Task</span>';
+  }
+  // F-search: badge Trạng thái task — dùng chung cho renderTaskList_ + renderSearchResults_ (tránh duplicate markup).
+  // 'attend'→Điểm danh, 'done'→Xong, 'open'→Mở; trạng thái lạ/null → badge trống.
+  function taskStatusBadge(status) {
+    if (status === TASK_STATUS_C.DONE) return '<span class="badge done">Xong</span>';
+    if (status === TASK_STATUS_C.ATTEND) return '<span class="badge attend">Điểm danh</span>';
+    if (status === TASK_STATUS_C.OPEN) return '<span class="badge open">Mở</span>';
+    return '<span class="badge">' + esc(status || '') + '</span>';
   }
 
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.
