@@ -1,136 +1,82 @@
-# RollCall v2 — Điểm danh kho
+# Attendance Portal (RollCall v2) — Quản lý chấm công & điểm danh
 
-> Hệ thống điểm danh nhân viên kho (warehouse) bằng barcode, chạy trên **Google Apps Script WebApp** + **Google Sheets**.
-> Repo: `van90bg/rollcall-kiosk-v2x` (private) · Spec đầy đủ: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
+> Hệ thống quản lý thông tin chấm công + điểm danh nhân viên kho (warehouse) bằng barcode, chạy trên **Google Apps Script WebApp** + **Google Sheets**.
+> Repo: `van90bg/rollcall-kiosk-v2x` · Spec chi tiết: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
+
+## Tổng quan
+
+**Attendance Portal** là cổng làm việc tập trung thay thế màn hình điểm danh đơn lẻ: sidebar điều hướng 5 trang, dữ liệu nhân sự lấy từ sheet **StaffData** (20 cột chuẩn Att.csv), dữ liệu chấm công lưu tại **AttendanceTask** / **AttendanceLog**.
+
+## Điều hướng (sidebar trái, collapsible 240px ↔ 48px)
+
+| Mục | Chức năng |
+| :--- | :-------- |
+| **Trang chủ** | Logo + tên app + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình kiosk/chiếu |
+| **Thống kê** | Pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), tab lọc BPO / OS — fullscreen |
+| **Điểm danh** | Danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc |
+| **Dữ liệu chấm công** | Toàn bộ StaffData — 20 cột khớp tên sheet, Clock In/Out format `H:mm:ss`, tìm mã/tên/agency |
+| **Giới thiệu** | Hướng dẫn sử dụng và thông tin kỹ thuật |
 
 ## Tính năng
 
-- **Tạo task 2 chế độ** — modal gọn với 5 dropdown: Station (chọn 1) · Ca / Team / Hình thức (multi-select checkbox) · Ngày; badge số NV từng option; **Quét tự do (FREE)** không cần danh sách
-- **2-phase quét** — phase **Mở** ghi Giờ có mặt (TIME_REF), phase **Điểm danh** ghi Giờ quét (TIME_SCAN):
-  - Task Đối chiếu: tạo ở Điểm danh ngay (pre-fill Giờ có mặt), quét 1 lần = Có mặt / Đã điểm danh / Dư
-  - Task FREE: tạo ở Mở — quét lần 1 xây danh sách (PENDING), bấm **Chuyển điểm danh** → quét lần 2 điểm danh; NV lạ phase 2 → Dư
-- **Role owner (gate phase Mở)** — task `open` chỉ **owner** (người tạo) + admin mới quét được; task legacy `createdBy='web'` không gate (fail-open tương thích); phase Điểm danh mọi người quét được
-- **Dán danh sách mã (paste)** — task FREE + Mở + owner/admin: dán hàng loạt mã NV, 1 `setValues` batch (chống timeout), dedupe trong batch, clamp 1000 dòng, kèm báo cáo mã lỗi
-- **Trang Giới thiệu** — nút ⓘ, 3 mục: giới thiệu 2 chế độ · hướng dẫn 7 bước · bảng quy tắc phân quyền
-- **Quét barcode đối chiếu** — quét mã NV (`Ops…`, case-insensitive), server phân loại 2-phase (xem trên)
-- **Kết thúc task** → các dòng chưa quét gán **Vắng** (modal confirm, không dùng `confirm()` trình duyệt); **Mở lại** → về Điểm danh, quét tiếp
-- **Counters tức thì** — Đã quét / Vắng / Dư cập nhật ngay (queue + optimistic, không chờ server)
-- **Scan queue nền** — input được capture/xoá/focus tức thì (1ms), server xử lý ngầm
-- **Scan card projector** — phản hồi ok/err/Dư trên card lớn + toast, không dùng `alert()`
-- **Bảng danh sách NV** — tìm kiếm, lọc trạng thái, sort theo cột; hiển thị giờ có mặt / giờ quét / trạng thái
-- **Âm thanh phản hồi** — beep khi quét thành công, buzz khi lỗi (Web Audio API, toggle 🔊/🔇)
-- **A11y** — skip-link, focus trap modal, `prefers-contrast`, badge nền đặc
-
-## Tech Stack
-
-| Thành phần | Công nghệ |
-| :--------- | :-------- |
-| Frontend | Vanilla HTML + CSS (không framework, không Bootstrap) |
-| Backend | Google Apps Script (V8 runtime) |
-| Database | Google Sheets (4 sheets, standalone) |
-| Test | Node `node:test` (pure-function unit tests) |
-| Deploy | clasp (`@google/clasp`) |
+- **Tạo task 2 chế độ** — modal dropdown Station · Ca · Team · Ngày; badge số NV; **Quét tự do (FREE)** không cần danh sách
+- **2-phase quét** — phase **Mở** ghi Giờ có mặt, phase **Điểm danh** ghi Giờ quét:
+  - Task Đối chiếu: pre-fill Giờ có mặt, quét = Có mặt / Đã điểm danh / Dư
+  - Task FREE: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư
+- **Role gate (phase Mở)** — task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open
+- **Sidebar 5 mục** — thu gọn icon `☰` (48px), mặc định mở; đã bỏ nút 📋/ⓘ khỏi header
+- **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 1000, báo mã lỗi
+- **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh
+- **Counters tức thì** — Đã quét / Chưa / Dư, queue nền + optimistic
+- **A11y** — skip-link, focus trap, `prefers-contrast`, phản hồi không dùng `alert()`
 
 ## Cấu trúc dự án
 
 ```
 RollCall_2/
-├── appsscript.json        # manifest — webapp block (executeAs USER_DEPLOYING, access DOMAIN) — chỉ user @spxexpress.com
-├── Code.gs                # entry point doGet + gate isEditor_() cho ?debug=*/sync/setup + pasteCodesApi
-├── Config.gs              # hằng số: sheet names, cột, cache keys/TTL, STATUS, taskType/taskStatus, UI labels
-├── CsvUtil.gs             # parse/normalize CSV + isValidBarcodeId() (pure, test được)
-├── Database.gs            # đọc StaffData, task CRUD, cache (index 5m / task 60s / list 30s / detail 15s / log rows 30s), batchAppendLogRows_
-├── ScanLogic.gs           # phân loại scan 2-phase + counters + canScanOpen_ (owner gate) + planBatchScans (pure, test được)
-├── ScanService.gs         # scanStaff — guard Ops + owner gate + LockService + update/append log · pasteCodes (batch dán)
-├── TaskService.gs         # task CRUD + transitionToAttend + kết thúc task → markUnscannedAbsent_ + getTaskDetail (+permission)
-├── index.html             # toàn bộ UI (task list + scan view + about view + paste modal) — 1 file
-├── mock/mock-google.js    # mock GAS API cho test local
-├── tests/                 # unit tests (66/66 pass — node:test)
-└── scripts/cdp-helper.js  # CDP helper (open/eval/shot) cho verify UI thật
+├── appsscript.json         # manifest + webapp block
+├── Code.gs                # doGet + verify + pasteCodesApi
+├── Config.gs              # hằng số sheet/cột/cache/status/labels (APP_TITLE)
+├── CsvUtil.gs             # parse CSV + isValidBarcodeId()
+├── Database.gs            # đọc StaffData, task CRUD, cache
+├── ScanLogic.gs           # phân loại scan 2-phase (pure)
+├── ScanService.gs         # scanStaff — guard + LockService
+├── TaskService.gs         # task CRUD + transition + kết thúc
+├── index.html             # toàn bộ UI (sidebar + 5 views) — 1 file
+├── mock/mock-google.js    # mock GAS cho dev local
+├── tests/                 # unit tests node --test
+└── scripts/cdp-helper.js  # CDP verify UI
 ```
-
-## Sheet dữ liệu (Spreadsheet `1NQQn…`)
-
-| Sheet | Vai trò |
-| :---- | :------ |
-| **Config** | Cấu hình (optional) |
-| **StaffData** | Dữ liệu HR (20 cột theo chuẩn Att.csv) — đọc-only, cache 5 phút, HR tự đồng bộ |
-| **AttendanceTask** | Task: Task ID, Type (reconcile/free), Station, Slot Code, Team, Status (open/attend/done), Created At/By, Completed At |
-| **AttendanceLog** | Log đối chiếu (11 cột): Task ID, Staff ID/Name, Slot/Team/Station/Workstation, Time Ref, Time Scan, Status, Date (ngày vào làm) |
-
-> **Đã bỏ cardIn/cardOut** (2026-08-03): log không copy 2 cột Clock In/Out từ StaffData nữa — StaffData giữ nguyên, chỉ hiển thị.
 
 ## Cách chạy
 
-### Test local
-
 ```bash
-npm test          # 66/66 — node --test (6 files)
+npm test          # 78/78 pass
 ```
 
-### Mock UI local
+Mock local: mở `index.html` bằng browser (mock tự nạp khi không có `google.script.run`).
 
-```bash
-# mở index.html trực tiếp bằng trình duyệt (mock tự nạp khi không có google.script.run)
-# có thể dùng CDP verify:
-node scripts/cdp-helper.js open "file:///C:/Users/Van90BG/Documents/AppScript/RollCall_2/index.html"
-```
-
-### Deploy (clasp)
+Deploy:
 
 ```bash
 clasp login
-clasp push -f            # đẩy code (dùng -f khi "Skipping push." do hash trùng)
-clasp deploy             # tạo version + deployment webapp MỚI — CÁCH ĐÚNG
+clasp push -f
+clasp deploy
 ```
 
-> **⚠️ Bài học deploy:** `PUT /deployments/{id}` (đổi version) **luôn làm mất `entryPoints`** → URL `/exec` trả 404. API POST cũng không tạo entryPoint. **Chỉ `clasp deploy`** (đọc `webapp` block trong appsscript.json) tạo deployment hoạt động đúng. Sau mọi thao tác deploy: **curl verify** URL `/exec` (chờ HTTP 200 + đủ marker).
+> **⚠️ Học hỏi deploy:** `PUT /deployments/{id}` đứt `entryPoints` → `/exec` 404. Chỉ dùng `clasp deploy`; sau đó verify URL `/exec` bằng curl.
 
 ## Quy ước
 
-- Cột sheet / file: tiếng Anh · Hiển thị web: tiếng Việt
-- Mọi hằng số tập trung tại `Config.gs` — không hardcode rải rác; client mirror `STATUS_C`/`TASK_STATUS_C` trong `index.html` (1 nguồn mỗi phía)
-- Cache key có version (`rc2_*_vN`) — bump để invalidate
-- `google.script.run` không trả `Date` (trả null) — trả text, check cả `xxx` + `xxxText`
-- Client check mã Ops: regex `/^ops\d+$/i` chạy trước queue (0ms, không gọi server); server có guard `isValidBarcodeId()` chống bypass
-- Modal pattern: `.about-overlay` + dialog; `anyModalOpen()` cho Escape + focus trap
-- **Role gate (phase Mở)**: server tính `permission` TƯƠI trong `getTaskDetail` (KHÔNG nhét vào cache chung 15s); client `applyScanPermission()` chạy **cuối** `renderScanView` + cờ `scanOwnerLocked` — nguồn quyết định cuối cho disabled/placeholder/ẩn nút (updateFinishBtnState/updateQueueFullState phải tôn trọng)
-- Mọi ghi log/đổi status phải gọi `invalidateTaskDetailCache_(taskId)` — cache detail 15s
+- Cột sheet: tiếng Anh · UI: tiếng Việt · Constants gom ở `Config.gs`
+- Cache versioned (`rc2_*_vN`) — thay đổi có invalidate
+- Mọi ghi log/đổi status → `invalidateTaskDetailCache_(taskId)`
 
-## Git
+## Trạng thái (2026-08-09)
 
-```bash
-git add <files>
-git commit -m "type(scope): mô tả"
-git push origin main
-```
-
-- Không commit: `.clasprc.json`, `codegraph.json`, file tạm verify, secrets
-- 1 issue / 1 commit; push giữa các bước
-- Branch `main` là nguồn duy nhất (branch `lobe` test đã gộp vào main và xoá — 2026-08-03)
-
-## Trạng thái (2026-08-04)
-
-- ✅ 4 yêu cầu UI: counters 1 hàng · gradient scanLine · Ops + digits only · modal tạo task
-- ✅ Modal confirm dùng chung thay `confirm()` (finishTask)
-- ✅ Scan-topbar card nổi giống v1 (hết "treo lơ lửng")
-- ✅ P1+P2+P3: rollback splice đúng row · torn-write chuẩn hóa · gate debug · chặn backToList khi xử lý · counter theo timeScan · hằng số status
-- ✅ Cache task detail 15s + invalidate mọi đường ghi · `markUnscannedAbsent_` 1 RPC (hết ~240 RPC khi kết thúc)
-- ✅ Simplify pass (4 reviewer): gộp helper trùng (scanBusy/scanCardHTML/statusRank/isEditor_), xoá duplicate counter bump, guard response scan theo task
-- ✅ Config trỏ script `1HmmGcLI…` + spreadsheet `1NQQnLn…` (HR tự đồng bộ vào StaffData)
-- ✅ Review pass (2026-08-03, reviewer độc lập + verify): P0 `updateTaskStatus_` ghi nhầm cột CREATED_AT → ghi đúng STATUS+COMPLETED_AT · P1 `debugState()` gate editor-only · P1 dedupe staffId trong cùng tổ hợp (Att.csv thật có NV 2 dòng cùng ca) · P2 a11y, format ngày, xóa CSS chết
-- ✅ Test: 47/47 pass
-- ✅ README + Spec viết lại khớp codebase thực tế (bỏ phần ảo: check-in/out, state machine 4 bước, offline, Bootstrap, IndexedDB)
-- ✅ **2026-08-07 — 3 yêu cầu mới** (plan `tasks/plan-2026-08-07-owner-paste-about.md`):
-  - ✅ **Role owner phase Mở (T-1)**: gate `canScanOpen_` trong scanStaff; `getTaskDetail` trả `permission` tươi (không cache chung); client khoá input + banner + ẩn nút Chuyển điểm danh/Dán mã (`applyScanPermission` chạy cuối, cờ `scanOwnerLocked`); A1: task cũ `createdBy='web'` FAIL-OPEN
-  - ✅ **Paste danh sách mã (T-2)**: `pasteCodesApi` — FREE+Mở+owner/admin, 1 `setValues` batch + cache 1 put, dedupe trong batch, clamp 1000, báo cáo mã lỗi + modal paste
-  - ✅ **View Giới thiệu (T-3)**: thay modal bằng `#aboutView` (3 mục), `showSection` quản 3 views + `lastViewBeforeAbout`
-  - ✅ **Test 57/57** (+10: `paste-batch.test.js` — planBatchScans/canScanOpen_)
-- ✅ **2026-08-08 — simplify pass F1–F6** (4 reviewer song song + verify):
-  - ✅ F1/F2: gom thân lặp `updateTaskStatus_` (2 nhánh RMW) dùng chung `writeTaskRow_`/`resolvedStatus_`,
-    `invalidateTaskCaches_` gom 3 cache 1 lời gọi (insertTask/updateTaskStatus)
-  - ✅ F3: status resolution 1 nguồn (newStatus → keepStatus) cho cache lẫn sheet
-  - ✅ F4: TASK cache 10s → 60s (có invalidate mọi write, scanStaff đọc qua `readTaskCached_`)
-  - ✅ F5: race m4 — silent reload defer khi đang quét (`_pendingSilentReload`, reload khi queue cạn)
-  - ✅ F6: test khóa quét phải ĐỌC QUA cache; **66/66 pass**
-- ⏳ P2 phase: QA prod quét NV thật (verify UI owner vs non-owner theo checkpoint plan)
+- ✅ Portal shell: sidebar + 5 pages; trang chủ logo + đồng hồ
+- ✅ Thống kê / Dữ liệu chấm công: tách view, staffTable 20 cột `H:mm:ss`
+- ✅ Fix DOM `repairViewParents()` → view bị đẩy về main
+- ✅ Fix task list: table lồng skeleton
+- ✅ Title đồng bộ `Attendance Portal`; Giới thiệu viết lại
+- ✅ 78/78 test; ⏳ P2 QA prod

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Config.gs — Hằng số toàn cục RollCall v2
  * Cột sheet/file: tiếng Anh · Hiển thị web: tiếng Việt (UI_LABELS)
  * KHÔNG hardcode string rải rác — mọi hằng số tập trung tại đây.
@@ -155,7 +155,7 @@ const CACHE_KEYS = {
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====
 // Text giao diện khác đã hardcode trong index.html (client tự quản lý).
 const UI_LABELS = {
-  APP_TITLE: 'Điểm danh kho',
+  APP_TITLE: 'Attendance Portal',
   ALREADY_SCANNED: 'Đã điểm danh',
   ALREADY_PRESENT: 'Đã có mặt',
   TASK_CLOSED: 'Task đã kết thúc',

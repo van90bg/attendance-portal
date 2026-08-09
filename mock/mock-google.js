@@ -1,4 +1,4 @@
-/**
+﻿/**
  * mock-google.js — Mock google.script.run cho test UI local (mở index.html trực tiếp).
  *
  * KHÔNG push lên GAS production (đã .claspignore). Chỉ dùng khi chạy file://
@@ -13,9 +13,9 @@
   var MOCK_DATA = {
     meta: {
       ok: true,
-      appTitle: 'Điểm danh kho [LOCAL MOCK]',
+      appTitle: 'Attendance Portal [LOCAL MOCK]',
       labels: {
-        APP_TITLE: 'Điểm danh kho',
+        APP_TITLE: 'Attendance Portal',
         BTN_RECONCILE: '+ Đối chiếu danh sách',
         BTN_CREATE: '+ Tạo task',
         BTN_SCAN: 'Quét',

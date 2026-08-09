@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#0d111a">
+  <title>Attendance Portal</title>
   <style>
     :root {
       --primary: #0b57d0;
@@ -960,7 +961,7 @@
   <header>
     <div class="brand">
       <img src="https://spx.vn/new_static/assets/images/sea-logo.svg" alt="SPX logo" width="74" height="26" onerror="this.style.display='none'">
-      <span class="title"><span class="accent">R</span>OLLCALL · <span id="brandTitle" class="brand-accent">ĐIỂM DANH KHO</span></span>
+      <span class="title"><span id="brandTitle" class="brand-accent">Attendance Portal</span></span>
     </div>
     <!-- F-search: ô tìm mã Ops toàn cục (reuse taskListTable để hiển thị kết quả) -->
     <div id="headerSearch" class="header-search" role="search" aria-label="Tìm mã Ops">
@@ -978,8 +979,6 @@
       </span>
       <button class="btn-icon-dark" id="btnSound" onclick="toggleSound()" title="Tắt/Mở âm thanh" aria-label="Tắt/Mở âm thanh">🔊</button>
       <button class="btn-icon-dark" id="btnRefresh" onclick="refreshAll()" title="Làm mới" aria-label="Làm mới">⟳ Làm mới</button>
-      <button class="btn-icon-dark" onclick="openStaffView()" title="StaffData" aria-label="StaffData">📋</button>
-      <button class="btn-icon-dark" onclick="showSection('aboutView')" title="Giới thiệu" aria-label="Giới thiệu">ⓘ</button>
     </div>
   </header>
 
@@ -1016,6 +1015,7 @@
           <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
           <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
           <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+        </div>
         <table id="taskListTable" style="display:none;">
           <thead id="taskListHead">
             <tr>
@@ -1197,52 +1197,30 @@
 <section id="aboutView" class="hidden">
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="margin:0;font-size:20px;font-weight:700;">Giới thiệu RollCall v2</h2>
-      <button class="btn btn-ghost" onclick="showSection('viewList')" aria-label="Quay lại">← Quay lại</button>
+      <h2 style="margin:0;font-size:20px;font-weight:700;">Giới thiệu Attendance Portal</h2>
+      <button class="btn btn-ghost" onclick="selectPage('home')" aria-label="Quay lại">← Trang chủ</button>
     </div>
     <div style="line-height:1.7;font-size:14px;color:var(--text);">
-      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">1. Giới thiệu</h3>
-      <p>RollCall v2 là ứng dụng điểm danh kho cho phép quản lý ca làm việc theo 2 giai đoạn: <b>Mở (Giờ có mặt)</b> và <b>Điểm danh (Giờ quét)</b>. Hỗ trợ 2 chế độ:</p>
+
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">1. Attendance Portal là gì?</h3>
+      <p><b>Attendance Portal</b> là ứng dụng quản lý thông tin chấm công & điểm danh cho kho SPX Express — thay thế màn hình điểm danh đơn lẻ bằng một cổng làm việc tập trung. Dữ liệu nhân sự lấy từ sheet <b>StaffData</b>, dữ liệu chấm công lưu tại <b>AttendanceTask</b> / <b>AttendanceLog</b>.</p>
       <ul style="margin:8px 0 8px 20px;padding:0;">
-        <li><b>Đối chiếu danh sách (RECONCILE):</b> Tạo task từ dữ liệu StaffData có sẵn — NV trong danh sách pre-fill sẵn Giờ có mặt.</li>
-        <li><b>Quét tự do (FREE):</b> Không cần danh sách sẵn — quét lần 1 xây danh sách (Giờ có mặt), quét lần 2 điểm danh (Giờ quét).</li>
+        <li><b>Trang chủ:</b> logo, đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chờ cho kiosk/chiếu.</li>
+        <li><b>Thống kê:</b> pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), lọc nhóm BPO / OS.</li>
+        <li><b>Điểm danh:</b> danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc.</li>
+        <li><b>Dữ liệu chấm công:</b> toàn bộ StaffData — 20 cột khớp tên sheet, tìm kiếm theo mã/tên/agency.</li>
+        <li><b>Giới thiệu:</b> trang này.</li>
       </ul>
 
-      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">2. Hướng dẫn từng bước</h3>
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">2. Luồng điểm danh cơ bản</h3>
       <ol style="margin:8px 0 8px 20px;padding:0;line-height:1.8;">
-        <li><b>Tạo task:</b> Chọn Station → Ca (Slot Code) → Team → (tùy chọn) Hình thức/Nhân viên → nhấn <b>+ Tạo task</b>.</li>
-        <li><b>Mở task:</b> Task mới ở trạng thái <b>Mở</b> (phase 1).</li>
-        <li><b>Quét Giờ có mặt:</b> Quét mã NV (bắt đầu bằng <b>Ops</b>) để ghi Giờ có mặt. NV trong danh sách: PENDING. NV lạ: EXTRA (Dư).</li>
-        <li><b>Chuyển Điểm danh:</b> Nhấn <b>Chuyển điểm danh</b> → task sang trạng thái <b>Điểm danh</b> (phase 2).</li>
-        <li><b>Quét Giờ quét (điểm danh):</b> Quét lại mã NV để ghi Giờ quét. NV trong danh sách: PRESENT (Có mặt). NV lạ: EXTRA (Dư).</li>
-        <li><b>Kết thúc:</b> Nhấn <b>Kết thúc</b> → NV chưa quét Giờ quét tự đánh <b>Vắng</b>. Task về trạng thái <b>Xong</b>.</li>
-        <li><b>Mở lại (nếu cần):</b> Nhấn <b>Mở lại</b> → NV Vắng về Chưa điểm danh, task về <b>Điểm danh</b> để quét tiếp.</li>
+        <li><b>Tạo task:</b> Chọn Station → Ca (Slot Code) → Team → nhấn <b>+ Tạo task</b>.</li>
+        <li><b>Quét Giờ có mặt (phase Mở):</b> Quét mã NV (bắt đầu bằng <b>Ops</b>) — NV trong danh sách: Chưa điểm danh; NV lạ: Dư.</li>
+        <li><b>Chuyển điểm danh:</b> task sang phase 2 — quét lại để ghi Giờ quét (Có mặt); NV lạ vẫn Dư.</li>
+        <li><b>Kết thúc:</b> những NV chưa quét Giờ quét tự đánh <b>Vắng</b>; task về Xong. Có thể <b>Mở lại</b> để quét bổ sung.</li>
       </ol>
 
-      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">3. Quy tắc phân quyền (Role)</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
-        <thead>
-          <tr style="background:var(--surface-muted);">
-            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Hành động</th>
-            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Owner</th>
-            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Admin</th>
-            <th style="padding:8px;border:1px solid var(--border);text-align:left;">Người khác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td style="padding:8px;border:1px solid var(--border);">Quét Giờ có mặt (phase Mở)</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">❌</td></tr>
-          <tr><td style="padding:8px;border:1px solid var(--border);">Quét Giờ quét (phase Điểm danh)</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
-          <tr><td style="padding:8px;border:1px solid var(--border);">Chuyển Điểm danh</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
-          <tr><td style="padding:8px;border:1px solid var(--border);">Kết thúc task</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
-          <tr><td style="padding:8px;border:1px solid var(--border);">Mở lại task</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td><td style="padding:8px;border:1px solid var(--border);">✅</td></tr>
-          <tr><td style="padding:8px;border:1px solid var(--border);">Dán danh sách mã (Paste)</td><td style="padding:8px;border:1px solid var(--border);">✅ (FREE+OPEN)</td><td style="padding:8px;border:1px solid var(--border);">✅ (FREE+OPEN)</td><td style="padding:8px;border:1px solid var(--border);">❌</td></tr>
-        </tbody>
-      </table>
-      <p class="muted" style="margin-top:12px;font-size:12px;">
-        <i>Lưu ý: Task cũ (createdBy = 'web' hoặc rỗng) không áp dụng gate owner — ai cũng quét được phase Mở (tương thích ngược).</i>
-      </p>
-
-      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">4. Trạng thái đối chiếu (badge)</h3>
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">3. Trạng thái đối chiếu (badge)</h3>
       <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
         <thead>
           <tr style="background:var(--surface-muted);">
@@ -1254,31 +1232,29 @@
           <tr><td style="padding:8px;border:1px solid var(--border);">Chưa điểm danh</td><td style="padding:8px;border:1px solid var(--border);">Trong danh sách nhưng chưa quét Giờ quét — chưa tính là vắng.</td></tr>
           <tr><td style="padding:8px;border:1px solid var(--border);">Có mặt</td><td style="padding:8px;border:1px solid var(--border);">Quét lần 2 (Giờ quét) đúng NV trong danh sách.</td></tr>
           <tr><td style="padding:8px;border:1px solid var(--border);">Vắng</td><td style="padding:8px;border:1px solid var(--border);">Chỉ gán khi <b>Kết thúc task</b> — những dòng chưa quét Giờ quét.</td></tr>
-          <tr><td style="padding:8px;border:1px solid var(--border);">Dư</td><td style="padding:8px;border:1px solid var(--border);">Quét NV <b>không có</b> trong danh sách task (điểm danh sai ca/không có tên).</td></tr>
+          <tr><td style="padding:8px;border:1px solid var(--border);">Dư</td><td style="padding:8px;border:1px solid var(--border);">Quét NV <b>không có</b> trong danh sách task (sai ca / không có tên).</td></tr>
         </tbody>
       </table>
-      <p class="muted" style="margin-top:8px;font-size:12px;">Task đang mở: hiển thị "Chưa điểm danh" — chưa quét ≠ vắng. Sau khi Kết thúc mới đổi thành "Vắng".</p>
 
-      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">5. Thao tác nhanh</h3>
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">4. Thao tác nhanh</h3>
       <ul style="margin:8px 0 8px 20px;padding:0;">
-        <li><b>Dán danh sách mã:</b> Task FREE/Mở (owner/admin) — dán hàng loạt mã NV 1 lần thay vì quét từng người; hệ thống gộp 1 lần ghi và báo mã lỗi.</li>
+        <li><b>Dán danh sách mã:</b> task FREE/Mở (owner/admin) — dán hàng loạt mã NV 1 lần thay vì quét từng người; hệ thống gộp 1 lần ghi và báo mã lỗi.</li>
         <li><b>Làm mới:</b> nút ⟳ trên header — tải lại danh sách task + dữ liệu HR.</li>
         <li><b>Âm thanh:</b> 🔊/🔇 bật/tắt tiếng bíp khi quét thành công / báo lỗi.</li>
         <li><b>Quét liên tục:</b> ô quét tự xóa + giữ focus — quét NV thứ 2 ngay khi bíp, không cần click lại.</li>
       </ul>
 
-      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">6. Hiệu năng & kỹ thuật</h3>
+      <h3 style="margin:16px 0 8px;font-size:15px;font-weight:700;color:var(--primary);">5. Hiệu năng & kỹ thuật</h3>
       <ul style="margin:8px 0 8px 20px;padding:0;line-height:1.8;">
-        <li><b>Cache 5 tầng</b> — task theo mã 60s, danh sách 30s, chi tiết 15s; mọi ghi đều xóa cache đúng chỗ nên dữ liệu không bao giờ cũ vô hạn.</li>
+        <li><b>Cache đa tầng</b> — task theo mã 60s, danh sách 30s, chi tiết 15s; mọi ghi đều xóa cache đúng chỗ nên dữ liệu không bao giờ cũ vô hạn.</li>
         <li><b>Ghi batch:</b> kết thúc task 1000 NV = 1 lần ghi (setValues), không lặp từng dòng.</li>
         <li><b>Khóa ghi (LockService):</b> nhiều máy quét cùng 1 task an toàn — không ghi đè nhau.</li>
-        <li><b>Ôm sóc lỗi:</b> quét mã lạ/sai người pha → phản hồi rõ (toast + card) chứ không để yên lặng.</li>
+        <li><b>Ôm sóc lỗi:</b> quét mã lạ/sai người phase → phản hồi rõ (toast + card) chứ không để yên lặng.</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- T-2: Modal dán danh sách mã (paste codes) -->
 <div id="pasteModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pasteModalTitle" onclick="if(event.target===this)closePasteModal()">
   <div class="about-dialog" style="max-width:560px;">
     <h2 id="pasteModalTitle" style="margin:0 0 12px;font-size:16px;color:var(--text);">Dán danh sách mã</h2>
@@ -1711,7 +1687,7 @@
   var STAFF_ROWS = [];          // toàn bộ StaffData (full 20 field) — cache client
   var STAFF_TAB = 'team';       // tab thống kê đang xem: 'team' | 'bpo' | 'os'
   var STAFF_CONTRACT_GROUPS = { bpo: ['S-BPO', 'I-BPO', 'BPO', 'Bpo'], os: ['OS'] };
-  var STAFF_TABLE_HEAD = ['STT','Mã NV','Tên NV','Agency','Hình thức','Team','Ca (Slot)','Workstation','Station','Ngày','Mail','Gender','Phòng ban','Giờ vào','Giờ ra','Giờ thực','Ghi chú vào','Ghi chú ra','Event ID','Loại khớp'];
+  var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
   function backToMain() { showSection('viewList'); }
 
   // Mở viewStaff: đổi section + load dữ liệu (cache 30s phía server)
@@ -1926,27 +1902,28 @@
       return;
     }
     if (head) head.innerHTML = '<tr>' + STAFF_TABLE_HEAD.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr>';
-    var trs = rows.map(function (r, i) {
+    var trs = staff.map(function (r, i) {
       return '<tr>' +
-        '<td>' + (i + 1) + '</td>' +
+        '<td>' + esc(r.no || (i + 1)) + '</td>' +
+        '<td>' + esc(r.date) + '</td>' +
         '<td><b>' + esc(r.staffId) + '</b></td>' +
         '<td>' + esc(r.staffName) + '</td>' +
+        '<td>' + esc(r.staffEmail) + '</td>' +
         '<td>' + esc(r.agency) + '</td>' +
         '<td>' + esc(r.contractType) + '</td>' +
-        '<td>' + esc(r.slotCode) + '</td>' +
-        '<td>' + esc(r.workstation) + '</td>' +
-        '<td>' + esc(r.station) + '</td>' +
-        '<td>' + esc(r.date) + '</td>' +
-        '<td>' + esc(r.staffEmail) + '</td>' +
+        '<td>' + esc(r.eventId) + '</td>' +
+        '<td>' + esc(r.matchingType) + '</td>' +
         '<td>' + esc(r.gender) + '</td>' +
         '<td>' + esc(r.department) + '</td>' +
-        '<td>' + esc(r.cardIn) + '</td>' +
-        '<td>' + esc(r.cardOut) + '</td>' +
+        '<td>' + fmtClockHMS(r.cardIn) + '</td>' +
+        '<td>' + fmtClockHMS(r.cardOut) + '</td>' +
         '<td>' + esc(r.actualHours) + '</td>' +
         '<td>' + esc(r.cardInRemark) + '</td>' +
         '<td>' + esc(r.cardOutRemark) + '</td>' +
-        '<td>' + esc(r.eventId) + '</td>' +
-        '<td>' + esc(r.matchingType) + '</td>' +
+        '<td>' + esc(r.slotCode) + '</td>' +
+        '<td>' + esc(r.workstation) + '</td>' +
+        '<td>' + esc(r.team) + '</td>' +
+        '<td>' + esc(r.station) + '</td>' +
         '</tr>';
     }).join('');
     body.innerHTML = trs;
@@ -3906,6 +3883,18 @@
   function esc(s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // Format Clock In/Out Time theo sheet: 'H:mm:ss' (vd 7:05:30) — chấp nhận 3 dạng: Date, 'HH:mm', 'HH:mm:ss'.
+  function fmtClockHMS(v) {
+    if (v === null || v === undefined) return '';
+    if (v instanceof Date && !isNaN(v)) {
+      return v.getHours() + ':' + String(v.getMinutes()).padStart(2, '0') + ':' + String(v.getSeconds()).padStart(2, '0');
+    }
+    var s = String(v).trim();
+    if (!s) return '';
+    var m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (m) return Number(m[1]) + ':' + m[2] + ':' + (m[3] || '00');
+    return s;
+  }
   }
   function escAttr(s) {
     return esc(s).replace(/'/g, '&#39;');
