@@ -1,5 +1,4 @@
-﻿<!DOCTYPE html>
-<html lang="vi">
+﻿<!DOCTYPE html><html lang="vi">
 <head>
   <base target="_top">
   <meta charset="utf-8">
@@ -902,7 +901,7 @@
     .side-compact {
       width: 100%; min-height: 36px;
       background: transparent; border: 1px solid var(--header-border); border-radius: 8px;
-      color: #b6c2d4; font-size: 12px; font-weight: 600; cursor: pointer;
+      color: #b6c2d4; font-size: 16px; font-weight: 600; cursor: pointer; line-height: 1;
       transition: background .15s;
     }
     .side-compact:hover { background: rgba(255,255,255,.08); color: #fff; }
@@ -985,11 +984,7 @@
   </header>
 
 <div class="app-shell">
-  <aside id="sidebar" aria-label="Điều hướng chính">
-    <div class="side-head">
-      <img src="sea-logo.svg" alt="SPX logo" onerror="this.style.display='none'">
-      <span class="side-title">Attendance Portal</span>
-    </div>
+    <aside id="sidebar" aria-label="Điều hướng chính">
     <nav class="side-nav">
       <button class="side-item active" data-page="home" onclick="selectPage('home')"><span class="side-ico">🏠</span><span class="side-lbl">Trang chủ</span></button>
       <button class="side-item" data-page="stats" onclick="selectPage('stats')"><span class="side-ico">📊</span><span class="side-lbl">Thống kê</span></button>
@@ -998,7 +993,7 @@
       <button class="side-item" data-page="about" onclick="selectPage('about')"><span class="side-ico">ℹ️</span><span class="side-lbl">Giới thiệu</span></button>
     </nav>
     <div class="side-foot">
-      <button class="side-compact" onclick="toggleSidebarCompact()" id="btnSidebarCompact" title="Thu gọn / Mở rộng">⟨⟩ Thu gọn</button>
+      <button class="side-compact" onclick="toggleSidebarCompact()" id="btnSidebarCompact" title="Thu gọn (Alt+S)" aria-label="Thu gọn / Mở rộng">☰</button>
     </div>
   </aside>
   <main id="main-content" tabindex="-1">
@@ -1009,7 +1004,6 @@
       <div class="task-list-toolbar">
         <h2 class="section-heading">+ ĐỐI CHIẾU DANH SÁCH</h2>
         <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
-      </div>
       <p style="color:var(--muted);font-size:14px;margin:0;">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
     </div>
 
@@ -1022,7 +1016,6 @@
           <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
           <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
           <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-        </div>
         <table id="taskListTable" style="display:none;">
           <thead id="taskListHead">
             <tr>
@@ -1046,10 +1039,8 @@
         <div class="empty" id="taskEmpty" style="display:none;">
                   <div class="empty-arrow">↑</div>
                   <div><span id="taskEmptyText">Chưa có task nàu — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b></span></div>
-                </div>
-                <div id="taskPagination" class="pag-wrap" style="display:none;"></div>
-              </div>
-    </div>
+                      <div id="taskPagination" class="pag-wrap" style="display:none;"></div>
+        </div>
   </section>
 
   <!-- ================= VIEW 2: Màn quét ================= -->
@@ -1068,9 +1059,7 @@
     </div>
 
     <!-- Layout 2 cột: trái = quét + counters + scan card, phải = bảng NV -->
-    <div class="scan-layout">
       <div class="scan-col-left">
-        <div class="card">
           <div class="counters">
             <div class="counter scanned"><div class="num" id="cScanned">0</div><div class="lbl">Đã quét</div></div>
             <div class="counter absent"><div class="num" id="cAbsent">0</div><div class="lbl">Chưa điểm danh</div></div>
@@ -1078,7 +1067,6 @@
           </div>
         </div>
 
-        <div class="card">
           <div class="scan-row">
             <div class="scan-input-wrap">
               <input type="text" id="scanInput" pattern="[Oo][Pp][Ss][0-9]+" placeholder="Quét mã nhân viên…" aria-label="Quét mã nhân viên" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -1092,7 +1080,6 @@
         </div>
       </div>
 
-      <div class="scan-col-right">
         <div class="card">
           <div class="att-toolbar">
             <div class="att-search">
@@ -1138,7 +1125,7 @@
 
   <!-- ================= VIEW 4: STAFFDATA (danh sách + thống kê) ================= -->
   <!-- ================= VIEW HOME: Attendance Portal ================= -->
-  <section id="viewHome" class="hidden">
+  <section id="viewHome" class="hidden" data-mark="PORTAL-OK">
     <div class="home-hero">
       <img src="sea-logo.svg" alt="SPX logo" class="home-logo" onerror="this.style.display='none'">
       <h1 class="home-title">Attendance Portal</h1>
@@ -1164,8 +1151,8 @@
         <button class="stats-tab" role="tab" aria-selected="false" data-stat="os" onclick="switchStatsTab('os')">OS</button>
       </div>
       <div class="stats-field">
-        <label class="flabel" for="statsStation2">Station</label>
-        <select id="statsStation2" class="field-select" onchange="renderStaffStats()"></select>
+        <label class="flabel" for="statsStation">Station</label>
+        <select id="statsStation" class="field-select" onchange="renderStaffStats()"></select>
       </div>
       <div id="statsTableWrap" class="stats-table-wrap" aria-live="polite"></div>
     </div>
@@ -1181,26 +1168,7 @@
       <button class="btn btn-outline" onclick="loadStaffView()" aria-label="Làm mới dữ liệu StaffData" title="Làm mới">⟳ Làm mới</button>
     </div>
 
-    <div class="scan-layout">
-      <!-- Cột trái: thống kê (3 tabs) -->
-      <div class="scan-col-left stats-col">
-        <div class="card">
-          <div class="stats-tabs" role="tablist" aria-label="Bảng thống kê">
-            <button class="stats-tab active" role="tab" aria-selected="true" data-stat="team" onclick="switchStatsTab('team')">Team × Ca</button>
-            <button class="stats-tab" role="tab" aria-selected="false" data-stat="bpo" onclick="switchStatsTab('bpo')">BPO</button>
-            <button class="stats-tab" role="tab" aria-selected="false" data-stat="os" onclick="switchStatsTab('os')">OS</button>
-          </div>
-          <div class="stats-field">
-            <label class="flabel" for="statsStation">Station</label>
-            <select id="statsStation" class="field-select" onchange="renderStaffStats()"></select>
-          </div>
-          <div id="statsTableWrap" class="stats-table-wrap" aria-live="polite"></div>
-        </div>
-      </div>
-
-      <!-- Cột phải: bảng danh sách StaffData -->
-      <div class="scan-col-right">
-        <div class="card">
+    <div class="card">
           <div class="att-toolbar">
             <div class="att-search">
               <input type="search" id="staffSearch" placeholder="Tìm mã NV, tên, agency…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false" oninput="renderStaffDataTable()">
@@ -1220,8 +1188,6 @@
             <div class="empty" id="staffEmpty" style="display:none;">Không có nhân viên trong StaffData</div>
           </div>
         </div>
-      </div>
-    </div>
   </section>
 </main>
 </div>
@@ -2036,6 +2002,8 @@
       }
     }
     // Hide all views
+    document.getElementById('viewHome').classList.add('hidden');
+    document.getElementById('viewStats').classList.add('hidden');
     document.getElementById('viewList').classList.add('hidden');
     document.getElementById('viewScan').classList.add('hidden');
     document.getElementById('viewStaff').classList.add('hidden');
@@ -2073,7 +2041,7 @@
     showSection(target);
     // Lazy-load theo page
     if (page === 'home' && typeof renderHomeClock === 'function') { renderHomeClock(); }
-    if (page === 'data' && typeof openStaffView === 'function') { openStaffView(); }
+    if ((page === 'stats' || page === 'data') && typeof loadStaffView === 'function') { loadStaffView(); }
   }
 
   function toggleSidebarCompact() {
