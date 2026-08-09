@@ -1051,7 +1051,8 @@
       </div>
       <div class="frow">
         <span class="flabel">Ngày <span class="fnote">chọn 1</span></span>
-        <select id="selDate" class="field-select" aria-label="Ngày"></select>
+        <div class="chips" id="chipsDate" role="group" aria-label="Ngày"></div>
+        <select id="selDate" class="field-select" aria-label="Ngày" style="display:none"></select>
       </div>
     </div>
     <div class="create-footer">
@@ -1587,6 +1588,8 @@
     if (rowC) rowC.style.display = free ? 'none' : '';
     var d = document.getElementById('selDate');
     if (d) d.disabled = free;
+    var cd = document.getElementById('chipsDate');
+    if (cd) cd.classList.toggle('disabled', free);
   }
 
   // n1 (audit): focus trap createModal do document-level Tab handler chung xử lý
@@ -1811,6 +1814,7 @@
     if (!c) return;
     c.textContent = (typeof n === 'number' && n >= 0) ? n : '—';
   }
+  var _previewTimer = null;
   function updateCreatePreview() {
     var station = SEL.station;
     var slotCode = groupSelectedSlots();
@@ -1917,10 +1921,21 @@
     }).join('');
   }
   function renderSelDate() {
-    var el = document.getElementById('selDate');
-    if (!el) return;
     var g = stationData();
     var dates = (g && g.dates) ? g.dates.slice() : [];
+    var chipsEl = document.getElementById('chipsDate');
+    var el = document.getElementById('selDate');
+    if (!chipsEl || !el) return;
+    var useChips = dates.length <= 5;
+    chipsEl.style.display = useChips ? '' : 'none';
+    el.style.display = useChips ? 'none' : '';
+    if (useChips) {
+      chipsEl.innerHTML = dates.map(function (d) {
+        var on = SEL.date === d;
+        return '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="date" data-val="' + escAttr(d) + '" aria-pressed="' + on + '">' + esc(d) + '</button>';
+      }).join('');
+      return;
+    }
     el.innerHTML = '<option value="">Chọn Ngày…</option>';
     dates.forEach(function (d) {
       var o = document.createElement('option');
@@ -1961,6 +1976,13 @@
           renderAllSelects();
         }
         refreshModeUI(); updateCreatePreview();
+        return;
+      }
+      if (col === 'date') {
+        SEL.date = (SEL.date === val) ? '' : val;
+        renderAllSelects();
+        refreshModeUI();
+        updateCreatePreview();
         return;
       }
       var arr = (col === 'team') ? SEL.teams : (col === 'slot') ? SEL.slots : SEL.contractTypes;
