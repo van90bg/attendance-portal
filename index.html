@@ -864,6 +864,90 @@
     @media (max-width: 991px) {
       .stats-table-wrap { max-height: 60vh; }
     }
+    /* ===== Attendance Portal — Sidebar điều hướng chính ===== */
+    body { overflow-x: hidden; }
+    .app-shell { display: flex; min-height: 0; }
+    #sidebar {
+      flex: 0 0 240px; width: 240px;
+      background: var(--header-bg);
+      color: var(--header-text);
+      border-right: 1px solid var(--header-border);
+      display: flex; flex-direction: column;
+      transition: flex-basis .2s ease, width .2s ease, transform .25s ease;
+      overflow: hidden;
+      min-height: calc(100vh - var(--header-h));
+    }
+    .side-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--header-border);
+      white-space: nowrap; overflow: hidden;
+    }
+    .side-head img { height: 22px; width: auto; }
+    .side-head .side-title { font-size: 13px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--amber); }
+    .side-nav { flex: 1 1 auto; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
+    .side-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; min-height: 40px; padding: 8px 12px;
+      background: transparent; border: 0; border-radius: 8px;
+      color: #c3cddb; font-size: 14px; font-weight: 600; text-align: left;
+      cursor: pointer; white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+    .side-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .side-item.active { background: var(--amber); color: #fff; }
+    .side-ico { font-size: 17px; line-height: 1; flex: 0 0 auto; }
+    .side-lbl { overflow: hidden; text-overflow: ellipsis; }
+    .side-foot { padding: 8px; border-top: 1px solid var(--header-border); }
+    .side-compact {
+      width: 100%; min-height: 36px;
+      background: transparent; border: 1px solid var(--header-border); border-radius: 8px;
+      color: #b6c2d4; font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    .side-compact:hover { background: rgba(255,255,255,.08); color: #fff; }
+
+    /* Collapsed: thu gọn về icon-only */
+    body.side-collapsed #sidebar { flex-basis: 48px; width: 48px; }
+    body.side-collapsed .side-head { justify-content: center; padding: 10px 4px; }
+    body.side-collapsed .side-title,
+    body.side-collapsed .side-lbl { display: none; }
+    body.side-collapsed .side-item { justify-content: center; padding: 8px 0; }
+
+    /* Visible-state: body có class 'side-open' (mặc định) — khi hidden: kéo sidebar ra */
+    body.side-hidden #sidebar { flex-basis: 0; width: 0; transform: translateX(-100%); border-right: 0; }
+    @media (max-width: 600px) {
+      #sidebar { flex-basis: 200px; width: 200px; position: fixed; left: 0; top: var(--header-h); bottom: 0; z-index: 40; }
+      body.side-hidden #sidebar { flex-basis: 200px; width: 200px; transform: translateX(-100%); }
+    }
+    /* Main: nhường chỗ khi mở sidebar; tự tràn khi ẩn/thu gọn */
+    #main-content { flex: 1 1 auto; min-width: 0; }
+
+    /* ===== Trang chủ — logo + tên + đồng hồ lớn ===== */
+    #viewHome { min-height: 100%; }
+    .home-hero {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: calc(100vh - var(--header-h) - 48px);
+      text-align: center;
+    }
+    .home-logo { height: 96px; width: auto; margin-bottom: 18px; }
+    .home-title { font-size: 44px; font-weight: 900; letter-spacing: 1px; color: var(--text); margin: 0 0 6px; }
+    .home-sub { font-size: 15px; color: var(--muted); margin: 0 0 34px; }
+    .home-clock {
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 72px; font-weight: 800; line-height: 1;
+      font-variant-numeric: tabular-nums;
+      color: var(--amber); letter-spacing: 2px;
+      background: linear-gradient(180deg, var(--amber), #b84500);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .home-date { font-size: 18px; color: var(--muted); margin-top: 14px; font-weight: 500; }
+    @media (max-width: 600px) {
+      .home-title { font-size: 28px; }
+      .home-clock { font-size: 44px; }
+      .home-logo { height: 64px; }
+    }
   </style>
 </head>
 <body>
@@ -900,7 +984,25 @@
     </div>
   </header>
 
-<main id="main-content" tabindex="-1">
+<div class="app-shell">
+  <aside id="sidebar" aria-label="Điều hướng chính">
+    <div class="side-head">
+      <img src="sea-logo.svg" alt="SPX logo" onerror="this.style.display='none'">
+      <span class="side-title">Attendance Portal</span>
+    </div>
+    <nav class="side-nav">
+      <button class="side-item active" data-page="home" onclick="selectPage('home')"><span class="side-ico">🏠</span><span class="side-lbl">Trang chủ</span></button>
+      <button class="side-item" data-page="stats" onclick="selectPage('stats')"><span class="side-ico">📊</span><span class="side-lbl">Thống kê</span></button>
+      <button class="side-item" data-page="attendance" onclick="selectPage('attendance')"><span class="side-ico">✅</span><span class="side-lbl">Điểm danh</span></button>
+      <button class="side-item" data-page="data" onclick="selectPage('data')"><span class="side-ico">🗂️</span><span class="side-lbl">Dữ liệu chấm công</span></button>
+      <button class="side-item" data-page="about" onclick="selectPage('about')"><span class="side-ico">ℹ️</span><span class="side-lbl">Giới thiệu</span></button>
+    </nav>
+    <div class="side-foot">
+      <button class="side-compact" onclick="toggleSidebarCompact()" id="btnSidebarCompact" title="Thu gọn / Mở rộng">⟨⟩ Thu gọn</button>
+    </div>
+  </aside>
+  <main id="main-content" tabindex="-1">
+
   <!-- ================= VIEW 1: Tạo task / danh sách ================= -->
   <section id="viewList">
     <div class="card">
@@ -1035,6 +1137,40 @@
   </section>
 
   <!-- ================= VIEW 4: STAFFDATA (danh sách + thống kê) ================= -->
+  <!-- ================= VIEW HOME: Attendance Portal ================= -->
+  <section id="viewHome" class="hidden">
+    <div class="home-hero">
+      <img src="sea-logo.svg" alt="SPX logo" class="home-logo" onerror="this.style.display='none'">
+      <h1 class="home-title">Attendance Portal</h1>
+      <p class="home-sub">Quản lý thông tin chấm công · điểm danh</p>
+      <div class="home-clock" id="homeClock" role="timer" aria-live="off">--:--:--</div>
+      <div class="home-date" id="homeDate"></div>
+    </div>
+  </section>
+
+  <!-- ================= VIEW STATS: Thống kê (tách từ viewStaff — fullscreen) ================= -->
+  <section id="viewStats" class="hidden">
+    <div class="scan-topbar">
+      <div class="scan-topbar-title">
+        <div class="task-title">THỐNG KÊ</div>
+        <div class="task-meta" id="statsMeta">Thống kê StaffData theo Team × Ca · BPO · OS</div>
+      </div>
+      <button class="btn btn-outline" onclick="loadStaffView()" aria-label="Làm mới dữ liệu" title="Làm mới">⟳ Làm mới</button>
+    </div>
+    <div class="card">
+      <div class="stats-tabs" role="tablist" aria-label="Bảng thống kê">
+        <button class="stats-tab active" role="tab" aria-selected="true" data-stat="team" onclick="switchStatsTab('team')">Team × Ca</button>
+        <button class="stats-tab" role="tab" aria-selected="false" data-stat="bpo" onclick="switchStatsTab('bpo')">BPO</button>
+        <button class="stats-tab" role="tab" aria-selected="false" data-stat="os" onclick="switchStatsTab('os')">OS</button>
+      </div>
+      <div class="stats-field">
+        <label class="flabel" for="statsStation2">Station</label>
+        <select id="statsStation2" class="field-select" onchange="renderStaffStats()"></select>
+      </div>
+      <div id="statsTableWrap" class="stats-table-wrap" aria-live="polite"></div>
+    </div>
+  </section>
+
   <section id="viewStaff" class="hidden">
     <div class="scan-topbar">
       <button class="btn btn-ghost" onclick="backToMain()">← Danh sách</button>
@@ -1088,6 +1224,8 @@
     </div>
   </section>
 </main>
+</div>
+
 
 <!-- T-3: About view (replaces aboutModal) -->
 <section id="aboutView" class="hidden">
@@ -1402,6 +1540,8 @@
     startAutoFocusLoop();
     initScanTopbarStuck();
     initScanFilters();
+    initSidebar();
+    selectPage('home');  // Trang chủ mặc định — logo + tên + đồng hồ
   });
 
   /* C3: tìm kiếm + lọc trạng thái + sort cột bảng scan */
@@ -1910,6 +2050,59 @@
         startAutoFocusLoop();
       }
     }
+  }
+
+  /* ===== Attendance Portal — Sidebar & Page routing ===== */
+  var SIDEBAR_COMPACT = false;
+  try { SIDEBAR_COMPACT = localStorage.getItem('ap2_sidebar_compact') === '1'; } catch (e) {}
+
+  // Ánh xạ page → section id hiển thị
+  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewList', data: 'viewStaff', about: 'aboutView' };
+  var ACTIVE_PAGE = 'home';
+
+  function selectPage(page) {
+    var target = PAGE_VIEWS[page];
+    if (!target || !document.getElementById(target)) return;
+    // Cập nhật active menu
+    var items = document.querySelectorAll('.side-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].className = items[i].getAttribute('data-page') === page ? 'side-item active' : 'side-item';
+      items[i].setAttribute('aria-current', items[i].getAttribute('data-page') === page ? 'page' : 'false');
+    }
+    ACTIVE_PAGE = page;
+    showSection(target);
+    // Lazy-load theo page
+    if (page === 'home' && typeof renderHomeClock === 'function') { renderHomeClock(); }
+    if (page === 'data' && typeof openStaffView === 'function') { openStaffView(); }
+  }
+
+  function toggleSidebarCompact() {
+    SIDEBAR_COMPACT = !SIDEBAR_COMPACT;
+    document.body.classList.toggle('side-collapsed', SIDEBAR_COMPACT);
+    try { localStorage.setItem('ap2_sidebar_compact', SIDEBAR_COMPACT ? '1' : '0'); } catch (e) {}
+  }
+
+  function initSidebar() {
+    document.body.classList.toggle('side-collapsed', SIDEBAR_COMPACT);
+  }
+
+  /* Đồng hồ + ngày trang chủ — realtime Asia/Ho_Chi_Minh (khớp fmtDate) */
+  var CLOCK_TIMER = null;
+  function tickHomeClock() {
+    var el = document.getElementById('homeClock');
+    var de = document.getElementById('homeDate');
+    if (!el || !de) return;
+    var now = new Date();
+    // Format giờ theo TZ HCM (dùng Intl như fmtDate)
+    var t = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+    el.textContent = t;
+    var d = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+    de.textContent = d;
+  }
+  function renderHomeClock() {
+    tickHomeClock();
+    if (CLOCK_TIMER) clearInterval(CLOCK_TIMER);
+    CLOCK_TIMER = setInterval(tickHomeClock, 1000);
   }
 
   /* ===== Paste modal (T-2: dán danh sách mã) ===== */
