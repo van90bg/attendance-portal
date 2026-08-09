@@ -545,7 +545,10 @@
     .muted { color: var(--muted); font-size: 13px; }
     .task-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .task-meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
-    .hidden { display: none; }
+    /* FIX(2026-08-09): .hidden phải thắng #viewList{display:flex} (ID > class) —
+       nếu không viewList không bao giờ ẩn, section chồng nhau. Dùng !important
+       vì #viewList dùng display:flex làm layout-wide (không thể đổi ID rule). */
+    .hidden { display: none !important; }
     .spinner {
       width: 16px; height: 16px;
       border: 2px solid #fff; border-top-color: transparent;
