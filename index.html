@@ -572,11 +572,13 @@
     }
     /* I8: queue đầy — viền đỏ nhấp nháy, báo user ngừng quét tạm thời */
     .scan-input-wrap.queue-full { border-color: var(--danger); }
-    .scan-input-wrap.queue-full input { border-color: var(--danger); }
+    /* P1-1 fix: pulse hiện rõ trên nền sáng — đổi box-shadow input + opacity.
+       Trước đây ::after box-shadow .10 mờ gần như vô hình trên nền trắng. */
+    .scan-input-wrap.queue-full input { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(217, 48, 37, .18); }
     .scan-input-wrap.queue-full::after { animation: queueFullPulse 1.2s ease-in-out infinite; }
     @keyframes queueFullPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, .35); }
-      50% { box-shadow: 0 0 0 6px rgba(217, 48, 37, .10); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, .45); opacity: 1; }
+      50% { box-shadow: 0 0 0 8px rgba(217, 48, 37, .18); opacity: .6; }
     }
 
     /* ===== Header command center (tham khảo v1) ===== */
