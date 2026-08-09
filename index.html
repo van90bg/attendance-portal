@@ -617,6 +617,42 @@
     }
     header .net-dot.offline { background: var(--danger); box-shadow: 0 0 4px var(--danger); }
     header #netText { color: #b6c2d4; font-size: 12px; font-weight: 600; }
+
+    /* ===== Background task indicator (header) ===== */
+    /* Bổ sung (2026-08-09): spinner + count khi có tác vụ nền đang chạy (scan queue /
+       RPC pending / silent reload). Nhắc kiosk không thoát giữa chừng; thay vì màn "yên lặng" khi queue còn. */
+    .bg-task-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: rgba(232, 93, 4, .12);
+      border: 1px solid rgba(232, 93, 4, .35);
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .bg-task-indicator .bg-spinner {
+      width: 10px;
+      height: 10px;
+      border: 2px solid rgba(232, 93, 4, .25);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      box-sizing: border-box;
+    }
+    .bg-task-indicator .bg-task-count {
+      font-variant-numeric: tabular-nums;
+      min-width: 10px;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      /* màn hẹp: chỉ spinner, ẩn số — header đã tải rồi */
+      .bg-task-indicator .bg-task-count { display: none; }
+      .bg-task-indicator { padding: 2px 7px; }
+    }
     header .header-search {
       display: flex; align-items: center; gap: 4px;
       background: var(--surface, #1b202e);
@@ -800,6 +836,10 @@
       <small id="userEmail" class="header-user" aria-label="Người dùng đang đăng nhập"></small>
       <span class="net-dot" id="netDot" title="Trạng thái mạng"></span>
       <small id="netText">Online</small>
+      <span id="bgTaskIndicator" class="bg-task-indicator" style="display:none" role="status" aria-live="polite" title="Đang xử lý nền">
+        <span class="bg-spinner" aria-hidden="true"></span>
+        <span id="bgTaskCount" class="bg-task-count">0</span>
+      </span>
       <button class="btn-icon-dark" id="btnSound" onclick="toggleSound()" title="Tắt/Mở âm thanh" aria-label="Tắt/Mở âm thanh">🔊</button>
       <button class="btn-icon-dark" id="btnRefresh" onclick="refreshAll()" title="Làm mới" aria-label="Làm mới">⟳ Làm mới</button>
       <button class="btn-icon-dark" onclick="showSection('aboutView')" title="Giới thiệu" aria-label="Giới thiệu">ⓘ</button>
@@ -1249,6 +1289,7 @@
       else if (e.key === 'Escape') { onSearchKeydown(e); }
     });
     initNetworkStatus();
+    initBgIndicator();   // indicator tác vụ nền (header) — ẩn ban đầu, hiện khi có scan/RPC/silent
     initSelEvents();
     startAutoFocusLoop();
     initScanTopbarStuck();
@@ -1374,6 +1415,26 @@
     updateNetStatus();
     window.addEventListener('online', function () { updateNetStatus(true); });
     window.addEventListener('offline', function () { updateNetStatus(false); });
+  }
+
+  /* ===== Background task indicator (header) — 2026-08-09 ===== */
+  // Bộ đếm tác vụ nền: scan queue + RPC scan pending + silent reload chờ.
+  // Hiển thị spinner + count ở header khi hệ thống đang xử lý nền — kiosk biết không nên
+  // tắt/refesh giữa chừng. Count = tổng tác vụ đang chạy (0 → ẩn indicator).
+  var BG_TASKS = { scan: 0, rpc: 0, silent: 0 };  // { scan: queue+processing, rpc: RPC nền, silent: silent reload }
+  function bgTasksTotal() {
+    return (BG_TASKS.scan + BG_TASKS.rpc + BG_TASKS.silent) || 0;
+  }
+  function updateBgIndicator() {
+    var el = document.getElementById('bgTaskIndicator');
+    if (!el) return;
+    var n = bgTasksTotal();
+    var cnt = document.getElementById('bgTaskCount');
+    if (cnt) cnt.textContent = n;
+    el.style.display = (n > 0) ? 'inline-flex' : 'none';
+  }
+  function initBgIndicator() {
+    updateBgIndicator();
   }
 
   /* ===== Spin loading overlay ===== */
@@ -2387,6 +2448,8 @@
     LAST_TASK_LIST = { tasks: null, ts: 0 };
     LAST_SCAN_VIEW = { taskId: null, ts: 0 };
     _pendingSilentReload = null; // m4: data mới → bỏ reload dồn lại (task sẽ load tươi khi mở)
+    BG_TASKS.silent = 0;
+    updateBgIndicator();
   }
 
   // Render view scan từ data (dùng chung cho full-load và cache-reuse)
@@ -2489,7 +2552,7 @@
         // → renderScanView thay CURRENT_LOG bằng array MỚI, làm item.target trong queue
         // trỏ object cũ → dòng vừa quét optimistic 'biến mất'. Gate: đang scan thì bỏ qua
         // RPC silent (giữ view optimistic đang hiển thị — server vẫn ghi đúng phía sau).
-        if (silent && scanBusy()) { _pendingSilentReload = taskId; return; } // m4: hoãn, reload khi queue cạn
+        if (silent && scanBusy()) { _pendingSilentReload = taskId; BG_TASKS.silent = 1; updateBgIndicator(); return; } // m4: hoãn, reload khi queue idle
         renderScanView(res);
         LAST_SCAN_VIEW = { taskId: taskId, ts: Date.now() };
         hideLoadingOverlay();  // P2: load xong → ẩn spinner
@@ -2737,6 +2800,8 @@
     if (scanBusy()) return; // còn lượt quét đang xử lý — chờ tiếp
     var tid = _pendingSilentReload;
     _pendingSilentReload = null;
+    BG_TASKS.silent = 0;
+    updateBgIndicator();
     if (CURRENT_TASK && CURRENT_TASK.taskId === tid) loadTaskDetail(tid, true);
   }
   // P2: seq chống response cũ đè scan card mới — quét B lúc response A đang bay,
@@ -2950,6 +3015,8 @@
     recountFromLog();
     renderScanTable(CURRENT_LOG);
     SCAN_QUEUE.push(item);
+    BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
+    updateBgIndicator();
     updateFinishBtnState();
     processScanQueue();
   }
@@ -3010,6 +3077,8 @@
       return;
     }
     SCAN_PROCESSING = true;
+    BG_TASKS.scan = SCAN_QUEUE.length + 1;  // +1 đang xử lý
+    updateBgIndicator();
     var item = SCAN_QUEUE.shift();
     updateFinishBtnState();
 
@@ -3090,6 +3159,8 @@
         syncCounters(res.counters);
         renderScanTable(CURRENT_LOG);
         updateFinishBtnState();
+        BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
+        updateBgIndicator();
         processScanQueue();
       })
       .withFailureHandler(function (err) {
@@ -3105,6 +3176,8 @@
         syncCounters(null);
         renderScanTable(CURRENT_LOG);
         updateFinishBtnState();
+        BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
+        updateBgIndicator();
         processScanQueue();
       })
       .scanStaffApi(item.taskId, item.staffId);  // P2: dùng item.taskId đã capture — nhất quán với guard phòng thủ
