@@ -18,8 +18,9 @@
       --card-ok-bg: #e6f4ea;
       --card-err-bg: #fce8e6;
       --card-extra-bg: #fef7e0;
-      --header-h: 59px;  /* chiều cao header THỰC (padding 14 + nội dung ~31) — 1 nguồn cho topbar sticky + #viewList height.
-                           Trước đây 53px lệch 6px → doc cao hơn viewport → scroll dọc luôn hiện. */
+      --header-h: 59px;  /* chiều cao header 1 hàng (padding 10×2 + nội dung ~39) — 1 nguồn cho topbar sticky + #viewList height.
+                           FIX(2026-08-09): JS syncHeaderH() đo header THẬT (DOMContentLoaded/load/resize/meta-load) và ghi đè token —
+                           header wrap (font/zoom/màn hẹp) làm token tĩnh lệch → doc cao hơn viewport → scroll dọc luôn bật. */
       --border: #d9dce1;
       --text: #1f1f1f;
       --muted: #5f6368;
@@ -75,7 +76,7 @@
       background: rgba(255,255,255,.08);
       max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    @media (max-width: 599px) { .header-user { display: none; } }  /* màn nhỏ ẩn để tránh tràn header */
+    @media (max-width: 700px) { .header-user { display: none; } }  /* FIX(2026-08-09): 599→700 — giữ header 1 hàng khi hẹp (tránh tràn header) */
     .btn {
       border: none;
       border-radius: 8px;
@@ -597,6 +598,7 @@
       font-size: 18px; font-weight: 800; letter-spacing: 1px;
       color: var(--header-text); text-transform: uppercase;
       text-shadow: 0 1px 2px rgba(0,0,0,.35);
+      white-space: nowrap;  /* FIX(2026-08-09): title không wrap thành 2 dòng khi header hẹp */
     }
     header .brand .title .accent { color: var(--amber); font-weight: 900; }
     /* v1: ĐIỂM DANH nổi bật amber — brand signal */
@@ -648,7 +650,7 @@
     }
     header .header-search {
       display: flex; align-items: center; gap: 4px;
-      background: var(--surface, #1b202e);
+      background: #1b202e;  /* FIX(2026-08-09): header TỐI — --surface (#f5f6f8 sáng) là token thời header trắng cũ, để lộ khối sáng giữa header tối */
       border: 1px solid var(--header-border);
       border-radius: 6px;
       padding: 2px 6px;
@@ -680,6 +682,7 @@
       transition: border-color .12s, color .12s, background .12s;
       display: inline-flex; align-items: center; justify-content: center;
       min-height: 32px;
+      white-space: nowrap;  /* FIX(2026-08-09): nút không wrap chữ ("⟳ Làm mới" 2 dòng → header phình cao) */
     }
     header .btn-icon-dark:hover {
       border-color: var(--warning); color: var(--warning);
@@ -690,6 +693,19 @@
       filter: brightness(0) invert(1);
     }
     header .btn-icon-dark.muted { color: #ef4444; border-color: #fecaca; }
+
+    /* FIX(2026-08-09): header luôn 1 hàng (desktop >=601px) — trước đây wrap làm header cao hơn
+       --header-h:59px (75px@1024, 129px@768, 170px@375) → doc cao hơn viewport → scroll dọc
+       luôn bật + sidebar/scan-topbar sticky bị ẩn sau header. */
+    @media (min-width: 601px) {
+      header { flex-wrap: nowrap; }
+      header .header-search { flex: 0 1 auto; min-width: 0; }
+      header .header-search input[type=search] { min-width: 60px; }
+    }
+    @media (min-width: 601px) and (max-width: 991px) {
+      header #netText { display: none; }        /* tiết ngang — net-dot đã đủ */
+      header .header-search { max-width: 200px; margin: 0 4px; }
+    }
 
     /* ===== Toolbar danh sách task (tham khảo v1) ===== */
     .task-list-toolbar {
@@ -1480,8 +1496,22 @@
     });
   }
 
+  // FIX(2026-08-09): đồng bộ --header-h = chiều cao header THẬT — token tĩnh 59px lệch khi
+  // header wrap (font/zoom/màn hẹp) → doc cao hơn viewport → scroll dọc vĩnh viễn +
+  // sidebar/scan-topbar sticky bị ẩn sau header. Chạy khi DOM sẵn sàng + load + resize.
+  function syncHeaderH() {
+    var hEl = document.querySelector('header');
+    if (!hEl) return;
+    var px = Math.round(hEl.getBoundingClientRect().height) + 'px';
+    var cur = getComputedStyle(document.documentElement).getPropertyValue('--header-h').trim();
+    if (cur !== px) document.documentElement.style.setProperty('--header-h', px);
+  }
+  window.addEventListener('load', syncHeaderH);
+  window.addEventListener('resize', syncHeaderH);
+
   document.addEventListener('DOMContentLoaded', function () {
     startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
+    syncHeaderH();  // FIX(2026-08-09): đo chiều cao header THẬT sau khi DOM sẵn sàng
     repairViewParents();
     loadMetaAndOptions();
     document.getElementById('scanInput').addEventListener('keydown', function (e) {
@@ -1566,10 +1596,12 @@
     var bar = document.querySelector('.scan-topbar');
     if (!bar) return;
     // P2: đọc chiều cao header từ CSS token --header-h (không hardcode 53) — 1 nguồn
-    var HEADER_H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 53;
+    var HEADER_H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
     var onScroll = function () {
       var rect = bar.getBoundingClientRect();
-      bar.classList.toggle('stuck', rect.top <= HEADER_H);
+      // FIX(2026-08-09): đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
+      var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || HEADER_H;
+      bar.classList.toggle('stuck', rect.top <= hh);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -2373,6 +2405,7 @@
         // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
         // khi quét đầu thay vì về sau. KHÔNG block UI — chỉ warm cache.
         try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) { /* ignore */ }
+        syncHeaderH();  // FIX(2026-08-09): title/user đã render xong — đo lại header thật (--header-h)
       })
       .withFailureHandler(function (err) {
         markServerFail();  // P2: RPC fail = server unreachable → netDot offline
