@@ -814,6 +814,66 @@
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
+
+    /* ===== View STAFFDATA — thống kê (trái) + danh sách (phải) ===== */
+    .stats-col { flex: 0 0 520px; max-width: 520px; }
+    @media (max-width: 1200px) { .stats-col { flex: 1 1 100%; max-width: none; } }
+
+    .stats-tabs {
+      display: flex; gap: 4px; margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .stats-tab {
+      background: var(--surface-muted); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 14px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .stats-tab:hover { border-color: var(--amber); color: var(--amber); }
+    .stats-tab.active {
+      background: var(--amber); border-color: var(--amber); color: #fff;
+    }
+    .stats-field { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .stats-field .flabel { margin: 0; white-space: nowrap; }
+    .stats-field .field-select { width: auto; flex: 1; }
+
+    .stats-team-title {
+      margin: 12px 0 6px; font-size: 14px; font-weight: 800; color: var(--primary);
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .stats-team-title:first-child { margin-top: 0; }
+    .stats-table-wrap { overflow-x: auto; max-height: calc(100vh - 260px); overflow-y: auto; }
+    .stats-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    .stats-table th, .stats-table td {
+      padding: 5px 8px; border: 1px solid var(--border);
+      text-align: center; white-space: nowrap;
+    }
+    .stats-table th {
+      background: var(--surface-muted); color: var(--muted);
+      font-weight: 700; font-size: 12px; position: sticky; top: 0;
+    }
+    .stats-table td.row-head {
+      text-align: left; font-weight: 600; background: var(--surface-muted);
+    }
+    .stats-table td.total {
+      background: #fff3e0; font-weight: 800; color: var(--amber);
+    }
+    .stats-table tr:hover td { background: #f8faff; }
+    .stats-table tr:hover td.row-head { background: var(--surface-muted); }
+
+    /* Bảng danh sách StaffData — 20 cột, scroll ngang */
+    #staffTable { font-size: 13px; }
+    #staffTable th { white-space: nowrap; }
+    #staffTable td { white-space: nowrap; }
+
+    /* Màn hẹp: cột trái full-width, bảng thống kê cuộn theo chiều cao viewport */
+    @media (max-width: 991px) {
+      .stats-table-wrap { max-height: 60vh; }
+    }
   </style>
 </head>
 <body>
@@ -845,6 +905,7 @@
       </span>
       <button class="btn-icon-dark" id="btnSound" onclick="toggleSound()" title="Tắt/Mở âm thanh" aria-label="Tắt/Mở âm thanh">🔊</button>
       <button class="btn-icon-dark" id="btnRefresh" onclick="refreshAll()" title="Làm mới" aria-label="Làm mới">⟳ Làm mới</button>
+      <button class="btn-icon-dark" onclick="openStaffView()" title="StaffData" aria-label="StaffData">📋</button>
       <button class="btn-icon-dark" onclick="showSection('aboutView')" title="Giới thiệu" aria-label="Giới thiệu">ⓘ</button>
     </div>
   </header>
@@ -978,6 +1039,60 @@
             <div class="empty" id="scanEmpty" style="display:none;">Không có nhân viên nào trong danh sách</div>
                         <div id="scanPagination" class="pag-wrap" style="display:none;"></div>
                       </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VIEW 4: STAFFDATA (danh sách + thống kê) ================= -->
+  <section id="viewStaff" class="hidden">
+    <div class="scan-topbar">
+      <button class="btn btn-ghost" onclick="backToMain()">← Danh sách</button>
+      <div class="scan-topbar-title">
+        <div class="task-title">STAFFDATA</div>
+        <div class="task-meta" id="staffMeta">Đang tải…</div>
+      </div>
+      <button class="btn btn-outline" onclick="loadStaffView()" aria-label="Làm mới dữ liệu StaffData" title="Làm mới">⟳ Làm mới</button>
+    </div>
+
+    <div class="scan-layout">
+      <!-- Cột trái: thống kê (3 tabs) -->
+      <div class="scan-col-left stats-col">
+        <div class="card">
+          <div class="stats-tabs" role="tablist" aria-label="Bảng thống kê">
+            <button class="stats-tab active" role="tab" aria-selected="true" data-stat="team" onclick="switchStatsTab('team')">Team × Ca</button>
+            <button class="stats-tab" role="tab" aria-selected="false" data-stat="bpo" onclick="switchStatsTab('bpo')">BPO</button>
+            <button class="stats-tab" role="tab" aria-selected="false" data-stat="os" onclick="switchStatsTab('os')">OS</button>
+          </div>
+          <div class="stats-field">
+            <label class="flabel" for="statsStation">Station</label>
+            <select id="statsStation" class="field-select" onchange="renderStaffStats()"></select>
+          </div>
+          <div id="statsTableWrap" class="stats-table-wrap" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- Cột phải: bảng danh sách StaffData -->
+      <div class="scan-col-right">
+        <div class="card">
+          <div class="att-toolbar">
+            <div class="att-search">
+              <input type="search" id="staffSearch" placeholder="Tìm mã NV, tên, agency…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false" oninput="renderStaffDataTable()">
+            </div>
+            <span class="bg-task-count" id="staffCount" style="font-weight:700;">0 NV</span>
+          </div>
+          <div class="table-wrap">
+            <div class="skeleton-wrap" id="staffSkeleton" style="display:none;">
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+            </div>
+            <table id="staffTable" style="display:none;">
+              <thead id="staffTableHead"></thead>
+              <tbody id="staffTableBody"></tbody>
+            </table>
+            <div class="empty" id="staffEmpty" style="display:none;">Không có nhân viên trong StaffData</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1483,6 +1598,252 @@
     }, 8000);
   }
 
+  /* ===== VIEW STAFFDATA — danh sách (phải) + thống kê (trái, 3 tabs) ===== */
+  var STAFF_ROWS = [];          // toàn bộ StaffData (full 20 field) — cache client
+  var STAFF_TAB = 'team';       // tab thống kê đang xem: 'team' | 'bpo' | 'os'
+  var STAFF_CONTRACT_GROUPS = { bpo: ['S-BPO', 'I-BPO', 'BPO', 'Bpo'], os: ['OS'] };
+  var STAFF_TABLE_HEAD = ['STT','Mã NV','Tên NV','Agency','Hình thức','Team','Ca (Slot)','Workstation','Station','Ngày','Mail','Gender','Phòng ban','Giờ vào','Giờ ra','Giờ thực','Ghi chú vào','Ghi chú ra','Event ID','Loại khớp'];
+  function backToMain() { showSection('viewList'); }
+
+  // Mở viewStaff: đổi section + load dữ liệu (cache 30s phía server)
+  function openStaffView() {
+    showSection('viewStaff');
+    loadStaffView();
+  }
+
+  function loadStaffView() {
+    var skel = document.getElementById('staffSkeleton');
+    var tbl = document.getElementById('staffTable');
+    var empty = document.getElementById('staffEmpty');
+    if (skel) skel.style.display = '';
+    if (tbl) tbl.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+    document.getElementById('staffMeta').textContent = 'Đang tải…';
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.ok) {
+          showToast((res && res.message) || 'Lỗi tải StaffData', true);
+          return;
+        }
+        STAFF_ROWS = safeArr(res.staff);
+        initStaffStationFilter();
+        renderStaffStats();
+        renderStaffDataTable();
+        markServerOk();
+      })
+      .withFailureHandler(function (err) {
+        markServerFail();
+        showToast('Lỗi tải StaffData: ' + err.message, true);
+        if (skel) skel.style.display = 'none';
+      })
+      .getStaffStatsApi();
+  }
+
+  // Station filter — populate từ dữ liệu, luôn có 'Tất cả'
+  function initStaffStationFilter() {
+    var el = document.getElementById('statsStation');
+    if (!el) return;
+    var stations = {};
+    STAFF_ROWS.forEach(function (r) { if (r.station) stations[r.station] = true; });
+    var keys = Object.keys(stations).sort();
+    var html = '<option value="">Tất cả station</option>';
+    keys.forEach(function (s) { html += '<option value="' + escAttr(s) + '">' + esc(s) + '</option>'; });
+    el.innerHTML = html;
+  }
+
+  function selectedStation() {
+    var el = document.getElementById('statsStation');
+    return el ? el.value : '';
+  }
+
+  // ==== Render 1 trong 3 bảng thống kê (pivot từ STAFF_ROWS) ====
+  function switchStatsTab(tab) {
+    STAFF_TAB = tab;
+    var tabs = document.querySelectorAll('.stats-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].className = tabs[i].getAttribute('data-stat') === tab ? 'stats-tab active' : 'stats-tab';
+      tabs[i].setAttribute('aria-selected', tabs[i].getAttribute('data-stat') === tab ? 'true' : 'false');
+    }
+    renderStaffStats();
+  }
+
+  function staffFiltered() {
+    var st = selectedStation();
+    if (!st) return STAFF_ROWS;
+    return STAFF_ROWS.filter(function (r) { return (r.station || '') === st; });
+  }
+
+  function renderStaffStats() {
+    var wrap = document.getElementById('statsTableWrap');
+    if (!wrap) return;
+    var rows = staffFiltered();
+    if (STAFF_TAB === 'team') { wrap.innerHTML = statsTeamContractTable_(rows); }
+    else if (STAFF_TAB === 'bpo') { wrap.innerHTML = statsAgencyTable_(rows, 'bpo'); }
+    else { wrap.innerHTML = statsAgencyTable_(rows, 'os'); }
+  }
+
+  // TAB 1: Team × Contract × Ca (mỗi team 3 cột FTE/BPO/OS)
+  function statsTeamContractTable_(rows) {
+    // slot order ổn định theo thứ tự xuất hiện
+    var slots = [];
+    var teams = [];
+    var contracts = [];
+    var seenS = {}, seenT = {}, seenC = {};
+    rows.forEach(function (r) {
+      var s = r.slotCode || '', t = r.team || '', c = r.contractType || '';
+      if (s && !seenS[s]) { seenS[s] = true; slots.push(s); }
+      if (t && !seenT[t]) { seenT[t] = true; teams.push(t); }
+      if (c && !seenC[c]) { seenC[c] = true; contracts.push(c); }
+    });
+    slots.sort(); teams.sort(); contracts.sort();
+    // map[team][contract][slot] = count
+    var map = {};
+    rows.forEach(function (r) {
+      var t = (r.team || ''), c = (r.contractType || ''), s = (r.slotCode || '');
+      if (!(t && c && s)) return;
+      if (!map[t]) map[t] = {};
+      if (!map[t][c]) map[t][c] = {};
+      map[t][c][s] = (map[t][c][s] || 0) + 1;
+    });
+    var html = '<table class="stats-table">';
+    html += '<thead><tr><th rowspan="2">Ca</th>';
+    teams.forEach(function (t) {
+      html += '<th colspan="' + contracts.length + '">' + esc(t) + '</th>';
+    });
+    html += '</tr><tr>';
+    teams.forEach(function (t) {
+      contracts.forEach(function (c) { html += '<th>' + esc(c) + '</th>'; });
+    });
+    html += '</tr>';
+    slots.forEach(function (s) {
+      html += '<tr><td class="row-head">' + esc(s) + '</td>';
+      teams.forEach(function (t) {
+        contracts.forEach(function (c) {
+          html += '<td>' + ((map[t] && map[t][c] && map[t][c][s]) || 0) + '</td>';
+        });
+      });
+      html += '</tr>';
+    });
+    // Tổng theo ca
+    html += '<tr><td class="total">Tổng ca</td>';
+    teams.forEach(function (t) {
+      contracts.forEach(function (c) {
+        var n = 0;
+        slots.forEach(function (s) { n += (map[t] && map[t][c] && map[t][c][s]) || 0; });
+        html += '<td class="total">' + n + '</td>';
+      });
+    });
+    html += '</tr></table>';
+    return html;
+  }
+
+  // Pivot chung: rows → bảng dòng=agencies, cột=cas, mỗi team 1 khối cột
+  function statsPivot(rows, rowField, colGroupField) {
+    var rowKeys = []; var rowSeen = {};
+    var colKeys = []; var colSeen = {};
+    rows.forEach(function (r) {
+      var a = (r[rowField] || '').trim(), b = (r[colField] || '').trim();
+      if (a && !rowSeen[a]) { rowSeen[a] = true; rowKeys.push(a); }
+      if (b && !colSeen[b]) { colSeen[b] = true; colKeys.push(b); }
+    });
+    rowKeys.sort(); colKeys.sort();
+    var map = {};
+    rows.forEach(function (r) {
+      var a = (r[rowField] || '').trim(), b = (r[colField] || '').trim();
+      if (!(a && b)) return;
+      if (!map[a]) map[a] = {};
+      map[a][b] = (map[a][b] || 0) + 1;
+    });
+    var html = '<table class="stats-table"><thead><tr><th>' + esc(colField === 'slotCode' ? 'Ca' : colField) + '</th>';
+    colKeys.forEach(function (c) { html += '<th>' + esc(c) + '</th>'; });
+    html += '<th class="total">Tổng</th></tr></thead><tbody>';
+    rowKeys.forEach(function (a) {
+      html += '<tr><td class="row-head">' + esc(a) + '</td>';
+      var rowTotal = 0;
+      colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td>' + v + '</td>'; });
+      html += '<td class="total">' + rowTotal + '</td></tr>';
+    });
+    html += '<tr><td class="total">Tổng</td>';
+    var colTotal = 0;
+    colKeys.forEach(function (c) {
+      var n = 0; rowKeys.forEach(function (a) { n += (map[a] && map[a][c]) || 0; });
+      colTotal += n; html += '<td class="total">' + n + '</td>';
+    });
+    html += '<td class="total">' + colTotal + '</td></tr></tbody></table>';
+    return html;
+  }
+
+  // TAB 2/3 cụ thể: Agency × Ca — lọc theo nhóm contract (bpo/os), mỗi team 1 bảng
+  function statsAgencyTable_(rows, groupKey) {
+    var okContracts = STAFF_CONTRACT_GROUPS[groupKey] || [];
+    var filtered = rows.filter(function (r) { return okContracts.indexOf((r.contractType || '').trim()) !== -1; });
+    var teams = []; var seen = {};
+    filtered.forEach(function (r) { var t = (r.team || '').trim(); if (t && !seen[t]) { seen[t] = true; teams.push(t); } });
+    teams.sort();
+    if (!teams.length) return '<div class="empty">Không có dữ liệu cho nhóm này</div>';
+    var html = '';
+    teams.forEach(function (t) {
+      var teamRows = filtered.filter(function (r) { return (r.team || '').trim() === t; });
+      html += '<h4 class="stats-team-title">' + esc(t) + '</h4>';
+      html += statsPivot(teamRows, 'agency', 'slotCode');
+    });
+    return html;
+  }
+
+  // ==== Bảng danh sách StaffData (phải) ====
+  function renderStaffDataTable() {
+    var q = (document.getElementById('staffSearch') || {}).value || '';
+    var ql = q.trim().toLowerCase();
+    var rows = STAFF_ROWS.filter(function (r) {
+      if (!ql) return true;
+      var hay = (String(r.staffId||'') + ' ' + String(r.staffName||'') + ' ' + String(r.agency||'') + ' ' + String(r.team||'')).toLowerCase();
+      return hay.indexOf(ql) !== -1;
+    });
+    var cnt = document.getElementById('staffCount');
+    if (cnt) cnt.textContent = rows.length + ' NV';
+    var skel = document.getElementById('staffSkeleton');
+    var tbl = document.getElementById('staffTable');
+    var empty = document.getElementById('staffEmpty');
+    var head = document.getElementById('staffTableHead');
+    var body = document.getElementById('staffTableBody');
+    if (!tbl || !body) return;
+    if (!rows.length) {
+      body.innerHTML = '';
+      if (tbl) tbl.style.display = 'none';
+      if (empty) empty.style.display = '';
+      if (skel) skel.style.display = 'none';
+      return;
+    }
+    if (head) head.innerHTML = '<tr>' + STAFF_TABLE_HEAD.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr>';
+    var trs = rows.map(function (r, i) {
+      return '<tr>' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td><b>' + esc(r.staffId) + '</b></td>' +
+        '<td>' + esc(r.staffName) + '</td>' +
+        '<td>' + esc(r.agency) + '</td>' +
+        '<td>' + esc(r.contractType) + '</td>' +
+        '<td>' + esc(r.slotCode) + '</td>' +
+        '<td>' + esc(r.workstation) + '</td>' +
+        '<td>' + esc(r.station) + '</td>' +
+        '<td>' + esc(r.date) + '</td>' +
+        '<td>' + esc(r.staffEmail) + '</td>' +
+        '<td>' + esc(r.gender) + '</td>' +
+        '<td>' + esc(r.department) + '</td>' +
+        '<td>' + esc(r.cardIn) + '</td>' +
+        '<td>' + esc(r.cardOut) + '</td>' +
+        '<td>' + esc(r.actualHours) + '</td>' +
+        '<td>' + esc(r.cardInRemark) + '</td>' +
+        '<td>' + esc(r.cardOutRemark) + '</td>' +
+        '<td>' + esc(r.eventId) + '</td>' +
+        '<td>' + esc(r.matchingType) + '</td>' +
+        '</tr>';
+    }).join('');
+    body.innerHTML = trs;
+    if (tbl) tbl.style.display = '';
+    if (empty) empty.style.display = 'none';
+    if (skel) skel.style.display = 'none';
+  }
+
   /* ===== Âm thanh toggle (tham khảo v1) ===== */
   var SOUND_ON = true;
   try { SOUND_ON = localStorage.getItem('rc2_sound') !== '0'; } catch (e) {}
@@ -1545,6 +1906,7 @@
     // Hide all views
     document.getElementById('viewList').classList.add('hidden');
     document.getElementById('viewScan').classList.add('hidden');
+    document.getElementById('viewStaff').classList.add('hidden');
     document.getElementById('aboutView').classList.add('hidden');
     // Stop auto-focus loop when leaving scan view
     stopAutoFocusLoop();
