@@ -242,7 +242,7 @@
     /* v1: badge count nhẹ — nền xám nhạt, bo tròn, chữ muted (không lấn át) */
     /* ===== Commit 2026-08-08: modal tạo task gọn — dropdown thay 5 cây checkbox ===== */
         .create-form { display: grid; gap: 10px; margin-top: 10px; }
-        .create-form .frow { display: grid; grid-template-columns: 132px 1fr; align-items: center; gap: 10px; }
+        .create-form .frow { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; }
         .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: #9a4d00; }
     .create-form .frow .fnote { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.3; }
     select.field-select {
@@ -790,7 +790,7 @@
     <div class="card">
       <div class="task-list-toolbar">
         <h2 class="section-heading">+ ĐỐI CHIẾU DANH SÁCH</h2>
-        <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Tạo task</button>
+        <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
       </div>
       <p style="color:var(--muted);font-size:14px;margin:0;">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
     </div>
@@ -1038,12 +1038,12 @@
         <div class="chips" id="chipsStation" role="group" aria-label="Station"></div>
       </div>
       <div class="frow">
-        <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
-        <div class="chips" id="chipsSlot" role="group" aria-label="Ca"></div>
-      </div>
-      <div class="frow">
         <span class="flabel">Team <span class="fnote">chọn nhiều</span></span>
         <div class="chips" id="chipsTeam" role="group" aria-label="Team"></div>
+      </div>
+      <div class="frow">
+        <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
+        <div class="chips" id="chipsSlot" role="group" aria-label="Ca"></div>
       </div>
       <div class="frow" id="rowContract">
         <span class="flabel">Hình thức <span class="fnote">chọn nhiều</span></span>
@@ -1056,7 +1056,7 @@
       </div>
     </div>
     <div class="create-footer">
-      <div class="create-total"><b id="createTotalNum">0</b> <span>nhân viên khớp</span></div>
+      <div class="create-total"><b id="createTotalNum">0</b> <span>nhân viên</span></div>
       <div class="create-actions">
         <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
         <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task</button>
@@ -1822,7 +1822,8 @@
     var contractType = SEL.contractTypes;
     var date = SEL.date;
     if (isFreeSel()) { clearTimeout(_previewTimer); setCreateTotal('—'); return; }
-    if (!station || !slotCode.length || !team.length) { clearTimeout(_previewTimer); setCreateTotal(0); return; }
+    // Cascade: đếm theo filter hiện có — station + team đủ là bắt đầu đếm (Ca tùy chọn)
+    if (!station || !team.length) { clearTimeout(_previewTimer); setCreateTotal(0); return; }
     clearTimeout(_previewTimer);
     _previewTimer = setTimeout(function () {
       google.script.run
@@ -1860,7 +1861,13 @@
   }
   function selSlotOptions() {
     var g = stationData();
-    return (g && g.slotCodes) ? g.slotCodes.map(function (sc) { return sc.slotCode; }) : [];
+    if (!g || !g.slotCodes) return [];
+    var slots = g.slotCodes.filter(function (sc) {
+      if (sc.slotCode === 'Tự do') return false;
+      if (!SEL.teams.length) return true;
+      return sc.teams.some(function (t) { return SEL.teams.indexOf(t) !== -1; });
+    });
+    return slots.map(function (sc) { return sc.slotCode; });
   }
   function selContractOptions() {
     var g = stationData();
@@ -1898,9 +1905,7 @@
   function renderSelSlot() {
     var c = document.getElementById('chipsSlot');
     if (!c) return;
-    var g = stationData();
-    var opts = (g && g.slotCodes) ? g.slotCodes.map(function (sc) { return sc.slotCode; }) : [];
-    opts = opts.filter(function (v) { return v !== 'Tự do'; });
+    var opts = selSlotOptions();
     if (!SEL.station) { c.innerHTML = ''; return; }
     var freeOn = SEL.slots.length === 1 && SEL.slots[0] === 'Tự do';
     var html = '<button type="button" class="pick free' + (freeOn ? ' on' : '') + '" data-col="slot" data-val="' + escAttr('Tự do') + '" aria-pressed="' + freeOn + '">' + esc('Tự do') + '</button>';
@@ -1987,6 +1992,16 @@
       }
       var arr = (col === 'team') ? SEL.teams : (col === 'slot') ? SEL.slots : SEL.contractTypes;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
+      if (col === 'team') {
+        toggleArr(SEL.teams, val, !pressed);
+        // cascade: Ca thuộc Station+Team — bỏ slot đã chọn không còn trong filter
+        if (SEL.slots.indexOf('Tự do') === -1) {
+          var avail = selSlotOptions();
+          SEL.slots = SEL.slots.filter(function (s) { return avail.indexOf(s) !== -1; });
+        }
+        renderAllSelects(); refreshModeUI(); updateCreatePreview();
+        return;
+      }
       if (col === 'slot' && val === 'Tự do') {
         if (!pressed) { SEL.slots = ['Tự do']; }
         else { toggleArr(SEL.slots, 'Tự do', false); }
