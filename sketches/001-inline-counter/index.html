@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Create Task — Inline Counter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;color:#1a1a1a;background:#f4f5f7;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+:root{
+  --amber:#e85d04;--amber-soft:#fff3e0;--border:#e2e5ea;--text:#1a1a1a;--muted:#6b7280;
+  --surface:#fff;--primary:#1f6feb;--primary-soft:#e8f0fe;--danger:#dc2626;--radius:12px;
+  --shadow:0 12px 40px rgba(0,0,0,.10);
+}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+.modal{
+  width:680px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);
+  background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);
+  box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;
+}
+.modal-header{padding:16px 20px 12px;border-bottom:2px solid var(--amber)}
+.modal-header h2{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.modal-body{padding:14px 20px;overflow-y:auto;flex:1}
+.tabs{display:flex;background:#eef0f2;border-radius:10px;padding:4px;gap:4px;margin-bottom:12px}
+.tab{flex:1;padding:9px 6px;font-size:13px;font-weight:600;color:var(--muted);
+  background:transparent;border:none;border-radius:8px;cursor:pointer;text-align:center;transition:.15s}
+.tab.active{background:#fff;color:#1f1f1f;box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:700}
+.tab:hover:not(.active){color:#1a1a1a}
+.mode-desc{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.col-section{display:flex;flex-direction:column;gap:4px}
+.col-title{font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.5px}
+.scroll{max-height:140px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
+.opt{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:6px;cursor:pointer;transition:.12s}
+.opt:hover{background:#f7f8fa}
+.opt input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--primary)}
+.opt.checked{background:var(--primary-soft)}
+.cnt{font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-soft);border-radius:10px;padding:1px 7px}
+.col-full{grid-column:1/-1}
+.footer{border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fafbfc}
+.preview{font-size:12px;color:var(--muted);flex:1;min-width:0}
+.preview b{color:var(--amber)}
+.actions{display:flex;gap:8px;flex-shrink:0}
+.btn{padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;min-height:44px;transition:.15s}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+.btn-ghost:hover{background:#f4f5f7;color:#1a1a1a}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{filter:brightness(.94)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-count{font-size:12px;opacity:.7}
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="overlay">
+<div class="modal">
+  <div class="modal-header">
+    <h2>+ Tạo task điểm danh</h2>
+  </div>
+  <div class="modal-body">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(this,true)">Đối chiếu danh sách</button>
+      <button class="tab" onclick="switchTab(this,false)">Quét tự do</button>
+    </div>
+    <p class="mode-desc">Tạo task kèm danh sách NV sẵn theo Station / Ca / Team / Ngày — quét mã <b>Ops</b> để điểm danh.</p>
+    <div class="grid" id="grid">
+      <div class="col-section"><span class="col-title">Station · chọn 1</span>
+        <div class="scroll" id="colStation"></div></div>
+      <div class="col-section"><span class="col-title">Team · chọn nhiều</span>
+        <div class="scroll" id="colTeam"></div></div>
+      <div class="col-section"><span class="col-title">Ca (Slot) · chọn nhiều</span>
+        <div class="scroll" id="colSlot"></div></div>
+      <div class="col-section"><span class="col-title">Hình thức · chọn nhiều</span>
+        <div class="scroll" id="colContract"></div></div>
+      <div class="col-section col-full"><span class="col-title">Ngày · chọn 1</span>
+        <div class="scroll" id="colDate" style="max-height:80px"></div></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="preview" id="preview">Chưa chọn filter nào</div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="hideToast()">Huỷ</button>
+      <button class="btn btn-primary" id="btnCreate" onclick="submit()">+ Tạo task<span class="btn-count" id="btnCount"></span></button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast">Đã tạo task — 48 NV</div>
+
+<script>
+const DATA={
+  station:['Station A','Station B','Station C','Station D'],
+  team:['Alpha','Bravo','Charlie','Delta','Echo','Foxtrot'],
+  slot:['C1','C2','C3','T1','T2'],
+  contract:['Chính thức','Thử việc','Part-time','Seasonal'],
+  date:['08/08/2026','09/08/2026','10/08/2026']
+};
+const COUNTS={
+  'Station A':48,'Station B':32,'Station C':24,'Station D':16,
+  'Alpha':12,'Bravo':18,'Charlie':8,'Delta':14,'Echo':6,'Foxtrot':10,
+  'C1':22,'C2':18,'C3':12,'T1':8,'T2':6,
+  'Chính thức':36,'Thử việc':8,'Part-time':4,'Seasonal':2,
+  '08/08/2026':48,'09/08/2026':44,'10/08/2026':40
+};
+const SEL={station:'',teams:[],slots:[],contracts:[],date:'',noList:false};
+function renderCol(id,arr,sel,multi){
+  const el=document.getElementById(id);el.innerHTML='';
+  arr.forEach(v=>{
+    const opt=document.createElement('div');
+    opt.className='opt'+(sel.includes(v)?' checked':'');
+    const lab=document.createElement('span');lab.textContent=v;
+    opt.appendChild(lab);
+    const cnt=document.createElement('span');cnt.className='cnt';cnt.textContent=COUNTS[v]||0;
+    opt.appendChild(cnt);
+    opt.addEventListener('click',()=>{
+      if(multi){const i=sel.indexOf(v);if(i>-1)sel.splice(i,1);else sel.push(v);}
+      else{if(sel===v)sel='';else sel=v;renderAll();}
+      renderAll();
+    });
+    el.appendChild(opt);
+  });
+}
+function renderAll(){
+  renderCol('colStation',DATA.station,SEL.station,false);
+  renderCol('colTeam',DATA.team,SEL.teams,true);
+  renderCol('colSlot',DATA.slot,SEL.slots,true);
+  renderCol('colContract',DATA.contract,SEL.contracts,true);
+  renderCol('colDate',DATA.date,SEL.date,false);
+  updatePreview();
+}
+function updatePreview(){
+  const p=document.getElementById('preview');const b=document.getElementById('btnCount');
+  let parts=[],total=0;
+  if(SEL.station)parts.push('Station:'+SEL.station);
+  if(SEL.teams.length)parts.push('Team:'+SEL.teams.length);
+  if(SEL.slots.length)parts.push('Ca:'+SEL.slots.length);
+  if(SEL.contracts.length)parts.push('HT:'+SEL.contracts.length);
+  if(SEL.date)parts.push('Ngày:'+SEL.date);
+  if(!SEL.station&&!SEL.teams.length&&!SEL.slots.length&&!SEL.contracts.length&&!SEL.date){
+    p.textContent='Chưa chọn filter nào';b.textContent='';return;
+  }
+  if(SEL.station)total=COUNTS[SEL.station]||0;
+  p.innerHTML='Đã chọn: <strong>'+parts.join(' · ')+'</strong>';
+  b.textContent=total>0?' ('+total+' NV)':'';
+}
+function switchTab(el,rec){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  SEL.noList=!rec;
+  const grp=document.getElementById('grid');
+  const desc=document.querySelector('.mode-desc');
+  if(SEL.noList){
+    desc.innerHTML='Chọn <b>Station + Team</b> (Ca tự động = Tự do). Quét lần 1 để <b>lấy danh sách</b>, lần 2 để <b>điểm danh</b>.';
+    grp.querySelectorAll('.col-section').forEach(s=>{
+      if(s.querySelector('.col-title')&&(s.querySelector('.col-title').textContent.includes('Ca')||s.querySelector('.col-title').textContent.includes('Hình thức')))
+        s.style.display='none';else s.style.display='';
+    });
+    SEL.slots=[];SEL.contracts=[];
+  }else{
+    desc.innerHTML='Tạo task kèm danh sách NV sẵn theo Station / Ca / Team / Ngày — quét mã <b>Ops</b> để điểm danh.';
+    grp.querySelectorAll('.col-section').forEach(s=>s.style.display='');
+  }
+  renderAll();
+}
+function submit(){
+  if(!SEL.station||!SEL.teams.length){alert('Vui lòng chọn Station + Team');return;}
+  if(!SEL.noList&&!SEL.slots.length){alert('Vui lòng chọn ít nhất 1 Ca');return;}
+  const toast=document.getElementById('toast');
+  toast.textContent='✓ Đã tạo task '+(SEL.station+ ' / '+SEL.teams.join(','))+' — '+(COUNTS[SEL.station]||0)+' NV';
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),2200);
+}
+function hideToast(){}
+renderAll();
+</script>
+</body>
+</html>

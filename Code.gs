@@ -185,6 +185,16 @@ function previewStaffCountsApi(input) {
   return { ok: true, counts: counts };
 }
 
+/** View StaffData: trả toàn bộ StaffData (full 20 field) cho bảng danh sách + thống kê.
+ * Chỉ đọc — an toàn kiosk. Cache 30s (STAFF_STATS). */
+function getStaffStatsApi() {
+  try {
+    return { ok: true, staff: readStaffFullList_() };
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'getStaffStats fail' };
+  }
+}
+
 /** Tạo task đối chiếu + pre-fill. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */
 function createReconcileTaskApi(input) {
   return createReconcileTask(input);
@@ -230,6 +240,12 @@ function pasteCodesApi(taskId, lines) {
  *  Gate: KHÔNG giới hạn role (chỉ đọc toàn bộ — tương như listTasksApi). */
 function searchLogsByStaffApi(rawStaffId) {
   return searchLogsByStaff(rawStaffId);
+}
+
+/** F-search mở rộng: tìm task theo mã (prefix/contains). Mở cho kiosk — chỉ đọc
+ *  (dùng readTaskList_ cache + counters, không đọc sheet riêng). */
+function searchTasksByQueryApi(rawQ) {
+  return searchTasksByQuery(rawQ);
 }
 
 /** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ

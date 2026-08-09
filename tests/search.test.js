@@ -140,3 +140,29 @@ test('matchLogsByStaff: so sánh staffId case-insensitive (server normalizeStaff
   assert.equal(res.length, 1, 'phải match dù truyền lowercase — so sánh case-insensitive');
   assert.equal(res[0].staffId, 'OPS123');
 });
+
+test('matchTasksByQuery: lọc task theo mã (contains, case-insensitive), limit 50', () => {
+  const ctx = loadScanLogic();
+  const tasks = [
+    mkTask('R20260801-2352', { createdAtText: '2026-08-01 23:52:01' }),
+    mkTask('R20260801-2327', { createdAtText: '2026-08-01 23:27:02' }),
+    mkTask('X20260802-0001', { createdAtText: '2026-08-02 00:01:00' }),
+  ];
+  // empty -> []
+  assert.equal(ctx.matchTasksByQuery(tasks, '').length, 0);
+  assert.equal(ctx.matchTasksByQuery(tasks, '  ').length, 0);
+  // prefix/contains, giữ thứ tự tasks truyền vào
+  assert.equal(ctx.matchTasksByQuery(tasks, 'R202608').map(function (t) { return t.taskId; }).join(','), 'R20260801-2352,R20260801-2327');
+  // contains giữa chuỗi
+  assert.equal(ctx.matchTasksByQuery(tasks, '2352').length, 1);
+  // case-insensitive
+  assert.equal(ctx.matchTasksByQuery(tasks, 'r20260801-23').length, 2);
+  // không match
+  assert.equal(ctx.matchTasksByQuery(tasks, 'ZZZ').length, 0);
+  // null tasks
+  assert.equal(ctx.matchTasksByQuery(null, 'R').length, 0);
+  // limit 50
+  var many = [];
+  for (var i = 0; i < 60; i++) many.push(mkTask('R20260801-' + ('0000' + i).slice(-4)));
+  assert.equal(ctx.matchTasksByQuery(many, 'R2026').length, 50, 'phải cắt ở 50');
+});

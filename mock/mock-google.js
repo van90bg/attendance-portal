@@ -1,4 +1,4 @@
-/**
+﻿/**
  * mock-google.js — Mock google.script.run cho test UI local (mở index.html trực tiếp).
  *
  * KHÔNG push lên GAS production (đã .claspignore). Chỉ dùng khi chạy file://
@@ -13,9 +13,9 @@
   var MOCK_DATA = {
     meta: {
       ok: true,
-      appTitle: 'Điểm danh kho [LOCAL MOCK]',
+      appTitle: 'Attendance Portal [LOCAL MOCK]',
       labels: {
-        APP_TITLE: 'Điểm danh kho',
+        APP_TITLE: 'Attendance Portal',
         BTN_RECONCILE: '+ Đối chiếu danh sách',
         BTN_CREATE: '+ Tạo task',
         BTN_SCAN: 'Quét',
@@ -39,14 +39,14 @@
       },
     },
     staff: [
-      { staffId: 'Ops237511', staffName: 'NV001', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', cardIn: '20:15', cardOut: '06:20' },
-      { staffId: 'Ops196935', staffName: 'NV002', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', cardIn: '20:18', cardOut: '06:25' },
-      { staffId: 'Ops229444', staffName: 'NV003', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', cardIn: '20:22', cardOut: '06:30' },
-      { staffId: 'Ops110512', staffName: 'NV004', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', cardIn: '20:25', cardOut: '06:35' },
-      { staffId: 'Ops124563', staffName: 'NV005', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', cardIn: '20:28', cardOut: '' },
-      { staffId: 'Ops129481', staffName: 'NV104', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', cardIn: '06:10', cardOut: '14:20' },
-      { staffId: 'Ops126503', staffName: 'NV105', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', cardIn: '06:12', cardOut: '14:22' },
-      { staffId: 'Ops133754', staffName: 'NV020', slotCode: '22:00-06:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBMove', cardIn: '10:15', cardOut: '18:19' },
+      { staffId: 'Ops237511', staffName: 'NV001', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'GRG', contractType: 'BPO', cardIn: '20:15', cardOut: '06:20' },
+      { staffId: 'Ops196935', staffName: 'NV002', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'FEX', contractType: 'OS', cardIn: '20:18', cardOut: '06:25' },
+      { staffId: 'Ops229444', staffName: 'NV003', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'SKT', contractType: 'S-BPO', cardIn: '20:22', cardOut: '06:30' },
+      { staffId: 'Ops110512', staffName: 'NV004', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', agency: 'TPZ', contractType: 'I-BPO', cardIn: '20:25', cardOut: '06:35' },
+      { staffId: 'Ops124563', staffName: 'NV005', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', agency: 'GMG', contractType: 'OS', cardIn: '20:28', cardOut: '' },
+      { staffId: 'Ops129481', staffName: 'NV104', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', agency: 'AGR', contractType: 'OS', cardIn: '06:10', cardOut: '14:20' },
+      { staffId: 'Ops126503', staffName: 'NV105', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', agency: 'SKT', contractType: 'BPO', cardIn: '06:12', cardOut: '14:22' },
+      { staffId: 'Ops133754', staffName: 'NV020', slotCode: '22:00-06:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBMove', agency: 'FEX', contractType: 'OS', cardIn: '10:15', cardOut: '18:19' },
     ],
     tasks: [
       { taskId: 'R20260802-0900', taskType: 'reconcile', station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00' },
@@ -242,6 +242,14 @@
       out.sort(function (a, b) { return b.createdAtText < a.createdAtText ? -1 : (b.createdAtText > a.createdAtText ? 1 : 0); });
       return out.slice(0, 200);
     },
+    searchTasksByQueryApi: function (rawQ) {
+      // Mock tìm kiếm task theo mã (prefix/contains, case-insensitive) — copy matchTasksByQuery.
+      var q = String(rawQ || '').trim().toUpperCase();
+      if (!q) return [];
+      return MOCK_DATA.tasks.filter(function (t) {
+        return t.taskId && String(t.taskId).toUpperCase().indexOf(q) >= 0;
+      }).slice(0, 50);
+    },
     reopenTaskApi: function (taskId) {
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'open'; });
       return { ok: true, message: 'Đã mở lại task ' + taskId };
@@ -249,6 +257,10 @@
     completeTaskApi: function (taskId) {
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'done'; });
       return { ok: true, message: 'Đã kết thúc task ' + taskId };
+    },
+    getStaffStatsApi: function () {
+      // Mock view StaffData: trả toàn bộ MOCK_DATA.staff (đã có agency/contractType).
+      return { ok: true, staff: MOCK_DATA.staff };
     },
   };
 

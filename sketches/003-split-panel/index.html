@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Create Task — Split Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;color:#1a1a1a;background:#f4f5f7;min-height:100vh;
+  display:flex;justify-content:center;padding:24px}
+:root{
+  --amber:#e85d04;--amber-soft:#fff3e0;--border:#e2e5ea;--text:#1a1a1a;--muted:#6b7280;
+  --surface:#fff;--primary:#1f6feb;--primary-soft:#e8f0fe;--danger:#dc2626;--radius:12px;
+  --shadow:0 12px 40px rgba(0,0,0,.10);
+}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+.modal{
+  width:720px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);
+  background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);
+  box-shadow:var(--shadow);display:grid;grid-template-columns:1fr 220px;overflow:hidden;
+}
+.left{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)}
+.right{background:#fafbfc;display:flex;flex-direction:column;padding:16px;gap:12px}
+.modal-header{padding:16px 20px 0}
+.modal-header h2{font-size:16px;font-weight:700;padding-bottom:12px;border-bottom:2px solid var(--amber)}
+.tabs{display:flex;background:#eef0f2;border-radius:10px;padding:4px;gap:4px;margin:12px 20px}
+.tab{flex:1;padding:9px 6px;font-size:13px;font-weight:600;color:var(--muted);
+  background:transparent;border:none;border-radius:8px;cursor:pointer;text-align:center;transition:.15s}
+.tab.active{background:#fff;color:#1f1f1f;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.body{padding:0 20px 14px;overflow-y:auto;flex:1}
+.mode-desc{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.col-title{font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.scroll{max-height:110px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:.12s}
+.opt:hover{background:#f7f8fa}
+.opt input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--primary)}
+.opt.checked{background:var(--primary-soft)}
+.cnt{font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-soft);border-radius:10px;padding:1px 7px;margin-left:auto}
+/* right summary */
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+.sum-big{font-size:28px;font-weight:800;color:var(--amber);text-align:center;line-height:1.1}
+.sum-lbl{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
+.sum-hr{height:1px;background:var(--border);margin:10px 0}
+.sum-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.sum-row b{color:var(--text);font-weight:600}
+.btn{padding:12px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;min-height:44px;transition:.15s;width:100%}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{filter:brightness(.94)}
+.tip{font-size:11px;color:var(--muted);text-align:center;line-height:1.4}
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="overlay">
+<div class="modal">
+  <div class="left">
+    <div class="modal-header"><h2>+ Tạo task điểm danh</h2></div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(this,true)">Đối chiếu danh sách</button>
+      <button class="tab" onclick="switchTab(this,false)">Quét tự do</button>
+    </div>
+    <div class="body">
+      <p class="mode-desc" id="modeDesc">Tạo task kèm danh sách NV sẵn theo Station / Ca / Team / Ngày — quét mã <b>Ops</b> để điểm danh.</p>
+      <div class="col-title">Station · chọn 1</div><div class="scroll" id="colStation"></div>
+      <div class="col-title">Team · chọn nhiều</div><div class="scroll" id="colTeam"></div>
+      <div class="col-title" id="lblSlot">Ca · chọn nhiều</div><div class="scroll" id="colSlot"></div>
+      <div class="col-title" id="lblContract">Hình thức · chọn nhiều</div><div class="scroll" id="colContract"></div>
+      <div class="col-title" id="lblDate">Ngày · chọn 1</div><div class="scroll" id="colDate" style="max-height:70px"></div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="sum-card">
+      <div class="sum-big" id="sumBig">0</div>
+      <div class="sum-lbl">nhân viên</div>
+      <div class="sum-hr"></div>
+      <div class="sum-row"><span>Station</span><b id="sumStation">—</b></div>
+      <div class="sum-row"><span>Team</span><b id="sumTeam">—</b></div>
+      <div class="sum-row" id="sumRowSlot"><span>Ca</span><b id="sumSlot">—</b></div>
+      <div class="sum-row" id="sumRowContract"><span>Hình thức</span><b id="sumContract">—</b></div>
+      <div class="sum-row" id="sumRowDate"><span>Ngày</span><b id="sumDate">—</b></div>
+    </div>
+    <button class="btn btn-primary" onclick="submit()">+ Tạo task</button>
+    <button class="btn btn-ghost" onclick="hideToast()">Huỷ</button>
+    <div class="tip">Xem task → màn quét tự động</div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast">✓ Đã tạo task Station A / Alpha, Bravo — 48 NV</div>
+
+<script>
+const DATA={
+  station:['Station A','Station B','Station C','Station D'],
+  team:['Alpha','Bravo','Charlie','Delta'],
+  slot:['C1','C2','C3','T1'],
+  contract:['Chính thức','Thử việc','Part-time'],
+  date:['08/08/2026','09/08/2026','10/08/2026']
+};
+const COUNTS={'Station A':48,'Station B':32,'Station C':24,'Station D':16,
+  'Alpha':12,'Bravo':18,'Charlie':8,'Delta':14,'C1':22,'C2':18,'C3':12,'T1':8,
+  'Chính thức':36,'Thử việc':8,'Part-time':4,'08/08/2026':48,'09/08/2026':44,'10/08/2026':40};
+const SEL={station:'',teams:[],slots:[],contracts:[],date:'',noList:false};
+function renderCol(id,arr,sel,multi){
+  const el=document.getElementById(id);el.innerHTML='';
+  arr.forEach(v=>{
+    const opt=document.createElement('div');opt.className='opt'+(sel.includes(v)?' checked':'');
+    const lab=document.createElement('span');lab.textContent=v;
+    opt.appendChild(lab);
+    const cnt=document.createElement('span');cnt.className='cnt';cnt.textContent=COUNTS[v]||0;
+    opt.appendChild(cnt);
+    opt.addEventListener('click',()=>{
+      if(multi){const i=sel.indexOf(v);if(i>-1)sel.splice(i,1);else sel.push(v);}
+      else{if(sel===v)sel='';else sel=v;render();}render();
+    });
+    el.appendChild(opt);
+  });
+}
+function renderAll(){
+  renderCol('colStation',DATA.station,SEL.station,false);
+  renderCol('colTeam',DATA.team,SEL.teams,true);
+  renderCol('colSlot',DATA.slot,SEL.slots,true);
+  renderCol('colContract',DATA.contract,SEL.contracts,true);
+  renderCol('colDate',DATA.date,SEL.date,false);
+  updateRight();
+}
+function updateRight(){
+  const big=SEL.station?(COUNTS[SEL.station]||0):(SEL.teams.length?COUNTS[SEL.teams[0]]||0:0);
+  document.getElementById('sumBig').textContent=big;
+  document.getElementById('sumStation').textContent=SEL.station||'—';
+  document.getElementById('sumTeam').textContent=SEL.teams.length?SEL.teams.join(', '):'—';
+  document.getElementById('sumSlot').textContent=SEL.slots.length?SEL.slots.join(', '):'—';
+  document.getElementById('sumContract').textContent=SEL.contracts.length?SEL.contracts.join(', '):'—';
+  document.getElementById('sumDate').textContent=SEL.date||'—';
+  ['sumRowSlot','sumRowContract','sumRowDate'].forEach(id=>{
+    const e=document.getElementById(id);if(e)e.style.display='';
+  });
+  if(SEL.noList){
+    document.getElementById('lblSlot').style.display='none';
+    document.getElementById('colSlot').style.display='none';
+    document.getElementById('lblContract').style.display='none';
+    document.getElementById('colContract').style.display='none';
+    document.getElementById('sumRowSlot').style.display='none';
+    document.getElementById('sumRowContract').style.display='none';
+    document.getElementById('sumRowDate').style.display='none';
+  }else{
+    document.getElementById('lblSlot').style.display='';document.getElementById('colSlot').style.display='';
+    document.getElementById('lblContract').style.display='';document.getElementById('colContract').style.display='';
+  }
+}
+function switchTab(el,rec){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  SEL.noList=!rec;
+  document.getElementById('modeDesc').innerHTML=SEL.noList?
+    'Chọn <b>Station + Team</b> (Ca tự động = Tự do). Quét lần 1 để <b>lấy danh sách</b>, lần 2 để <b>điểm danh</b>.':
+    'Tạo task kèm danh sách NV sẵn theo Station / Ca / Team / Ngày — quét mã <b>Ops</b> để điểm danh.';
+  SEL.slots=[];SEL.contracts=[];SEL.date='';
+  renderAll();
+}
+function submit(){
+  if(!SEL.station||!SEL.teams.length){alert('Vui lòng chọn Station + Team');return;}
+  if(!SEL.noList&&!SEL.slots.length){alert('Chọn ít nhất 1 Ca');return;}
+  document.getElementById('toast').textContent='✓ Đã tạo task '+SEL.station+' / '+SEL.teams.join(',')+' — '+COUNTS[SEL.station]+' NV';
+  document.getElementById('toast').classList.add('show');
+  setTimeout(()=>document.getElementById('toast').classList.remove('show'),2400);
+}
+function hideToast(){}
+renderAll();
+</script>
+</body>
+</html>

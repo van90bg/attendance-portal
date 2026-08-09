@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Config.gs — Hằng số toàn cục RollCall v2
  * Cột sheet/file: tiếng Anh · Hiển thị web: tiếng Việt (UI_LABELS)
  * KHÔNG hardcode string rải rác — mọi hằng số tập trung tại đây.
@@ -133,6 +133,8 @@ const CACHE_TTL = {
                              // invalidate mọi write (insertTask_/updateTaskStatus_) → 60s không stale
   LOG_ROWS: 30,              // 30s — log rows theo taskId (đường quét — cập nhật incremental, không invalidate mỗi scan)
   TASK_COUNTS: 30,
+  SEARCH_STAFF: 15,          // 15s — kết quả tìm NV xuyên task (on-demand, TTL ngắn — đủ tránh quét sheet lớn lặp lại khi tìm cùng mã)
+  STAFF_STATS: 30,           // 30s — danh sách StaffData full cho view thống kê (chỉ đọc, cache ngắn để data tươi)
   TZ: 24 * 60 * 60,          // 24h — timezone (cache 1 lần, KHÔNG gọi trong loop)
 };
 
@@ -145,13 +147,15 @@ const CACHE_KEYS = {
   TASK: 'rc2_task_v1_',                   // prefix + taskId — m3: task cache đường quét (TTL 60s, invalidate mọi write)
   LOG_ROWS: 'rc2_logRows_v1_',          // prefix + taskId — đường quét (incremental update)
   TASK_COUNTS: 'rc2_taskCounts_v1_',      // prefix — counters theo taskId cho list (đếm 1 lần + cache 30s)
+  SEARCH_STAFF: 'rc2_search_staff_v1_',   // prefix + staffId — kết quả tìm NV xuyên task (TTL 15s)
+  STAFF_STATS: 'rc2_staffStats_v1',     // toàn bộ StaffData (list full) — view thống kê, TTL 30s
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)
 };
 
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====
 // Text giao diện khác đã hardcode trong index.html (client tự quản lý).
 const UI_LABELS = {
-  APP_TITLE: 'Điểm danh kho',
+  APP_TITLE: 'Attendance Portal',
   ALREADY_SCANNED: 'Đã điểm danh',
   ALREADY_PRESENT: 'Đã có mặt',
   TASK_CLOSED: 'Task đã kết thúc',

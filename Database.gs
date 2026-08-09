@@ -186,6 +186,19 @@ function readStaffIndex_() {
 function invalidateStaffIndex_() {
   cache_().remove(CACHE_KEYS.STAFF_INDEX);
   cache_().remove(CACHE_KEYS.FILTER_OPTIONS);
+  cache_().remove(CACHE_KEYS.STAFF_STATS);
+}
+
+/**
+ * Đọc TOÀN BỘ StaffData dạng list objects — FULL 20 field (view thống kê StaffData).
+ * Cache riêng (STAFF_STATS, 30s) — KHÔNG chung FILTER_OPTIONS để không phình cache
+ * dùng cho create-modal. Dùng buildStaffListFromValues (CsvUtil — giữ mọi dòng, không dedupe).
+ */
+function readStaffFullList_() {
+  return cachedJson_(CACHE_KEYS.STAFF_STATS, function () {
+    const sheet = getSheet_(SHEETS.STAFF_DATA);
+    return buildStaffListFromValues(sheet.getDataRange().getValues());
+  }, CACHE_TTL.STAFF_STATS);
 }
 
 /** Đọc toàn bộ StaffData dạng mảng objects (cache 5m — version-key FILTER_OPTIONS). */
@@ -408,6 +421,9 @@ function invalidateTaskListCache_() {
 function logFromRow_(taskId, row) {
   const timeRef = row[LOG_COLS.TIME_REF] || null;
   const timeScan = row[LOG_COLS.TIME_SCAN] || null;
+  // Parse 1 lần duy nhất — tránh gọi safeDate_ + Date.parse 3-4 lần/dòng.
+  const dRef = safeDate_(timeRef);
+  const dScan = safeDate_(timeScan);
   return {
     taskId: taskId,
     staffId: String(row[LOG_COLS.STAFF_ID] || '').trim(),
@@ -422,8 +438,8 @@ function logFromRow_(taskId, row) {
     timeScanText: formatTime_(timeScan),
     // Sort key số (epoch ms) — text "HH:mm:ss" mất ngày → sort chuỗi sai khi task
     // xuyên nửa đêm. Client sort theo con số này (chính xác tuyệt đối).
-    timeRefEpoch: (safeDate_(timeRef) || {}).getTime ? safeDate_(timeRef).getTime() : 0,
-    timeScanEpoch: (safeDate_(timeScan) || {}).getTime ? safeDate_(timeScan).getTime() : 0,
+    timeRefEpoch: dRef ? dRef.getTime() : 0,
+    timeScanEpoch: dScan ? dScan.getTime() : 0,
     status: String(row[LOG_COLS.STATUS] || ''),
     // Date = ngay vao lam (copy tu StaffData) — format yyyy-MM-dd (ISO) cho hien thi
     dateText: formatDateShort_(row[LOG_COLS.DATE]),
@@ -461,21 +477,45 @@ function readLogRows_(taskId) {
 function searchLogsByStaff(rawStaffId) {
   const sid = normalizeStaffId(rawStaffId);
   if (!sid) return [];
-  try {
-    const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG);
-    const values = logSheet.getDataRange().getValues();
-    // Map toán bộ dòng log (cross-task) thành đối tượng — tái dùng logFromRow_.
-    const logRows = [];
-    for (let i = 1; i < values.length; i++) {
-      const tid = String(values[i][LOG_COLS.TASK_ID] || '').trim();
-      if (!tid) continue;
-      logRows.push(logFromRow_(tid, values[i]));
+  // Cache 15s theo staffId — tìm cùng mã liên tiếp không quét lại toàn sheet log
+  // (sheet lớn = vài giây GAS); kết quả join task meta từ readTaskList_ (cache 30s).
+  return cachedJson_(CACHE_KEYS.SEARCH_STAFF + sid, function () {
+    try {
+      const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+      const values = logSheet.getDataRange().getValues();
+      // Map toán bộ dòng log (cross-task) thành đối tượng — tái dùng logFromRow_.
+      const logRows = [];
+      for (let i = 1; i < values.length; i++) {
+        const tid = String(values[i][LOG_COLS.TASK_ID] || '').trim();
+        if (!tid) continue;
+        logRows.push(logFromRow_(tid, values[i]));
+      }
+      var tasks = [];
+      try { tasks = readTaskList_() || []; } catch (e) { console.warn('searchLogsByStaff readTaskList_ fail', e.message); }
+      return matchLogsByStaff(logRows, tasks, sid);
+    } catch (e) {
+      console.error({ bench: 'searchLogsByStaff', staffId: sid, error: e && e.message });
+      return [];
     }
-    var tasks = [];
-    try { tasks = readTaskList_() || []; } catch (e) { console.warn('searchLogsByStaff readTaskList_ fail', e.message); }
-    return matchLogsByStaff(logRows, tasks, sid);
+  }, CACHE_TTL.SEARCH_STAFF);
+}
+
+/**
+ * Tìm kiếm task theo mã (prefix/contains, case-insensitive) — cho ô tìm header mở rộng.
+ * Dùng readTaskList_ (đã cache 30s + counters) → KHÔNG đọc sheet riêng. Logic lọc do
+ * matchTasksByQuery (ScanLogic.gs, pure) — test Node được.
+ *
+ * @param {string} rawQ — chuỗi nhập (mã task, ví dụ "R202608" / "2352")
+ * @returns {Array<Object>} — tasks khớp (giữ counters từ readTaskList_), limit 50
+ */
+function searchTasksByQuery(rawQ) {
+  const q = String(rawQ || '').trim();
+  if (!q) return [];
+  try {
+    const tasks = readTaskList_() || [];
+    return matchTasksByQuery(tasks, q);
   } catch (e) {
-    console.error({ bench: 'searchLogsByStaff', staffId: sid, error: e && e.message });
+    console.error({ bench: 'searchTasksByQuery', q: q, error: e && e.message });
     return [];
   }
 }
@@ -562,34 +602,37 @@ function batchAppendLogRows_(rows) {
     rowIndices.push(startRow + i);
   }
   // Update LOG_ROWS cache in ONE put (not per-row pushLogRowToCache_)
-  try {
-    const key = CACHE_KEYS.LOG_ROWS + taskId;
-    const cached = cache_().get(key);
-    if (cached !== null) {
-      const cachedRows = JSON.parse(cached);
-      // Append slim versions of new rows
-      rows.forEach(function (row, idx) {
-        const timeRef = row[LOG_COLS.TIME_REF];
-        const timeScan = row[LOG_COLS.TIME_SCAN];
-        cachedRows.push({
-          taskId: taskId,
-          staffId: row[LOG_COLS.STAFF_ID],
-          staffName: row[LOG_COLS.STAFF_NAME],
-          slotCode: row[LOG_COLS.SLOT_CODE],
-          station: row[LOG_COLS.STATION],
-          team: row[LOG_COLS.TEAM],
-          timeRefText: timeRef ? formatTime_(timeRef) : '',
-          timeRefEpoch: timeRef ? (safeDate_(timeRef) || {}).getTime ? safeDate_(timeRef).getTime() : 0 : 0,
-          timeScanText: timeScan ? formatTime_(timeScan) : '',
-          timeScanEpoch: timeScan ? (safeDate_(timeScan) || {}).getTime ? safeDate_(timeScan).getTime() : 0 : 0,
-          status: row[LOG_COLS.STATUS],
-          dateText: row[LOG_COLS.DATE] || '',
-          _rowIndex: rowIndices[idx],
+    try {
+      const key = CACHE_KEYS.LOG_ROWS + taskId;
+      const cached = cache_().get(key);
+      if (cached !== null) {
+        const cachedRows = JSON.parse(cached);
+        // Append slim versions of new rows
+        rows.forEach(function (row, idx) {
+          const timeRef = row[LOG_COLS.TIME_REF];
+          const timeScan = row[LOG_COLS.TIME_SCAN];
+          // Parse 1 lần duy nhất — tránh gọi safeDate_ nhiều lần.
+          const dRef = timeRef ? safeDate_(timeRef) : null;
+          const dScan = timeScan ? safeDate_(timeScan) : null;
+          cachedRows.push({
+            taskId: taskId,
+            staffId: row[LOG_COLS.STAFF_ID],
+            staffName: row[LOG_COLS.STAFF_NAME],
+            slotCode: row[LOG_COLS.SLOT_CODE],
+            station: row[LOG_COLS.STATION],
+            team: row[LOG_COLS.TEAM],
+            timeRefText: timeRef ? formatTime_(timeRef) : '',
+            timeRefEpoch: dRef ? dRef.getTime() : 0,
+            timeScanText: timeScan ? formatTime_(timeScan) : '',
+            timeScanEpoch: dScan ? dScan.getTime() : 0,
+            status: row[LOG_COLS.STATUS],
+            dateText: row[LOG_COLS.DATE] || '',
+            _rowIndex: rowIndices[idx],
+          });
         });
-      });
-      cache_().put(key, JSON.stringify(cachedRows), CACHE_TTL.LOG_ROWS);
-    }
-  } catch (e) {
+        cache_().put(key, JSON.stringify(cachedRows), CACHE_TTL.LOG_ROWS);
+      }
+    } catch (e) {
     console.warn('batchAppendLogRows_ cache update fail', e.message);
     invalidateLogRows_(taskId); // force rebuild
   }
