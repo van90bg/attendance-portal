@@ -314,7 +314,11 @@
 
     /* ===== Bộ đếm — 3 khối luôn cùng 1 hàng (kiosk nhìn nhanh) ===== */
     .counters { display: flex; gap: 10px; }
-    @keyframes pasteSlide { 0% { left: -40%; } 100% { left: 100%; } }
+    /* P1-2 fix: dùng transform translateX (GPU-accelerated) thay vì left (layout thrash). */
+    @keyframes pasteSlide {
+      0% { transform: translateX(-250%); }
+      100% { transform: translateX(250%); }
+    }
     .counter {
       flex: 1;
       min-width: 0;
