@@ -199,19 +199,8 @@
     }
 
     /* ===== View 1: tạo task ===== */
-    #viewList { display: flex; flex-direction: column; height: calc(100vh - var(--header-h) - 32px); }
-    #viewList > .card:last-child {
-      display: flex; flex-direction: column;
-      flex: 1 1 auto; min-height: 0; margin-bottom: 0;
-    }
-    #viewList > .card:last-child .table-wrap {
-      flex: 1 1 auto; min-height: 0;
-      overflow: auto; max-height: none;
-    }
-    @media (max-width: 600px) {
-      #viewList { height: auto; }
-      #viewList > .card:last-child { flex: none; min-height: 60vh; }
-    }
+    /* 2026-08-09: BỎ giãn full card DANH SÁCH TASK (commit 31e49b3) — card tự cao theo nội dung,
+       hết khoảng trắng 600px khi ít task. Nhiều task → table-wrap scroll trong (max-height viewport). */
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
