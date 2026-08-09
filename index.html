@@ -1482,8 +1482,21 @@
     function resetListPage() { LIST_PAGE = 1; }
     function resetScanPage() { SCAN_PAGE = 1; }
 
+  // Repair: ép các view section vào đúng #main-content (phòng parser tách thẻ sau edit HTML).
+  function repairViewParents() {
+    var main = document.getElementById('main-content');
+    if (!main) return;
+    ['viewHome', 'viewStats', 'viewStaff', 'aboutView', 'viewScan', 'viewList'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.parentElement !== main) {
+        main.appendChild(el);  // di chuyển (appendChild tự gỡ khỏi cha cũ + xếp cuối main)
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
+    repairViewParents();
     loadMetaAndOptions();
     document.getElementById('scanInput').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
