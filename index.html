@@ -1060,27 +1060,25 @@
     </div>
 
     <!-- Layout 2 cột: trái = quét + counters + scan card, phải = bảng NV -->
+<div class="scan-layout">
       <div class="scan-col-left">
-          <div class="counters">
-            <div class="counter scanned"><div class="num" id="cScanned">0</div><div class="lbl">Đã quét</div></div>
-            <div class="counter absent"><div class="num" id="cAbsent">0</div><div class="lbl">Chưa điểm danh</div></div>
-            <div class="counter extra"><div class="num" id="cExtra">0</div><div class="lbl">Dư</div></div>
-          </div>
+        <div class="counters">
+          <div class="counter scanned"><div class="num" id="cScanned">0</div><div class="lbl">Đã quét</div></div>
+          <div class="counter absent"><div class="num" id="cAbsent">0</div><div class="lbl">Chưa điểm danh</div></div>
+          <div class="counter extra"><div class="num" id="cExtra">0</div><div class="lbl">Dư</div></div>
         </div>
-
-          <div class="scan-row">
-            <div class="scan-input-wrap">
-              <input type="text" id="scanInput" pattern="[Oo][Pp][Ss][0-9]+" placeholder="Quét mã nhân viên…" aria-label="Quét mã nhân viên" autocomplete="off" autocapitalize="off" spellcheck="false">
-            </div>
-            <button class="btn" id="btnScan" onclick="submitScan()">Quét</button>
+        <div class="scan-row">
+          <div class="scan-input-wrap">
+            <input type="text" id="scanInput" pattern="[Oo][Pp][Ss][0-9]+" placeholder="Quét mã nhân viên…" aria-label="Quét mã nhân viên" autocomplete="off" autocapitalize="off" spellcheck="false">
           </div>
-          <div class="scan-hint">Quét mã NV bắt đầu bằng Ops + số, hoặc dán danh sách mã (Enter để quét)</div>
-          <div id="scanCard" class="scan-card" role="status" aria-live="polite">
-            <div class="sc-empty">Chưa có lượt quét</div>
-          </div>
+          <button class="btn" id="btnScan" onclick="submitScan()">Quét</button>
+        </div>
+        <div class="scan-hint">Quét mã NV bắt đầu bằng Ops + số, hoặc dán danh sách mã (Enter để quét)</div>
+        <div id="scanCard" class="scan-card" role="status" aria-live="polite">
+          <div class="sc-empty">Chưa có lượt quét</div>
         </div>
       </div>
-
+      <div class="scan-col-right">
         <div class="card">
           <div class="att-toolbar">
             <div class="att-search">
@@ -1100,25 +1098,25 @@
             </div>
             <table id="scanTable" style="display:none;">
               <thead>
-                                <tr>
-                <th scope="col" class="stt-col">STT</th>
-                <th scope="col" data-sort="0" class="sortable" aria-sort="none">Mã NV</th>
-                <th scope="col" data-sort="1" class="sortable" aria-sort="none">Tên NV</th>
-                <th scope="col" data-sort="2" class="sortable" aria-sort="none">Agency</th>
-                <th scope="col" data-sort="3" class="sortable" aria-sort="none">Station</th>
-                <th scope="col" data-sort="4" class="sortable" aria-sort="none">Team</th>
-                <th scope="col" data-sort="5" class="sortable" aria-sort="none">Ca</th>
-                <th scope="col" data-sort="6" class="sortable" aria-sort="none">Ngày</th>
-                <th scope="col" data-sort="7" class="sortable" aria-sort="none">Giờ có mặt</th>
-                <th scope="col" data-sort="8" class="sortable" aria-sort="none">Giờ quét</th>
-                <th scope="col" data-sort="9" class="sortable" aria-sort="none">Trạng thái</th>
+                <tr>
+                  <th scope="col" class="stt-col">STT</th>
+                  <th scope="col" data-sort="0" class="sortable" aria-sort="none">Mã NV</th>
+                  <th scope="col" data-sort="1" class="sortable" aria-sort="none">Tên NV</th>
+                  <th scope="col" data-sort="2" class="sortable" aria-sort="none">Agency</th>
+                  <th scope="col" data-sort="3" class="sortable" aria-sort="none">Station</th>
+                  <th scope="col" data-sort="4" class="sortable" aria-sort="none">Team</th>
+                  <th scope="col" data-sort="5" class="sortable" aria-sort="none">Ca</th>
+                  <th scope="col" data-sort="6" class="sortable" aria-sort="none">Ngày</th>
+                  <th scope="col" data-sort="7" class="sortable" aria-sort="none">Giờ có mặt</th>
+                  <th scope="col" data-sort="8" class="sortable" aria-sort="none">Giờ quét</th>
+                  <th scope="col" data-sort="9" class="sortable" aria-sort="none">Trạng thái</th>
                 </tr>
               </thead>
               <tbody id="scanTableBody"></tbody>
             </table>
             <div class="empty" id="scanEmpty" style="display:none;">Không có nhân viên nào trong danh sách</div>
-                        <div id="scanPagination" class="pag-wrap" style="display:none;"></div>
-                      </div>
+            <div id="scanPagination" class="pag-wrap" style="display:none;"></div>
+          </div>
         </div>
       </div>
     </div>
