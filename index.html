@@ -242,7 +242,7 @@
     /* v1: badge count nhẹ — nền xám nhạt, bo tròn, chữ muted (không lấn át) */
     /* ===== Commit 2026-08-08: modal tạo task gọn — dropdown thay 5 cây checkbox ===== */
         .create-form { display: grid; gap: 10px; margin-top: 10px; }
-        .create-form .frow { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; }
+        .create-form .frow { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 8px; }
         .create-form .chips.disabled { opacity: .45; pointer-events: none; }
         .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: #9a4d00; }
     .create-form .frow .fnote { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.3; }
@@ -254,10 +254,10 @@
     }
     select.field-select:focus { outline: 2px solid var(--amber, #e85d04); outline-offset: -1px; }
     select.field-select:disabled { background-color: #f4f2ee; color: #b0a99e; cursor: not-allowed; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
     .pick {
       border: 1px solid var(--border, #e2e5ea); background: #fff; color: #3a3a3a;
-      border-radius: 999px; font-size: 12px; padding: 5px 12px; cursor: pointer; font-weight: 500;
+      border-radius: 999px; font-size: 12px; padding: 4px 10px; cursor: pointer; font-weight: 500;
       line-height: 1.4; transition: background .12s, border-color .12s, color .12s;
     }
     .pick:hover { background: #faf8f4; }
@@ -270,7 +270,7 @@
        margin:auto (căn giữa khi vừa, không kẹt top khi cao) + overlay cuộn dự phòng. */
     #createModal.about-overlay { overflow-y: auto; scrollbar-gutter: stable; }
     #createModal .about-dialog {
-      width: 560px; max-width: 560px;
+      width: 480px; max-width: 480px;
       overflow: visible;   /* F: menu dropdown không bị cắt bởi scroll container của dialog */
       margin: auto;
       padding: 18px 20px;
@@ -1816,23 +1816,29 @@
     c.textContent = (typeof n === 'number' && n >= 0) ? n : '—';
   }
   var _previewTimer = null;
+  var _previewSeq = 0;   // h2: RPC preview cũ (đã fire) không được ghi đè trạng thái hiện tại (vd: chọn 'Tự do')
   function updateCreatePreview() {
     var station = SEL.station;
     var slotCode = groupSelectedSlots();
     var team = groupSelectedTeams();
     var contractType = SEL.contractTypes;
     var date = SEL.date;
-    if (isFreeSel()) { clearTimeout(_previewTimer); setCreateTotal('—'); return; }
+    if (isFreeSel()) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal('—'); return; }
     // Cascade: đếm theo filter hiện có — station + team đủ là bắt đầu đếm (Ca tùy chọn)
-    if (!station || !team.length) { clearTimeout(_previewTimer); setCreateTotal(0); return; }
+    if (!station || !team.length) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0); return; }
     clearTimeout(_previewTimer);
+    var seq = ++_previewSeq;
     _previewTimer = setTimeout(function () {
       google.script.run
         .withSuccessHandler(function (res) {
+          if (seq !== _previewSeq) return;   // có filter mới hơn — bỏ kết quả cũ
           if (!res || !res.ok) { setCreateTotal(0); return; }
           setCreateTotal(res.count);
         })
-        .withFailureHandler(function () { setCreateTotal(0); })
+        .withFailureHandler(function () {
+          if (seq !== _previewSeq) return;
+          setCreateTotal(0);
+        })
         .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
     }, 200);
   }
