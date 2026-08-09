@@ -357,7 +357,7 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 
 **View 1 — Danh sách task (`#viewList`):**
 - Header: logo SPX + title + net-dot/Online + 🔊 + ⟳ Làm mới + **ⓘ (mở view Giới thiệu)**.
-- Card "TẠO TASK": nút **+ Tạo task** — modal chọn chế độ **Đối chiếu (có danh sách)** / **Quét tự do (không cần danh sách)**.
+- Card "TẠO TASK": nút **+ Tạo task** — modal 5 dropdown, chọn Ca = **'Tự do'** → chế độ **Quét tự do (không cần danh sách)**; ngược lại là **Đối chiếu (có danh sách)**.
 - Card "DANH SÁCH TASK": bảng STT / Mã task / Station / Ca / Team / Tổng NV / Đã quét / Dư / Trạng thái / Tạo lúc / Người tạo / Thao tác.
   - Task `open` → nút **Quét** (và **Chuyển điểm danh** trong màn quét); task `attend` → **Quét**; task `done` → **Xem** + **Mở lại**.
   - Skeleton loading; empty state.
@@ -378,8 +378,11 @@ Modal còn lại: tạo task · confirm dùng chung · **pasteModal** (dán danh
 
 ### 9.2 Modal tạo task
 
-- Station (select 1) · Ca Slot Code (**multiple**) · Team (**multiple**) · Date (optional, "Tất cả ngày").
-- **Preview số NV khớp** (`previewStaffApi`, debounce 400ms) trước khi tạo.
+- **5 field dạng dropdown** (gọn thay cây checkbox 3 cấp cũ): Station (single) · Ca · Team · Hình thức (multi-select checkbox + chips) · Ngày (single, optional).
+- **Ca mở đầu optional 'Tự do'** — chọn = chế độ FREE: ẩn field Hình thức, disable Ngày (`slotCode:["Tự do"]` quyết định, không cần nút chế độ riêng).
+- **Badge số NV từng option** (`previewStaffCountsApi` → fetchOptCounts) hiển thị trong menu dropdown; 'Tự do' không count.
+- **Số NV khớp trên nút Tạo** (`previewStaffApi`, debounce 200ms) — không còn vùng preview riêng trong modal.
+- Menu dropdown: `position:absolute` + `overflow visible` của dialog (không bị cắt, modal không tự dãn theo menu); click ngoài hoặc Escape đóng menu (Escape ưu tiên menu trước modal).
 - Reset select mỗi lần mở (tránh tạo nhầm task). Modal confirm dùng chung thay `confirm()`/`alert()` trình duyệt.
 
 ### 9.3 Scan queue nền (client)

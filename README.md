@@ -5,7 +5,7 @@
 
 ## Tính năng
 
-- **Tạo task 2 chế độ** — modal cây nhóm 3 cấp Station → Ca (Slot Code) → Team lọc từ danh sách nhân viên HR, hoặc **Quét tự do (FREE)** không cần danh sách
+- **Tạo task 2 chế độ** — modal gọn với 5 dropdown: Station (chọn 1) · Ca / Team / Hình thức (multi-select checkbox) · Ngày; badge số NV từng option; **Quét tự do (FREE)** không cần danh sách
 - **2-phase quét** — phase **Mở** ghi Giờ có mặt (TIME_REF), phase **Điểm danh** ghi Giờ quét (TIME_SCAN):
   - Task Đối chiếu: tạo ở Điểm danh ngay (pre-fill Giờ có mặt), quét 1 lần = Có mặt / Đã điểm danh / Dư
   - Task FREE: tạo ở Mở — quét lần 1 xây danh sách (PENDING), bấm **Chuyển điểm danh** → quét lần 2 điểm danh; NV lạ phase 2 → Dư
