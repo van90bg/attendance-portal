@@ -896,7 +896,8 @@
     }
     .side-item:hover { background: rgba(255,255,255,.08); color: #fff; }
     .side-item.active { background: var(--amber); color: #fff; }
-    .side-ico { font-size: 17px; line-height: 1; flex: 0 0 auto; }
+    .side-ico { font-size: 17px; line-height: 1; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; }
+    .side-ico svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .side-lbl { overflow: hidden; text-overflow: ellipsis; }
     .side-foot { padding: 8px; border-top: 1px solid var(--header-border); }
     .side-compact {
@@ -985,11 +986,11 @@
 <div class="app-shell">
     <aside id="sidebar" aria-label="Điều hướng chính">
     <nav class="side-nav">
-      <button class="side-item active" data-page="home" onclick="selectPage('home')"><span class="side-ico">🏠</span><span class="side-lbl">Trang chủ</span></button>
-      <button class="side-item" data-page="stats" onclick="selectPage('stats')"><span class="side-ico">📊</span><span class="side-lbl">Thống kê</span></button>
-      <button class="side-item" data-page="attendance" onclick="selectPage('attendance')"><span class="side-ico">✅</span><span class="side-lbl">Điểm danh</span></button>
-      <button class="side-item" data-page="data" onclick="selectPage('data')"><span class="side-ico">🗂️</span><span class="side-lbl">Dữ liệu chấm công</span></button>
-      <button class="side-item" data-page="about" onclick="selectPage('about')"><span class="side-ico">ℹ️</span><span class="side-lbl">Giới thiệu</span></button>
+      <button class="side-item active" data-page="home" onclick="selectPage('home')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span><span class="side-lbl">Trang chủ</span></button>
+      <button class="side-item" data-page="stats" onclick="selectPage('stats')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-8"/><path d="M22 20H2"/></svg></span><span class="side-lbl">Thống kê</span></button>
+      <button class="side-item" data-page="attendance" onclick="selectPage('attendance')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span class="side-lbl">Điểm danh</span></button>
+      <button class="side-item" data-page="data" onclick="selectPage('data')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><span class="side-lbl">Dữ liệu chấm công</span></button>
+      <button class="side-item" data-page="about" onclick="selectPage('about')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg></span><span class="side-lbl">Giới thiệu</span></button>
     </nav>
     <div class="side-foot">
       <button class="side-compact" onclick="toggleSidebarCompact()" id="btnSidebarCompact" title="Thu gọn (Alt+S)" aria-label="Thu gọn / Mở rộng">☰</button>
