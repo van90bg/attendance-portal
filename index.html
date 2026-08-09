@@ -503,7 +503,7 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity .2s, transform .2s;
-      z-index: 100;
+      z-index: 10000; /* P1-4: trên modal overlay (9998) + spinModal (9999) */
       max-width: 90vw;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
