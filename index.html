@@ -1626,6 +1626,8 @@
           return;
         }
         STAFF_ROWS = safeArr(res.staff);
+        var metaEl = document.getElementById('staffMeta');
+        if (metaEl) metaEl.textContent = STAFF_ROWS.length + ' NV · tải ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         initStaffStationFilter();
         renderStaffStats();
         renderStaffDataTable();
@@ -1738,7 +1740,7 @@
   }
 
   // Pivot chung: rows → bảng dòng=agencies, cột=cas, mỗi team 1 khối cột
-  function statsPivot(rows, rowField, colGroupField) {
+  function statsPivot(rows, rowField, colField) {
     var rowKeys = []; var rowSeen = {};
     var colKeys = []; var colSeen = {};
     rows.forEach(function (r) {
