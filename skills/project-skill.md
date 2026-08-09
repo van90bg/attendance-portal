@@ -1,68 +1,125 @@
-# Project Skill — Attendance Portal (RollCall v2)
+﻿# Project Skill — Attendance Portal (RollCall v2)
 
-> Bản skill đóng gói cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/rollcall-kiosk-v2x`).
-> Dùng khi: sửa GAS kiosk/portal này — bất kỳ edit nào (UI, server, tests, docs).
-> Nguồn: skill Hermes `rollcall-kiosk` (đồng bộ định kỳ). Nếu mâu thuẫn, Hermes skill là nguồn mới nhất.
+> Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/rollcall-kiosk-v2x`).
+> Dùng khi: bất kỳ edit nào với repo này (UI, server, tests, docs).
+> Nguồn: skill Hermes `rollcall-kiosk`. Nếu mâu thuẫn, Hermes skill là nguồn mới nhất.
+> References: xem `skills/references/` — `architecture-gotchas.md`, `deterministic-batch-runner.md`, `slot-fueled-classification.md`.
 
 ## 1. Repo facts
 
 - Local: `C:\Users\Van90BG\Documents\AppScript\RollCall_2_deploy` · Remote `main` (CI self-clasp).
-- **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug.
-- Test: `npm run test` = 78 tests (node:test, chỉ pure logic ScanLogic/CsvUtil — không cover GAS API).
-- File chính: `index.html` (toàn bộ UI, ~198KB, UTF-8 + **CRLF**).
+- **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug (`gh run list --limit 5`, đối chiếu `.head_sha`).
+- Test: `npm run test` = 78 tests (node:test — chỉ pure logic ScanLogic.gs/CsvUtil.gs; GAS API không test được trong Node).
+- File chính: `index.html` (toàn bộ UI, ~198KB, UTF-8 + **CRLF**). Server: Code/Config/CsvUtil/Database/ScanLogic/ScanService/TaskService `.gs`.
 
-## 2. Attendance Portal — shell hiện tại (2026-08-09)
+## 2. Shell: Attendance Portal (2026-08-09)
 
 App scope mở rộng: quản lý chấm công, không chỉ điểm danh. Layout: `<header>` (controls: userEmail · net-dot · 🔊 · ⟳ — ĐÃ BỎ 📋/ⓘ) > `.app-shell` (flex) = `#sidebar` (240↔48px, icon SVG đơn sắc currentColor, KHÔNG side-head, nút thu gọn `☰`) + `#main-content`.
 
-Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewList', data:'viewStaff', about:'aboutView' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. Lưu ý `showSection` ẩn **danh sách cố định** — thêm view nào phải thêm vào đó.
+Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewList', data:'viewStaff', about:'aboutView' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
 
 - viewHome: hero logo local (`sea-logo.svg`/`spx-express.svg`) + tên + đồng hồ realtime (`renderHomeClock`, Intl Asia/Ho_Chi_Minh).
-- viewStats: pivot fullscreen (tabs Team×Ca · BPO · OS + station filter `#statsStation`).
-- viewStaff (page key data): bảng StaffData fullscreen (search+count).
-- View mới phải vào mảng `repairViewParents()['viewHome','viewStats','viewStaff','aboutView','viewScan','viewList']`.
+- viewStats: pivot fullscreen (tabs Team×Ca · BPO · OS + station filter `#statsStation`). viewStaff (page key `data`): bảng StaffData fullscreen (search+count).
+- View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','aboutView','viewScan','viewList']`.
 
 ## 3. Architecture mental model (đọc TRƯỚC mọi fix)
 
-- Task 2-phase: `open` (timeRef/Giờ có mặt) → `attend` (timeScan/Giờ quét) → `done`.
-- `logRow.status`: PENDING(-) · PRESENT(Có mặt) · ABSENT(Vắng) · EXTRA(Dư). **Epoch là nguồn sự thật**.
+- **Task 2-phase**: `task.status` = `open` (ghi Giờ có mặt / timeRef) → `attend` (ghi Giờ quét / timeScan) → `done`.
+- `logRow.status`: `PENDING`(-/Chưa điểm danh) · `PRESENT`(Có mặt) · `ABSENT`(Vắng) · `EXTRA`(Dư).
+- **Epoch là nguồn sự thật** cho counters/sort: `timeRefEpoch`/`timeScanEpoch` (text `HH:mm:ss` mất ngày qua đêm). `computeCounters` đếm theo epoch.
 - `classifyScan(cfg,task,logRows,staffId)` → `{action:update|append|reject, phase, field, status}`.
-- `reopenTask` → ATTEND (không quay OPEN), client recompute phase từ status.
-- ROSTER: task reconcile created → status ATTEND luôn (pre-fill); FREE (noList) → OPEN.
-- **NO LIST quy tắc phase2**: NV lạ phase2 → EXTRA (không PRESENT). Client `optimistic status` = mirror server.
+- Layers: `scanStaffApi`(Code) → `scanStaff`(ScanService) → `classifyScan`(ScanLogic) + `appendLogRow_`/`updateLogRowScan_`(Database). LockService + try/catch — không throw client, trả `ok:false`.
+- `reopenTask` → ATTEND (KHÔNG quay OPEN); client recompute phase từ `task.status`.
+- ROSTER reconcile → created với `status: ATTEND` (pre-fill log); FREE (noList) → `status:OPEN`.
+- **NO LIST phase2 rule**: NV lạ scanned trong phase2 → **EXTRA (Dư)**, KHÔNG phải PRESENT. Client `optimistic status` phải mirror server (`target.status === EXTRA ? EXTRA : PRESENT`).
 
-## 4. Deterministic editing (bắt buộc trên index.html)
+## 4. Recurring gotchas (đã fix — đừng regress)
 
-- Fuzzy patch BANNED; sed/echo trong bash làm hỏng VN+CRLF.
-- Python pattern (đọc/ghi với `newline=''`, `encoding='utf-8-sig'`, anchor literal `\r\n`).
-- Khối lớn: viết block mới sang file tạm `.txt` rồi ghép bằng index (tránh tool-call >8K token).
-- Sau mọi edit: verify CRLF (LF-only==0, normalize nếu cần) + JS parse `new Function` + CSS balance.
-- **Write nhỏ nhất, parse trước write** — nếu `assert count==0` → DỪNG, không ghi (file giữ nguyên).
+1. **buildExtraRow status param**: tham số `status` tồn tại vì từng hardcode EXTRA. Nếu "mọi quét tự do hiện Dư" → check `scanStaff` set `extraRow.status = result.status || EXTRA` (noList phase1 cần PENDING override).
 
-## 5. Pitfall checklist (2026-08-09)
+2. **staffIndex lazy cache**: `scanStaff` đọc `readStaffIndex_()` lazy + cache 5 phút → lần quét đầu sau cold cache mất tên. Fix: `warmStaffCacheApi()` preload khi mở app + sau tạo FREE task. ⚠️ **Slim index (P1-2)**: client payload chỉ `{staffId, staffName, slotCode, station, team, workstation}` — đã strip agency/cardIn/cardOut/date. Khi thêm cột client cần các field này → phải thêm lại vào slim object, KHÔNG tin "client không cần".
 
-- `.hidden { display:none !important; }` — tránh ID rule thắng class.
-- `--header-h: 59px` đo thật (từng là 53 → scroll 6px).
-- `taskListTable` không nằm trong `#taskSkeleton` (parent chain check).
-- Card stretch `flex:1` tạo trắng → card auto height; `.table-wrap { max-height: calc(100vh - 320px); }`.
-- Scan layout chuẩn `.scan-layout > .scan-col-left(480)+.scan-col-right` — card phải ở cột phải.
-- StaffData header = 20 tên cột sheet tiếng Anh; Clock format `H:mm:ss` qua `fmtClockHMS` (giờ không pad: 7:05:30).
-- App title đồng bộ 4 chỗ: `<title>`, brandTitle, `Config.gs UI_LABELS.APP_TITLE`, mock cả `meta.appTitle`+`labels.APP_TITLE`.
-- AboutView: back button `selectPage('home')`, không `showSection('viewList')`.
-- role gate phase Mở: `permission` tươi từ getTaskDetail; `applyScanPermission()` chạy cuối renderScanView.
-- Spinner: mọi success handler phải `hideLoadingOverlay()` (don't leave stuck).
+3. **warmStaffCacheApi trả OBJECT index**: `index[string]` = object `{staffName,...}` KHÔNG phải string — đọc `rec.staffName`, nếu gán thẳng vào `staffName` sẽ hiển `[object Object]`. Key đã `normalizeStaffId()` uppercase → client `toUpperCase()`.
 
-## 6. Verify workflow
+4. **Optimistic status mirror server**: re-scan EXTRA giữ EXTRA (chỉ PENDING→PRESENT). Client never hardcode `PRESENT` cho bất kỳ target nào (flash "Có mặt" 2-3s rồi server flip "Dư").
 
-Logic changes → `npm run test` (78/78). UI-only → parse+CRLF đủ (test không bắt buộc).
-CDP: `node scripts/cdp-helper.js open "file:///...index.html?t=N"` — geometry `getBoundingClientRect` là truth; kiểm `document.documentElement.scrollHeight` vs `innerHeight`, section parents (repairViewParents), bảng parent content.
-Production bug: check `gh run list --limit 5` **trước** khi kết luận — CI có thể deploy trễ (user test trên GAS build cũ).
+5. **Spinner success handler**: mọi `google.script.run` success handler bắt buộc `hideLoadingOverlay()` (dispatch cả hideModalSpin) CẢ success lẫn failure — nếu chỉ ẩn trong failure → spinner không bao giờ tắt.
 
-## 7. Lệnh hữu ích
+6. **Toast `-` (PENDING)**: không bao giờ show raw `-`; thay bằng human label `'Chưa điểm danh'`.
 
-```bash
-npm test
-python -c "data=open('index.html','rb').read(); print('CRLF',data.count(b'\r\n'),'LF-only',data.count(b'\n')-data.count(b'\r\n'))"
-# normalize nếu LF-only>0:
-python -c "d=open('index.html','rb').read(); open('index.html','wb').write(d.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n'))"
-```
+7. **Topbar live-button states (2026-08-08)**: order `←Danh sách | title | Dán danh sách mã | Chuyển điểm danh | Kết thúc`. `updateFinishBtnState()` disable **cả `btnToAttend`** như `btnFinish` khi `scanBusy()` (disabled + busy tooltip, restore bởi `processScanQueue`).
+
+8. **Paste modal auto-closes success**: `submitPaste` success → toast aggregate → `closePasteModal()` SAU `loadTaskDetail(silent)+renderCounters`.
+
+9. **Duplicate toasts scan**: keep server-confirm toast là single source, bỏ toast optimistic (reduce noise).
+
+## 5. UI labels & modal (2026-08-07/08)
+
+- Counter OPEN phase label "Chờ có mặt" (KHÔNG "Chờ điểm danh"). Chain: OPEN → Chờ có mặt → ATTEND → Chưa điểm danh → DONE → Vắng.
+- Table headers Vietnamese: Ngày · Mã NV · Tên NV · Ca · Team · Giờ có mặt · Giờ quét · Trạng thái. (StaffData table riêng — xem §9.)
+- FREE description: "Quét lần 1 lấy danh sách, lần 2 điểm danh; NV lần 2 chưa có lần 1 → Dư."
+- Task type badge: FREE → 'Quét tự do' (purple), RECONCILE → 'Đối chiếu' (blue). List order: STT, Mã task, Loại, Station, Team, Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác.
+- Modal: với đổi màn tạo task → MUST làm HTML mockup trước (`sketches/00X`), user duyệt, mới implement (luật user — strict).
+- Slot-based: FREE sends `slotCode:['Tự do']` thay `noList:true` (magic value `'Tự do'`, mutually exclusive với real slots; FREE hide Hình thức + disable Ngày). `classifyScan`/`pasteCodes` đọc `taskType` từ sheet — KHÔNG đổi.
+
+## 6. Scan table column/sort coupling — PITFALL (2026-08-08: 11 col, Mã NV added)
+
+`#scanTable` headers mang `data-sort="N"`; `filterAndSortScan()` map `col → field` **positionally**. Đổi cột phải sync LOCKSTEP 5 chỗ: ① `<th data-sort>` ② `scanRowCells` array (STT, staffId, staffName, agency, station, team, slotCode, dateText, timeRef, timeScan, badge = **11 cells**) ③ `filterAndSortScan` col branches ④ `phaseCol`/`SCAN_SORT.col`/`updateSortIndicators` effectiveCol ⑤ skeleton-cell count trong skeleton-row. Default phase sort positional: `phaseCol = phase===ATTEND ? 8 : 7`.
+
+## 7. GAS batch/perf & cache (audit M1/M2, FIXED 2026-08-08 — đừng regress)
+
+- **Batch-mutation helpers gọi 1 lần, không per-row**: `collect updateBatch[]` → `batchUpdateLogRows_(taskId, updateBatch)` MỘT lần (sort, group runs, setValues mỗi run 3 cột timeRef/timeScan/status, 1 invalidate + 1 cache get/put). Helpers có cache calls ≈ 6/lần — per-row = ~900 calls/spam timeout.
+- `planBatchScans` mô phỏng CẢ append LẪN update trong paste duplicate (edit simulated row cho occurrence tiếp) — không thì dedup sai + ghi 2 lần.
+- **Slim trước khi cache task detail**: map log rows `logRow` text+epoch-only trước `JSON.stringify`; payload ≤ ~90KB (CacheService limit 100KB/key); CacheService put throw bị nuốt + console.warn → cache miss silent. Never trust silent-worried put.
+- **`transformLogStatuses_` chỉ ghi range task**: track `firstRow`/`lastRow`, `getRange(firstRow, statusCol, len, 1)` — không `getRange(2, statusCol, values.length-1, 1)` (O(cả que) 50K rows = huge idempotent write).
+- **Null-check `task` trước deref** (readTask_ null khi id thiếu): paste & scan trả `ok:false,'Không tìm thấy task'`.
+- **`Array.isArray(rawLines)` guard** paste payload (string payload = slice-by-char).
+- **REJECT reason `already-present`** (phase1 dup): map `'Đã có mặt'` — đừng rơi về STAFF_NOT_FOUND.
+- **`getSpreadsheet_` KHÔNG tự tạo DB**: Config `ALLOW_DB_AUTO_CREATE=false` → throw `'Chưa cấu hình spreadsheet…'` (fail loudly, đừng phân mảnh).
+- StaffData header: cấu hình 20 cột tên đúng CSV (bao gồm `'No.'` — không `'No'`) — `STAFF_DATA_HEADER` trong Config; `ensureSheets_` set header chỉ khi empty.
+
+## 8. Deterministic editing (bắt buộc trên index.html)
+
+- Fuzzy patch BANNED; sed/echo trong bash làm hỏng VN+CRLF -> dùng script Python/Node deterministic (xem `skills/references/deterministic-batch-runner.md` + `scripts` pattern).
+- Python pattern: read/write with `newline=''`, `encoding='utf-8-sig'`, anchor literal `\r\n`; mọi replace `assert count==1`.
+- Khối lớn: block new sang `.txt` tạm rồi ghép bằng index (tránh tool-call >8K token).
+- Sau mọi edit: verify `CRLF` (`data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')` if LF-only>0) + JS parse `new Function` + CSS balance (`{}`=0).
+- **Parse trước write** — assert fail → DỪNG, không ghi (giữ file nguyên). Multi-module: gom reps theo file → apply → parse → write LAST (write-last-wins pitfall).
+- Template-literal escape: `\'` trong backtick render `'` → hỏng; dùng `\\'` hoặc `addEventListener` thay inline onclick.
+- Helper patch ghi bool return — `if (!app(...)) process.exit(1)` guard chạy EARLY nếu helper không return true.
+
+## 9. StaffData table = sheet column names + Clock format (2026-08-09)
+
+`STAFF_TABLE_HEAD` = 20 sheet tên: `['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station']`. Render order khớp header 1:1; `No.` = `r.no || (i+1)`; Clock columns: `fmtClockHMS(r.cardIn)`/`(r.cardOut)` → `H:mm:ss` (giờ không pad: 7:05:30; mock '20:15' → '20:15:00').
+
+## App title sync (2026-08-09)
+
+Đổi tên app phải đổi CẢ 4 chỗ: ① `<title>` ② brand span `#brandTitle` ③ `Config.gs UI_LABELS.APP_TITLE` ④ `mock/mock-google.js` BOTH `meta.appTitle` + `labels.APP_TITLE`. CDP-check document.title + brandTitle.textContent.
+
+## About page + README sync
+
+- `#aboutView`: content Portal-oriented (5 mục), back → `selectPage('home')`.
+- README giữ sync (test counts, sidebar, app). Update cùng commit UI change.
+
+## Pitfall checklist (2026-08-09)
+
+- `.hidden { display:none !important }` — thắng ID rule (chồng view).
+- `--header-h: 59px` đo thật (53 → scroll 6px).
+- `taskListTable` KHÔNG trong `#taskSkeleton` — parent chain check (`table.parentElement.id === 'taskSkeleton'` → table height 0).
+- Card stretch tạo trắng — card auto height; `.table-wrap` scroll `max-height: calc(100vh - 320px)`.
+- Scan layout chuẩn `.scan-layout > .scan-col-left(480)+.scan-col-right` — card bảng phải trong col-right (2026-08-09 fixed rớt chân).
+- **Duplicate id sau split**: `statsStation` vs `statsStation2` — grep ids + label for.
+- Role gate phase OPEN: `permission` tươi từ `getTaskDetail` (không nhét cache); `applyScanPermission()` chạy CUỐI `renderScanView` + `scanOwnerLocked` cờ — nguồn quyết định disabled/placeholder/ẩn nút.
+- Spinner: mọi success handler gọi `hideLoadingOverlay()` khi dùng overlay.
+
+## Verify workflow
+
+- Logic changes → `npm run test` (78/78). UI-only → parse+CRLF đủ.
+- CDP: `node scripts/cdp-helper.js open "file:///.../index.html?t=N"` — geometry `getBoundingClientRect` là truth; check `scrollHeight` vs `innerHeight`, `section.parentElement` (repair), table parents.
+- Production bug: `gh run list --limit 5` TRƯỚC khi kết luận — CI trễ → user test GAS build cũ.
+
+## References (repo)
+
+- `skills/references/architecture-gotchas.md` — 2-phase model, Dư/PENDING timeline, staffIndex fixes.
+- `skills/references/deterministic-batch-runner.md` — known-good multi-file/multi-module runner skeleton + undo module pattern.
+- `skills/references/slot-fueled-classification.md` — approved plan modal redesign (magic 'Tự do', delete tabs, edge cases).

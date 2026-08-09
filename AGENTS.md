@@ -83,7 +83,8 @@ with open(path, 'w', encoding='utf-8-sig', newline='') as f:
 - `README.md` — tổng quan cập nhật.
 - `Spec — RollCall v2.md` — spec đầy đủ.
 - `skills/` — bộ skill đóng gói cho agent:
-  - `project-skill.md` — skill dự án (architecture gotchas, deterministic batch runner, pitfall list).
+  - `project-skill.md` — skill dự án ĐẦY ĐỦ (architecture, gotchas, batch/perf, deterministic, pitfalls).
+  - `references/` — 3 reference: `architecture-gotchas.md` · `deterministic-batch-runner.md` · `slot-fueled-classification.md`.
   - `audit-webapp-optimize.md` — 3-phase audit (code → UI/UX → optimize), P0/P1/P2, user duyệt trước khi fix.
   - `review-gas-failure-modes.md` — review GAS with confidence scoring + failure modes checklist + MoA option.
   - `debug-systematic.md` — 4-phase root-cause debugging (Iron Law: không fix trước root cause).
