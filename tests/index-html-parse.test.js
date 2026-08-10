@@ -102,3 +102,14 @@ test('fmtClockHMS (staffTable) format HH:mm:ss giống scanTable/fmtDate', funct
   assert.equal(fmtClockHMS('17:30:00'), '17:30:00');
   assert.equal(fmtClockHMS(''), '');
 });
+
+// Mở Thống kê/Dữ liệu không tự fetch mỗi lần (StaffData ít đổi, cache theo khung giờ) — RED→GREEN
+test('ensureStaffData: mở view KHÔNG gọi loadStaffView trực tiếp (dùng cache client)', function () {
+  const body = extractInlineScript(indexHtml);
+  assert.ok(body.indexOf('function ensureStaffData(') >= 0, 'phải có function ensureStaffData');
+  // selectPage(auto-open) phải gọi ensureStaffData(false), KHÔNG còn loadStaffView() tự động
+  const autoOpen = body.match(/page === 'stats' \|\| page === 'data'[\s\S]{0,80}?loadStaffView\(\)/);
+  assert.ok(!autoOpen, 'selectPage vẫn gọi loadStaffView() khi mở view → mỗi lần mở lại fetch (sai). Phải là ensureStaffData(false)');
+  assert.ok(/page === 'stats' \|\| page === 'data'[\s\S]{0,90}?ensureStaffData\(false\)/.test(body),
+    'selectPage phải gọi ensureStaffData(false) khi mở stats/data');
+});

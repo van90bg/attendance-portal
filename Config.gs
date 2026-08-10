@@ -134,7 +134,7 @@ const CACHE_TTL = {
   LOG_ROWS: 30,              // 30s — log rows theo taskId (đường quét — cập nhật incremental, không invalidate mỗi scan)
   TASK_COUNTS: 30,
   SEARCH_STAFF: 15,          // 15s — kết quả tìm NV xuyên task (on-demand, TTL ngắn — đủ tránh quét sheet lớn lặp lại khi tìm cùng mã)
-  STAFF_STATS: 30,           // 30s — danh sách StaffData full cho view thống kê (chỉ đọc, cache ngắn để data tươi)
+  STAFF_STATS: 3600,        // 1h — danh sách StaffData full cho view thống kê (chỉ đọc; StaffData đổi theo khung giờ nên cache dài, invalidate khi syncFromCsv)
   TZ: 24 * 60 * 60,          // 24h — timezone (cache 1 lần, KHÔNG gọi trong loop)
 };
 

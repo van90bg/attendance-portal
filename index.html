@@ -1735,6 +1735,8 @@
   /* ===== VIEW STAFFDATA — danh sách (phải) + thống kê (trái, 3 tabs) ===== */
   var STAFF_ROWS = [];          // toàn bộ StaffData (full 20 field) — cache client
   var STAFF_TAB = 'team';
+  var STAFF_LOADED_AT = 0;
+  var STAFF_MAX_AGE_MS = 60 * 60 * 1000; /* 1h — StaffData ít đổi (theo khung giờ), không fetch mỗi lần mở view */
   var STATS = { station: '', date: '' };
   var _statsChipsBound = false;       // tab thống kê đang xem: 'team' | 'bpo' | 'os'
   var STAFF_CONTRACT_GROUPS = { bpo: ['S-BPO', 'I-BPO', 'BPO', 'Bpo'], os: ['OS'] };
@@ -1743,7 +1745,7 @@
   // Mở viewStaff: đổi section + load dữ liệu (cache 30s phía server)
   function openStaffView() {
     showSection('viewStaff');
-    loadStaffView();
+    ensureStaffData(false);
   }
 
   function loadStaffView(btn) {
@@ -1771,6 +1773,7 @@
         renderStatsFilters();
         renderStaffStats();
         renderStaffDataTable();
+        STAFF_LOADED_AT = Date.now();
         showToast('Đã cập nhật ' + STAFF_ROWS.length + ' NV · ' + now, false);
         markServerOk();
       })
@@ -1781,6 +1784,19 @@
         if (skel) skel.style.display = 'none';
       })
       .getStaffStatsApi();
+  }
+
+  // Mở Thống kê/Dữ liệu: chỉ fetch nếu CHƯA có data hoặc data đã cũ (theo khung giờ).
+  // StaffData ít đổi → không gọi server mỗi lần mở view (tránh flash + RPC thừa).
+  function ensureStaffData(force) {
+    if (!force && STAFF_ROWS.length && (Date.now() - STAFF_LOADED_AT) < STAFF_MAX_AGE_MS) {
+      initStatsChipEvents();
+      renderStatsFilters();
+      renderStaffStats();
+      renderStaffDataTable();
+      return;
+    }
+    loadStaffView();
   }
 
   // ===== Filter chips bảng Thống kê: Station + Date (client-side, single-select) =====
@@ -2122,7 +2138,7 @@
     showSection(target);
     // Lazy-load theo page
     if (page === 'home' && typeof renderHomeClock === 'function') { renderHomeClock(); }
-    if ((page === 'stats' || page === 'data') && typeof loadStaffView === 'function') { loadStaffView(); }
+    if ((page === 'stats' || page === 'data') && typeof ensureStaffData === 'function') { ensureStaffData(false); }
   }
 
   function toggleSidebarCompact() {
