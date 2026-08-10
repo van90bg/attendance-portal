@@ -40,3 +40,8 @@ Thumbs.db
 # ===== Codegraph (cục bộ, không push) =====
 codegraph.json
 .codegraph/**
+
+# ===== Sketches / local sim (không push GAS) =====
+sketches/**
+.freebuff/**
+*.svg
