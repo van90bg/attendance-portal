@@ -9,8 +9,8 @@
 
 - Local: `C:\Users\Van90BG\Documents\AppScript\RollCall_2_deploy` · Remote `main` (CI self-clasp).
 - **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug (`gh run list --limit 5`, đối chiếu `.head_sha`).
-- Test: `npm run test` = 78 tests (node:test — chỉ pure logic ScanLogic.gs/CsvUtil.gs; GAS API không test được trong Node).
-- File chính: `index.html` (toàn bộ UI, ~198KB, UTF-8 + **CRLF**). Server: Code/Config/CsvUtil/Database/ScanLogic/ScanService/TaskService `.gs`.
+- Test: `npm run test` = 88 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke test `tests/all-gs-load.test.js` load toàn bộ .gs với mock GAS).
+- File chính: `index.html` (toàn bộ UI, ~198KB, UTF-8 + **CRLF**). Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService `.gs` (Database.gs đã tách 2026-08-11).
 
 ## 2. Shell: Attendance Portal (2026-08-09)
 
@@ -121,10 +121,11 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## 11. Line endings — index.html CRLF 100% từ 2026-08-10 (normalize qua commit upload a96381b)
 
-- Sau normalize của user: `index.html` = **CRLF 100%** (4011 CRLF, 0 LF-only); `.gs` files vẫn **LF 100%** (0 CRLF).
+- Working tree (git `core.autocrlf=true`): MỌI file — kể cả `.gs` — là **CRLF trên disk** (git lưu LF trong repo, checkout tự chuyển CRLF). Đo thật 2026-08-11: Code.gs CRLF=334/LF-only=0, index.html CRLF=4046.
+- Sau normalize của user: `index.html` = **CRLF 100%** (4011 CRLF, 0 LF-only).
 - Edit index.html: Python pattern mục 8 bắt buộc (anchor có `\r\n`), write với `newline=''` — KHÔNG dùng edit tool trực tiếp nếu làm mất CRLF.
 - Verify sau edit: `data.count(b'\r\n')` giữ nguyên 4011; nếu LF-only > 0 → normalize `data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')`.
-- `.gs` files vẫn LF — không normalize chúng (tránh diff khổng lồ).
+- `.gs` files: KHÔNG normalize sang LF — giữ CRLF như checkout (nếu LF-only > 0 → normalize về CRLF; tránh diff khổng lồ).
 
 ## Verify workflow
 

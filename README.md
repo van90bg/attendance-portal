@@ -38,7 +38,11 @@ RollCall_2/
 ├── Code.gs                # doGet + verify + pasteCodesApi
 ├── Config.gs              # hằng số sheet/cột/cache/status/labels (APP_TITLE)
 ├── CsvUtil.gs             # parse CSV + isValidBarcodeId()
-├── Database.gs            # đọc StaffData, task CRUD, cache
+├── Spreadsheet.gs         # getSheet_/getSpreadsheet_/ensureSheets_ (bootstrap)
+├── Cache.gs               # cache wrapper version-key + format thời gian
+├── StaffDataRepo.gs       # đọc/ghi StaffData (index/list/overwrite)
+├── TaskRepo.gs            # đọc/ghi AttendanceTask + cache task
+├── LogRepo.gs             # đọc/ghi AttendanceLog + cache log (batch)
 ├── ScanLogic.gs           # phân loại scan 2-phase (pure)
 ├── ScanService.gs         # scanStaff — guard + LockService
 ├── TaskService.gs         # task CRUD + transition + kết thúc
@@ -51,7 +55,7 @@ RollCall_2/
 ## Cách chạy
 
 ```bash
-npm test          # 78/78 pass
+npm test          # 88/88 pass
 ```
 
 Mock local: mở `index.html` bằng browser (mock tự nạp khi không có `google.script.run`).
@@ -79,4 +83,4 @@ clasp deploy
 - ✅ Fix DOM `repairViewParents()` → view bị đẩy về main
 - ✅ Fix task list: table lồng skeleton
 - ✅ Title đồng bộ `Attendance Portal`; Giới thiệu viết lại
-- ✅ 78/78 test; ⏳ P2 QA prod
+- ✅ 88/88 test (đã tách Database.gs → 5 repo file + smoke test load toàn bộ .gs); ⏳ P2 QA prod

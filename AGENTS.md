@@ -7,14 +7,14 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 **Attendance Portal** — ứng dụng quản lý chấm công + điểm danh kho SPX Express, chạy trên **Google Apps Script WebApp** + **Google Sheets**. Repo con: `van90bg/rollcall-kiosk-v2x` (private, remote git + CI auto-clasp-push).
 
 - Frontend: **1 file** `index.html` (CSS + HTML + JS inline) — Vanilla, không framework.
-- Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Database.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs`.
+- Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Spreadsheet.gs` `Cache.gs` `StaffDataRepo.gs` `TaskRepo.gs` `LogRepo.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs` (Database.gs đã tách thành 5 repo file 2026-08-11).
 - Dữ liệu: 4 sheet — Config · StaffData (HR, 20 cột tên tiếng Anh) · AttendanceTask · AttendanceLog.
 
 **Shell UI (sidebar 5 trang):** Trang chủ (viewHome) · Thống kê (viewStats) · Điểm danh (viewList + viewScan từ nút Quét) · Dữ liệu chấm công (viewStaff) · Giới thiệu (aboutView). Sidebar trái collapsible `240px ↔ 48px`, icon đơn sắc SVG, bỏ side-head, nút thu gọn `☰`. Header giữ userEmail · net-dot · âm thanh · Làm mới. Đã bỏ nút 📋/ⓘ cũ khỏi header.
 
 ## 2. Quy tắc bất biến (KHÔNG bao giờ vi phạm)
 
-1. **KHÔNG sửa file bằng fuzzy/write_file trực tiếp nếu có tiếng Việt + CRLF.** Chỉ được sửa qua **script deterministic** (xem mục 5). File index.html/Config/... dùng **CRLF** — tuyệt đối không tạo LF-only.
+1. **KHÔNG sửa file bằng fuzzy/write_file trực tiếp nếu có tiếng Việt + CRLF.** Chỉ được sửa qua **script deterministic** (xem mục 5). Mọi file trên disk (kể cả .gs — `core.autocrlf=true`: git lưu LF, checkout ra CRLF) dùng **CRLF** — tuyệt đối không tạo LF-only.
 2. **User commit + push GitHub, KHÔNG tự clasp push/deploy.** CI tự deploy nhưng trễ — khi user báo bug, KIỂM TRA SHA GAS đang chạy trước (mục 6).
 3. **1 issue = 1 commit = 1 push** — gom nhiều edit nhỏ vào 1 script, commit 1-2 lần/batch.
 4. **Không commit secrets**: `.clasprc.json`, `.clasp.json` credentials, `codegraph.json`, file tạm verify.
