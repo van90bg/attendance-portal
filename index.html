@@ -127,13 +127,13 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       flex-wrap: wrap;
       /* Giống v1: topbar là card nổi (surface + border + radius + shadow) — không "treo lơ lửng" */
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--card-radius);
-      padding: 10px 16px;
+      padding: 6px 14px;
       box-shadow: 0 1px 4px rgba(0,0,0,.07);
       transition: box-shadow .15s, border-color .15s;
     }
@@ -440,7 +440,7 @@
       .scan-input-wrap input::placeholder { font-size: 17px; }
       .counter .num { font-size: 44px; }
       .scan-card .sc-name { font-size: 34px; }
-      .task-title { font-size: 20px; }
+      .task-title { font-size: 17px; }
       th, td { font-size: 15px; }
     }
     .scan-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
@@ -528,8 +528,8 @@
         .pag-btn.active { background: var(--amber); border-color: var(--amber); color: #fff; font-weight: 700; }
         .pag-ellipsis { padding: 3px 4px; color: var(--muted); letter-spacing: 1px; }
     .muted { color: var(--muted); font-size: 13px; }
-    .task-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-    .task-meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+    .task-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
     /* FIX(2026-08-09): .hidden phải thắng #viewList{display:flex} (ID > class) —
        nếu không viewList không bao giờ ẩn, section chồng nhau. Dùng !important
        vì #viewList dùng display:flex làm layout-wide (không thể đổi ID rule). */
