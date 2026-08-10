@@ -98,7 +98,7 @@
       if (base.station && s.station !== base.station) return false;
       if (base.slotCode && base.slotCode.length && base.slotCode.indexOf(s.slotCode) === -1) return false;
       if (base.team && base.team.length && base.team.indexOf(s.team) === -1) return false;
-      if (base.contractType && base.contractType.length) { /* staff mock chưa có contractType → bỏ qua */ }
+      if (base.contractType && base.contractType.length && base.contractType.indexOf(s.contractType) === -1) return false;
       if (base.date && base.date !== (s.dateText || '')) return false;
       return true;
     });
@@ -251,7 +251,13 @@
       }).slice(0, 50);
     },
     reopenTaskApi: function (taskId) {
-      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'open'; });
+      // F3: mirror server reopenTask — resetAbsentToPending_ (ABSENT->PENDING) trước,
+      // rồi chuyển ATTEND (phase2). Trước đây set 'open' thẳng → lệch phase + counters.
+      var rows = getLog(taskId);
+      rows.forEach(function (r) {
+        if (r.status === 'Vắng' /* ABSENT */ || r.status === 'vắng') r.status = '-'; /* PENDING */
+      });
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'attend'; });
       return { ok: true, message: 'Đã mở lại task ' + taskId };
     },
     completeTaskApi: function (taskId) {
