@@ -9,6 +9,9 @@
  * truyền vào qua tham số `cfg` (xem chữ ký hàm).
  */
 
+/** Regex mã barcode NV — 'Ops' + số (KHỚP isValidBarcodeId trong CsvUtil.gs — đừng để lệch). */
+const BARCODE_ID_RE = /^OPS\d+$/i;
+
 /**
  * Phân loại 1 lần quét (2-phase attendance).
  *
@@ -224,7 +227,7 @@ function planBatchScans(cfg, task, logRows, codes) {
     const staffId = code.toUpperCase();
     
     // Validate format (must start with OPS followed by digits only)
-    if (!/^OPS\d+$/i.test(staffId)) {
+    if (!BARCODE_ID_RE.test(staffId)) {
       invalid.push({ code: code, ok: false, reason: 'invalid-format' });
       continue;
     }

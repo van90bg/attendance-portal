@@ -106,6 +106,14 @@ function makeSandbox() {
       },
     },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+    HtmlService: {
+      createHtmlOutputFromFile: (f) => ({ filename: f, setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; }, kind: 'html' }),
+      XFrameOptionsMode: { DEFAULT: 'DEFAULT' },
+    },
+    ContentService: {
+      createTextOutput: (txt) => ({ content: String(txt), setMimeType() { return this; }, kind: 'text' }),
+      MimeType: { JSON: 'application/json' },
+    },
   };
   return { ctx, ss };
 }
@@ -113,7 +121,8 @@ function makeSandbox() {
 function loadAll(ctx) {
   const files = [
     'Config.gs', 'CsvUtil.gs', 'Spreadsheet.gs', 'Cache.gs', 'StaffDataRepo.gs',
-    'TaskRepo.gs', 'LogRepo.gs', 'ScanLogic.gs', 'ScanService.gs', 'TaskService.gs', 'Code.gs',
+    'TaskRepo.gs', 'LogRepo.gs', 'ScanLogic.gs', 'ScanService.gs', 'TaskService.gs',
+    'Auth.gs', 'Debug.gs', 'Code.gs',
   ];
   const sandbox = vm.createContext(ctx);
   files.forEach((f) => {
@@ -259,4 +268,20 @@ test('batchAppendLogRows_ + updateLogRowScan_ + searchLogsByStaff/searchTasksByQ
   assert.equal(hits[0].staffId, 'OPS000001');
   const taskHits = svc.searchTasksByQuery('R20260811');
   assert.equal(taskHits.length, 1);
+});
+
+test('doGet wiring: khong debug → tra HtmlOutput index; debug=1 editor → tra JSON TextOutput', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  // Không debug → serve index.html
+  const html = svc.doGet({ parameter: {} });
+  assert.equal(html.kind, 'html');
+  assert.equal(html.filename, 'index');
+  assert.ok(ss.sheets.AttendanceTask, 'ensureSheets_ da chay trong doGet');
+  // debug=1 + editor (mock Session tra admin@spx.com = DEPLOYER_EMAIL) → JSON
+  const out = svc.doGet({ parameter: { debug: '1' } });
+  assert.equal(out.kind, 'text');
+  const parsed = JSON.parse(out.content);
+  assert.ok(parsed.spreadsheetId, 'debugState_ tra cau truc');
+  assert.equal(parsed.sheets.Config.rows >= 1, true);
 });

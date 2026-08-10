@@ -44,8 +44,7 @@ function scanStaff(taskId, rawStaffId) {
     }
     // T-1: Owner gate cho scan khi task ở phase OPEN
     // Chỉ áp dụng khi task.status === OPEN. Admin bypass, owner match, legacy 'web'/rỗng cho phép.
-    let activeEmail = '';
-    try { activeEmail = Session.getActiveUser().getEmail() || ''; } catch (e) { activeEmail = ''; }
+    const activeEmail = getActiveEmail_();
     const isAdmin = isEditor_();
     if (task.status === TASK_STATUS.OPEN) {
       const canScan = canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, activeEmail, isAdmin);
@@ -242,8 +241,7 @@ function pasteCodes(taskId, rawLines) {
     if (!task) return { ok: false, message: 'Không tìm thấy task', total: 0, success: 0, failed: 0, results: [], counters: null };
     
     // Gate: FREE + OPEN + canScanOpen
-    let activeEmail = '';
-    try { activeEmail = Session.getActiveUser().getEmail() || ''; } catch (e) { activeEmail = ''; }
+    const activeEmail = getActiveEmail_();
     const isAdmin = isEditor_();
     
     if (task.taskType !== TASK_TYPE.FREE) {

@@ -25,6 +25,8 @@ function makeCtx(overrides) {
     Math,
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     Session: { getActiveUser: () => ({ getEmail: () => 'web' }) },
+    // ScanService giờ dùng getActiveEmail_ (Auth.gs) — mock 1 nguồn tại đây
+    getActiveEmail_: () => 'web',
     STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
     TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
     TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },

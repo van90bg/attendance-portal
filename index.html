@@ -1413,6 +1413,8 @@
   var TASK_STATUS_C = { OPEN: 'open', ATTEND: 'attend', DONE: 'done' };
   // Task type — khớp TASK_TYPE trong Config.gs (phân biệt quét tự do / đối chiếu)
   var TASK_TYPE_C = { RECONCILE: 'reconcile', FREE: 'free' };
+  // Magic Ca 'Tự do' — KHỚP SLOT_FREE_MAGIC (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
+  var SLOT_FREE_MAGIC = 'Tự do';
   // Phase label tiếng Việt cho task status
   var TASK_PHASE_LABEL = {
     open: 'Mở', attend: 'Điểm danh', done: 'Xong',
@@ -2246,7 +2248,7 @@
 
   // Commit 2026-08-08: không còn tabs — Ca 'Tự do' (magic) tự quyết FREE.
   function isFreeSel() {
-    return SEL.slots.length === 1 && SEL.slots[0] === 'Tự do';
+    return SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
   }
   function refreshModeUI() {
     var free = isFreeSel();
@@ -2544,7 +2546,7 @@
     var g = stationData();
     if (!g || !g.slotCodes) return [];
     var slots = g.slotCodes.filter(function (sc) {
-      if (sc.slotCode === 'Tự do') return false;
+      if (sc.slotCode === SLOT_FREE_MAGIC) return false;
       if (!SEL.teams.length) return true;
       return sc.teams.some(function (t) { return SEL.teams.indexOf(t) !== -1; });
     });
@@ -2588,8 +2590,8 @@
     if (!c) return;
     var opts = selSlotOptions();
     if (!SEL.station) { c.innerHTML = ''; return; }
-    var freeOn = SEL.slots.length === 1 && SEL.slots[0] === 'Tự do';
-    var html = '<button type="button" class="pick free' + (freeOn ? ' on' : '') + '" data-col="slot" data-val="' + escAttr('Tự do') + '" aria-pressed="' + freeOn + '">' + esc('Tự do') + '</button>';
+    var freeOn = SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
+    var html = '<button type="button" class="pick free' + (freeOn ? ' on' : '') + '" data-col="slot" data-val="' + escAttr(SLOT_FREE_MAGIC) + '" aria-pressed="' + freeOn + '">' + esc('Tự do') + '</button>';
     opts.forEach(function (v) {
       var on = SEL.slots.indexOf(v) !== -1;
       html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="slot" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
@@ -2676,19 +2678,19 @@
       if (col === 'team') {
         toggleArr(SEL.teams, val, !pressed);
         // cascade: Ca thuộc Station+Team — bỏ slot đã chọn không còn trong filter
-        if (SEL.slots.indexOf('Tự do') === -1) {
+        if (SEL.slots.indexOf(SLOT_FREE_MAGIC) === -1) {
           var avail = selSlotOptions();
           SEL.slots = SEL.slots.filter(function (s) { return avail.indexOf(s) !== -1; });
         }
         renderAllSelects(); refreshModeUI(); updateCreatePreview();
         return;
       }
-      if (col === 'slot' && val === 'Tự do') {
-        if (!pressed) { SEL.slots = ['Tự do']; }
-        else { toggleArr(SEL.slots, 'Tự do', false); }
+      if (col === 'slot' && val === SLOT_FREE_MAGIC) {
+        if (!pressed) { SEL.slots = [SLOT_FREE_MAGIC]; }
+        else { toggleArr(SEL.slots, SLOT_FREE_MAGIC, false); }
       } else {
         toggleArr(arr, val, !pressed);
-        if (col === 'slot') { var i2 = SEL.slots.indexOf('Tự do'); if (i2 >= 0) SEL.slots.splice(i2, 1); }
+        if (col === 'slot') { var i2 = SEL.slots.indexOf(SLOT_FREE_MAGIC); if (i2 >= 0) SEL.slots.splice(i2, 1); }
       }
       renderAllSelects();
       refreshModeUI();
@@ -2963,7 +2965,7 @@
       showToast('Vui lòng chọn ít nhất 1 Ca', true);
       return;
     }
-    if (isFree) input.slotCode = ['Tự do'];
+    if (isFree) input.slotCode = [SLOT_FREE_MAGIC];
     BUSY = true;
     var btn = document.getElementById('btnCreateSubmit');
     if (btn) btn.disabled = true;

@@ -50,8 +50,7 @@ function createReconcileTask(input) {
   const date = String((input && input.date) || '').trim();  // ngày vào làm (optional — lọc theo StaffData Date)
   // P2-8: createdBy PHẢI từ server session — KHÔNG tin input.client (tránh giả mạo người tạo).
   // Deploy "Anyone within @spxexpress.com" → getActiveUser() trả email người đăng nhập thật.
-  let createdBy = 'web';
-  try { createdBy = Session.getActiveUser().getEmail() || 'web'; } catch (e) { createdBy = 'web'; }
+  const createdBy = getActiveEmail_() || 'web';
 
   // 2026-08-07: CẢ 2 luồng (reconcile + FREE) đều cần station + team.
   // Reconcile thêm slotCode; FREE tự gán slotCode='Tự do' (xem build task dưới).
@@ -220,8 +219,7 @@ function getTaskDetail(taskId) {
   const detail = readTaskDetailCached_(taskId);
   if (!detail || !detail.task) return detailError_('Không tìm thấy task');
   // T-1: Tính permission tươi cho user đang đọc — KHÔNG lưu vào cache (cache 15s dùng chung mọi user).
-  let activeEmail = '';
-  try { activeEmail = Session.getActiveUser().getEmail() || ''; } catch (e) { activeEmail = ''; }
+  const activeEmail = getActiveEmail_();
   const isAdmin = isEditor_();
   const isOwner = String(detail.task.createdBy || '').trim().toLowerCase() === String(activeEmail || '').trim().toLowerCase()
     && String(detail.task.createdBy || '').trim().toLowerCase() !== 'web'

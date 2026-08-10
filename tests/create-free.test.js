@@ -43,6 +43,7 @@ function makeCtx() {
     Math,
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     Session: { getActiveUser: () => ({ getEmail: () => 'web' }) },
+    getActiveEmail_: () => 'web', // TaskService giờ dùng Auth.getActiveEmail_ (không load Auth.gs ở đây)
     TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
     TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
     UI_LABELS: { CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn' },

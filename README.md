@@ -1,4 +1,4 @@
-# Attendance Portal (RollCall v2) — Quản lý chấm công & điểm danh
+﻿# Attendance Portal (RollCall v2) — Quản lý chấm công & điểm danh
 
 > Hệ thống quản lý thông tin chấm công + điểm danh nhân viên kho (warehouse) bằng barcode, chạy trên **Google Apps Script WebApp** + **Google Sheets**.
 > Repo: `van90bg/rollcall-kiosk-v2x` · Spec chi tiết: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
@@ -55,7 +55,7 @@ RollCall_2/
 ## Cách chạy
 
 ```bash
-npm test          # 88/88 pass
+npm test          # 90/90 pass
 ```
 
 Mock local: mở `index.html` bằng browser (mock tự nạp khi không có `google.script.run`).
@@ -83,4 +83,4 @@ clasp deploy
 - ✅ Fix DOM `repairViewParents()` → view bị đẩy về main
 - ✅ Fix task list: table lồng skeleton
 - ✅ Title đồng bộ `Attendance Portal`; Giới thiệu viết lại
-- ✅ 88/88 test (đã tách Database.gs → 5 repo file + smoke test load toàn bộ .gs); ⏳ P2 QA prod
+- ✅ 90/90 test (đã tách Database.gs → 5 repo file + smoke test load toàn bộ .gs + doGet wiring); ⏳ P2 QA prod

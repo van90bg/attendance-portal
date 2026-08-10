@@ -129,7 +129,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## Verify workflow
 
-- Logic changes → `npm run test` (78/78). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (90/90). UI-only → parse+CRLF đủ.
 - CDP: `node scripts/cdp-helper.js open "file:///.../index.html?t=N"` — geometry `getBoundingClientRect` là truth; check `scrollHeight` vs `innerHeight`, `section.parentElement` (repair), table parents.
 - Production bug: `gh run list --limit 5` TRƯỚC khi kết luận — CI trễ → user test GAS build cũ.
 
