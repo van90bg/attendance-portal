@@ -1,4 +1,4 @@
-<style>
+﻿<style>
     :root {
       color-scheme: light;  /* thay cho <meta color-scheme> — GAS addMetaTag không cho phép tag này; CSS tương đương meta */
       --primary: #0b57d0;
@@ -365,6 +365,20 @@
       border-radius: 8px; font-size: 14px; background: #fff; color: var(--text);
     }
     .att-toolbar select { flex: 0 0 auto; width: auto; max-width: 190px; }
+
+    /* ===== C4: form trang Cấu hình (Config Admin) ===== */
+    .cfg-card { padding: 16px; }
+    .cfg-section { margin-bottom: 20px; }
+    .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+    .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
+    .cfg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .cfg-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+    .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
+    .cfg-role-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .cfg-role-email { flex: 1 1 280px; min-width: 0; }
+    .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }
+    .cfg-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+    .cfg-status { font-size: 13px; color: var(--muted); }
     .btn-clear-filter {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
       border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer;
@@ -1036,6 +1050,7 @@
       <button class="side-item" data-page="stats" onclick="selectPage('stats')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-8"/><path d="M22 20H2"/></svg></span><span class="side-lbl">Thống kê</span></button>
       <button class="side-item" data-page="attendance" onclick="selectPage('attendance')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span class="side-lbl">Điểm danh</span></button>
       <button class="side-item" data-page="data" onclick="selectPage('data')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><span class="side-lbl">Dữ liệu chấm công</span></button>
+      <button class="side-item" data-page="config" id="sideConfigItem" onclick="selectPage('config')" style="display:none;" title="Cấu hình (chỉ editor)"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="side-lbl">Cấu hình</span></button>
       <button class="side-item" data-page="about" onclick="selectPage('about')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg></span><span class="side-lbl">Giới thiệu</span></button>
     </nav>
     <div class="side-foot">
@@ -1240,6 +1255,43 @@
             <div class="empty" id="staffEmpty" style="display:none;">Không có nhân viên trong StaffData</div>
           </div>
         </div>
+  </section>
+
+  <!-- ================= VIEW CONFIG: Cấu hình Admin (SettingsService) ================= -->
+  <section id="viewConfig" class="hidden">
+    <div class="scan-topbar">
+      <div class="scan-topbar-title">
+        <div class="task-title">Cấu hình</div>
+        <div class="task-meta" id="configMeta">Đang tải…</div>
+      </div>
+      <button class="btn btn-outline" onclick="loadConfigView(this)" aria-label="Làm mới cấu hình" title="Làm mới">⟳ Làm mới</button>
+    </div>
+
+    <div class="card cfg-card">
+      <form id="configForm" onsubmit="return false;" style="display:none;">
+        <div class="cfg-section">
+          <div class="cfg-section-title">Cấu hình vận hành</div>
+          <div class="cfg-grid">
+            <label class="cfg-field"><span>Station mặc định</span><input id="cfgDefaultStation" class="cfg-input" placeholder="VD: KHO-01" autocomplete="off"></label>
+            <label class="cfg-field"><span>Slot Code (Ca) mặc định</span><input id="cfgDefaultSlotCode" class="cfg-input" placeholder="VD: Ca 1" autocomplete="off"></label>
+            <label class="cfg-field"><span>Team mặc định</span><input id="cfgDefaultTeam" class="cfg-input" placeholder="VD: Team A" autocomplete="off"></label>
+            <label class="cfg-field"><span>Department mặc định</span><input id="cfgDepartment" class="cfg-input" placeholder="VD: Kho Chính" autocomplete="off"></label>
+          </div>
+        </div>
+
+        <div class="cfg-section">
+          <div class="cfg-section-title">Phân quyền (roleMap) <span class="cfg-hint">email → role; bỏ trống email để xóa dòng</span></div>
+          <div id="cfgRoleRows"></div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="addRoleRow()">+ Thêm role</button>
+        </div>
+
+        <div class="cfg-actions">
+          <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)">💾 Lưu cấu hình</button>
+          <span class="cfg-status" id="cfgStatus"></span>
+        </div>
+      </form>
+      <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ editor (DEPLOYER_EMAIL)</div>
+    </div>
   </section>
 </main>
 </div>
@@ -1521,7 +1573,7 @@
   function repairViewParents() {
     var main = document.getElementById('main-content');
     if (!main) return;
-    ['viewHome', 'viewStats', 'viewStaff', 'aboutView', 'viewScan', 'viewList'].forEach(function (id) {
+    ['viewHome', 'viewStats', 'viewStaff', 'aboutView', 'viewScan', 'viewList', 'viewConfig'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el && el.parentElement !== main) {
         main.appendChild(el);  // di chuyển (appendChild tự gỡ khỏi cha cũ + xếp cuối main)
@@ -2068,6 +2120,7 @@
     document.getElementById('viewScan').classList.add('hidden');
     document.getElementById('viewStaff').classList.add('hidden');
     document.getElementById('aboutView').classList.add('hidden');
+    document.getElementById('viewConfig').classList.add('hidden');
     // Stop auto-focus loop when leaving scan view
     stopAutoFocusLoop();
     // Show target view
@@ -2086,7 +2139,7 @@
   try { SIDEBAR_COMPACT = localStorage.getItem('ap2_sidebar_compact') === '1'; } catch (e) {}
 
   // Ánh xạ page → section id hiển thị
-  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewList', data: 'viewStaff', about: 'aboutView' };
+  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewList', data: 'viewStaff', config: 'viewConfig', about: 'aboutView' };
   var ACTIVE_PAGE = 'home';
 
   function selectPage(page) {
@@ -2103,6 +2156,7 @@
     // Lazy-load theo page
     if (page === 'home' && typeof renderHomeClock === 'function') { renderHomeClock(); }
     if ((page === 'stats' || page === 'data') && typeof ensureStaffData === 'function') { ensureStaffData(false); }
+    if (page === 'config' && typeof loadConfigView === 'function' && !CFG_LOADED) { loadConfigView(); }
   }
 
   function toggleSidebarCompact() {
@@ -2413,6 +2467,145 @@
     var name = String(email).split('@')[0];
     return name || email;
   }
+  /* ===== VIEW CONFIG — trang Cấu hình Admin (SettingsService: getSettingsApi/saveSettingsApi) =====
+   * Sidebar chỉ hiện khi meta.isEditor (getMetaApi). Server gate editor (fail-closed).
+   * roleMap: { email: role } — role hợp lệ khớp ROLES (Config.gs). */
+  var CFG_ROLES = [
+    { v: 'viewer',   l: 'Viewer — chỉ xem' },
+    { v: 'operator', l: 'Operator — vận hành kiosk' },
+    { v: 'manager',  l: 'Manager — quản lý vận hành' },
+    { v: 'admin',    l: 'Admin — toàn quyền' },
+  ];
+  var CFG_LOADED = false; // đã render 1 lần — mở lại không fetch trùng
+
+  function loadConfigView(btn) {
+    var meta = document.getElementById('configMeta');
+    var empty = document.getElementById('configEmpty');
+    var form = document.getElementById('configForm');
+    if (meta) meta.textContent = 'Đang tải…';
+    if (empty) empty.style.display = 'none';
+    if (form) form.style.display = 'none';
+    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = '⟳ Đang tải…'; }
+    function restore() { if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || '⟳ Làm mới'; } }
+    google.script.run
+      .withSuccessHandler(function (res) {
+        restore();
+        if (!res || !res.ok) {
+          showToast((res && res.message) || 'Lỗi tải cấu hình', true);
+          if (empty) empty.style.display = '';
+          if (meta) meta.textContent = 'Không tải được';
+          return;
+        }
+        renderConfigForm(res.settings || {});
+        if (form) form.style.display = '';
+        if (meta) meta.textContent = 'Đã tải';
+        markServerOk();
+      })
+      .withFailureHandler(function (err) {
+        restore();
+        markServerFail();
+        showToast('Lỗi tải cấu hình: ' + err.message, true);
+        if (meta) meta.textContent = 'Lỗi kết nối';
+      })
+      .getSettingsApi();
+  }
+
+  function renderConfigForm(s) {
+    setInput('cfgDefaultStation', s.defaultStation);
+    setInput('cfgDefaultSlotCode', s.defaultSlotCode);
+    setInput('cfgDefaultTeam', s.defaultTeam);
+    setInput('cfgDepartment', s.department);
+    renderRoleRows(s.roleMap || {});
+    CFG_LOADED = true;
+  }
+
+  function setInput(id, v) {
+    var el = document.getElementById(id);
+    if (el) el.value = (v === null || v === undefined) ? '' : v;
+  }
+
+  function renderRoleRows(map) {
+    var box = document.getElementById('cfgRoleRows');
+    if (!box) return;
+    box.innerHTML = '';
+    var keys = Object.keys(map || {});
+    keys.forEach(function (em) { appendRoleRow(em, map[em]); });
+    if (!keys.length) appendRoleRow('', 'viewer');
+  }
+
+  function appendRoleRow(email, role) {
+    var box = document.getElementById('cfgRoleRows');
+    if (!box) return;
+    var row = document.createElement('div');
+    row.className = 'cfg-role-row';
+    var em = document.createElement('input');
+    em.className = 'cfg-input cfg-role-email';
+    em.type = 'text'; em.placeholder = 'email@spxexpress.com'; em.autocomplete = 'off';
+    em.value = email || '';
+    var sel = document.createElement('select');
+    sel.className = 'cfg-input cfg-role-select';
+    CFG_ROLES.forEach(function (r) {
+      var o = document.createElement('option');
+      o.value = r.v; o.textContent = r.l;
+      sel.appendChild(o);
+    });
+    var known = false;
+    for (var ri = 0; ri < CFG_ROLES.length; ri++) { if (CFG_ROLES[ri].v === role) { known = true; break; } }
+    sel.value = known ? role : 'viewer';  // role lạ trong config cũ → clamp về viewer (không lưu '')
+    var del = document.createElement('button');
+    del.type = 'button'; del.className = 'btn btn-danger btn-sm';
+    del.textContent = '✕'; del.title = 'Xóa dòng role'; del.setAttribute('aria-label', 'Xóa dòng role');
+    del.onclick = function () { row.parentNode.removeChild(row); };
+    row.appendChild(em); row.appendChild(sel); row.appendChild(del);
+    box.appendChild(row);
+  }
+
+  function addRoleRow() { appendRoleRow('', 'viewer'); }
+
+  function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+  function collectRoleMap() {
+    var map = {};
+    var rows = document.querySelectorAll('#cfgRoleRows .cfg-role-row');
+    for (var i = 0; i < rows.length; i++) {
+      var em = rows[i].querySelector('.cfg-role-email');
+      var sel = rows[i].querySelector('.cfg-role-select');
+      var email = em ? em.value.trim().toLowerCase() : '';
+      if (!email) continue; // bỏ dòng trống email
+      map[email] = sel ? sel.value : 'viewer';
+    }
+    return map;
+  }
+
+  function collectConfigPatch() {
+    return {
+      defaultStation: val('cfgDefaultStation'),
+      defaultSlotCode: val('cfgDefaultSlotCode'),
+      defaultTeam: val('cfgDefaultTeam'),
+      department: val('cfgDepartment'),
+      roleMap: collectRoleMap(),
+    };
+  }
+
+  function saveConfig(btn) {
+    var patch = collectConfigPatch();
+    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Đang lưu…'; }
+    function restore() { if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || '💾 Lưu cấu hình'; } }
+    google.script.run
+      .withSuccessHandler(function (res) {
+        restore();
+        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi lưu cấu hình', true); return; }
+        showToast(res.message || 'Đã lưu cấu hình', false);
+        loadConfigView(); // đọc lại từ server (cache đã invalidate)
+      })
+      .withFailureHandler(function (err) {
+        restore();
+        markServerFail();
+        showToast('Lỗi lưu cấu hình: ' + err.message, true);
+      })
+      .saveSettingsApi(patch);
+  }
+
   function loadMetaAndOptions() {
     google.script.run
       .withSuccessHandler(function (meta) {
@@ -2427,6 +2620,9 @@
         // Header mới không còn #appTitle — cập nhật brand title nếu có
         var brand = document.getElementById('brandTitle');
         if (brand && meta.appTitle) brand.textContent = meta.appTitle;
+        // Trang Cấu hình (viewConfig) — chỉ hiện mục sidebar khi editor (getMetaApi.isEditor)
+        var cfgItem = document.getElementById('sideConfigItem');
+        if (cfgItem) cfgItem.style.display = (meta && meta.isEditor) ? '' : 'none';
         refreshAll();
         // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
         // khi quét đầu thay vì về sau. KHÔNG block UI — chỉ warm cache.

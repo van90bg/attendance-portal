@@ -93,14 +93,15 @@
 
   // Settings Admin (mock): state bền giữa save/get — giống prod đọc sheet thật.
   var SETTINGS_DEFAULTS_MOCK = {
-    defaultStation: '', defaultSlotCode: '', defaultTeam: '', department: '',
+    defaultStation: '', defaultSlotCode: '', defaultTeam: '', department: '', roleMap: {},  // khớp SETTINGS_DEFAULTS (Config.gs)
   };
   var MOCK_SETTINGS = {};
 
   var handlers = {
     getMetaApi: function () {
-      // Khớp server getMetaApi (Code.gs): { ok, appTitle, userEmail }
-      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, userEmail: '' };
+      // Khớp server getMetaApi (Code.gs): { ok, appTitle, userEmail, isEditor }.
+      // Mock LUÔN editor (isEditor:true) — để test trang Cấu hình ở local; server thật gate bằng DEPLOYER_EMAIL.
+      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, userEmail: '', isEditor: true };
     },
     warmStaffCacheApi: function () {
       // Khớp server: slim index { staffId, staffName, slotCode, station, team, workstation, agency }

@@ -5,7 +5,7 @@
 
 ## Tổng quan
 
-**Attendance Portal** là cổng làm việc tập trung thay thế màn hình điểm danh đơn lẻ: sidebar điều hướng 5 trang, dữ liệu nhân sự lấy từ sheet **StaffData** (20 cột chuẩn Att.csv), dữ liệu chấm công lưu tại **AttendanceTask** / **AttendanceLog**.
+**Attendance Portal** là cổng làm việc tập trung thay thế màn hình điểm danh đơn lẻ: sidebar điều hướng 6 trang, dữ liệu nhân sự lấy từ sheet **StaffData** (20 cột chuẩn Att.csv), dữ liệu chấm công lưu tại **AttendanceTask** / **AttendanceLog**.
 
 ## Điều hướng (sidebar trái, collapsible 240px ↔ 48px)
 
@@ -15,6 +15,7 @@
 | **Thống kê** | Pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), tab lọc BPO / OS — fullscreen |
 | **Điểm danh** | Danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc |
 | **Dữ liệu chấm công** | Toàn bộ StaffData — 20 cột khớp tên sheet, Clock In/Out format `H:mm:ss`, tìm mã/tên/agency |
+| **Cấu hình** | Trang Config Admin (chỉ editor) — đọc/ghi settings qua SettingsService: Station/Ca/Team/Department mặc định + roleMap phân quyền |
 | **Giới thiệu** | Hướng dẫn sử dụng và thông tin kỹ thuật |
 
 ## Tính năng
@@ -24,7 +25,7 @@
   - Task Đối chiếu: pre-fill Giờ có mặt, quét = Có mặt / Đã điểm danh / Dư
   - Task FREE: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư
 - **Role gate (phase Mở)** — task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open
-- **Sidebar 5 mục** — thu gọn icon `☰` (48px), mặc định mở; đã bỏ nút 📋/ⓘ khỏi header
+- **Sidebar 6 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo meta.isEditor; đã bỏ nút 📋/ⓘ khỏi header
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 1000, báo mã lỗi
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh
 - **Counters tức thì** — Đã quét / Chưa / Dư, queue nền + optimistic
@@ -46,7 +47,7 @@ RollCall_2/
 ├── ScanLogic.gs           # phân loại scan 2-phase (pure)
 ├── ScanService.gs         # scanStaff — guard + LockService
 ├── TaskService.gs         # task CRUD + transition + kết thúc
-├── index.html             # toàn bộ UI (sidebar + 5 views) — 1 file
+├── index.html             # toàn bộ UI (sidebar + 6 views) — 1 file
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── tests/                 # unit tests node --test
 └── scripts/cdp-helper.js  # CDP verify UI
@@ -55,7 +56,7 @@ RollCall_2/
 ## Cách chạy
 
 ```bash
-npm test          # 110/110 pass
+npm test          # 111/111 pass
 ```
 
 Mock local: mở `index.html` bằng browser (mock tự nạp khi không có `google.script.run`).
@@ -78,9 +79,9 @@ clasp deploy
 
 ## Trạng thái (2026-08-09)
 
-- ✅ Portal shell: sidebar + 5 pages; trang chủ logo + đồng hồ
+- ✅ Portal shell: sidebar + 6 pages; trang chủ logo + đồng hồ
 - ✅ Thống kê / Dữ liệu chấm công: tách view, staffTable 20 cột `H:mm:ss`
 - ✅ Fix DOM `repairViewParents()` → view bị đẩy về main
 - ✅ Fix task list: table lồng skeleton
 - ✅ Title đồng bộ `Attendance Portal`; Giới thiệu viết lại
-- ✅ 110/110 test (tách Database.gs → 5 repo file + smoke load .gs + doGet wiring + SettingsService + RoleService + contract mock↔server); ⏳ P2 QA prod
+- ✅ 111/111 test (tách Database.gs → 5 repo file + smoke load .gs + doGet wiring + SettingsService + RoleService + contract mock↔server + trang Cấu hình Admin); ⏳ P2 QA prod

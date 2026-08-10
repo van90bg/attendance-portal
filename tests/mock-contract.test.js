@@ -1,4 +1,4 @@
-/**
+﻿/**
  * tests/mock-contract.test.js — Contract mock ↔ server API (chống drift).
  *
  * Sinh từ bài học 2026-08-11:
@@ -10,7 +10,7 @@
  * Assert:
  *  1. Mọi handler mock là API server thật (không orphan handler).
  *  2. Mọi API client gọi (index.html .XxxApi() có mock handler) — mock không thiếu.
- *  3. Shape getMetaApi khớp server: { ok, appTitle, userEmail } — KHÔNG labels/tableHeaders.
+ *  3. Shape getMetaApi khớp server: { ok, appTitle, userEmail, isEditor } — KHÔNG labels/tableHeaders.
  *  4. Shape getSettingsApi khớp: { ok, settings }.
  */
 const test = require('node:test');
@@ -70,14 +70,28 @@ test('client-called APIs đều có mock handler (mock không thiếu)', () => {
   assert.deepEqual(missing, [], 'client gọi nhưng mock thiếu handler: ' + missing.join(', '));
 });
 
-test('getMetaApi shape khớp server: { ok, appTitle, userEmail } — không labels/tableHeaders', async () => {
+test('getMetaApi shape khớp server: { ok, appTitle, userEmail, isEditor } — không labels/tableHeaders', async () => {
   const { call } = loadMock();
   const meta = await call('getMetaApi');
-  assert.deepEqual(Object.keys(meta).sort(), ['appTitle', 'ok', 'userEmail']);
+  assert.deepEqual(Object.keys(meta).sort(), ['appTitle', 'isEditor', 'ok', 'userEmail']);
 });
 
 test('getSettingsApi shape khớp server: { ok, settings }', async () => {
   const { call } = loadMock();
   const s = await call('getSettingsApi');
   assert.deepEqual(Object.keys(s).sort(), ['ok', 'settings']);
+});
+
+// Mock settings phải có ĐỦ key của server SETTINGS_DEFAULTS (Config.gs) — thêm setting mới
+// ở server mà mock thiếu → test này bắt (ngăn mock drift như batch labels/tableHeaders).
+test('getSettingsApi settings có đủ keys của server SETTINGS_DEFAULTS', async () => {
+  const { call } = loadMock();
+  const s = await call('getSettingsApi');
+  const cfgSrc = fs.readFileSync(path.join(ROOT, 'Config.gs'), 'utf8');
+  const block = cfgSrc.match(/const SETTINGS_DEFAULTS = \{([\s\S]*?)\n\};/);
+  assert.ok(block, 'Config.gs phải có SETTINGS_DEFAULTS');
+  const serverKeys = [...block[1].matchAll(/^\s*(\w+):/gm)].map((x) => x[1]);
+  const mockKeys = Object.keys(s.settings || {});
+  const missing = serverKeys.filter((k) => !mockKeys.includes(k));
+  assert.deepEqual(missing, [], 'mock thiếu key settings so server: ' + missing.join(', '));
 });

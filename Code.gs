@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Code.gs — Entry point + API endpoints (google.script.run).
  * Debug URL (?debug=1 / ?debug=createTask) xử lý trong Debug.gs (editor-gated);
  * quyền/định danh trong Auth.gs.
@@ -38,6 +38,7 @@ function getMetaApi() {
     ok: true,
     appTitle: UI_LABELS.APP_TITLE,
     userEmail: getActiveEmail_(),
+    isEditor: isEditor_(),  // client ẩn/hiện trang Cấu hình (viewConfig)
   };
 }
 
