@@ -1,0 +1,83 @@
+/**
+ * tests/mock-contract.test.js — Contract mock ↔ server API (chống drift).
+ *
+ * Sinh từ bài học 2026-08-11:
+ * - mock trả `labels`/`tableHeaders` mà client KHÔNG dùng (grep index.html = 0) và
+ *   server getMetaApi KHÔNG trả → ~40 dòng code chết + contract lệch server.
+ * - mock thiếu `warmStaffCacheApi` — client gọi nhưng run.xxx = undefined → try/catch
+ *   nuốt lỗi âm thầm (warm cache không bao giờ chạy khi test local).
+ *
+ * Assert:
+ *  1. Mọi handler mock là API server thật (không orphan handler).
+ *  2. Mọi API client gọi (index.html .XxxApi() có mock handler) — mock không thiếu.
+ *  3. Shape getMetaApi khớp server: { ok, appTitle, userEmail } — KHÔNG labels/tableHeaders.
+ *  4. Shape getSettingsApi khớp: { ok, settings }.
+ */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const ROOT = path.join(__dirname, '..');
+
+/** Tên API server: function XxxApi( khai trong mọi file .gs. */
+function serverApiNames() {
+  const names = new Set();
+  for (const f of fs.readdirSync(ROOT).filter((x) => x.endsWith('.gs'))) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    for (const m of src.matchAll(/function\s+([A-Za-z_]\w*Api)\s*\(/g)) names.add(m[1]);
+  }
+  return names;
+}
+
+/** Tên API client gọi: .XxxApi( trong index.html (call sites google.script.run). */
+function clientApiNames() {
+  const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const names = new Set();
+  for (const m of src.matchAll(/\.([A-Za-z_]\w*Api)\s*\(/g)) names.add(m[1]);
+  return names;
+}
+
+/** Load mock-google.js vào vm (window giả) → { handlers, call } — call chạy handler async như thật. */
+function loadMock() {
+  const ctx = { window: {}, console, setTimeout };
+  vm.createContext(ctx);
+  let src = fs.readFileSync(path.join(ROOT, 'mock', 'mock-google.js'), 'utf8');
+  src = src.replace(/^\uFEFF/, ''); // bỏ BOM trước khi compile
+  vm.runInContext(src, ctx);
+  const run = ctx.window.google.script.run;
+  const handlers = Object.keys(run).filter((n) => n !== 'withSuccessHandler' && n !== 'withFailureHandler');
+  function call(name, ...args) {
+    return new Promise((resolve, reject) => {
+      run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args);
+    });
+  }
+  return { handlers, call };
+}
+
+test('mock handlers ⊆ server API functions (không orphan handler)', () => {
+  const { handlers } = loadMock();
+  const api = serverApiNames();
+  const orphan = handlers.filter((h) => !api.has(h));
+  assert.deepEqual(orphan, [], 'mock handler không tồn tại ở server: ' + orphan.join(', '));
+});
+
+test('client-called APIs đều có mock handler (mock không thiếu)', () => {
+  const { handlers } = loadMock();
+  const client = clientApiNames();
+  const missing = [...client].filter((c) => !handlers.includes(c));
+  assert.deepEqual(missing, [], 'client gọi nhưng mock thiếu handler: ' + missing.join(', '));
+});
+
+test('getMetaApi shape khớp server: { ok, appTitle, userEmail } — không labels/tableHeaders', async () => {
+  const { call } = loadMock();
+  const meta = await call('getMetaApi');
+  assert.deepEqual(Object.keys(meta).sort(), ['appTitle', 'ok', 'userEmail']);
+});
+
+test('getSettingsApi shape khớp server: { ok, settings }', async () => {
+  const { call } = loadMock();
+  const s = await call('getSettingsApi');
+  assert.deepEqual(Object.keys(s).sort(), ['ok', 'settings']);
+});

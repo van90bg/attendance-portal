@@ -14,29 +14,8 @@
     meta: {
       ok: true,
       appTitle: 'Attendance Portal [LOCAL MOCK]',
-      labels: {
-        APP_TITLE: 'Attendance Portal',
-        BTN_RECONCILE: '+ Đối chiếu danh sách',
-        BTN_CREATE: '+ Tạo task',
-        BTN_SCAN: 'Quét',
-        BTN_FINISH: 'Kết thúc',
-        BTN_BACK: '← Danh sách task',
-        COUNTER_SCANNED: 'Đã quét',
-        COUNTER_ABSENT: 'Vắng',
-        COUNTER_EXTRA: 'Dư',
-        SCAN_PLACEHOLDER: 'Quét mã nhân viên…',
-        EMPTY_NO_TASK: 'Chưa có task nào — chọn Station/Ca/Team rồi nhấn "+ Tạo task"',
-        EMPTY_NO_SCAN: 'Không có nhân viên nào trong danh sách',
-        ALREADY_SCANNED: 'Đã điểm danh',
-        TASK_CLOSED: 'Task đã kết thúc',
-        STAFF_NOT_FOUND: 'Không tìm thấy nhân viên',
-        CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn',
-      },
-      tableHeaders: {
-        TASK_ID: 'Mã task', STATION: 'Station', SLOT_CODE: 'Ca', TEAM: 'Team',
-        STATUS: 'Trạng thái', CREATED_AT: 'Tạo lúc', STAFF_ID: 'Mã NV', STAFF_NAME: 'Tên NV',
-        CARD_IN: 'Card In', CARD_OUT: 'Card Out', TIME_REF: 'Giờ có mặt', TIME_SCAN: 'Giờ quét',
-      },
+      // Khớp server getMetaApi: { ok, appTitle, userEmail } — KHÔNG labels/tableHeaders
+      // (client không dùng, server không trả — drift đã xóa 2026-08-11).
     },
     staff: [
       { staffId: 'Ops237511', staffName: 'NV001', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'GRG', contractType: 'BPO', cardIn: '20:15', cardOut: '06:20' },
@@ -120,7 +99,16 @@
 
   var handlers = {
     getMetaApi: function () {
-      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, labels: MOCK_DATA.meta.labels, tableHeaders: MOCK_DATA.meta.tableHeaders };
+      // Khớp server getMetaApi (Code.gs): { ok, appTitle, userEmail }
+      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, userEmail: '' };
+    },
+    warmStaffCacheApi: function () {
+      // Khớp server: slim index { staffId, staffName, slotCode, station, team, workstation, agency }
+      var slim = {};
+      MOCK_DATA.staff.forEach(function (s) {
+        slim[s.staffId] = { staffId: s.staffId, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '' };
+      });
+      return { ok: true, index: slim };
     },
     getFilterOptionsApi: function () {
       // Khớp server: trả cây stationGroups cho modal tạo task (3 cấp checkbox)
@@ -214,6 +202,40 @@
       else { log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '', timeRefText: '', timeScanText: ts, timeScanEpoch: nowMs, status: 'Dư' }); }
       return { ok: true, message: 'Có mặt', status: 'Có mặt', timeScanText: ts, timeScanEpoch: nowMs, staffName: hit ? hit.staffName : 'NV LẠ', counters: counters(log) };
     },
+    pasteCodesApi: function (taskId, rawLines) {
+      // Khớp server pasteCodes: { ok, message, total, success, failed, results, counters }
+      var lines = (Array.isArray(rawLines) ? rawLines : []).slice(0, 200);
+      var task = null;
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
+      if (!task) return { ok: false, message: 'Không tìm thấy task', total: 0, success: 0, failed: 0, results: [], counters: null };
+      if (task.taskType !== 'free' || task.status !== 'open') {
+        return { ok: false, message: 'Chỉ áp dụng quét tự do (FREE) phase Mở', total: 0, success: 0, failed: 0, results: [], counters: null };
+      }
+      var log = getLog(taskId);
+      // Gate canScanOpen_ (owner/admin phase OPEN) bỏ qua CÓ CHỦ Ý — mock không mô
+      // hình hoá identity; luôn mở cho local test. Không "fix" thành gate ở đây.
+      var results = [];
+      var success = 0, failed = 0;
+      var seen = {}; // mã trùng trong cùng batch → reject (khớp planBatchScans)
+      var nowMs = Date.now();
+      var d = new Date(nowMs);
+      var ts = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+      lines.forEach(function (code) {
+        var c = String(code || '').trim();
+        if (!c) return;
+        if (!/^OPS\d+$/i.test(c)) { failed++; results.push({ code: c, ok: false, reason: 'invalid-format' }); return; }
+        var key = c.toUpperCase();
+        if (seen[key]) { failed++; results.push({ code: c, ok: false, reason: 'already-present' }); return; }
+        seen[key] = true;
+        var hit = null;
+        log.forEach(function (r) { if (r.staffId.toLowerCase() === c.toLowerCase()) hit = r; });
+        if (hit && hit.status !== '-') { failed++; results.push({ code: c, ok: false, reason: 'already-present' }); return; }
+        if (hit) { hit.timeRefText = ts; hit.timeRefEpoch = nowMs; }
+        else { log.push({ taskId: taskId, staffId: c.toUpperCase(), staffName: 'NV DÁN', slotCode: '', station: '', team: '', workstation: '', timeRefText: ts, timeRefEpoch: nowMs, timeScanText: '', timeScanEpoch: 0, status: '-', dateText: '' }); }
+        success++; results.push({ code: c, ok: true, action: 'append' });
+      });
+      return { ok: true, message: 'Dán ' + success + '/' + lines.length + ' mã thành công', total: lines.length, success: success, failed: failed, results: results, counters: counters(log) };
+    },
     searchLogsByStaffApi: function (rawStaffId) {
       // Mock F-search: quét toàn bộ task log + roster NV, filter staffId (case-insensitive).
       var needle = String(rawStaffId || '').trim().toUpperCase();
@@ -255,6 +277,15 @@
       return MOCK_DATA.tasks.filter(function (t) {
         return t.taskId && String(t.taskId).toUpperCase().indexOf(q) >= 0;
       }).slice(0, 50);
+    },
+    transitionToAttendApi: function (taskId) {
+      // Khớp server transitionToAttend: chỉ OPEN → ATTEND (phase2)
+      var task = null;
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
+      if (!task) return { ok: false, message: 'Không tìm thấy task' };
+      if (task.status !== 'open') return { ok: false, message: 'Chỉ chuyển sang điểm danh khi task đang ở trạng thái Mở' };
+      task.status = 'attend';
+      return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét Giờ quét' };
     },
     reopenTaskApi: function (taskId) {
       // F3: mirror server reopenTask — resetAbsentToPending_ (ABSENT->PENDING) trước,

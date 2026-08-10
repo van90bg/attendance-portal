@@ -1413,6 +1413,9 @@
   var TASK_STATUS_C = { OPEN: 'open', ATTEND: 'attend', DONE: 'done' };
   // Task type — khớp TASK_TYPE trong Config.gs (phân biệt quét tự do / đối chiếu)
   var TASK_TYPE_C = { RECONCILE: 'reconcile', FREE: 'free' };
+  // Label task type (scan task meta) — 1 nguồn chung; trước đây khai trùng 2 nơi
+  // (openTask + transition handler) → dễ lệch. FIX(2026-08-11).
+  var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
   // Magic Ca 'Tự do' — KHỚP SLOT_FREE_MAGIC (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
   var SLOT_FREE_MAGIC = 'Tự do';
   // Regex mã barcode NV — KHỚP BARCODE_ID_RE (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
@@ -3066,7 +3069,6 @@
     SCAN_PAGE = 1; // dữ liệu mới (task vừa mở) → về trang đầu
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
-    var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
     var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
     var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
     metaEl.innerHTML =
@@ -3847,7 +3849,6 @@
             CURRENT_TASK.status = TASK_STATUS_C.ATTEND;
             var metaEl = document.getElementById('scanTaskMeta');
             if (metaEl) {
-              var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
               var phaseHint = ' (ghi Giờ quét)';
               metaEl.innerHTML =
                 esc(TT_LABEL[CURRENT_TASK.taskType] || 'Task') + ' · ' + esc(CURRENT_TASK.station) + ' · ' +
