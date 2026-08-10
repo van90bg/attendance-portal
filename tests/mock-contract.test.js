@@ -104,3 +104,11 @@ test('getFilterOptionsApi shape khớp server: { ok, stationGroups, defaults }',
   assert.deepEqual(Object.keys(f.defaults || {}).sort(), ['slotCode', 'station', 'team']);
 });
 
+// searchLogsByStaffApi gate manager server-side → shape { ok, rows } (client phân biệt
+// 'không đủ quyền' vs 'không có dữ liệu'). Mock mirror shape — test chặn drift.
+test('searchLogsByStaffApi shape khớp server: { ok, rows }', async () => {
+  const { call } = loadMock();
+  const s = await call('searchLogsByStaffApi', 'Ops6219');
+  assert.deepEqual(Object.keys(s).sort(), ['ok', 'rows']);
+  assert.ok(Array.isArray(s.rows), 'rows phải là mảng');
+});

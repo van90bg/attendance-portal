@@ -25,6 +25,7 @@
   - Task Đối chiếu: pre-fill Giờ có mặt, quét = Có mặt / Đã điểm danh / Dư
   - Task FREE: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư
 - **Role gate (phase Mở)** — task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open
+- **Role gate (quản trị)** — F-search NV (`searchLogsByStaffApi`, lịch sử chấm công cá nhân) chỉ manager+; `getStaffStatsApi` operator+; settings editor-only
 - **Sidebar 6 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo meta.isEditor; đã bỏ nút 📋/ⓘ khỏi header
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 1000, báo mã lỗi
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh
@@ -56,7 +57,7 @@ RollCall_2/
 ## Cách chạy
 
 ```bash
-npm test          # 112/112 pass
+npm test          # 113/113 pass
 ```
 
 Mock local: mở `index.html` bằng browser (mock tự nạp khi không có `google.script.run`).
@@ -84,4 +85,4 @@ clasp deploy
 - ✅ Fix DOM `repairViewParents()` → view bị đẩy về main
 - ✅ Fix task list: table lồng skeleton
 - ✅ Title đồng bộ `Attendance Portal`; Giới thiệu viết lại
-- ✅ 112/112 test (tách Database.gs → 5 repo file + smoke load .gs + doGet wiring + SettingsService + RoleService + contract mock↔server + trang Cấu hình Admin); ⏳ P2 QA prod
+- ✅ 113/113 test (tách Database.gs → 5 repo file + smoke load .gs + doGet wiring + SettingsService + RoleService + contract mock↔server + trang Cấu hình Admin); ⏳ P2 QA prod

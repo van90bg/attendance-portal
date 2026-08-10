@@ -183,11 +183,20 @@ function pasteCodesApi(taskId, lines) {
   return pasteCodes(taskId, lines);
 }
 
-/** F-search: tìm log của 1 mã NV (Ops) XUYÊN TASK. Mở cho kiosk — chỉ đọc.
+/** F-search: tìm log của 1 mã NV (Ops) XUYÊN TASK — DỮ LIỆU CHẤM CÔNG CÁ NHÂN.
  *  Trả danh sách task mà NV đó từng hiện hữu, kèm thông tin NV trong từng task.
- *  Gate: KHÔNG giới hạn role (chỉ đọc toàn bộ — tương như listTasksApi). */
+ *  Gate requireRole_('manager') — nền cho báo cáo tháng theo mail (chỉ manager+ xem
+ *  lịch sử chấm công của người khác). pattern DEFENSE: gate TRONG try (như getStaffStatsApi)
+ *  — requireRole_ → getSetting_ → sheet chưa cấu hình throw → trả ok:false thay vì ném ra client. */
 function searchLogsByStaffApi(rawStaffId) {
-  return searchLogsByStaff(rawStaffId);
+  try {
+    if (!requireRole_('manager')) {
+      return { ok: false, rows: [], message: 'Không đủ quyền (cần role manager trở lên)' };
+    }
+    return { ok: true, rows: searchLogsByStaff(rawStaffId) };
+  } catch (e) {
+    return { ok: false, rows: [], message: e && e.message ? e.message : 'searchLogsByStaff fail' };
+  }
 }
 
 /** F-search mở rộng: tìm task theo mã (prefix/contains). Mở cho kiosk — chỉ đọc

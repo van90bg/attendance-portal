@@ -247,7 +247,8 @@
       // Mock F-search: quét toàn bộ task log + roster NV, filter staffId (case-insensitive).
       var needle = String(rawStaffId || '').trim().toUpperCase();
       var out = [];
-      if (!needle) return [];
+      // Khớp server: trả { ok, rows } — mock không mô hình gate manager (luôn ok, test shape thôi).
+      if (!needle) return { ok: true, rows: [] };
       MOCK_DATA.tasks.forEach(function (t) {
         var log = getLog(t.taskId);
         log.forEach(function (r) {
@@ -275,7 +276,7 @@
         });
       });
       out.sort(function (a, b) { return b.createdAtText < a.createdAtText ? -1 : (b.createdAtText > a.createdAtText ? 1 : 0); });
-      return out.slice(0, 200);
+      return { ok: true, rows: out.slice(0, 200) };
     },
     searchTasksByQueryApi: function (rawQ) {
       // Mock tìm kiếm task theo mã (prefix/contains, case-insensitive) — copy matchTasksByQuery.

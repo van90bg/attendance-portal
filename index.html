@@ -3060,8 +3060,21 @@
           var cnt = document.getElementById("taskCount");
           if (cnt) cnt.textContent = "…";
           google.script.run
-            .withSuccessHandler(function (rows) {
-              LAST_SEARCH_ROWS = safeArr(rows);
+            .withSuccessHandler(function (res) {
+              if (!res || !res.ok) {
+                // Gate manager (server requireRole_) — toast rõ ràng + empty-state text RIÊNG
+                // (không để nhầm 'Không tìm thấy mã' — thực tế là thiếu quyền).
+                showToast((res && res.message) || 'Không đủ quyền tìm kiếm', true);
+                var emptyText = document.getElementById('taskEmptyText');
+                if (emptyText) {
+                  emptyText.innerHTML = 'Không đủ quyền xem lịch sử chấm công NV — cần role <b>manager</b> trở lên. Liên hệ quản trị để cấp quyền.';
+                }
+                LAST_SEARCH_ROWS = [];
+                renderSearchResults_([]);
+                markServerOk();  // RPC success → server sống (chỉ là thiếu quyền)
+                return;
+              }
+              LAST_SEARCH_ROWS = safeArr(res.rows);
               renderSearchResults_(LAST_SEARCH_ROWS);
               markServerOk();
             })
