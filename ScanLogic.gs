@@ -58,30 +58,30 @@ function classifyScan(cfg, task, logRows, staffId) {
       return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: row };
     }
     return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.PRESENT, reason: null, row: row };
-      }
-      // NV không có trong log.
-      // - Roster (taskType != 'free'): NV quét lạ là Dư (EXTRA) — ghi nhận ngoài danh sách chốt.
-      //   phase1 Giờ có mặt, phase2 Giờ quét.
-      // - Quét tự do (taskType FREE / noList): KHÔNG có danh sách chốt → NV lạ là hợp lệ,
-      //   KHÔNG phải Dư. Quét đầu (phase1) = PENDING (chưa điểm danh), phase2 = PRESENT.
-      //   (Fix Dư sai 2026-08-05)
-      const isFree = task && task.taskType === cfg.TASK_TYPE.FREE;
-      if (isFree) {
-        // FREE 2-phase (noList): phase1 quét đầu = danh sách (PENDING, có mặt
-        // nhưng chưa điểm danh). phase2: NV quét lần 2 → điểm danh. NV quét phase2
-        // mà không có trong danh sách phase1 → Dư (EXTRA) — ghi Giờ quét, tính Dư.
-        return {
-          action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),
-          status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.EXTRA, reason: null, row: null,
-        };
-      }
-      if (phase === 'present') {
-        return { action: 'append', phase: 'present', field: 'timeRef', status: cfg.STATUS.EXTRA, reason: null, row: null };
-      }
-      return { action: 'append', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: null };
-    }
+  }
+  // NV không có trong log.
+  // - Roster (taskType != 'free'): NV quét lạ là Dư (EXTRA) — ghi nhận ngoài danh sách chốt.
+  //   phase1 Giờ có mặt, phase2 Giờ quét.
+  // - Quét tự do (taskType FREE / noList): KHÔNG có danh sách chốt → NV lạ là hợp lệ,
+  //   KHÔNG phải Dư. Quét đầu (phase1) = PENDING (chưa điểm danh), phase2 = PRESENT.
+  //   (Fix Dư sai 2026-08-05)
+  const isFree = task && task.taskType === cfg.TASK_TYPE.FREE;
+  if (isFree) {
+    // FREE 2-phase (noList): phase1 quét đầu = danh sách (PENDING, có mặt
+    // nhưng chưa điểm danh). phase2: NV quét lần 2 → điểm danh. NV quét phase2
+    // mà không có trong danh sách phase1 → Dư (EXTRA) — ghi Giờ quét, tính Dư.
+    return {
+      action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),
+      status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.EXTRA, reason: null, row: null,
+    };
+  }
+  if (phase === 'present') {
+    return { action: 'append', phase: 'present', field: 'timeRef', status: cfg.STATUS.EXTRA, reason: null, row: null };
+  }
+  return { action: 'append', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: null };
+}
 
-    /**
+/**
  * Tìm dòng NV trong log theo staffId (staffId đã normalize trước).
  * @param {Array<Object>} logRows
  * @param {string} staffId

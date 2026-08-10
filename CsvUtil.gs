@@ -34,6 +34,14 @@ const CSV_HEADER_FIELD = {
 };
 
 /**
+ * Giá trị magic cho Ca 'Tự do' — quyết định task FREE (quét tự do, không danh sách).
+ * 1 nguồn sự thật cho server: isFreeSlotSelection_ (CsvUtil), TaskService gán slotCode
+ * khi tạo task FREE. Client (index.html) VẪN dùng literal 'Tự do' — khi thêm hằng số
+ * client phải giữ sync với hằng số này.
+ */
+const SLOT_FREE_MAGIC = 'Tự do';
+
+/**
  * Chuẩn hóa tên NV: trim + gộp nhiều khoảng trắng (v1 bug: "Đào  Quang  Hà").
  * @param {string} name
  * @returns {string}
@@ -100,34 +108,6 @@ function isValidBarcodeId(id) {
   // F1: mã phải bắt đầu bằng "Ops" (case-insensitive) VÀ chỉ chứa chữ số sau đó.
   // Ví dụ hợp lệ: Ops6219, Ops7562, Ops000001. Ví dụ sai: OpsABC, OPS, Ops12a.
   return /^ops\d+$/i.test(String(id).trim());
-}
-
-/**
- * Parse 1 dòng csv (split cơ bản, xử lý quoted field tối thiểu).
- * @param {string} line
- * @returns {string[]}
- */
-function splitCsvLine(line) {
-  const out = [];
-  let cur = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (line[i + 1] === '"') { cur += '"'; i++; }
-        else inQuotes = false;
-      } else cur += ch;
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ',') {
-      out.push(cur); cur = '';
-    } else {
-      cur += ch;
-    }
-  }
-  out.push(cur);
-  return out;
 }
 
 /**
@@ -261,8 +241,8 @@ function toFilterArray_(val) {
  */
 function isFreeSlotSelection_(slotCode) {
   return Array.isArray(slotCode)
-    ? slotCode.length === 1 && String(slotCode[0]).trim() === 'Tự do'
-    : String(slotCode || '').trim() === 'Tự do';
+    ? slotCode.length === 1 && String(slotCode[0]).trim() === SLOT_FREE_MAGIC
+    : String(slotCode || '').trim() === SLOT_FREE_MAGIC;
 }
 
 function filterStaffByGroup(staffList, group) {
@@ -309,25 +289,6 @@ function dedupeStaffByGroup(staffList) {
 }
 
 /**
- * Lấy danh sách giá trị distinct của 1 cột (cho dropdown UI).
- * @param {Array<Object>} staffList
- * @param {string} field — 'station' | 'slotCode' | 'team'
- * @param {string} [filterField] — field lọc trước (vd 'station')
- * @param {string} [filterValue] — giá trị lọc
- * @returns {string[]}
- */
-function distinctValues(staffList, field, filterField, filterValue) {
-  const seen = {};
-  const out = [];
-  staffList.forEach(function (s) {
-    if (filterField && String(s[filterField] || '').trim() !== String(filterValue || '').trim()) return;
-    const val = String(s[field] || '').trim();
-    if (val && !seen[val]) { seen[val] = true; out.push(val); }
-  });
-  return out.sort();
-}
-
-/**
  * Build cây nhóm Station → Ca (Slot Code) → Team cho modal tạo task (3 cấp, checkbox).
  * Chỉ gồm các tổ hợp THỰC TẾ tồn tại trong staffList (station có dữ liệu mới xuất hiện).
  * Sort theo tên để UI ổn định giữa các lần load.
@@ -370,17 +331,17 @@ function buildStationGroups(staffList) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     CSV_HEADER_FIELD: CSV_HEADER_FIELD,
+    SLOT_FREE_MAGIC: SLOT_FREE_MAGIC,
     normalizeStaffName: normalizeStaffName,
     normalizeStaffId: normalizeStaffId,
     normalizeStaffDate_: normalizeStaffDate_,
     normalizeClockTime_: normalizeClockTime_,
     isValidBarcodeId: isValidBarcodeId,
-    splitCsvLine: splitCsvLine,
     buildStaffListFromValues: buildStaffListFromValues,
     buildStaffIndex: buildStaffIndex,
     filterStaffByGroup: filterStaffByGroup,
     dedupeStaffByGroup: dedupeStaffByGroup,
-    distinctValues: distinctValues,
+    isFreeSlotSelection_: isFreeSlotSelection_,
     buildStationGroups: buildStationGroups,
   };
 }

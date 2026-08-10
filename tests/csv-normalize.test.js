@@ -1,6 +1,6 @@
 /**
  * tests/csv-normalize.test.js — Node thuần (không cần GAS)
- * Test: normalizeStaffName/Id, buildStaffListFromValues, buildStaffIndex, filterStaffByGroup, distinctValues
+ * Test: normalizeStaffName/Id, buildStaffListFromValues, buildStaffIndex, filterStaffByGroup, isFreeSlotSelection_
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -11,10 +11,34 @@ const CsvUtil = require('../CsvUtil.gs');
 
 const FIXTURE = path.join(__dirname, '..', 'test-fixtures', 'Att.sample.csv');
 
+/** Split 1 dòng CSV — local copy (CsvUtil.splitCsvLine đã xóa khỏi production — chỉ test dùng). */
+function splitCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
+      } else cur += ch;
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      out.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
 /** Đọc fixture dạng mảng 2D (mô phỏng getValues() của sheet). */
 function fixtureValues() {
   const csvText = fs.readFileSync(FIXTURE, 'utf8');
-  return csvText.split(/\r?\n/).filter((l) => l.trim() !== '').map((l) => CsvUtil.splitCsvLine(l));
+  return csvText.split(/\r?\n/).filter((l) => l.trim() !== '').map((l) => splitCsvLine(l));
 }
 
 /** Staff list từ fixture (giống readStaffListUncached_ — buildStaffListFromValues). */
@@ -31,11 +55,6 @@ test('normalizeStaffName: trim + gộp double-space', () => {
 test('normalizeStaffId: trim + uppercase', () => {
   assert.equal(CsvUtil.normalizeStaffId('  ops237511 '), 'OPS237511');
   assert.equal(CsvUtil.normalizeStaffId(undefined), '');
-});
-
-test('splitCsvLine: cơ bản + quoted', () => {
-  assert.deepEqual(CsvUtil.splitCsvLine('a,b,"c,d",e'), ['a', 'b', 'c,d', 'e']);
-  assert.deepEqual(CsvUtil.splitCsvLine('"a""b",c'), ['a"b', 'c']);
 });
 
 test('buildStaffIndex: map theo header sheet', () => {
@@ -81,16 +100,6 @@ test('buildStaffListFromValues: parse trực tiếp mảng 2D, giữ mọi dòng
 test('buildStaffListFromValues: header sai → trả []', () => {
   assert.equal(CsvUtil.buildStaffListFromValues([['Wrong', 'Header']]).length, 0);
   assert.equal(CsvUtil.buildStaffListFromValues(null).length, 0);
-});
-
-test('distinctValues: distinct + sort + filter theo field', () => {
-  const staff = fixtureStaff();
-  const stations = CsvUtil.distinctValues(staff, 'station');
-  assert.deepEqual(stations, ['HN2 SOC']);
-  const slotCodes = CsvUtil.distinctValues(staff, 'slotCode');
-  assert.deepEqual(slotCodes, ['08:00-17:00', '13:00-22:00', '22:00-06:00']);
-  const teams = CsvUtil.distinctValues(staff, 'team', 'slotCode', '08:00-17:00');
-  assert.deepEqual(teams, ['Outbound']);
 });
 
 test('isValidBarcodeId: chỉ chấp nhận "Ops" + số nguyên (không ký tự khác)', () => {
@@ -179,6 +188,16 @@ test('filterStaffByGroup: MULTI-select contractType', () => {
   // Không chọn contractType → tất cả
   const r4 = CsvUtil.filterStaffByGroup(staff, { station: 'HN2 SOC' });
   assert.equal(r4.length, 4);
+});
+
+test('isFreeSlotSelection_: magic SLOT_FREE_MAGIC quyết định FREE (fail-safe mảng)', () => {
+  assert.equal(CsvUtil.SLOT_FREE_MAGIC, 'Tự do');
+  assert.equal(CsvUtil.isFreeSlotSelection_(['Tự do']), true);
+  assert.equal(CsvUtil.isFreeSlotSelection_('Tự do'), true);
+  assert.equal(CsvUtil.isFreeSlotSelection_(['Tự do', '08:00-17:00']), false); // fail-safe: lẫn slot thật → không FREE
+  assert.equal(CsvUtil.isFreeSlotSelection_(['08:00-17:00']), false);
+  assert.equal(CsvUtil.isFreeSlotSelection_(''), false);
+  assert.equal(CsvUtil.isFreeSlotSelection_(null), false);
 });
 
 test('normalizeStaffDate_: raw dd/mm/yyyy → yyyy-MM-dd (ISO)', () => {

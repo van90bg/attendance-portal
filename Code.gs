@@ -2,8 +2,8 @@
  * Code.gs — Entry point + API endpoints (google.script.run).
  *
  * API (gọi từ client index.html):
- *   getMeta()                    → { ok, appTitle, userEmail }
- *   getFilterOptions()           → { ok, stationGroups }
+ *   getMetaApi()                 → { ok, appTitle, userEmail }
+ *   getFilterOptionsApi()        → { ok, stationGroups }
  *   createReconcileTask(input)   → { ok, taskId, count, message }
  *   getTaskList()                → [{ taskId, station, slotCode, team, status, createdAt }]
  *   getTaskDetail(taskId)        → { ok, task, log, counters }
@@ -113,7 +113,7 @@ function debugState_() {
 }
 
 /** Meta cho UI: title + user email (hiển thị header). */
-function getMeta() {
+function getMetaApi() {
   // Deploy "Anyone within @spxexpress.com" → getActiveUser() có email (user đăng nhập Google).
   // Anonymous thật (không login) → rỗng. Hiển thị ở header như v1.
   let userEmail = '';
@@ -126,7 +126,7 @@ function getMeta() {
 }
 
 /** Distinct values cho dropdown + cây nhóm cho modal tạo task. */
-function getFilterOptions() {
+function getFilterOptionsApi() {
   const staffList = readStaffList_();
   return {
     ok: true,

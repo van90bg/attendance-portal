@@ -2432,11 +2432,11 @@
         showToast('Lỗi tải meta: ' + err.message, true);
         refreshAll();
       })
-      .getMeta();
+      .getMetaApi();
   }
 
   // P2: anti-chồng RPC — bấm '⟳ Làm mới' liên tục (hoặc load tái-kích hoạt khi đang chạy)
-  // → 2 luồng getTaskListApi + getFilterOptions đè nhau. Nhả lock khi CẢ HAI RPC hoàn tất
+  // → 2 luồng getTaskListApi + getFilterOptionsApi đè nhau. Nhả lock khi CẢ HAI RPC hoàn tất
   // (đếm _refreshPending); timeout 5s chỉ là bảo hiểm phòng RPC treo — không chốt 1.5s cứng
   // (lock hết sớm khi RPC chậm sẽ cho phép chồng luồng mới). Disable nút visual khi khóa.
   var _refreshLock = false;
@@ -2481,7 +2481,7 @@
         _releaseRefreshLock();
       })
       .withFailureHandler(function (err) { markServerFail(); _releaseRefreshLock(); showToast('Lỗi tải options: ' + err.message, true); })
-      .getFilterOptions();
+      .getFilterOptionsApi();
   }
 
   function setCreateTotal(n) {
@@ -2516,7 +2516,7 @@
         .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
     }, 200);
   }
-  var STATION_GROUPS = [];   // từ server getFilterOptions.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
+  var STATION_GROUPS = [];   // từ server getFilterOptionsApi.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
   var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false };  // trạng thái tick hiện tại
   function resetSel() { SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false }; }
   // Contract server giữ nguyên: slotCode/team là mảng; station/date string.

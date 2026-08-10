@@ -185,14 +185,14 @@ function readStaffIndex_() {
 /** Xóa cache StaffData (gọi sau syncFromCsv). */
 function invalidateStaffIndex_() {
   cache_().remove(CACHE_KEYS.STAFF_INDEX);
-  cache_().remove(CACHE_KEYS.FILTER_OPTIONS);
+  cache_().remove(CACHE_KEYS.STAFF_LIST);
   cache_().remove(CACHE_KEYS.STAFF_STATS);
 }
 
 /**
  * Đọc TOÀN BỘ StaffData dạng list objects — FULL 20 field (view thống kê StaffData).
- * Cache riêng (STAFF_STATS, 30s) — KHÔNG chung FILTER_OPTIONS để không phình cache
- * dùng cho create-modal. Dùng buildStaffListFromValues (CsvUtil — giữ mọi dòng, không dedupe).
+ * Cache riêng (STAFF_STATS, 1h) — KHÔNG chung STAFF_LIST để không phình cache dùng cho
+ * create-modal. Dùng buildStaffListFromValues (CsvUtil — giữ mọi dòng, không dedupe).
  */
 function readStaffFullList_() {
   return cachedJson_(CACHE_KEYS.STAFF_STATS, function () {
@@ -201,42 +201,15 @@ function readStaffFullList_() {
   }, CACHE_TTL.STAFF_STATS);
 }
 
-/** Đọc toàn bộ StaffData dạng mảng objects (cache 5m — version-key FILTER_OPTIONS). */
+/** Đọc toàn bộ StaffData dạng mảng objects (cache 5m — version-key STAFF_LIST).
+ * Dùng buildStaffListFromValues (CsvUtil) — 1 parser duy nhất cho StaffData.
+ * (readStaffListUncached_ cũ tự reimplement parser → drift field so với
+ * buildStaffListFromValues, vd thiếu staffEmail/agency/department — đã xóa.) */
 function readStaffList_() {
-  return cachedJson_(CACHE_KEYS.FILTER_OPTIONS, function () {
-    return readStaffListUncached_();
-  }, CACHE_TTL.FILTER_OPTIONS);
-}
-
-/** Đọc StaffData trực tiếp từ sheet — bỏ qua cache (chỉ dùng khi cần data mới). */
-function readStaffListUncached_() {
-  const sheet = getSheet_(SHEETS.STAFF_DATA);
-  const values = sheet.getDataRange().getValues();
-  const header = values[0].map(function (h) { return String(h || '').trim(); });
-  const fieldOf = {};
-  for (let c = 0; c < header.length; c++) {
-    const f = CSV_HEADER_FIELD[header[c]];
-    if (f !== undefined) fieldOf[f] = c;
-  }
-  const out = [];
-  for (let r = 1; r < values.length; r++) {
-    const v = values[r];
-    const staffId = normalizeStaffId(v[fieldOf.staffId]);
-    if (!staffId) continue;
-    out.push({
-      staffId: staffId,
-      staffName: normalizeStaffName(v[fieldOf.staffName]),
-      station: String(v[fieldOf.station] || '').trim(),
-      slotCode: String(v[fieldOf.slotCode] || '').trim(),
-      team: String(v[fieldOf.team] || '').trim(),
-      workstation: String(v[fieldOf.workstation] || '').trim(),
-      cardIn: normalizeClockTime_(v[fieldOf.cardIn]),
-      cardOut: normalizeClockTime_(v[fieldOf.cardOut]),
-      date: normalizeStaffDate_(v[fieldOf.date]),  // ngay vao lam (StaffData Date) — chuẩn yyyy-MM-dd
-      contractType: String(v[fieldOf.contractType] || '').trim(),
-    });
-  }
-  return out;
+  return cachedJson_(CACHE_KEYS.STAFF_LIST, function () {
+    const sheet = getSheet_(SHEETS.STAFF_DATA);
+    return buildStaffListFromValues(sheet.getDataRange().getValues());
+  }, CACHE_TTL.STAFF_LIST);
 }
 
 // ===== AttendanceTask =====

@@ -126,7 +126,7 @@ const TASK_TYPE = {
 // ===== Cache TTL (giây) =====
 const CACHE_TTL = {
   STAFF_INDEX: 5 * 60,       // 5m — index StaffData
-  FILTER_OPTIONS: 5 * 60,    // 5m — distinct station/slotCode/team
+  STAFF_LIST: 5 * 60,        // 5m — StaffData full (danh sách objects cho create-modal/filter)
   TASK_LIST: 30,             // 30s — danh sách task
   TASK_DETAIL: 15,           // 15s — chi tiết task + log (invalidate khi ghi log/đổi status)
   TASK: 60,                  // m3: task-by-id cho ĐƯỜNG QUÉT (scanStaff đọc mỗi lượt) —
@@ -141,7 +141,7 @@ const CACHE_TTL = {
 // ===== Cache keys (version-key để invalidate dễ — v1 lesson) =====
 const CACHE_KEYS = {
   STAFF_INDEX: 'rc2_staffIndex_v1',
-  FILTER_OPTIONS: 'rc2_filterOptions_v1',
+  STAFF_LIST: 'rc2_staffList_v1',
   TASK_LIST: 'rc2_taskList_v1',
   TASK_DETAIL: 'rc2_taskDetail_v1_',  // prefix + taskId
   TASK: 'rc2_task_v1_',                   // prefix + taskId — m3: task cache đường quét (TTL 60s, invalidate mọi write)

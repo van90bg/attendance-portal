@@ -113,10 +113,10 @@
   }
 
   var handlers = {
-    getMeta: function () {
+    getMetaApi: function () {
       return { ok: true, appTitle: MOCK_DATA.meta.appTitle, labels: MOCK_DATA.meta.labels, tableHeaders: MOCK_DATA.meta.tableHeaders };
     },
-    getFilterOptions: function () {
+    getFilterOptionsApi: function () {
       // Khớp server: trả cây stationGroups cho modal tạo task (3 cấp checkbox)
       // Khớp server: chỉ trả stationGroups (client render 4 cột checkbox từ đây)
       return {
