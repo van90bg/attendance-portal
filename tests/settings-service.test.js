@@ -16,7 +16,7 @@ const { makeSandbox, loadAll } = require('./gas-sandbox');
 // dù nội dung giống. Clone qua JSON (đúng như google.script.run serialize) trước khi so.
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-const DEFAULTS = { defaultStation: '', defaultSlotCode: '', defaultTeam: '', department: '' };
+const DEFAULTS = { defaultStation: '', defaultSlotCode: '', defaultTeam: '', department: '', roleMap: {} };
 
 test('getSettings_ trả defaults khi Config sheet chưa có override', () => {
   const { ctx } = makeSandbox();

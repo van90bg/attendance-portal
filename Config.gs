@@ -188,5 +188,22 @@ const SETTINGS_DEFAULTS = {
   defaultSlotCode: '',  // Ca (slot) mặc định — pre-select khi tạo task (P1)
   defaultTeam: '',      // Team mặc định — pre-select khi tạo task (P1)
   department: '',       // Department mặc định — lọc/lập lịch NV (P1: báo cáo theo mail)
+  roleMap: {},          // { email: role } — phân quyền mở rộng (P1: RoleService — Auth.getRole_)
+};
+
+// ===== Role (phân quyền mở rộng — nền cho trang Config Admin & báo cáo theo mail) =====
+// Bậc quyền tăng dần: viewer(1) < operator(2) < manager(3) < admin(4).
+// - admin:    isEditor_ (DEPLOYER_EMAIL) — mọi thứ (settings/sync/debug).
+// - manager:  xem StaffData + chỉnh cấu hình vận hành (trang Config Admin P1).
+// - operator: vận hành kiosk (quét/tạo task) — MẶC ĐỊNH: anonymous/logged-in chưa cấu hình
+//             đều operator → giữ nguyên hành vi hiện tại (không phá luồng quét).
+// - viewer:   chỉ xem (P1) — gate requireRole_('operator') chỉ cắn role mới này.
+// Role thật lưu Config sheet qua SettingsService (key roleMap: { email: role }).
+const ROLES = {
+  VIEWER: 'viewer',
+  OPERATOR: 'operator',
+  MANAGER: 'manager',
+  ADMIN: 'admin',
+  DEFAULT: 'operator',
 };
 

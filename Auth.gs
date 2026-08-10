@@ -6,11 +6,13 @@
  * getActiveEmail_() — 1 nguồn duy nhất, try/catch — KHÔNG lặp khối Session ở
  * nhiều file (trước đây lặp 5 chỗ ở Code/TaskService/ScanService).
  *
- * Quyền hiện tại:
+ * Quyền:
  * - admin (isEditor_): email trùng DEPLOYER_EMAIL (Script Properties).
  * - task-owner (canScanOpen_ ở ScanLogic.gs, pure): chủ task khi phase OPEN.
- * Khi mở rộng role (manager/operator/viewer) → mở rộng getCurrentUser() +
- * mapping role theo Config sheet (SettingsService).
+ * - Role mở rộng (2026-08-11): viewer<operator<manager<admin — ROLES (Config.gs),
+ *   roleMap lưu Config sheet (SettingsService), đọc qua getRole_; gate chuẩn
+ *   requireRole_(min). operator là MẶC ĐỊNH (giữ hành vi kiosk); gate quản trị
+ *   áp qua requireRole_ — KHÔNG fail-closed anonymous thành viewer.
  */
 
 /** Email người đang truy cập webapp ('' khi anonymous / không lấy được). */
@@ -23,11 +25,51 @@ function getActiveEmail_() {
 }
 
 /**
- * Người dùng hiện tại + quyền — seam cho role system tương lai.
- * @returns {{email: string, isAdmin: boolean}}
+ * Người dùng hiện tại + quyền.
+ * @returns {{email: string, role: string, isAdmin: boolean}} — role từ roleMap (Config sheet)
  */
 function getCurrentUser() {
-  return { email: getActiveEmail_(), isAdmin: isEditor_() };
+  const email = getActiveEmail_();
+  return { email: email, role: getRole_(email), isAdmin: isEditor_() };
+}
+
+/** Bậc role (viewer<operator<manager<admin) — role không biết → viewer (fail-closed). */
+function roleRank_(role) {
+  const r = String(role || '').toLowerCase();
+  if (r === ROLES.ADMIN) return 4;
+  if (r === ROLES.MANAGER) return 3;
+  if (r === ROLES.OPERATOR) return 2;
+  return 1; // viewer + role lạ
+}
+
+/**
+ * Role của email: roleMap (Config sheet qua SettingsService) > ROLES.DEFAULT.
+ * Editor (isEditor_) luôn admin (override map). Anonymous (email rỗng) → operator
+ * (kiosk giữ hành vi quét hiện tại — KHÔNG fail-closed thành viewer).
+ * @param {string} email
+ * @returns {string}
+ */
+function getRole_(email) {
+  if (isEditor_()) return ROLES.ADMIN;
+  const em = String(email || '').trim().toLowerCase();
+  if (!em) return ROLES.DEFAULT;
+  const map = getSetting_('roleMap');
+  const role = map && typeof map === 'object' ? String(map[em] || '').trim().toLowerCase() : '';
+  const valid = role === ROLES.VIEWER || role === ROLES.OPERATOR
+    || role === ROLES.MANAGER || role === ROLES.ADMIN;
+  return valid ? role : ROLES.DEFAULT;
+}
+
+/** Gate role tối thiểu — fail-closed cả 2 phía:
+ * - user role thấp hơn yêu cầu → false;
+ * - minRole KHÔNG thuộc ROLES (gõ sai) → false (KHÔNG fail-open thành viewer-rank).
+ */
+function requireRole_(minRole) {
+  const min = String(minRole || '').toLowerCase();
+  if (min !== ROLES.VIEWER && min !== ROLES.OPERATOR && min !== ROLES.MANAGER && min !== ROLES.ADMIN) {
+    return false; // minRole lạ → chặn
+  }
+  return roleRank_(getRole_(getActiveEmail_())) >= roleRank_(min);
 }
 
 /**

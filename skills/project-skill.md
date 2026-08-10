@@ -9,7 +9,7 @@
 
 - Local: `C:\Users\Van90BG\Documents\AppScript\RollCall_2_deploy` · Remote `main` (CI self-clasp).
 - **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug (`gh run list --limit 5`, đối chiếu `.head_sha`).
-- Test: `npm run test` = 98 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke test `tests/all-gs-load.test.js`/`tests/settings-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js`).
+- Test: `npm run test` = 110 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
 - File chính: `index.html` (toàn bộ UI, ~198KB, UTF-8 + **CRLF**). Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService `.gs` (Database.gs đã tách 2026-08-11).
 
 ## 2. Shell: Attendance Portal (2026-08-09)
@@ -129,7 +129,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## Verify workflow
 
-- Logic changes → `npm run test` (98/98). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (110/110). UI-only → parse+CRLF đủ.
 - CDP: `node scripts/cdp-helper.js open "file:///.../index.html?t=N"` — geometry `getBoundingClientRect` là truth; check `scrollHeight` vs `innerHeight`, `section.parentElement` (repair), table parents.
 - Production bug: `gh run list --limit 5` TRƯỚC khi kết luận — CI trễ → user test GAS build cũ.
 

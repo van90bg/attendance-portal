@@ -53,6 +53,7 @@ with open(path, 'w', encoding='utf-8-sig', newline='') as f:
 - `classifyScan` xử lý mọi lane (roster/free) — xem `skills/project-skill.md` §"Architecture mental model".
 - **Không ghi đè cột lệch trong setValues** — LOG_COLS phải đồng bộ hệt nhau giữa ensureSheets_, methods, migration.
 - Dư (EXTRA): NV lạ phase 2 → Dư (KHÔNG phải Có mặt). `optimistic` client phải y hệt server.
+- **Role (2026-08-11)**: viewer<operator<manager<admin — ROLES (Config.gs) + roleMap (Config sheet qua SettingsService), đọc qua Auth.getRole_; gate chuẩn `requireRole_(min)`. operator là MẶC ĐỊNH — không được phá luồng kiosk (anonymous = operator).
 
 ## 5. View/UI pitfalls đã đóng (2026-08-09)
 
@@ -75,7 +76,7 @@ with open(path, 'w', encoding='utf-8-sig', newline='') as f:
 
 ## 7. Test & Tools
 
-- `npm run test` → **98/98** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS — GAS API thật không test được trong Node).
+- `npm run test` → **110/110** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS + contract mock↔server + role — GAS API thật không test được trong Node).
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 
 ## 8. Đọc thêm
