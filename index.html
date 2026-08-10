@@ -138,11 +138,26 @@
       transition: box-shadow .15s, border-color .15s;
     }
     /* Khi dính (stuck) — đổ bóng đậm hơn tách khỏi nội dung cuộn */
-    .scan-topbar.stuck {
+    .scan-topbar.stuck, .view-toolbar.stuck {
       border-color: var(--border);
       box-shadow: 0 2px 10px rgba(0,0,0,.10);
     }
     .scan-topbar-title { flex: 1; text-align: center; }
+
+    /* Toolbar đầu viewList (Tạo task) — compact, đồng bộ scan-topbar (2026-08-10) */
+    .view-toolbar {
+      position: sticky; top: var(--header-h); z-index: 30;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      margin-bottom: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 6px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      transition: box-shadow .15s, border-color .15s;
+    }
+    .view-toolbar .task-list-toolbar { margin-bottom: 0; flex: 1; }
+    .view-toolbar > p { flex-basis: 100%; font-size: 12px; }
     .scan-layout {
       display: flex;
       gap: 16px;
@@ -716,6 +731,13 @@
       font-size: 13px; font-weight: 600; color: var(--muted);
       background: #e9ecf2; padding: 2px 10px; border-radius: 20px; line-height: 1.5;
     }
+    /* Cột Ca nhiều lựa chọn — giới hạn độ rộng, dấu "..." + tooltip (2026-08-10) */
+    .td-slot { max-width: 150px; }
+    .slot-ellipsis {
+      display: inline-block; max-width: 150px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      vertical-align: bottom;
+    }
 
     /* ===== Spin loading overlay (tham khảo v1) ===== */
     #loadingOverlay {
@@ -822,22 +844,6 @@
     .stats-col { flex: 0 0 520px; max-width: 520px; }
     @media (max-width: 1200px) { .stats-col { flex: 1 1 100%; max-width: none; } }
 
-    .stats-tabs {
-      display: flex; gap: 4px; margin-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-    }
-    .stats-tab {
-      background: var(--surface-muted); border: 1px solid var(--border);
-      border-radius: 8px; padding: 6px 14px;
-      font-size: 13px; font-weight: 600; color: var(--muted);
-      cursor: pointer;
-      transition: background .15s, color .15s, border-color .15s;
-    }
-    .stats-tab:hover { border-color: var(--amber); color: var(--amber); }
-    .stats-tab.active {
-      background: var(--amber); border-color: var(--amber); color: #fff;
-    }
     .stats-field { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
     .stats-field .flabel { margin: 0; white-space: nowrap; }
     .stats-field .field-select { width: auto; flex: 1; }
@@ -867,6 +873,19 @@
     }
     .stats-table tr:hover td { background: #f8faff; }
     .stats-table tr:hover td.row-head { background: var(--surface-muted); }
+
+    /* Thống kê 2 cột: Contract × Ca (trái) + Agency × Ca (phải) — 2026-08-11 */
+    .stats-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; align-items: start; }
+    .stats-team-block { min-width: 0; }
+    .stats-col-title {
+      font-size: 13px; font-weight: 800; color: var(--primary);
+      text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px;
+      padding: 8px 6px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface-muted);
+    }
+    @media (max-width: 991px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
 
     /* Bảng danh sách StaffData — 20 cột, scroll ngang */
     #staffTable { font-size: 13px; border-collapse: separate; border-spacing: 0; }
@@ -1026,12 +1045,12 @@
 
   <!-- ================= VIEW 1: Tạo task / danh sách ================= -->
   <section id="viewList">
-    <div class="card">
+    <div class="view-toolbar">
       <div class="task-list-toolbar">
         <h2 class="section-heading">+ ĐỐI CHIẾU DANH SÁCH</h2>
         <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
       </div>
-      <p style="color:var(--muted);font-size:14px;margin:0;">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
+      <p style="color:var(--muted);font-size:12px;margin:0;">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
     </div>
 
     <div class="card">
@@ -1168,16 +1187,11 @@
     <div class="scan-topbar">
       <div class="scan-topbar-title">
         <div class="task-title">THỐNG KÊ</div>
-        <div class="task-meta" id="statsMeta">Thống kê StaffData theo Team × Ca · BPO · OS</div>
+        <div class="task-meta" id="statsMeta">Contract × Ca · Agency × Ca — theo Team (lọc Station + Ngày)</div>
       </div>
       <button class="btn btn-outline" onclick="loadStaffView(this)" aria-label="Làm mới dữ liệu" title="Làm mới">⟳ Làm mới</button>
     </div>
     <div class="card">
-      <div class="stats-tabs" role="tablist" aria-label="Bảng thống kê">
-        <button class="stats-tab active" role="tab" aria-selected="true" data-stat="team" onclick="switchStatsTab('team')">Team × Ca</button>
-        <button class="stats-tab" role="tab" aria-selected="false" data-stat="bpo" onclick="switchStatsTab('bpo')">BPO</button>
-        <button class="stats-tab" role="tab" aria-selected="false" data-stat="os" onclick="switchStatsTab('os')">OS</button>
-      </div>
       <div class="stats-filters">
         <div class="stats-filter-row">
           <span class="flabel">Station</span>
@@ -1187,6 +1201,10 @@
           <span class="flabel">Ngày</span>
           <div class="chips" id="statsChipsDate" role="group" aria-label="Ngày"></div>
         </div>
+        <div class="stats-filter-row">
+          <span class="flabel">Department</span>
+          <div class="chips" id="statsChipsDepartment" role="group" aria-label="Department"></div>
+        </div>
       </div>
       <div id="statsTableWrap" class="stats-table-wrap" aria-live="polite"></div>
     </div>
@@ -1195,7 +1213,7 @@
   <section id="viewStaff" class="hidden">
     <div class="scan-topbar">
       <div class="scan-topbar-title">
-        <div class="task-title">STAFFDATA</div>
+        <div class="task-title">Dữ liệu chấm công</div>
         <div class="task-meta" id="staffMeta">Đang tải…</div>
       </div>
       <button class="btn btn-outline" onclick="loadStaffView(this)" aria-label="Làm mới dữ liệu StaffData" title="Làm mới">⟳ Làm mới</button>
@@ -1598,20 +1616,22 @@
     updateSortIndicators();
   }
 
-  /* ===== Scan topbar sticky — thêm viền/bóng khi dính (thuần hiển thị) ===== */
-  function initScanTopbarStuck() {
-    var bar = document.querySelector('.scan-topbar');
-    if (!bar) return;
-    // P2: đọc chiều cao header từ CSS token --header-h (không hardcode 53) — 1 nguồn
-    var HEADER_H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
-    var onScroll = function () {
+  /* ===== Topbar sticky (scan-topbar + view-toolbar) — thêm viền/bóng khi dính ===== */
+  function updateStuckBars() {
+    var bars = document.querySelectorAll('.scan-topbar, .view-toolbar');
+    if (!bars.length) return;
+    // FIX(2026-08-09): đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
+    var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
+    bars.forEach(function (bar) {
+      // bỏ qua topbar của view đang ẩn (rect = 0 → không đánh dấu stuck sai)
+      if (!bar.offsetParent) { bar.classList.remove('stuck'); return; }
       var rect = bar.getBoundingClientRect();
-      // FIX(2026-08-09): đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
-      var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || HEADER_H;
       bar.classList.toggle('stuck', rect.top <= hh);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+    });
+  }
+  function initScanTopbarStuck() {
+    window.addEventListener('scroll', updateStuckBars, { passive: true });
+    updateStuckBars();
   }
 
   /* ===== Auto-focus loop (tham khảo v1): giữ focus vào scan input trên kiosk touch ===== */
@@ -1732,14 +1752,12 @@
     }, 8000);
   }
 
-  /* ===== VIEW STAFFDATA — danh sách (phải) + thống kê (trái, 3 tabs) ===== */
+  /* ===== VIEW STAFFDATA — danh sách (phải) + thống kê (2 cột) ===== */
   var STAFF_ROWS = [];          // toàn bộ StaffData (full 20 field) — cache client
-  var STAFF_TAB = 'team';
   var STAFF_LOADED_AT = 0;
   var STAFF_MAX_AGE_MS = 60 * 60 * 1000; /* 1h — StaffData ít đổi (theo khung giờ), không fetch mỗi lần mở view */
-  var STATS = { station: '', date: '' };
-  var _statsChipsBound = false;       // tab thống kê đang xem: 'team' | 'bpo' | 'os'
-  var STAFF_CONTRACT_GROUPS = { bpo: ['S-BPO', 'I-BPO', 'BPO', 'Bpo'], os: ['OS'] };
+  var STATS = { station: '', date: '', department: '' };
+  var _statsChipsBound = false;       // đã bind event chips filter (1 lần)
   var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
 
   // Mở viewStaff: đổi section + load dữ liệu (cache 30s phía server)
@@ -1803,6 +1821,7 @@
   function renderStatsFilters() {
     renderStatsChipGroup('statsChipsStation', 'station', distinctSorted_(STAFF_ROWS, 'station'));
     renderStatsChipGroup('statsChipsDate', 'date', distinctSorted_(STAFF_ROWS, 'date'));
+    renderStatsChipGroup('statsChipsDepartment', 'department', distinctSorted_(STAFF_ROWS, 'department'));
   }
   function renderStatsChipGroup(id, col, vals) {
     var el = document.getElementById(id);
@@ -1826,7 +1845,7 @@
   // Bind click cho chips filter (1 lần, event delegation)
   function initStatsChipEvents() {
     if (_statsChipsBound) return;
-    ['statsChipsStation', 'statsChipsDate'].forEach(function (id) {
+    ['statsChipsStation', 'statsChipsDate', 'statsChipsDepartment'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('click', function (e) {
@@ -1836,6 +1855,7 @@
         var val = b.getAttribute('data-val');
         if (col === 'station') STATS.station = (STATS.station === val) ? '' : val;
         else if (col === 'date') STATS.date = (STATS.date === val) ? '' : val;
+        else if (col === 'department') STATS.department = (STATS.department === val) ? '' : val;
         renderStatsFilters();
         renderStaffStats();
       });
@@ -1845,21 +1865,11 @@
 
   function selectedStation() { return STATS.station; }
 
-  // ==== Render 1 trong 3 bảng thống kê (pivot từ STAFF_ROWS) ====
-  function switchStatsTab(tab) {
-    STAFF_TAB = tab;
-    var tabs = document.querySelectorAll('.stats-tab');
-    for (var i = 0; i < tabs.length; i++) {
-      tabs[i].className = tabs[i].getAttribute('data-stat') === tab ? 'stats-tab active' : 'stats-tab';
-      tabs[i].setAttribute('aria-selected', tabs[i].getAttribute('data-stat') === tab ? 'true' : 'false');
-    }
-    renderStaffStats();
-  }
-
   function staffFiltered() {
     return STAFF_ROWS.filter(function (r) {
       if (STATS.station && (r.station || '') !== STATS.station) return false;
       if (STATS.date && (r.date || '') !== STATS.date) return false;
+      if (STATS.department && (r.department || '') !== STATS.department) return false;
       return true;
     });
   }
@@ -1868,67 +1878,25 @@
     var wrap = document.getElementById('statsTableWrap');
     if (!wrap) return;
     var rows = staffFiltered();
-    if (STAFF_TAB === 'team') { wrap.innerHTML = statsTeamContractTable_(rows); }
-    else if (STAFF_TAB === 'bpo') { wrap.innerHTML = statsAgencyTable_(rows, 'bpo'); }
-    else { wrap.innerHTML = statsAgencyTable_(rows, 'os'); }
+    var teams = []; var seen = {};
+    rows.forEach(function (r) { var t = (r.team || '').trim(); if (t && !seen[t]) { seen[t] = true; teams.push(t); } });
+    teams.sort();
+    if (!teams.length) { wrap.innerHTML = '<div class="empty">Không có dữ liệu</div>'; return; }
+    var html = '<div class="stats-grid">';
+    html += '<div class="stats-col-title">Contract Type × Ca — theo Team</div>';
+    html += '<div class="stats-col-title">Agency × Ca — theo Team</div>';
+    teams.forEach(function (t) {
+      var teamRows = rows.filter(function (r) { return (r.team || '').trim() === t; });
+      html += '<div class="stats-team-block"><h4 class="stats-team-title">' + esc(t) + '</h4>'
+        + statsPivot(teamRows, 'slotCode', 'contractType') + '</div>';
+      html += '<div class="stats-team-block"><h4 class="stats-team-title">' + esc(t) + '</h4>'
+        + statsPivot(teamRows, 'slotCode', 'agency') + '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
   }
 
-  // TAB 1: Team × Contract × Ca (mỗi team 3 cột FTE/BPO/OS)
-  function statsTeamContractTable_(rows) {
-    // slot order ổn định theo thứ tự xuất hiện
-    var slots = [];
-    var teams = [];
-    var contracts = [];
-    var seenS = {}, seenT = {}, seenC = {};
-    rows.forEach(function (r) {
-      var s = r.slotCode || '', t = r.team || '', c = r.contractType || '';
-      if (s && !seenS[s]) { seenS[s] = true; slots.push(s); }
-      if (t && !seenT[t]) { seenT[t] = true; teams.push(t); }
-      if (c && !seenC[c]) { seenC[c] = true; contracts.push(c); }
-    });
-    slots.sort(); teams.sort(); contracts.sort();
-    // map[team][contract][slot] = count
-    var map = {};
-    rows.forEach(function (r) {
-      var t = (r.team || ''), c = (r.contractType || ''), s = (r.slotCode || '');
-      if (!(t && c && s)) return;
-      if (!map[t]) map[t] = {};
-      if (!map[t][c]) map[t][c] = {};
-      map[t][c][s] = (map[t][c][s] || 0) + 1;
-    });
-    var html = '<table class="stats-table">';
-    html += '<thead><tr><th rowspan="2">Ca</th>';
-    teams.forEach(function (t) {
-      html += '<th colspan="' + contracts.length + '">' + esc(t) + '</th>';
-    });
-    html += '</tr><tr>';
-    teams.forEach(function (t) {
-      contracts.forEach(function (c) { html += '<th>' + esc(c) + '</th>'; });
-    });
-    html += '</tr>';
-    slots.forEach(function (s) {
-      html += '<tr><td class="row-head">' + esc(s) + '</td>';
-      teams.forEach(function (t) {
-        contracts.forEach(function (c) {
-          html += '<td>' + ((map[t] && map[t][c] && map[t][c][s]) || 0) + '</td>';
-        });
-      });
-      html += '</tr>';
-    });
-    // Tổng theo ca
-    html += '<tr><td class="total">Tổng ca</td>';
-    teams.forEach(function (t) {
-      contracts.forEach(function (c) {
-        var n = 0;
-        slots.forEach(function (s) { n += (map[t] && map[t][c] && map[t][c][s]) || 0; });
-        html += '<td class="total">' + n + '</td>';
-      });
-    });
-    html += '</tr></table>';
-    return html;
-  }
-
-  // Pivot chung: rows → bảng dòng=agencies, cột=cas, mỗi team 1 khối cột
+  // Pivot chung: dòng = rowField, cột = colField — Ca dọc khi rowField='slotCode'; số 0 → '-'
   function statsPivot(rows, rowField, colField) {
     var rowKeys = []; var rowSeen = {};
     var colKeys = []; var colSeen = {};
@@ -1945,41 +1913,28 @@
       if (!map[a]) map[a] = {};
       map[a][b] = (map[a][b] || 0) + 1;
     });
-    var html = '<table class="stats-table"><thead><tr><th>' + esc(colField === 'slotCode' ? 'Ca' : colField) + '</th>';
+    var rowLabel = rowField === 'slotCode' ? 'Ca' : rowField;
+    var html = '<table class="stats-table"><thead><tr><th>' + esc(rowLabel) + '</th>';
     colKeys.forEach(function (c) { html += '<th>' + esc(c) + '</th>'; });
     html += '<th class="total">Tổng</th></tr></thead><tbody>';
     rowKeys.forEach(function (a) {
       html += '<tr><td class="row-head">' + esc(a) + '</td>';
       var rowTotal = 0;
-      colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td>' + v + '</td>'; });
-      html += '<td class="total">' + rowTotal + '</td></tr>';
+      colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td>' + fmtN(v) + '</td>'; });
+      html += '<td class="total">' + fmtN(rowTotal) + '</td></tr>';
     });
     html += '<tr><td class="total">Tổng</td>';
     var colTotal = 0;
     colKeys.forEach(function (c) {
       var n = 0; rowKeys.forEach(function (a) { n += (map[a] && map[a][c]) || 0; });
-      colTotal += n; html += '<td class="total">' + n + '</td>';
+      colTotal += n; html += '<td class="total">' + fmtN(n) + '</td>';
     });
-    html += '<td class="total">' + colTotal + '</td></tr></tbody></table>';
+    html += '<td class="total">' + fmtN(colTotal) + '</td></tr></tbody></table>';
     return html;
   }
 
-  // TAB 2/3 cụ thể: Agency × Ca — lọc theo nhóm contract (bpo/os), mỗi team 1 bảng
-  function statsAgencyTable_(rows, groupKey) {
-    var okContracts = STAFF_CONTRACT_GROUPS[groupKey] || [];
-    var filtered = rows.filter(function (r) { return okContracts.indexOf((r.contractType || '').trim()) !== -1; });
-    var teams = []; var seen = {};
-    filtered.forEach(function (r) { var t = (r.team || '').trim(); if (t && !seen[t]) { seen[t] = true; teams.push(t); } });
-    teams.sort();
-    if (!teams.length) return '<div class="empty">Không có dữ liệu cho nhóm này</div>';
-    var html = '';
-    teams.forEach(function (t) {
-      var teamRows = filtered.filter(function (r) { return (r.team || '').trim() === t; });
-      html += '<h4 class="stats-team-title">' + esc(t) + '</h4>';
-      html += statsPivot(teamRows, 'agency', 'slotCode');
-    });
-    return html;
-  }
+  // Số 0 → '-' (bảng thống kê)
+  function fmtN(n) { return n ? String(n) : '-'; }
 
   // ==== Bảng danh sách StaffData (phải) ====
   function renderStaffDataTable() {
@@ -2114,6 +2069,7 @@
       if (sectionName === 'viewScan') {
         startAutoFocusLoop();
       }
+      updateStuckBars();
     }
   }
 
@@ -2816,7 +2772,7 @@
           '<td>' + taskTypeBadge(t.taskType) + '</td>' +
           '<td>' + esc(t.station) + '</td>' +
           '<td>' + esc(t.team) + '</td>' +
-          '<td>' + esc(t.slotCode) + '</td>' +
+          '<td class="td-slot">' + slotCellHtml(t.slotCode) + '</td>' +
           '<td class="num">' + (t.total || 0) + '</td>' +
           '<td class="num">' + (t.scanned || 0) + '</td>' +
           '<td class="num">' + (t.extra || 0) + '</td>' +
@@ -2954,7 +2910,7 @@
           "<td>" + taskTypeBadge(r.taskType) + "</td>" +
           "<td>" + esc(r.station || "") + "</td>" +
           "<td>" + esc(r.team || "") + "</td>" +
-          "<td>" + esc(r.slotCode || "") + "</td>" +
+          '<td class="td-slot">' + slotCellHtml(r.slotCode || '') + '</td>' +
           "<td>" + esc(r.createdAtText || "") + "</td>" +
           "<td>" + esc(displayName(r.createdBy || "")) + "</td>" +
           '<td><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
@@ -3431,6 +3387,11 @@
     if (status === TASK_STATUS_C.ATTEND) return '<span class="badge attend">Điểm danh</span>';
     if (status === TASK_STATUS_C.OPEN) return '<span class="badge open">Mở</span>';
     return '<span class="badge">' + esc(status || '') + '</span>';
+  }
+  // Cột Ca (slotCode) có thể nhiều giá trị — giới hạn độ rộng + '...' + tooltip (2026-08-10).
+  function slotCellHtml(v) {
+    var s = v || '';
+    return '<span class="slot-ellipsis" title="' + escAttr(s) + '">' + esc(s) + '</span>';
   }
 
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.
