@@ -12,6 +12,8 @@
  *   scanStaff(taskId, staffId)   → { ok, message, status, counters }
  *   completeTask(taskId)         → { ok, message }
  *   syncFromCsv()                → { ok, count, message } — gọi từ editor (Phase 0)
+ *   getSettingsApi()             → { ok, settings } — editor-only (trang Config Admin)
+ *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
  */
 
 /** WebApp: trả về index.html. */
@@ -107,6 +109,23 @@ function getStaffStatsApi() {
   } catch (e) {
     return { ok: false, message: e && e.message ? e.message : 'getStaffStats fail' };
   }
+}
+
+/** Settings Admin: đọc toàn bộ cấu hình (defaults + override Config sheet). Editor-only. */
+function getSettingsApi() {
+  if (!isEditor_()) {
+    return { ok: false, settings: null, message: 'Chỉ editor (DEPLOYER_EMAIL) mới xem cấu hình' };
+  }
+  try {
+    return { ok: true, settings: getSettings_() };
+  } catch (e) {
+    return { ok: false, settings: null, message: e && e.message ? e.message : 'getSettings fail' };
+  }
+}
+
+/** Settings Admin: ghi patch cấu hình — whitelist key trong SETTINGS_DEFAULTS (gate trong saveSettings_). */
+function saveSettingsApi(patch) {
+  return saveSettings_(patch);
 }
 
 /** Tạo task đối chiếu + pre-fill. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */

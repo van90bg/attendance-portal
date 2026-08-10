@@ -112,6 +112,12 @@
     return MOCK_LOGS[taskId];
   }
 
+  // Settings Admin (mock): state bền giữa save/get — giống prod đọc sheet thật.
+  var SETTINGS_DEFAULTS_MOCK = {
+    defaultStation: '', defaultSlotCode: '', defaultTeam: '', department: '',
+  };
+  var MOCK_SETTINGS = {};
+
   var handlers = {
     getMetaApi: function () {
       return { ok: true, appTitle: MOCK_DATA.meta.appTitle, labels: MOCK_DATA.meta.labels, tableHeaders: MOCK_DATA.meta.tableHeaders };
@@ -267,6 +273,23 @@
     getStaffStatsApi: function () {
       // Mock view StaffData: trả toàn bộ MOCK_DATA.staff (đã có agency/contractType).
       return { ok: true, staff: MOCK_DATA.staff };
+    },
+    getSettingsApi: function () {
+      // Khớp server getSettings_: merge defaults + override (state MOCK_SETTINGS bền).
+      var out = {};
+      Object.keys(SETTINGS_DEFAULTS_MOCK).forEach(function (k) { out[k] = SETTINGS_DEFAULTS_MOCK[k]; });
+      Object.keys(MOCK_SETTINGS).forEach(function (k) { out[k] = MOCK_SETTINGS[k]; });
+      return { ok: true, settings: out };
+    },
+    saveSettingsApi: function (patch) {
+      // Khớp server saveSettings_: whitelist key defaults + lưu state (value undefined → bỏ qua).
+      var saved = []; var ignored = [];
+      Object.keys(patch || {}).forEach(function (k) {
+        if (patch[k] === undefined) { ignored.push(k); return; }
+        if (k in SETTINGS_DEFAULTS_MOCK) { MOCK_SETTINGS[k] = patch[k]; saved.push(k); }
+        else { ignored.push(k); }
+      });
+      return { ok: true, saved: saved, ignored: ignored, message: 'Đã lưu ' + saved.length + ' cấu hình' };
     },
   };
 

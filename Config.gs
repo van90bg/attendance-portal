@@ -136,6 +136,7 @@ const CACHE_TTL = {
   SEARCH_STAFF: 15,          // 15s — kết quả tìm NV xuyên task (on-demand, TTL ngắn — đủ tránh quét sheet lớn lặp lại khi tìm cùng mã)
   STAFF_STATS: 3600,        // 1h — danh sách StaffData full cho view thống kê (chỉ đọc; StaffData đổi theo khung giờ nên cache dài, invalidate khi syncFromCsv)
   TZ: 24 * 60 * 60,          // 24h — timezone (cache 1 lần, KHÔNG gọi trong loop)
+  SETTINGS: 60,              // 60s — cấu hình (admin hiếm đổi; saveSettings_ invalidate ngay)
 };
 
 // ===== Cache keys (version-key để invalidate dễ — v1 lesson) =====
@@ -150,6 +151,7 @@ const CACHE_KEYS = {
   SEARCH_STAFF: 'rc2_search_staff_v1_',   // prefix + staffId — kết quả tìm NV xuyên task (TTL 15s)
   STAFF_STATS: 'rc2_staffStats_v1',     // toàn bộ StaffData (list full) — view thống kê, TTL 30s
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)
+  SETTINGS: 'rc2_settings_v1',
 };
 
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====
@@ -173,5 +175,18 @@ const UI_LABELS = {
 // ===== Cấu hình WebApp =====
 const WEB_APP = {
   PAGE_TITLE: 'RollCall v2 — Điểm danh kho',
+};
+
+// ===== Settings mặc định (Config sheet chỉ lưu override — defaults là nguồn sự thật) =====
+// SettingsService.gs merge defaults + override từ sheet Config [Key, Value] → cache versioned.
+// ĐÂY là bề mặt cấu hình cho trang Config Admin — mỗi key PHẢI có kế hoạch tiêu thụ:
+// defaultStation/defaultSlotCode/defaultTeam → pre-select modal tạo task (P1); department →
+// lọc/lập lịch + báo cáo theo mail (P1). Key chưa có kế hoạch dùng thì KHÔNG thêm (tránh
+// config chết). Whitelist: key lạ không nằm trong đây bị saveSettings_ bỏ qua.
+const SETTINGS_DEFAULTS = {
+  defaultStation: '',   // Station mặc định — pre-select khi tạo task (P1)
+  defaultSlotCode: '',  // Ca (slot) mặc định — pre-select khi tạo task (P1)
+  defaultTeam: '',      // Team mặc định — pre-select khi tạo task (P1)
+  department: '',       // Department mặc định — lọc/lập lịch NV (P1: báo cáo theo mail)
 };
 

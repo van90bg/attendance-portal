@@ -7,7 +7,7 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 **Attendance Portal** — ứng dụng quản lý chấm công + điểm danh kho SPX Express, chạy trên **Google Apps Script WebApp** + **Google Sheets**. Repo con: `van90bg/rollcall-kiosk-v2x` (private, remote git + CI auto-clasp-push).
 
 - Frontend: **1 file** `index.html` (CSS + HTML + JS inline) — Vanilla, không framework.
-- Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Spreadsheet.gs` `Cache.gs` `StaffDataRepo.gs` `TaskRepo.gs` `LogRepo.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs` (Database.gs đã tách thành 5 repo file 2026-08-11).
+- Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Spreadsheet.gs` `Cache.gs` `StaffDataRepo.gs` `TaskRepo.gs` `LogRepo.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs` `Auth.gs` `Debug.gs` `SettingsService.gs` (Database.gs đã tách thành 5 repo file 2026-08-11).
 - Dữ liệu: 4 sheet — Config · StaffData (HR, 20 cột tên tiếng Anh) · AttendanceTask · AttendanceLog.
 
 **Shell UI (sidebar 5 trang):** Trang chủ (viewHome) · Thống kê (viewStats) · Điểm danh (viewList + viewScan từ nút Quét) · Dữ liệu chấm công (viewStaff) · Giới thiệu (aboutView). Sidebar trái collapsible `240px ↔ 48px`, icon đơn sắc SVG, bỏ side-head, nút thu gọn `☰`. Header giữ userEmail · net-dot · âm thanh · Làm mới. Đã bỏ nút 📋/ⓘ cũ khỏi header.
@@ -75,7 +75,7 @@ with open(path, 'w', encoding='utf-8-sig', newline='') as f:
 
 ## 7. Test & Tools
 
-- `npm run test` → **90/90** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS — GAS API thật không test được trong Node).
+- `npm run test` → **97/97** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS — GAS API thật không test được trong Node).
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 
 ## 8. Đọc thêm
