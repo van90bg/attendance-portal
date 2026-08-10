@@ -112,6 +112,20 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - Role gate phase OPEN: `permission` tươi từ `getTaskDetail` (không nhét cache); `applyScanPermission()` chạy CUỐI `renderScanView` + `scanOwnerLocked` cờ — nguồn quyết định disabled/placeholder/ẩn nút.
 - Spinner: mọi success handler gọi `hideLoadingOverlay()` khi dùng overlay.
 
+## 10. GAS HtmlService — KHÔNG viết wrapper HTML trong index.html (2026-08-10)
+
+- **Root cause khoảng trống trên header (đã fix commit `89462c0`)**: `Code.gs` dùng `HtmlService.createHtmlOutputFromFile('index')` + `setTitle(WEB_APP.PAGE_TITLE)` + `addMetaTag(...)` — GAS TỰ dựng head/body riêng rồi nhét toàn bộ nội dung file index.html (kể cả `<!DOCTYPE>`, `<html>`, `<head>`, `<body>` tự viết) làm text thô vào body GAS tạo. Parser HTML5 gặp `<head>` thứ 2 trong body → bỏ qua thẻ head nhưng meta/base/title/style con vẫn chèn thẳng vào body trước `<header>` thật → cấu trúc lệch, khoảng trống phía trên header. Mở local thì parse chuẩn nên KHÔNG thấy lỗi — bug chỉ xuất hiện trên GAS.
+- **Chuẩn**: index.html chỉ chứa `<style>` + nội dung, KHÔNG có `<!DOCTYPE>/<html>/<head>/<body>/<base>/<title>/<meta>`. Title/meta phải khai qua Code.gs: `.setTitle(...)` + `.addMetaTag(...)`.
+- **GAS addMetaTag whitelist (fix commit `a2fbaa0`)**: chỉ chấp nhận một số meta nhất định — `viewport` OK; `color-scheme`/`theme-color` bị từ chối (lỗi runtime `The meta tag you specified is not allowed in this context`). Thay thế: `color-scheme` → CSS `:root { color-scheme: light }` (tương đương, không cần API); `theme-color` bỏ (cosmetic).
+- Khi thêm meta/title mới: khai qua Code.gs hoặc CSS, KHÔNG viết trong index.html.
+
+## 11. Line endings — index.html CRLF 100% từ 2026-08-10 (normalize qua commit upload a96381b)
+
+- Sau normalize của user: `index.html` = **CRLF 100%** (4011 CRLF, 0 LF-only); `.gs` files vẫn **LF 100%** (0 CRLF).
+- Edit index.html: Python pattern mục 8 bắt buộc (anchor có `\r\n`), write với `newline=''` — KHÔNG dùng edit tool trực tiếp nếu làm mất CRLF.
+- Verify sau edit: `data.count(b'\r\n')` giữ nguyên 4011; nếu LF-only > 0 → normalize `data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')`.
+- `.gs` files vẫn LF — không normalize chúng (tránh diff khổng lồ).
+
 ## Verify workflow
 
 - Logic changes → `npm run test` (78/78). UI-only → parse+CRLF đủ.
