@@ -2676,8 +2676,12 @@
       .withSuccessHandler(function (res) {
         if (!res.ok) { _releaseRefreshLock(); showToast(res.message, true); return; }
         STATION_GROUPS = res.stationGroups || [];
+        CFG_DEFAULTS = res.defaults || CFG_DEFAULTS;
         var canCreate = STATION_GROUPS.length > 0;
         document.getElementById('btnCreate').disabled = !canCreate;
+        // Modal mở trước khi options về (load chậm): SEL chưa chọn gì → áp dụng defaults ngay.
+        // Đã có chọn tay thì KHÔNG đè (tôn trọng thao tác user).
+        if (SEL.station === '' && anyModalOpen()) applySelDefaults();
 
         renderAllCols();  // refresh 4 cột khi data mới về (nếu modal đang mở)
         markServerOk();  // RPC success → server sống lại (netDot hồi phục — phủ cả trường hợp chỉ load options)
@@ -2720,8 +2724,27 @@
     }, 200);
   }
   var STATION_GROUPS = [];   // từ server getFilterOptionsApi.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
+  // defaults từ Config sheet (SettingsService qua getFilterOptionsApi.defaults) — pre-select tạo task
+  var CFG_DEFAULTS = { station: '', slotCode: '', team: '' };
   var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false };  // trạng thái tick hiện tại
-  function resetSel() { SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false }; }
+  function resetSel() {
+    SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false };
+    applySelDefaults();  // pre-select Station/Ca/Team mặc định (nếu hợp lệ với dữ liệu hiện có)
+  }
+  // Pre-select defaults: chỉ áp dụng khi giá trị mặc định CÓ trong options thật (không bịa),
+  // và cascade đúng thứ tự station → team → slot (slot phải thuộc team đã chọn).
+  function applySelDefaults() {
+    var d = CFG_DEFAULTS || {};
+    if (!d.station) return;
+    var g = null;
+    for (var i = 0; i < STATION_GROUPS.length; i++) {
+      if (STATION_GROUPS[i].station === d.station) { g = STATION_GROUPS[i]; break; }
+    }
+    if (!g) return;  // station mặc định không tồn tại trong dữ liệu → bỏ qua (không chọn bừa)
+    SEL.station = d.station;
+    if (d.team && stationTeams().indexOf(d.team) !== -1) SEL.teams = [d.team];
+    if (d.slotCode && selSlotOptions().indexOf(d.slotCode) !== -1) SEL.slots = [d.slotCode];
+  }
   // Contract server giữ nguyên: slotCode/team là mảng; station/date string.
   function groupSelectedSlots() { return SEL.slots.slice(); }
   function groupSelectedTeams() { return SEL.teams.slice(); }

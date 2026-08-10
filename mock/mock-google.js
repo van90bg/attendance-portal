@@ -116,6 +116,12 @@
       // Khớp server: chỉ trả stationGroups (client render 4 cột checkbox từ đây)
       return {
         ok: true,
+        defaults: {
+          // pre-select modal tạo task — đọc MOCK_SETTINGS (đã lưu qua trang Cấu hình local)
+          station: (MOCK_SETTINGS.defaultStation || ''),
+          slotCode: (MOCK_SETTINGS.defaultSlotCode || ''),
+          team: (MOCK_SETTINGS.defaultTeam || ''),
+        },
         stationGroups: [
           {
             station: 'HN2 SOC',

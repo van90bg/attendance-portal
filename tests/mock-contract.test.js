@@ -95,3 +95,12 @@ test('getSettingsApi settings có đủ keys của server SETTINGS_DEFAULTS', as
   const missing = serverKeys.filter((k) => !mockKeys.includes(k));
   assert.deepEqual(missing, [], 'mock thiếu key settings so server: ' + missing.join(', '));
 });
+
+// getFilterOptionsApi kèm defaults (pre-select tạo task) — mock phải trả đủ shape.
+test('getFilterOptionsApi shape khớp server: { ok, stationGroups, defaults }', async () => {
+  const { call } = loadMock();
+  const f = await call('getFilterOptionsApi');
+  assert.deepEqual(Object.keys(f).sort(), ['defaults', 'ok', 'stationGroups']);
+  assert.deepEqual(Object.keys(f.defaults || {}).sort(), ['slotCode', 'station', 'team']);
+});
+

@@ -50,6 +50,13 @@ function getFilterOptionsApi() {
     // Cây 4 cột: stationGroups = [{ station, slotCodes: [{slotCode, teams}], dates }]
     // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
     stationGroups: buildStationGroups(staffList),
+    // defaults (Config sheet qua SettingsService) — pre-select modal tạo task cho MỌI user
+    // (kiosk operator không phải editor vẫn được pre-select; getSettings_ không gate).
+    defaults: {
+      station: getSetting_('defaultStation'),
+      slotCode: getSetting_('defaultSlotCode'),
+      team: getSetting_('defaultTeam'),
+    },
   };
 }
 
