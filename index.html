@@ -869,9 +869,14 @@
     .stats-table tr:hover td.row-head { background: var(--surface-muted); }
 
     /* Bảng danh sách StaffData — 20 cột, scroll ngang */
-    #staffTable { font-size: 13px; }
+    #staffTable { font-size: 13px; border-collapse: separate; border-spacing: 0; }
     #staffTable th { white-space: nowrap; }
     #staffTable td { white-space: nowrap; }
+    /* Cố định 4 cột đầu (No, Date, Staff ID, Staff Name) khi cuộn ngang */
+    #staffTable thead th { position: sticky; top: 0; z-index: 2; }
+    #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
+    #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }
+    #staffTable tbody tr:hover td:nth-child(-n+4) { background: #f8faff; }
 
     /* Màn hẹp: cột trái full-width, bảng thống kê cuộn theo chiều cao viewport */
     @media (max-width: 991px) {
@@ -1178,7 +1183,6 @@
 
   <section id="viewStaff" class="hidden">
     <div class="scan-topbar">
-      <button class="btn btn-ghost" onclick="backToMain()">← Danh sách</button>
       <div class="scan-topbar-title">
         <div class="task-title">STAFFDATA</div>
         <div class="task-meta" id="staffMeta">Đang tải…</div>
@@ -1722,7 +1726,6 @@
   var STAFF_TAB = 'team';       // tab thống kê đang xem: 'team' | 'bpo' | 'os'
   var STAFF_CONTRACT_GROUPS = { bpo: ['S-BPO', 'I-BPO', 'BPO', 'Bpo'], os: ['OS'] };
   var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
-  function backToMain() { showSection('viewList'); }
 
   // Mở viewStaff: đổi section + load dữ liệu (cache 30s phía server)
   function openStaffView() {
