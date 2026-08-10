@@ -65,6 +65,8 @@ function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle(WEB_APP.PAGE_TITLE)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .addMetaTag('color-scheme', 'light')
+    .addMetaTag('theme-color', '#0d111a')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
