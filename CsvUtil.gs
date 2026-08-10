@@ -131,6 +131,26 @@ function splitCsvLine(line) {
 }
 
 /**
+ * Chuẩn hóa giờ Clock In/Out Time (StaffData col 11/12) về 'HH:mm:ss' (vd 08:12:05).
+ * Cell sheet time-only → getValues() trả Date (1899-12-30 = epoch Excel); String(Date)
+ * ra 'Sat Dec 30 1899 08:12:05 GMT+0706 (Indochina Time)' — phải format.
+ * Khớp client fmtClockHMS + scanTable fmtDate (giờ pad 0, 24h).
+ */
+function normalizeClockTime_(v) {
+  if (v === undefined || v === null) return '';
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    return ('0' + v.getHours()).slice(-2) + ':'
+      + ('0' + v.getMinutes()).slice(-2) + ':'
+      + ('0' + v.getSeconds()).slice(-2);
+  }
+  const s = String(v).trim();
+  if (!s) return '';
+  const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) return ('0' + Number(m[1])).slice(-2) + ':' + m[2] + ':' + (m[3] || '00');
+  return s;
+}
+
+/**
  * Đọc sheet StaffData (mảng 2D từ getValues) → map { staffId: staff }.
  * Skip dòng header; duplicate staffId → dòng sau thắng (dữ liệu mới nhất).
  * KHÁC dedupeStaffByGroup (giữ dòng đầu): index dùng cho staffInfo của NV lạ
@@ -159,8 +179,8 @@ function buildStaffIndex(values) {
       slotCode: String(v[col.slotCode] || '').trim(),
       team: String(v[col.team] || '').trim(),
       workstation: String(v[col.workstation] || '').trim(),
-      cardIn: String(v[col.cardIn] || '').trim(),
-      cardOut: String(v[col.cardOut] || '').trim(),
+      cardIn: normalizeClockTime_(v[col.cardIn]),
+      cardOut: normalizeClockTime_(v[col.cardOut]),
       agency: String(v[col.agency] || '').trim(),
       date: normalizeStaffDate_(v[col.date]),  // ngày vào làm (StaffData 'Date' col) — chuẩn yyyy-MM-dd
     };
@@ -201,8 +221,8 @@ function buildStaffListFromValues(values) {
       matchingType: String(v[col.matchingType] || '').trim(),
       gender: String(v[col.gender] || '').trim(),
       department: String(v[col.department] || '').trim(),
-      cardIn: String(v[col.cardIn] || '').trim(),
-      cardOut: String(v[col.cardOut] || '').trim(),
+      cardIn: normalizeClockTime_(v[col.cardIn]),
+      cardOut: normalizeClockTime_(v[col.cardOut]),
       actualHours: String(v[col.actualHours] || '').trim(),
       cardInRemark: String(v[col.cardInRemark] || '').trim(),
       cardOutRemark: String(v[col.cardOutRemark] || '').trim(),
@@ -353,6 +373,7 @@ if (typeof module !== 'undefined' && module.exports) {
     normalizeStaffName: normalizeStaffName,
     normalizeStaffId: normalizeStaffId,
     normalizeStaffDate_: normalizeStaffDate_,
+    normalizeClockTime_: normalizeClockTime_,
     isValidBarcodeId: isValidBarcodeId,
     splitCsvLine: splitCsvLine,
     buildStaffListFromValues: buildStaffListFromValues,

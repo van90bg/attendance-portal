@@ -230,8 +230,8 @@ function readStaffListUncached_() {
       slotCode: String(v[fieldOf.slotCode] || '').trim(),
       team: String(v[fieldOf.team] || '').trim(),
       workstation: String(v[fieldOf.workstation] || '').trim(),
-      cardIn: String(v[fieldOf.cardIn] || '').trim(),
-      cardOut: String(v[fieldOf.cardOut] || '').trim(),
+      cardIn: normalizeClockTime_(v[fieldOf.cardIn]),
+      cardOut: normalizeClockTime_(v[fieldOf.cardOut]),
       date: normalizeStaffDate_(v[fieldOf.date]),  // ngay vao lam (StaffData Date) — chuẩn yyyy-MM-dd
       contractType: String(v[fieldOf.contractType] || '').trim(),
     });

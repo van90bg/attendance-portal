@@ -241,3 +241,34 @@ test('buildStationGroups: input rỗng → []', () => {
   assert.deepEqual(CsvUtil.buildStationGroups([]), []);
   assert.deepEqual(CsvUtil.buildStationGroups(null), []);
 });
+
+// ===== Clock In/Out Time: cell time-only → getValues trả Date (1899-12-30 = epoch Excel) =====
+// String(Date) ra "Sat Dec 30 1899 08:12:05 GMT+0706 (Indochina Time)" — phải chuẩn HH:mm:ss
+// (giống scanTable/fmtDate), chứ không phải toString() của Date.
+
+test('normalizeClockTime_: Date sheet → HH:mm:ss; giữ chuỗi chuẩn', () => {
+  const d = new Date(1899, 11, 30, 8, 12, 5);
+  assert.equal(CsvUtil.normalizeClockTime_(d), '08:12:05');
+  assert.equal(CsvUtil.normalizeClockTime_(new Date(1899, 11, 30, 17, 30, 0)), '17:30:00');
+  assert.equal(CsvUtil.normalizeClockTime_('07:12:05'), '07:12:05');
+  assert.equal(CsvUtil.normalizeClockTime_('7:12:05'), '07:12:05');
+  assert.equal(CsvUtil.normalizeClockTime_('7:05'), '07:05:00');
+  assert.equal(CsvUtil.normalizeClockTime_(''), '');
+  assert.equal(CsvUtil.normalizeClockTime_(null), '');
+  assert.equal(CsvUtil.normalizeClockTime_(undefined), '');
+  assert.equal(CsvUtil.normalizeClockTime_('abc'), 'abc');
+});
+
+test('buildStaffListFromValues/buildStaffIndex: Clock In/Out Time Date → HH:mm:ss (KHÔNG phải toString Date)', () => {
+  const header = ['No.', 'Date', 'Staff ID', 'Staff Name', 'Staff Email', 'Agency', 'Contract Type', 'Event ID', 'Matching Type', 'Gender', 'Department', 'Clock In Time', 'Clock Out Time', 'Actual Hours', 'Clock In Remark', 'Clock Out Remark', 'Slot Code', 'Workstation', 'Team', 'Station'];
+  const values = [
+    header,
+    ['1', '8/1/2026', 'OPS000001', 'Nguyen Van A', '', 'GRG', 'OS', 'EV1', '', '', 'SOC', new Date(1899, 11, 30, 8, 12, 5), new Date(1899, 11, 30, 17, 30, 0), '7.6', '', '', '08:00-17:00', 'OBLoading', 'Outbound', 'HN2 SOC'],
+  ];
+  const list = CsvUtil.buildStaffListFromValues(values);
+  assert.equal(list[0].cardIn, '08:12:05');
+  assert.equal(list[0].cardOut, '17:30:00');
+  const idx = CsvUtil.buildStaffIndex(values);
+  assert.equal(idx['OPS000001'].cardIn, '08:12:05');
+  assert.equal(idx['OPS000001'].cardOut, '17:30:00');
+});

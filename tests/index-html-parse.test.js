@@ -90,3 +90,15 @@ test('fmtClockHMS được khai báo ở phạm vi toàn cục, KHÔNG lồng tr
   const eaIdx = body.indexOf('function escAttr(');
   assert.ok(eaIdx > escClose, 'escAttr cũng không được lồng trong esc()');
 });
+
+test('fmtClockHMS (staffTable) format HH:mm:ss giống scanTable/fmtDate', function () {
+  const body = extractInlineScript(indexHtml);
+  const fIdx = body.indexOf('function fmtClockHMS(');
+  assert.ok(fIdx >= 0, 'phải có function fmtClockHMS');
+  const fmtClockHMS = new Function('return (' + body.slice(fIdx, matchingBrace(body, body.indexOf('{', fIdx)) + 1) + ');')();
+  assert.equal(fmtClockHMS(new Date(1899, 11, 30, 8, 12, 5)), '08:12:05', 'Date sheet (time-only) → HH:mm:ss');
+  assert.equal(fmtClockHMS('7:12:05'), '07:12:05', 'chuỗi giờ 1 chữ số → pad 0');
+  assert.equal(fmtClockHMS('07:12:05'), '07:12:05');
+  assert.equal(fmtClockHMS('17:30:00'), '17:30:00');
+  assert.equal(fmtClockHMS(''), '');
+});
