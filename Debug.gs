@@ -70,7 +70,7 @@ function debugState_() {
   }
   const ss = getSpreadsheet_();
   const out = { spreadsheetId: ss.getId(), sheets: {} };
-  ['Config', 'StaffData', 'AttendanceTask', 'AttendanceLog'].forEach(function (name) {
+  [SHEETS.CONFIG, SHEETS.STAFF_DATA, SHEETS.ATTENDANCE_TASK, SHEETS.ATTENDANCE_LOG].forEach(function (name) {
     const s = ss.getSheetByName(name);
     if (!s) { out.sheets[name] = 'MISSING'; return; }
     const v = s.getDataRange().getValues();

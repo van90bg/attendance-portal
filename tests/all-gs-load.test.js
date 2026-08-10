@@ -168,3 +168,19 @@ test('doGet wiring: khong debug → tra HtmlOutput index; debug=1 editor → tra
   assert.ok(parsed.spreadsheetId, 'debugState_ tra cau truc');
   assert.equal(parsed.sheets.Config.rows >= 1, true);
 });
+
+test('planBatchScans chạy trong vm shared context (BARCODE_ID_RE global từ CsvUtil)', () => {
+  // Cover nhánh GAS của barcodeRe: typeof BARCODE_ID_RE !== 'undefined' → dùng global
+  // (paste-batch.test.js chỉ cover nhánh require CsvUtil khi load ScanLogic standalone).
+  const { ctx } = makeSandbox();
+  const svc = loadAll(ctx);
+  const cfg = {
+    STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
+    TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
+    TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
+  };
+  const res = svc.planBatchScans(cfg, { taskId: 'R1', status: 'open', taskType: 'free' }, [], ['Ops000001', 'NV000002']);
+  assert.equal(res.plans.length, 1);
+  assert.equal(res.invalid.length, 1);
+  assert.equal(res.invalid[0].reason, 'invalid-format');
+});

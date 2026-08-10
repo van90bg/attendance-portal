@@ -75,7 +75,7 @@ with open(path, 'w', encoding='utf-8-sig', newline='') as f:
 
 ## 7. Test & Tools
 
-- `npm run test` → **97/97** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS — GAS API thật không test được trong Node).
+- `npm run test` → **98/98** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS — GAS API thật không test được trong Node).
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 
 ## 8. Đọc thêm

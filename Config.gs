@@ -16,7 +16,7 @@ const SHEETS = {
  * Spreadsheet chứa dữ liệu.
  * ⚠️ BẢO MẬT: KHÔNG hardcode ID production vào repo (dù private, vẫn lộ cho
  * collaborator + lịch sử git). Chuyển ID vào Script Properties 'SPREADSHEET_ID'
- * (File → Project settings → Script Properties). Database.getSpreadsheet_() ưu
+ * (File → Project settings → Script Properties). Spreadsheet.getSpreadsheet_() ưu
  * tiên DEFAULT_SPREADSHEET_ID → Script Properties → spreadsheet bind → tạo mới.
  * Để rỗng ('') để BẮT BUỘC dùng Script Properties (không còn ID production trong code).
  * Giữ giá trị placeholder này chỉ để local mock/test chạy được; production phải rỗng.

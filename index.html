@@ -1415,6 +1415,8 @@
   var TASK_TYPE_C = { RECONCILE: 'reconcile', FREE: 'free' };
   // Magic Ca 'Tự do' — KHỚP SLOT_FREE_MAGIC (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
   var SLOT_FREE_MAGIC = 'Tự do';
+  // Regex mã barcode NV — KHỚP BARCODE_ID_RE (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
+  var BARCODE_ID_RE = /^OPS\d+$/i;
   // Phase label tiếng Việt cho task status
   var TASK_PHASE_LABEL = {
     open: 'Mở', attend: 'Điểm danh', done: 'Xong',
@@ -2818,7 +2820,7 @@
       var inp = document.getElementById("globalSearch");
       var raw = inp ? inp.value.trim() : "";
       if (!raw) { showToast("Nhập mã Ops (Ops6219) hoặc mã task (R2026) để tìm", true); return; }
-      if (/^ops\d+$/i.test(raw)) { runSearchStaff(raw); return; }
+      if (BARCODE_ID_RE.test(raw)) { runSearchStaff(raw); return; }
       runSearchTask(raw);
     }
     // Tìm theo mã NV (xuyên task) — existing flow.
@@ -3506,7 +3508,7 @@
     // F1: Chỉ chấp nhận mã barcode nhân viên dạng "Ops" + chữ số (case-insensitive).
     // Ví dụ hợp lệ: Ops6219, Ops000001. Sai: OpsABC, OPS, Ops12a.
     // Check client-side TRƯỚC khi vào queue → 0ms, không gọi server → KHÔNG làm chậm scan.
-    if (!/^ops\d+$/i.test(staffId)) {
+    if (!BARCODE_ID_RE.test(staffId)) {
       showToast('Mã phải bắt đầu bằng "Ops" và chỉ chứa số, ví dụ: Ops6219', true);
       playBeep('error');
       showScanCard('Sai mã', { staffId: staffId }, 'err');

@@ -36,10 +36,16 @@ const CSV_HEADER_FIELD = {
 /**
  * Giá trị magic cho Ca 'Tự do' — quyết định task FREE (quét tự do, không danh sách).
  * 1 nguồn sự thật cho server: isFreeSlotSelection_ (CsvUtil), TaskService gán slotCode
- * khi tạo task FREE. Client (index.html) VẪN dùng literal 'Tự do' — khi thêm hằng số
- * client phải giữ sync với hằng số này.
+ * khi tạo task FREE. Client (index.html) có hằng số riêng SLOT_FREE_MAGIC — giữ sync.
  */
 const SLOT_FREE_MAGIC = 'Tự do';
+
+/**
+ * Regex mã barcode NV — 'Ops' + chữ số (case-insensitive). 1 nguồn sự thật cho server:
+ * isValidBarcodeId (CsvUtil) + planBatchScans (ScanLogic — global GAS / require ở Node test).
+ * Client (index.html) có hằng số riêng BARCODE_ID_RE — giữ sync (pattern SLOT_FREE_MAGIC).
+ */
+const BARCODE_ID_RE = /^OPS\d+$/i;
 
 /**
  * Chuẩn hóa tên NV: trim + gộp nhiều khoảng trắng (v1 bug: "Đào  Quang  Hà").
@@ -107,7 +113,7 @@ function isValidBarcodeId(id) {
   if (id === undefined || id === null || id === '') return false;
   // F1: mã phải bắt đầu bằng "Ops" (case-insensitive) VÀ chỉ chứa chữ số sau đó.
   // Ví dụ hợp lệ: Ops6219, Ops7562, Ops000001. Ví dụ sai: OpsABC, OPS, Ops12a.
-  return /^ops\d+$/i.test(String(id).trim());
+  return BARCODE_ID_RE.test(String(id).trim());
 }
 
 /**
@@ -332,6 +338,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     CSV_HEADER_FIELD: CSV_HEADER_FIELD,
     SLOT_FREE_MAGIC: SLOT_FREE_MAGIC,
+    BARCODE_ID_RE: BARCODE_ID_RE,
     normalizeStaffName: normalizeStaffName,
     normalizeStaffId: normalizeStaffId,
     normalizeStaffDate_: normalizeStaffDate_,

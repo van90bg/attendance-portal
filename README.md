@@ -55,7 +55,7 @@ RollCall_2/
 ## Cách chạy
 
 ```bash
-npm test          # 97/97 pass
+npm test          # 98/98 pass
 ```
 
 Mock local: mở `index.html` bằng browser (mock tự nạp khi không có `google.script.run`).
@@ -83,4 +83,4 @@ clasp deploy
 - ✅ Fix DOM `repairViewParents()` → view bị đẩy về main
 - ✅ Fix task list: table lồng skeleton
 - ✅ Title đồng bộ `Attendance Portal`; Giới thiệu viết lại
-- ✅ 97/97 test (đã tách Database.gs → 5 repo file + smoke test load toàn bộ .gs + doGet wiring + SettingsService đọc/ghi Config sheet); ⏳ P2 QA prod
+- ✅ 98/98 test (đã tách Database.gs → 5 repo file + smoke test load toàn bộ .gs + doGet wiring + SettingsService đọc/ghi Config sheet); ⏳ P2 QA prod

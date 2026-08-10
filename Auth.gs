@@ -40,7 +40,7 @@ function getCurrentUser() {
  */
 function isEditor_() {
   try {
-    const active = Session.getActiveUser().getEmail();
+    const active = getActiveEmail_();
     const deployer = getDeployerEmail_();
     // fail-closed: phải có active user VÀ trùng deployer email
     return !!(active && deployer && active.toLowerCase() === deployer.toLowerCase());

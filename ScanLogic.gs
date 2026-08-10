@@ -7,10 +7,13 @@
  * Dùng hằng số STATUS/TASK_STATUS từ Config.gs (global trong GAS).
  * Để Node test chạy được, file này KHÔNG require Config — các hằng số được
  * truyền vào qua tham số `cfg` (xem chữ ký hàm).
+ * Ngoại lệ DUY NHẤT: BARCODE_ID_RE (CsvUtil.gs) — global GAS; Node test standalone
+ * require CsvUtil (xem planBatchScans).
  */
 
-/** Regex mã barcode NV — 'Ops' + số (KHỚP isValidBarcodeId trong CsvUtil.gs — đừng để lệch). */
-const BARCODE_ID_RE = /^OPS\d+$/i;
+// Regex mã barcode NV — 1 nguồn sự thật: CsvUtil.gs. KHÔNG khai báo ở top-level
+// (GAS gộp mọi file vào 1 scope — khai trùng const/var cùng tên = SyntaxError lúc load).
+// planBatchScans lấy global BARCODE_ID_RE (GAS) hoặc require CsvUtil (Node standalone).
 
 /**
  * Phân loại 1 lần quét (2-phase attendance).
@@ -211,6 +214,9 @@ function canScanOpen_(cfg, createdBy, activeEmail, isAdmin) {
 function planBatchScans(cfg, task, logRows, codes) {
   const plans = [];
   const invalid = [];
+  // Regex barcode — 1 nguồn: CsvUtil.gs. GAS: global BARCODE_ID_RE (const CsvUtil, scope chung).
+  // Node test (require('../ScanLogic.gs') standalone) không thấy global → require CsvUtil.
+  const barcodeRe = typeof BARCODE_ID_RE !== 'undefined' ? BARCODE_ID_RE : require('./CsvUtil.gs').BARCODE_ID_RE;
   // Clone logRows so we can simulate appends/updates for dedup within batch
   // Fix 2 (audit 2): shallow [...logRows] vẫn dùng CHUNG object phần tử với caller —
   // nhánh update (timeRefEpoch/timeRef) mut bản gốc. Deep copy phần tử → pure,
@@ -227,7 +233,7 @@ function planBatchScans(cfg, task, logRows, codes) {
     const staffId = code.toUpperCase();
     
     // Validate format (must start with OPS followed by digits only)
-    if (!BARCODE_ID_RE.test(staffId)) {
+    if (!barcodeRe.test(staffId)) {
       invalid.push({ code: code, ok: false, reason: 'invalid-format' });
       continue;
     }
