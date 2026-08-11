@@ -58,6 +58,9 @@
       color: var(--text);
       font-size: 16px;
       line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;  /* card giãn tới chân trang — hết khoảng trống cuối (2026-08-11) */
     }
     header {
       background: var(--card);
@@ -116,7 +119,13 @@
     .btn-sm { padding: 6px 12px; font-size: 13px; }  /* nút nhỏ trong bảng — hết inline style */
     td.stt { width: 40px; text-align: center; color: var(--muted); font-size: 13px; }  /* STT hẹp, không đẩy widths */
 
-    main { max-width: 1920px; margin: 0 auto; padding: var(--space-4); }  /* wide-screen: tận dụng màn lớn cho nhiều cột */
+    main {
+      max-width: 1920px; margin: 0 auto; padding: var(--space-4);
+      flex: 1 0 auto; display: flex; flex-direction: column; min-width: 0;
+    }  /* wide-screen: tận dụng màn lớn cho nhiều cột */
+    /* View active giãn full chiều cao — card chạm đáy viewport (2026-08-11) */
+    main > section { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 0; }
+    main > section > .card { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -155,6 +164,8 @@
       display: flex;
       gap: 16px;
       align-items: flex-start;
+      flex: 1 1 auto;
+      min-height: 0;  /* card bảng scan giãn chạm đáy viewport (2026-08-11) */
     }
     .scan-col-left {
       flex: 0 0 480px;
@@ -166,6 +177,7 @@
     .scan-col-right {
       flex: 1 1 auto;
       min-width: 0;
+      align-self: stretch;  /* giãn full chiều cao scan-layout — card bảng chạm đáy */
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -379,7 +391,8 @@
     /* ===== Bảng ===== */
     .table-wrap {
       overflow: auto;
-      max-height: calc(100vh - 320px); /* I7: cuộn trong bảng → thead sticky giữ header */
+      flex: 1 1 auto;
+      min-height: 0;  /* cuộn trong theo card giãn đáy — thead sticky giữ header */
     }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
