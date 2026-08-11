@@ -419,9 +419,11 @@
     }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     /* Đồng bộ 3 bảng dữ liệu (2026-08-11): staff/task/scan cùng font 13px + nền cell đặc —
-       trước staff 13px vs task/scan 14px + bg transparent → nhìn lệch style giữa view */
+       trước staff 13px vs task/scan 14px + bg transparent → nhìn lệch style giữa view.
+       Fix (audit 2026-08-11): bọc :where() để specificity = 0 — tr:hover td (row-hover) thắng lại,
+       không mất hover highlight 3 bảng (trước: #xxxTable td (1,0,1) > tr:hover td (0,1,2)). */
     #staffTable, #taskListTable, #scanTable { font-size: 13px; }
-    #staffTable td, #taskListTable td, #scanTable td { background: var(--card); }
+    :where(#staffTable, #taskListTable, #scanTable) td { background: var(--card); }
     th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
     th { background: var(--surface-muted); color: var(--muted); font-weight: 600; font-size: 13px; position: sticky; top: 0; }
     tr:hover td { background: var(--row-hover); }
