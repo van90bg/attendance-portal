@@ -108,7 +108,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - `--header-h: 59px` đo thật (53 → scroll 6px).
 - **Chuẩn tên (2026-08-11)**: viewTasks (danh sách task) · viewScan · viewHome · viewStats · viewStaff · viewConfig · viewAbout (prefix `view*`). CẤM tên cũ: viewList · aboutView · headerSearch · globalSearch · runSearch · scan-topbar · view-toolbar.
 - **Toolbar chung**: 1 class `.view-topbar` (+ `.view-topbar-title`) cho List/Scan/Stats/Staff/Config — sticky `--header-h`, `.stuck` đổ bóng, JS sync `querySelectorAll('.view-topbar')`.
-- **Search**: `#listSearch` + `runListSearch()` trong viewTasks (đã rời header) — nhánh con giữ tên `runSearchStaff`/`runSearchTask`; Escape → `onListSearchKeydown` clear.
+- **Search dùng chung `.list-search` (d6b0516)**: `#listSearch` + `runListSearch()` trong `task-list-toolbar` (card DANH SÁCH TASK, ép phải `margin-left:auto`) — nhánh con giữ tên `runSearchStaff`/`runSearchTask`; Escape → `onListSearchKeydown` clear; `#staffSearch`/`#scanSearch` cũng dùng `.list-search` (hết `.att-search`).
 - **Spinner**: `showModalSpin` guard — loadingOverlay đang hiện thì KHÔNG mở spinModal (2 spinner đè nhau; khởi động refreshAll mở spinModal khi overlay còn hiện — fix 2026-08-11).
 - `taskListTable` KHÔNG trong `#taskSkeleton` — parent chain check (`table.parentElement.id === 'taskSkeleton'` → table height 0).
 - Card stretch tạo trắng — card auto height; `.table-wrap` scroll `max-height: calc(100vh - 320px)`.
