@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Config.gs — Hằng số toàn cục RollCall v2
  * Cột sheet/file: tiếng Anh · Hiển thị web: tiếng Việt (UI_LABELS)
  * KHÔNG hardcode string rải rác — mọi hằng số tập trung tại đây.

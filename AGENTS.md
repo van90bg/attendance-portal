@@ -1,4 +1,4 @@
-﻿# AGENTS.md — Attendance Portal (RollCall v2)
+# AGENTS.md — Attendance Portal (RollCall v2)
 
 Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trước khi sửa code.
 
@@ -27,12 +27,14 @@ Pattern chuẩn (Python, `execute_code`):
 
 ```python
 path = r"..."  # .gs hay index.html
-# ĐỌC với newline=''
+# ĐỌC với newline='' — dùng utf-8-sig (strip BOM nếu file cũ có)
 with open(path, 'r', encoding='utf-8-sig', newline='') as f:
     content = f.read()
 # SỬA bằng string replace CHÍNH XÁC, assert count==1 cho từng anchor
-# GHI với newline=''
-with open(path, 'w', encoding='utf-8-sig', newline='') as f:
+# GHI với newline='' — BẮT BUỘC dùng utf-8 (KHÔNG sig): utf-8-sig khi write THÊM BOM
+# (EF BB BF) → index.html serve qua GAS sinh khoảng trống phía trên header
+# (commit 9982293 lesson 2026-08-11).
+with open(path, 'w', encoding='utf-8', newline='') as f:
     f.write(content)
 ```
 

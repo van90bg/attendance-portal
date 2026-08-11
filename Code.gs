@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Code.gs — Entry point + API endpoints (google.script.run).
  * Debug URL (?debug=1 / ?debug=createTask) xử lý trong Debug.gs (editor-gated);
  * quyền/định danh trong Auth.gs.

@@ -1,4 +1,4 @@
-﻿# Project Skill — Attendance Portal (RollCall v2)
+# Project Skill — Attendance Portal (RollCall v2)
 
 > Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/rollcall-kiosk-v2x`).
 > Dùng khi: bất kỳ edit nào với repo này (UI, server, tests, docs).
@@ -81,7 +81,8 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 ## 8. Deterministic editing (bắt buộc trên index.html)
 
 - Fuzzy patch BANNED; sed/echo trong bash làm hỏng VN+CRLF -> dùng script Python/Node deterministic (xem `skills/references/deterministic-batch-runner.md` + `scripts` pattern).
-- Python pattern: read/write with `newline=''`, `encoding='utf-8-sig'`, anchor literal `\r\n`; mọi replace `assert count==1`.
+- Python pattern: read/write với `newline=''`; ĐỌC dùng `encoding='utf-8-sig'` (strip BOM), GHI dùng `encoding='utf-8'` (KHÔNG sig — utf-8-sig write THÊM BOM gây khoảng trống trên header khi GAS serve, lesson 9982293); anchor literal `\r\n`; mọi replace `assert count==1`.
+- Verify BOM: sau edit chạy `head -c 3 <file> | xxd -p` — KHÔNG được ra `efbbbf` (file phải bắt đầu bằng `3c`/`2f`).
 - Khối lớn: block new sang `.txt` tạm rồi ghép bằng index (tránh tool-call >8K token).
 - Sau mọi edit: verify `CRLF` (`data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')` if LF-only>0) + JS parse `new Function` + CSS balance (`{}`=0).
 - **Parse trước write** — assert fail → DỪNG, không ghi (giữ file nguyên). Multi-module: gom reps theo file → apply → parse → write LAST (write-last-wins pitfall).
