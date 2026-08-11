@@ -2764,15 +2764,19 @@
   // đếm theo status text: tránh lệch khi dòng có timeScan nhưng status chưa cập nhật.
   // Dùng cho: optimistic bump (submitScan), rollback/sync (processScanQueue).
   function recountFromLog() {
-    var s = 0, e = 0, a = 0;
+    var s = 0, e = 0, a = 0, p = 0;
     (CURRENT_LOG || []).forEach(function (r) {
       // P2: epoch là nguồn sự thật duy nhất (khớp server computeCounters)
       var hasScan = Number(r.timeScanEpoch) > 0;
+      var hasRef = Number(r.timeRefEpoch) > 0;
       if (hasScan) s++;
+      if (hasRef) p++;
       if (r.status === STATUS_C.EXTRA) e++;
       else if (!hasScan) a++;
     });
-    CURRENT_COUNTERS = { scanned: s, absent: a, extra: e };
+    // D2 (review 2026-08-11): presentAt đủ shape như server computeCounters —
+    // trước thiếu → 'Có mặt' counter = 0 trong phase OPEN đến khi server trả res.counters.
+    CURRENT_COUNTERS = { scanned: s, absent: a, extra: e, presentAt: p };
     renderCounters(CURRENT_COUNTERS);
   }
 
