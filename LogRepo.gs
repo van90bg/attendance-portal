@@ -205,7 +205,7 @@ function batchAppendLogRows_(rows) {
             timeScanText: timeScan ? formatTime_(timeScan) : '',
             timeScanEpoch: dScan ? dScan.getTime() : 0,
             status: row[LOG_COLS.STATUS],
-            dateText: row[LOG_COLS.DATE] || '',
+            dateText: formatDateShort_(row[LOG_COLS.DATE]),
             _rowIndex: rowIndices[idx],
           });
         });
@@ -471,7 +471,9 @@ function writeBatchRuns_(sheet, updates, field) {
       } else {
         // n2 (audit): KHÔNG bao giờ ghi '' vào STATUS khi thiếu newStatus — fallback
         // keepStatus (ghi lại giá trị hiện hữu = idempotent) thay vì xoá sạch cell.
-        block.push([up.time, resolvedStatus_(u)]);
+        // Fix (audit 2026-08-11): resolvedStatus_(u) -> (up) — `u` chỉ là param của
+        // find() callback, ngoài scope sẽ ReferenceError khi chạy batch timeScan.
+        block.push([up.time, resolvedStatus_(up)]);
       }
     }
     sheet.getRange(start, col, block.length, width).setValues(block);

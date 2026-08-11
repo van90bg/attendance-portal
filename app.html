@@ -250,6 +250,11 @@
   }
   window.addEventListener('load', syncHeaderH);
   window.addEventListener('resize', syncHeaderH);
+  // R2 (audit 2026-08-11): resize KHÔNG fire khi xoay màn hình / pinch-zoom trên mobile —
+  // sync thêm orientationchange (delay 100ms vì DOM chưa relayout) + visualViewport.resize
+  // → --header-h không lệch, view không bị dồn dưới header.
+  window.addEventListener('orientationchange', function () { setTimeout(syncHeaderH, 100); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', syncHeaderH);
 
   document.addEventListener('DOMContentLoaded', function () {
     startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
@@ -353,7 +358,12 @@
 
   /* Mobile/tablet (pointer: coarse): KHÔNG tự focus scan input — bàn phím ảo tự bật đè nửa
      màn hình khi mở task quét. Kiosk desktop (chuột/barcode scanner) vẫn auto-focus như cũ. (2026-08-11) */
-  var COARSE_POINTER = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  // R3 (audit 2026-08-11): pointer:coarse có thể đổi runtime (hybrid — gắn/tháo bàn phím rời)
+  // → theo dõi change thay vì đóng băng lúc startup, tránh auto-focus bật bàn phím ảo sai.
+  // Cache MQ 1 lần (media query là singleton per document — không gọi matchMedia 2 lần).
+  var MQ_COARSE = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+  var COARSE_POINTER = !!(MQ_COARSE && MQ_COARSE.matches);
+  if (MQ_COARSE && MQ_COARSE.addEventListener) MQ_COARSE.addEventListener('change', function (e) { COARSE_POINTER = e.matches; });
   /* ===== Auto-focus loop (tham khảo v1): giữ focus vào scan input trên kiosk touch ===== */
   function startAutoFocusLoop() {
     if (COARSE_POINTER) return;  // mobile/tablet: không auto-focus — bàn phím không tự bật
