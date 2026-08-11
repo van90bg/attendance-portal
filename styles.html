@@ -360,10 +360,10 @@
 
     /* ===== Toolbar bảng NV chung (2026-08-11): viewScan + viewStaff ===== */
     .att-toolbar {
+      /* 2026-08-11: bỏ nền xám/border — đồng bộ task-list-toolbar (header bảng trong suốt, chỉ heading + search).
+         User duyệt 2026-08-11: att-toolbar xám nhẹ còn task-list-toolbar trong suốt → chọn trong suốt cho cả 2. */
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      padding: 10px 12px; border-bottom: 1px solid var(--border);
-      background: var(--surface-muted); flex-shrink: 0;
-      border-radius: 12px 12px 0 0;
+      margin-bottom: 10px;
     }
     .att-toolbar select { flex: 0 0 auto; width: auto; max-width: 190px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
 
