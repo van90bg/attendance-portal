@@ -344,7 +344,6 @@
       background: var(--surface-muted); flex-shrink: 0;
       border-radius: 12px 12px 0 0;
     }
-    .att-toolbar .list-search { flex: 1 1 180px; min-width: 140px; }
     .att-toolbar select { flex: 0 0 auto; width: auto; max-width: 190px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
 
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
@@ -714,13 +713,14 @@
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       margin-bottom: 10px; flex-wrap: wrap;
     }
-    .task-list-toolbar .section-heading {
+    .section-heading {
       margin: 0; font-size: 16px; color: var(--warning); font-weight: 700;
       text-transform: uppercase; letter-spacing: .5px;
       display: flex; align-items: center; gap: 8px;
     }
     /* Search ép phải — kể cả khi wrap xuống dòng riêng trên màn hẹp (2026-08-11) */
-    .task-list-toolbar .list-search { margin-left: auto; }
+    .task-list-toolbar .list-search,
+    .att-toolbar .list-search { margin-left: auto; }
     .task-count-badge {
       font-family: Consolas, 'Courier New', monospace;
       font-size: 13px; font-weight: 600; color: var(--muted);
