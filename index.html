@@ -1489,7 +1489,7 @@
    * TOC — bản đồ vùng script (thứ tự xuất hiện từ đây xuống cuối)
    *  [0] Mock local (file://)  — nạp mock-google.js khi không qua GAS
    *  [1] State & Constants     — META, CURRENT_TASK, STATUS_C, TASK_TYPE_C, headers
-   *  [2] UTILITIES             — safeArr, fmtN, esc, escAttr, fmtClockHMS, fmtDate
+   *  [2] UTILITIES             — safeArr, fmtN, esc, escAttr, fmtClockHMS, fmtDate, setBtnBusy_, restoreBtnLabel_
    *  [3] Pagination            — renderPaginator_, goListPage, goScanPage
    *  [4] View infra            — repairViewParents, syncHeaderH (sớm)
    *  [5] Scan UI infra         — filters, stuck bars, auto-focus loop
@@ -1605,6 +1605,15 @@
     return ('0' + dt.getHours()).slice(-2) + ':' + ('0' + dt.getMinutes()).slice(-2) + ':' + ('0' + dt.getSeconds()).slice(-2);
   }
 
+  // Trạng thái nút tải/lưu — dùng chung loadStaffView/loadConfigView/saveConfig (gom 2026-08-11).
+  // busyLabel: text khi đang xử lý (lưu label gốc vào dataset để restore đúng).
+  function setBtnBusy_(btn, busyLabel) {
+    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = busyLabel; }
+  }
+  function restoreBtnLabel_(btn, fallback) {
+    if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || fallback; }
+  }
+
     // ===== Pagination (tham khảo v1 scan.html — 50 dòng/trang) =====
     var PAGE_SIZE = 50;
     var LIST_PAGE = 1; // trang hiện tại: task list / kết quả tìm
@@ -1679,9 +1688,6 @@
       renderScanTable(CURRENT_LOG);
     }
 
-    // Reset trang khi có dữ liệu mới (không giữ trang cũ trên bộ lọc khác).
-    function resetListPage() { LIST_PAGE = 1; }
-    function resetScanPage() { SCAN_PAGE = 1; }
 
   // Repair: ép các view section vào đúng #main-content (phòng parser tách thẻ sau edit HTML).
   function repairViewParents() {
@@ -1936,11 +1942,6 @@
   var _statsChipsBound = false;       // đã bind event chips filter (1 lần)
   var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
 
-  // Mở viewStaff: đổi section + load dữ liệu (cache 30s phía server)
-  function openStaffView() {
-    showSection('viewStaff');
-    ensureStaffData(false);
-  }
 
   function loadStaffView(btn) {
     var skel = document.getElementById('staffSkeleton');
@@ -1950,8 +1951,8 @@
     if (tbl) tbl.style.display = 'none';
     if (empty) empty.style.display = 'none';
     document.getElementById('staffMeta').textContent = 'Đang tải…';
-    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = '⟳ Đang tải…'; }
-    function restore() { if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || '⟳ Làm mới'; } }
+    setBtnBusy_(btn, '⟳ Đang tải…');
+    function restore() { restoreBtnLabel_(btn, '⟳ Làm mới'); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
@@ -2600,8 +2601,8 @@
     if (meta) meta.textContent = 'Đang tải…';
     if (empty) empty.style.display = 'none';
     if (form) form.style.display = 'none';
-    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = '⟳ Đang tải…'; }
-    function restore() { if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || '⟳ Làm mới'; } }
+    setBtnBusy_(btn, '⟳ Đang tải…');
+    function restore() { restoreBtnLabel_(btn, '⟳ Làm mới'); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
@@ -2704,8 +2705,8 @@
 
   function saveConfig(btn) {
     var patch = collectConfigPatch();
-    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Đang lưu…'; }
-    function restore() { if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || '💾 Lưu cấu hình'; } }
+    setBtnBusy_(btn, 'Đang lưu…');
+    function restore() { restoreBtnLabel_(btn, '💾 Lưu cấu hình'); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();

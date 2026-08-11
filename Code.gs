@@ -1,19 +1,27 @@
-/**
+﻿/**
  * Code.gs — Entry point + API endpoints (google.script.run).
  * Debug URL (?debug=1 / ?debug=createTask) xử lý trong Debug.gs (editor-gated);
  * quyền/định danh trong Auth.gs.
  *
- * API (gọi từ client index.html):
+ * API (gọi từ client index.html — 17 endpoint, tên chuẩn hậu tố *Api):
  *   getMetaApi()                 → { ok, appTitle, userEmail }
  *   getFilterOptionsApi()        → { ok, stationGroups }
- *   createReconcileTask(input)   → { ok, taskId, count, message }
- *   getTaskList()                → [{ taskId, station, slotCode, team, status, createdAt }]
- *   getTaskDetail(taskId)        → { ok, task, log, counters }
- *   scanStaff(taskId, staffId)   → { ok, message, status, counters }
- *   completeTask(taskId)         → { ok, message }
- *   syncFromCsv()                → { ok, count, message } — gọi từ editor (Phase 0)
+ *   previewStaffApi(input)       → { ok, matched, missing, count } — preview tạo task
+ *   getStaffStatsApi()           → { ok, counts } — thống kê StaffData
  *   getSettingsApi()             → { ok, settings } — editor-only (trang Config Admin)
  *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
+ *   createReconcileTaskApi(input) → { ok, taskId, count, message }
+ *   getTaskListApi()             → [{ taskId, station, slotCode, team, status, createdAt }]
+ *   getTaskDetailApi(taskId)     → { ok, task, log, counters }
+ *   scanStaffApi(taskId, staffId) → { ok, message, status, counters }
+ *   completeTaskApi(taskId)      → { ok, message }
+ *   transitionToAttendApi(taskId) → { ok, message, counters } — task open → attend
+ *   reopenTaskApi(taskId)         → { ok, message } — task done → open (quét bổ sung)
+ *   pasteCodesApi(taskId, lines)  → { ok, total, success, failed, results } — dán mã hàng loạt
+ *   searchLogsByStaffApi(staffId) → { ok, rows } — manager+ (báo cáo tháng theo mail)
+ *   searchTasksByQueryApi(q)      → { ok, rows } — tìm task theo mã NV / mã task
+ *   warmStaffCacheApi()          → { ok, index } — preload staffIndex cache (fire-and-forget)
+ * Editor tools (không phải *Api — chạy tay trong GAS editor): syncFromCsv(), setupSheets()
  */
 
 /** WebApp: trả về index.html. */
