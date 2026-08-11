@@ -2128,7 +2128,7 @@
           '<td>' + taskStatusBadge(t.status) + '</td>' +
           '<td>' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
           '<td>' + esc(displayName(t.createdBy || '')) + '</td>' +
-          '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
+          '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
         body.appendChild(tr);
       }
       renderPaginator_('taskPagination', total, LIST_PAGE, 'goListPage', LIST_PAGE_SIZE);
