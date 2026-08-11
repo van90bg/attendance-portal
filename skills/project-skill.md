@@ -125,12 +125,12 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - **GAS addMetaTag whitelist (fix commit `a2fbaa0`)**: chỉ chấp nhận một số meta nhất định — `viewport` OK; `color-scheme`/`theme-color` bị từ chối (lỗi runtime `The meta tag you specified is not allowed in this context`). Thay thế: `color-scheme` → CSS `:root { color-scheme: light }` (tương đương, không cần API); `theme-color` bỏ (cosmetic).
 - Khi thêm meta/title mới: khai qua Code.gs hoặc CSS, KHÔNG viết trong index.html.
 
-## 11. Line endings — index.html CRLF 100% từ 2026-08-10 (normalize qua commit upload a96381b)
+## 11. Line endings — 3 file template CRLF 100% + no-BOM (từ 2026-08-10; tách 3 file b6992b3)
 
-- Working tree (git `core.autocrlf=true`): MỌI file — kể cả `.gs` — là **CRLF trên disk** (git lưu LF trong repo, checkout tự chuyển CRLF). Đo thật 2026-08-11: Code.gs CRLF=334/LF-only=0, index.html CRLF=4046.
-- Sau normalize của user: `index.html` = **CRLF 100%** (4011 CRLF, 0 LF-only).
-- Edit index.html: Python pattern mục 8 bắt buộc (anchor có `\r\n`), write với `newline=''` — KHÔNG dùng edit tool trực tiếp nếu làm mất CRLF.
-- Verify sau edit: `data.count(b'\r\n')` giữ nguyên 4011; nếu LF-only > 0 → normalize `data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')`.
+- Working tree (git `core.autocrlf=true`): MỌI file — kể cả `.gs` — là **CRLF trên disk** (git lưu LF trong repo, checkout tự chuyển CRLF). Đo thật 2026-08-11: Code.gs CRLF=334/LF-only=0; 3 file template — index.html CRLF=449, styles.html CRLF=1020, app.html CRLF=2855 (index.html nguyên khối cũ 4046 dòng đã tách).
+- Cả 3 file template = **CRLF 100% + no-BOM** (BOM → khoảng trống header khi GAS serve; guard test `index-html-parse` kiểm mọi file). `.gitattributes` pin `styles.html text eol=crlf`.
+- Edit 3 file template: Python pattern mục 8 bắt buộc (anchor có `\r\n`), write với `newline=''` — KHÔNG dùng edit tool trực tiếp nếu làm mất CRLF.
+- Verify sau edit: `data.count(b'\r\n')` giữ nguyên (449/1020/2855); nếu LF-only > 0 → normalize `data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')`.
 - `.gs` files: KHÔNG normalize sang LF — giữ CRLF như checkout (nếu LF-only > 0 → normalize về CRLF; tránh diff khổng lồ).
 
 ## Verify workflow
