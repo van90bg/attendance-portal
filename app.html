@@ -764,7 +764,10 @@
   };
   var TASK_FILTER_CTX = {
     key: 'task', filters: TASK_FILTERS,
-    rows: function () { return safeArr(LAST_TASK_LIST.tasks); },
+    // rows theo mode: search task → LAST_TASK_SEARCH (badge/options khớp dataset đang hiển thị)
+    rows: function () {
+      return LIST_MODE === 'task' ? safeArr(LAST_TASK_SEARCH) : safeArr(LAST_TASK_LIST.tasks);
+    },
     render: function () {
       LIST_PAGE = 1;
       if (LIST_MODE === 'task') renderTaskList_(safeArr(LAST_TASK_SEARCH));
@@ -790,6 +793,25 @@
     });
     return out.sort();
   }
+  // Badge count mỗi option (2026-08-11): số row khớp các filter ĐANG ÁP Ở CỘT KHÁC
+  // (không tính cột đang mở — user đang chọn trong cột đó). Giống Excel: count theo
+  // context lọc hiện tại → user biết chọn option sẽ còn bao nhiêu kết quả.
+  function funnelOptionCounts_(rows, field, filters) {
+    var others = {};
+    var hasOther = false;
+    for (var f in filters) {
+      if (f === field) continue;                 // bỏ cột đang mở
+      if (filters[f] && filters[f].length) { others[f] = filters[f]; hasOther = true; }
+    }
+    var counts = {};
+    (rows || []).forEach(function (r) {
+      if (hasOther && !funnelMatches_(others, r)) return;
+      var v = String((r && r[field]) || '').trim();
+      if (!v) return;
+      counts[v] = (counts[v] || 0) + 1;
+    });
+    return counts;
+  }
   function toggleFunnel(field, ev, key) {
     if (ev && ev.stopPropagation) ev.stopPropagation();
     var panel = document.getElementById('staffFilterPanel');
@@ -812,10 +834,15 @@
   }
   function renderFunnelOptions_(field, sel) {
     var ctx = _funnel.ctx;
-    var opts = funnelOptions_(ctx.rows(), field);
+    var rows = ctx.rows();
+    var opts = funnelOptions_(rows, field);
+    var counts = funnelOptionCounts_(rows, field, ctx.filters);
     var html = opts.map(function (v) {
       var checked = sel.indexOf(v) !== -1;
-      return '<label class="sfp-opt"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onFunnelCheck(\'' + field + '\', this, \'' + ctx.key + '\')"> <span>' + esc(v) + '</span></label>';
+      var zero = !counts[v] ? ' zero' : '';
+      return '<label class="sfp-opt' + zero + '"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onFunnelCheck(\'' + field + '\', this, \'' + ctx.key + '\')">' +
+        '<span class="sfp-label">' + esc(v) + '</span>' +
+        '<span class="sfp-count">' + (counts[v] || 0) + '</span></label>';
     }).join('') || '<div class="sfp-empty">(không có giá trị)</div>';
     document.getElementById('sfpBody').innerHTML = html;
   }

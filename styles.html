@@ -928,7 +928,11 @@
     .sfp-opt { display: flex; align-items: center; gap: 7px; font-size: 13px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
     .sfp-opt:hover { background: var(--surface-muted); }
     .sfp-opt input { accent-color: var(--amber); width: 15px; height: 15px; flex-shrink: 0; }
-    .sfp-opt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sfp-opt .sfp-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Option count=0 (khớp filter cột khác) → mờ — chọn sẽ ra bảng trống */
+    .sfp-opt.zero { opacity: .45; }
+    .sfp-opt .sfp-count { flex-shrink: 0; min-width: 20px; text-align: center; font-size: 11px; line-height: 1;
+      color: var(--muted); background: var(--surface-muted); border-radius: 9px; padding: 3px 5px; }
     .sfp-empty { color: var(--muted); font-size: 12px; padding: 6px; }
     .sfp-foot { display: flex; gap: 8px; margin-top: 10px; }
     @media (max-width: 700px) { .staff-filter-panel { max-width: 85vw; } }
