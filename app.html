@@ -634,6 +634,9 @@
     });
     html += '</div>';
     wrap.innerHTML = html;
+    // U5 (review 2026-08-11): announce ngắn gọn — KHÔNG để screen reader đọc cả grid
+    var a11y = document.getElementById('statsA11yMsg');
+    if (a11y) a11y.textContent = 'Hiển thị ' + rows.length + ' nhân viên theo bộ lọc';
   }
 
   // Pivot chung: dòng = rowField, cột = colField — Ca dọc khi rowField='slotCode'; số 0 → '-'
