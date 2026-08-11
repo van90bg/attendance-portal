@@ -9,7 +9,10 @@ const path = require('path');
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+// index.html giờ là GAS template (<?!= include() ?>) — gộp 3 file về 1 trước khi parse.
+const { build } = require('../scripts/build-local.js');
+build();
+const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.local.html'), 'utf8');
 
 function extractInlineScript(src) {
   const m = src.match(/<script[^>]*>([\s\S]*?)<\/script>/g) || [];
@@ -112,4 +115,12 @@ test('ensureStaffData: mở view KHÔNG gọi loadStaffView trực tiếp (dùng
   assert.ok(!autoOpen, 'selectPage vẫn gọi loadStaffView() khi mở view → mỗi lần mở lại fetch (sai). Phải là ensureStaffData(false)');
   assert.ok(/page === 'stats' \|\| page === 'data'[\s\S]{0,90}?ensureStaffData\(false\)/.test(body),
     'selectPage phải gọi ensureStaffData(false) khi mở stats/data');
+});
+// Regression guard: UTF-8 BOM ở đầu index.html serve qua GAS sinh khoảng trống phía trên header
+// (lesson 9982293; BOM tái xuất ở 673d01a do write utf-8-sig). Cả 3 file template phải không BOM.
+test('3 file template KHÔNG có BOM đầu file', function () {
+  ['index.html', 'styles.html', 'app.html'].forEach(function (f) {
+    const raw = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    assert.notEqual(raw.charCodeAt(0), 0xfeff, f + ' bắt đầu bằng UTF-8 BOM — xóa BOM');
+  });
 });

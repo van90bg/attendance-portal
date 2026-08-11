@@ -31,9 +31,9 @@ function serverApiNames() {
   return names;
 }
 
-/** Tên API client gọi: .XxxApi( trong index.html (call sites google.script.run). */
+/** Tên API client gọi: .XxxApi( trong app.html (JS tách riêng — call sites google.script.run). */
 function clientApiNames() {
-  const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'app.html'), 'utf8');
   const names = new Set();
   for (const m of src.matchAll(/\.([A-Za-z_]\w*Api)\s*\(/g)) names.add(m[1]);
   return names;

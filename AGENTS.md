@@ -1,4 +1,4 @@
-﻿# AGENTS.md — Attendance Portal (RollCall v2)
+# AGENTS.md — Attendance Portal (RollCall v2)
 
 Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trước khi sửa code.
 
@@ -6,7 +6,7 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 
 **Attendance Portal** — ứng dụng quản lý chấm công + điểm danh kho SPX Express, chạy trên **Google Apps Script WebApp** + **Google Sheets**. Repo con: `van90bg/rollcall-kiosk-v2x` (private, remote git + CI auto-clasp-push).
 
-- Frontend: **1 file** `index.html` (CSS + HTML + JS inline) — Vanilla, không framework.
+- Frontend: **3 file GAS template** — `index.html` (HTML + `<?!= include() ?>`) + `styles.html` (CSS) + `app.html` (JS) — Vanilla không framework. `doGet` dùng `createTemplateFromFile('index').evaluate()` + helper `include(name)`. Test local: `node scripts/build-local.js` gộp 3 file → `index.local.html` (file:// không render template).
 - Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Spreadsheet.gs` `Cache.gs` `StaffDataRepo.gs` `TaskRepo.gs` `LogRepo.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs` `Auth.gs` `Debug.gs` `SettingsService.gs` (Database.gs đã tách thành 5 repo file 2026-08-11).
 - Dữ liệu: 4 sheet — Config · StaffData (HR, 20 cột tên tiếng Anh) · AttendanceTask · AttendanceLog.
 
@@ -26,7 +26,7 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 Pattern chuẩn (Python, `execute_code`):
 
 ```python
-path = r"..."  # .gs hay index.html
+path = r"..."  # .gs hay index.html/styles.html/app.html
 # ĐỌC với newline='' — dùng utf-8-sig (strip BOM nếu file cũ có)
 with open(path, 'r', encoding='utf-8-sig', newline='') as f:
     content = f.read()
@@ -83,7 +83,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 
 ## 7. Test & Tools
 
-- `npm run test` → **113/113** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS + contract mock↔server + role — GAS API thật không test được trong Node).
+- `npm run test` → **113/113** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS + contract mock↔server + role — GAS API thật không test được trong Node). `index-html-parse` + `test-local-mock` tự build template qua `scripts/build-local.js` → `index.local.html` trước khi chạy.
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 
 ## 8. Đọc thêm

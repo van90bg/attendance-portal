@@ -107,6 +107,7 @@ function makeSandbox(opts) {
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     HtmlService: {
       createHtmlOutputFromFile: (f) => ({ filename: f, setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; }, kind: 'html' }),
+      createTemplateFromFile: (f) => ({ evaluate: () => ({ filename: f, setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; }, kind: 'html' }) }),
       XFrameOptionsMode: { DEFAULT: 'DEFAULT' },
     },
     ContentService: {

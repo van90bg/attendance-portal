@@ -24,7 +24,7 @@
  * Editor tools (không phải *Api — chạy tay trong GAS editor): syncFromCsv(), setupSheets()
  */
 
-/** WebApp: trả về index.html. */
+/** WebApp: template index.html — <?!= include() ?> nạp CSS/JS từ styles.html + app.html. */
 function doGet(e) {
   // Tự khởi tạo mọi sheet (kèm header) — không cần chạy setupSheets() tay.
   // getSheet_() chỉ set header khi sheet trống, nên gọi mỗi lần load rất rẻ.
@@ -32,10 +32,16 @@ function doGet(e) {
   // Debug: URL?debug=... — xử lý trong Debug.gs (editor-gated). null = không phải debug.
   const debugOut = handleDebugRequest_(e);
   if (debugOut) return debugOut;
-  return HtmlService.createHtmlOutputFromFile('index')
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
     .setTitle(WEB_APP.PAGE_TITLE)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+}
+
+/** GAS template helper: include('styles') / include('app') — nạp file .html con. */
+function include(name) {
+  return HtmlService.createHtmlOutputFromFile(name).getContent();
 }
 
 /** Meta cho UI: title + user email (hiển thị header). */

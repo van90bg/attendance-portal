@@ -36,6 +36,7 @@ Thumbs.db
 # ===== Misc =====
 *.log
 *.tmp
+index.local.html
 
 # ===== Codegraph (cục bộ, không push) =====
 codegraph.json
