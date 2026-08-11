@@ -235,6 +235,11 @@ function pasteCodes(taskId, rawLines) {
   // Clamp at 200 lines (A4) — yêu cầu 2026-08-07: giới hạn 200 mã/lần dán.
   // m3 (audit): guard array — payload string (lỗi client/bug tương lai) → xử lý như rỗng.
   const lines = Array.isArray(rawLines) ? rawLines.slice(0, 200) : [];
+  // M1 (review 2026-08-11): gate THẬT ở service layer (chống bypass google.script.run gọi global).
+  // Kiosk vẫn dùng được (ROLES.DEFAULT='operator'); paste giữ owner-gate canScanOpen_ bên trong.
+  if (!requireRole_('operator')) {
+    return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)', total: 0, success: 0, failed: 0, results: [], counters: null };
+  }
   // DEFENSE: bọc toàn bộ logic — bất kỳ lỗi nào (kể cả ReferenceError) trả ok:false
   // thay vì ném ra → client hiện toast gọn, KHÔNG "Server lỗi" chung (pattern scanStaff).
   try {

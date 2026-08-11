@@ -139,7 +139,11 @@ function readTaskList_() {
       const c = counters[t.taskId] || { total: 0, scanned: 0, extra: 0 };
       t.total = c.total; t.scanned = c.scanned; t.extra = c.extra;
     });
-    return out.reverse(); // dòng mới nhất thường ở cuối → đưa lên đầu
+    // Fix (audit 2026-08-11): sort taskId desc thay vì out.reverse() — reverse() giả định
+    // sheet append-only; user sort tay AttendanceTask trong Sheets UI → thứ tự hiển thị sai.
+    // taskId = RyyyyMMdd-HHmm (+suffix -2/-3) — sort chuỗi desc đúng newest-first kể cả trùng phút.
+    out.sort(function (a, b) { return (a.taskId < b.taskId) ? 1 : (a.taskId > b.taskId ? -1 : 0); });
+    return out;
   }, CACHE_TTL.TASK_LIST);
 }
 

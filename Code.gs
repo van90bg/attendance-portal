@@ -134,9 +134,17 @@ function saveSettingsApi(patch) {
   return saveSettings_(patch);
 }
 
-/** Tạo task đối chiếu + pre-fill. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */
+/** Tạo task đối chiếu + pre-fill. Gate requireRole_('operator') đặt TRONG createReconcileTask
+ *  (TaskService) — chống bypass google.script.run gọi global; wrapper chỉ DEFENSE. */
 function createReconcileTaskApi(input) {
-  return createReconcileTask(input);
+  // Gate quyền THẬT nằm TRONG createReconcileTask (TaskService) — google.script.run gọi được hàm global
+  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
+  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
+  try {
+    return createReconcileTask(input);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'createReconcileTask fail' };
+  }
 }
 
 /** Danh sách task. */
@@ -154,24 +162,57 @@ function scanStaffApi(taskId, staffId) {
   return scanStaff(taskId, staffId);
 }
 
-/** Kết thúc task. MỞ cho mọi nhân viên @spxexpress.com (luồng vận hành). */
+/** Kết thúc task. Gate requireRole_('operator') — mọi user hiện tại là operator+ (DEFAULT)
+ *  nên không đổi hành vi kiosk; bịt lỗ fail-open: trước đây ai cũng gọi transition→ATTEND
+ *  để vô hiệu owner-gate phase OPEN (canScanOpen_) rồi thao tác task người khác. */
 function completeTaskApi(taskId) {
-  return completeTask(taskId);
+  // Gate quyền THẬT nằm TRONG completeTask (TaskService) — google.script.run gọi được hàm global
+  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
+  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
+  try {
+    return completeTask(taskId);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'completeTask fail' };
+  }
 }
 
-/** Chuyển task Mở (phase1) → Điểm danh (phase2). MỞ cho mọi nhân viên. */
+/** Chuyển task Mở (phase1) → Điểm danh (phase2). Gate requireRole_('operator') — không đổi
+ *  hành vi hiện tại (DEFAULT=operator), chặn viewer dùng transition để bypass owner-gate. */
 function transitionToAttendApi(taskId) {
-  return transitionToAttend(taskId);
+  // Gate quyền THẬT nằm TRONG transitionToAttend (TaskService) — google.script.run gọi được hàm global
+  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
+  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
+  try {
+    return transitionToAttend(taskId);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'transitionToAttend fail' };
+  }
 }
 
-/** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). MỞ cho mọi nhân viên. */
+/** Mở lại task đã đóng (reset NV Vắng → Chưa điểm danh, cho quét tiếp). Gate requireRole_
+ *  ('operator') — reset ABSENT→PENDING ảnh hưởng dữ liệu chấm công, không cho viewer làm. */
 function reopenTaskApi(taskId) {
-  return reopenTask(taskId);
+  // Gate quyền THẬT nằm TRONG reopenTask (TaskService) — google.script.run gọi được hàm global
+  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
+  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
+  try {
+    return reopenTask(taskId);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'reopenTask fail' };
+  }
 }
 
-/** T-2: Dán danh sách mã (batch paste). Mở cho kiosk — KHÔNG cần editor. */
+/** T-2: Dán danh sách mã (batch paste). Gate requireRole_('operator') — kiosk vẫn dùng
+ *  (DEFAULT=operator); paste vẫn giữ owner-gate canScanOpen_ ở phase OPEN bên trong. */
 function pasteCodesApi(taskId, lines) {
-  return pasteCodes(taskId, lines);
+  // Gate quyền THẬT nằm TRONG pasteCodes (ScanService) — google.script.run gọi được hàm global
+  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
+  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
+  try {
+    return pasteCodes(taskId, lines);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'pasteCodes fail' };
+  }
 }
 
 /** F-search: tìm log của 1 mã NV (Ops) XUYÊN TASK — DỮ LIỆU CHẤM CÔNG CÁ NHÂN.

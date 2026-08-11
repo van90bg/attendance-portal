@@ -44,6 +44,7 @@ function makeCtx() {
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     Session: { getActiveUser: () => ({ getEmail: () => 'web' }) },
     getActiveEmail_: () => 'web', // TaskService giờ dùng Auth.getActiveEmail_ (không load Auth.gs ở đây)
+    requireRole_: () => true,      // M1 gate (review 2026-08-11): stub — role logic đã test riêng (role-service.test.js)
     TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
     TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
     UI_LABELS: { CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn' },

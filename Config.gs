@@ -126,8 +126,8 @@ const CACHE_KEYS = {
   TASK: 'rc2_task_v1_',                   // prefix + taskId — m3: task cache đường quét (TTL 60s, invalidate mọi write)
   LOG_ROWS: 'rc2_logRows_v1_',          // prefix + taskId — đường quét (incremental update)
   TASK_COUNTS: 'rc2_taskCounts_v1_',      // prefix — counters theo taskId cho list (đếm 1 lần + cache 30s)
-  SEARCH_STAFF: 'rc2_search_staff_v1_',   // prefix + staffId — kết quả tìm NV xuyên task (TTL 15s)
-  STAFF_STATS: 'rc2_staffStats_v1',     // toàn bộ StaffData (list full) — view thống kê, TTL 30s
+  SEARCH_STAFF: 'rc2_search_staff_v1_',   // prefix + staffId — kết quả tìm NV xuyên task (TTL 5s — giảm 15s→5s commit dbc523d)
+  STAFF_STATS: 'rc2_staffStats_v1',     // toàn bộ StaffData (list full) — view thống kê, TTL 1h (tăng 30s→1h theo khung giờ; invalidate khi syncFromCsv)
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)
   SETTINGS: 'rc2_settings_v3',  // v3: group lists là JSON array defaults thật (revert 4 cột → JSON 2026-08-11)
 };

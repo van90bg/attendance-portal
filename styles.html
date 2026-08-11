@@ -734,6 +734,9 @@
       border-color: var(--warning); color: var(--warning);
       background: rgba(227,116,0,.08);
     }
+    /* m5 (audit 2026-08-11): icon header SVG đơn sắc currentColor (không emoji) — khớp sidebar */
+    header .btn-icon-dark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    header .btn-icon-dark .btn-refresh-label { margin-left: 6px; }
     header .brand img {
       height: 26px; width: auto; display: block;
       filter: brightness(0) invert(1);

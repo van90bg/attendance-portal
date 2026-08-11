@@ -268,9 +268,10 @@ function invalidateTaskDetailCache_(taskId) {
  * Chuyển status hàng loạt cho 1 task — batch setValues 1 lần cả cột status.
  * Dùng chung cho markUnscannedAbsent_ (kết thúc) và resetAbsentToPending_ (mở lại).
  * P1: batch setValues — KHÔNG setValue trong loop (241 NV = 241 calls → timeout risk).
- * P1: ghi 1 lần CẢ CỘT status từ values đã sửa trong memory — thay vì N RPC setValues
- * (worst case 241 NV quét xen kẽ = ~240 RPC → 12-24s). Idempotent: dòng không thuộc
- * task được ghi lại đúng giá trị vừa đọc. An toàn vì caller giữ LockService.
+ * P1: gom run liên tiếp — 1 setValues/run (worst case 241 NV quét xen kẽ = ~240 RPC → 12-24s).
+ * m6 (audit 2026-08-11): CHỈ ghi dòng task bị đổi (trước: cả dải firstRow..lastRow — task có
+ * dòng append ở cuối sheet, dải trùm dòng task khác → rewrite thừa giá trị cũ trên phạm vi rộng).
+ * Không đụng dòng ngoài task. An toàn vì caller giữ LockService.
  * @param {string} taskId
  * @param {function(string, any): string|null} mutate — (status, timeScan) => status mới
  *   hoặc null (không đổi)
@@ -279,35 +280,33 @@ function invalidateTaskDetailCache_(taskId) {
 function transformLogStatuses_(taskId, mutate) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   const values = sheet.getDataRange().getValues();
-  let done = 0;
-  let anyChanged = false;
-  let firstRow = null, lastRow = null; // 1-based dải dòng của task
+  // m6 (audit 2026-08-11): thu thập CHỈ dòng task bị đổi → gom run liên tiếp → 1 setValues/run.
+  const changed = [];
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     if (String(row[LOG_COLS.TASK_ID] || '').trim() !== taskId) continue;
-    if (firstRow === null) firstRow = i + 1;
-    lastRow = i + 1;
     const timeScan = row[LOG_COLS.TIME_SCAN];
     const status = String(row[LOG_COLS.STATUS] || '');
     const next = mutate(status, timeScan);
-    if (next !== null && next !== status) {
-      values[i][LOG_COLS.STATUS] = next;
-      done++;
-      anyChanged = true;
-    }
+    if (next !== null && next !== status) changed.push({ r: i + 1, v: next });
   }
-  if (anyChanged && firstRow !== null) {
-    const statusCol = LOG_COLS.STATUS + 1;
-    // m5 (audit): ghi CHỈ dải [firstRow..lastRow] của task thay vì toàn bộ sheet
-    // (trước: getRange(2, statusCol, values.length-1) = O(toàn bộ log) mỗi complete/reopen;
-    // 50k+ dòng = 1 setValues khổng lồ). Idempotent — dòng ngoài dải không đụng tới.
+  if (!changed.length) return 0;
+  const statusCol = LOG_COLS.STATUS + 1;
+  const runs = [];
+  changed.forEach(function (c2) {
+    const lastRun = runs[runs.length - 1];
+    if (lastRun && lastRun.end === c2.r - 1) { lastRun.end = c2.r; }
+    else runs.push({ start: c2.r, end: c2.r });
+  });
+  let ci = 0;
+  runs.forEach(function (run) {
     const col = [];
-    for (let r = firstRow; r <= lastRow; r++) col.push([values[r - 1][LOG_COLS.STATUS]]);
-    sheet.getRange(firstRow, statusCol, col.length, 1).setValues(col);
-    invalidateTaskDetailCache_(taskId);
-    invalidateLogRows_(taskId); // u2: status hàng loạt đổi → cache log rows cũ lệch, xoá
-  }
-  return done;
+    for (let r = run.start; r <= run.end; r++) { col.push([changed[ci].v]); ci++; }
+    sheet.getRange(run.start, statusCol, col.length, 1).setValues(col);
+  });
+  invalidateTaskDetailCache_(taskId);
+  invalidateLogRows_(taskId); // u2: status hàng loạt đổi → cache log rows cũ lệch, xoá
+  return changed.length;
 }
 
 /** Khi kết thúc task: chuyển dòng chưa quét (timeScan rỗng, status '-') thành 'Vắng'. */

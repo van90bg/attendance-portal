@@ -25,6 +25,12 @@ function makeTaskId_(now) {
  * @returns {{ok: boolean, taskId: string|null, count: number, message: string}}
  */
 function createReconcileTask(input) {
+  // M1 (review 2026-08-11): gate THẬT ở service layer — google.script.run gọi được global
+  // trực tiếp nên gate chỉ ở *Api wrapper bị bypass. Mặc định mọi user là operator
+  // (ROLES.DEFAULT, Auth.gs) → không đổi hành vi hiện tại.
+  if (!requireRole_('operator')) {
+    return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
+  }
   const station = String((input && input.station) || '').trim();
   // noList: quét tự do KHÔNG danh sách (luồng vận hành quét 2 lần không cần roster).
   // Khi bật, bỏ qua validate group + KHÔNG pre-fill log → mọi quét là Dư (phase1 ghi
@@ -121,6 +127,10 @@ function createReconcileTask(input) {
  */
 function completeTask(taskId) {
   if (!taskId) return { ok: false, message: 'Thiếu taskId' };
+  // M1 (review 2026-08-11): gate THẬT ở service layer (chống bypass google.script.run gọi global).
+  if (!requireRole_('operator')) {
+    return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
@@ -159,6 +169,10 @@ function completeTask(taskId) {
  */
 function transitionToAttend(taskId) {
   if (!taskId) return { ok: false, message: 'Thiếu taskId' };
+  // M1 (review 2026-08-11): gate THẬT ở service layer (chống bypass google.script.run gọi global).
+  if (!requireRole_('operator')) {
+    return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
@@ -184,6 +198,10 @@ function transitionToAttend(taskId) {
  */
 function reopenTask(taskId) {
   if (!taskId) return { ok: false, message: 'Thiếu taskId' };
+  // M1 (review 2026-08-11): gate THẬT ở service layer (chống bypass google.script.run gọi global).
+  if (!requireRole_('operator')) {
+    return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);

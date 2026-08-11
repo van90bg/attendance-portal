@@ -20,8 +20,15 @@
         <span class="bg-spinner" aria-hidden="true"></span>
         <span id="bgTaskCount" class="bg-task-count">0</span>
       </span>
-      <button class="btn-icon-dark" id="btnSound" onclick="toggleSound()" title="Tắt/Mở âm thanh" aria-label="Tắt/Mở âm thanh">🔊</button>
-      <button class="btn-icon-dark" id="btnRefresh" onclick="refreshAll()" title="Làm mới" aria-label="Làm mới">⟳ Làm mới</button>
+      <!-- m5 (audit 2026-08-11): icon SVG đơn sắc currentColor thay emoji 🔊/⟳ — khớp design sidebar -->
+      <button class="btn-icon-dark" id="btnSound" onclick="toggleSound()" title="Tắt âm thanh" aria-label="Tắt/Mở âm thanh" aria-pressed="true">
+        <svg id="icoSoundOn" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.6 5.4a9 9 0 0 1 0 13.2"/></svg>
+        <svg id="icoSoundOff" viewBox="0 0 24 24" class="hidden" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>
+      </button>
+      <button class="btn-icon-dark" id="btnRefresh" onclick="refreshAll()" title="Làm mới" aria-label="Làm mới">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
+        <span class="btn-refresh-label">Làm mới</span>
+      </button>
     </div>
   </header>
 
@@ -128,9 +135,11 @@
           <button class="btn" id="btnScan" onclick="submitScan()">Quét</button>
         </div>
         <div class="scan-hint">Quét mã NV bắt đầu bằng Ops + số, hoặc dán danh sách mã (Enter để quét)</div>
-        <div id="scanCard" class="scan-card" role="status" aria-live="polite">
+        <div id="scanCard" class="scan-card">
           <div class="sc-empty">Chưa có lượt quét</div>
         </div>
+        <!-- m4 (audit 2026-08-11): live region riêng — SR đọc dòng status ngắn, không cả card -->
+        <span id="scanLiveMsg" class="sr-only" aria-live="polite"></span>
       </div>
       <div class="scan-col-right">
         <div class="card">

@@ -926,15 +926,24 @@
   /* ===== Âm thanh toggle (tham khảo v1) ===== */
   var SOUND_ON = true;
   try { SOUND_ON = localStorage.getItem('rc2_sound') !== '0'; } catch (e) {}
+  syncSoundIcon_();
+  // m5 (audit 2026-08-11): icon SVG đơn sắc currentColor thay emoji 🔊/🔇 — đổi hiển thị
+  // 2 SVG (on/off) thay vì textContent (khớp design language sidebar: SVG monochrome).
+  function syncSoundIcon_() {
+    var b = document.getElementById('btnSound');
+    if (!b) return;
+    var on = document.getElementById('icoSoundOn');
+    var off = document.getElementById('icoSoundOff');
+    if (on) on.classList.toggle('hidden', !SOUND_ON);
+    if (off) off.classList.toggle('hidden', SOUND_ON);
+    b.classList.toggle('muted', !SOUND_ON);
+    b.setAttribute('aria-pressed', SOUND_ON ? 'true' : 'false');
+    b.title = SOUND_ON ? 'Tắt âm thanh' : 'Bật âm thanh';
+  }
   function toggleSound() {
     SOUND_ON = !SOUND_ON;
     try { localStorage.setItem('rc2_sound', SOUND_ON ? '1' : '0'); } catch (e) {}
-    var b = document.getElementById('btnSound');
-    if (b) {
-      b.textContent = SOUND_ON ? '🔊' : '🔇';
-      b.classList.toggle('muted', !SOUND_ON);
-      b.title = SOUND_ON ? 'Tắt âm thanh' : 'Bật âm thanh';
-    }
+    syncSoundIcon_();
     // (bỏ toast chuyển âm thanh — hiệu ứng nút đã đủ phản hồi)
   }
 
@@ -993,6 +1002,10 @@
     document.getElementById('viewReports').classList.add('hidden');
     // Stop auto-focus loop when leaving scan view
     stopAutoFocusLoop();
+    // m3 (audit 2026-08-11): rời trang chủ → dừng đồng hồ 1Hz (đối xứng stopAutoFocusLoop).
+    // renderHomeClock tự restart khi vào lại viewHome (selectPage). Tránh interval + Intl 2 lần/s
+    // sống vĩnh viễn trên kiosk chạy 24/7.
+    if (sectionName !== 'viewHome' && CLOCK_TIMER) { clearInterval(CLOCK_TIMER); CLOCK_TIMER = null; }
     // Show target view
     var target = document.getElementById(sectionName);
     if (target) {
@@ -2835,7 +2848,7 @@
       }
       var ta = document.getElementById('pasteTextarea');
       if (ta) { ta.value = lines.join('\n'); }
-      // Reuse hoàn toàn: submitPaste đọc ta.value, clamp 1000, gọi pasteCodesApi,
+      // Reuse hoàn toàn: submitPaste đọc ta.value, clamp 200, gọi pasteCodesApi,
       // render kết quả vào #pastePreview, refresh counters + log.
       submitPaste();
     }
@@ -3288,14 +3301,28 @@
 
   // ===== Helpers =====
   // D1: HTML scan card dùng chung — showScanCard/restoreScanCard chỉ lo className.
-  function scanCardHTML(status, target) {
+  // Label trạng thái scan — 1 nguồn chung (scanCardHTML + setScanLiveMsg_), tránh lệch sau này.
+  function scanStatusLabel_(status) {
     // PENDING lưu '-' (STATUS_C.PENDING) — hiển thị 'Chưa điểm danh' cho dễ đọc.
-    var _st = (status === STATUS_C.PENDING || !status) ? 'Chưa điểm danh' : status;
+    return (status === STATUS_C.PENDING || !status) ? 'Chưa điểm danh' : status;
+  }
+  function scanCardHTML(status, target) {
+    var _st = scanStatusLabel_(status);
     return '<div class="sc-status">' + esc(_st) + '</div>' +
       '<div class="sc-name">' + esc(target.staffName || target.staffId) + '</div>' +
       '<div class="sc-meta">Mã: ' + esc(target.staffId) +
       (target.slotCode ? ' · Ca: ' + esc(target.slotCode) : '') +
       (target.team ? ' · ' + esc(target.team) : '') + '</div>';
+  }
+  // m4 (audit 2026-08-11): live region RIÊNG cho SR — trước đây aria-live trên cả #scanCard
+  // (render lại mỗi lượt quét) → screen reader đọc lại cả khối tên+trạng thái liên tục
+  // (announce-spam ở nhịp kiosk). Giờ chỉ 1 dòng status ngắn trong #scanLiveMsg.
+  function setScanLiveMsg_(status, target, mode) {
+    var live = document.getElementById('scanLiveMsg');
+    if (!live) return;
+    var _st = scanStatusLabel_(status);
+    live.textContent = mode === 'err' ? 'Lỗi: ' + (status || '')
+      : _st + (target && target.staffName ? ' — ' + target.staffName : '');
   }
   // mode: 'ok' (xanh) | 'extra' (cam - Dư) | 'warn' (cam - đã điểm danh/đã có mặt) | 'err' (đỏ)
   function showScanCard(status, target, mode) {
@@ -3309,6 +3336,7 @@
       : (mode === 'err' ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok')));
     card.className = 'scan-card ' + cls;
     card.innerHTML = scanCardHTML(status, target);
+    setScanLiveMsg_(status, target, mode);
   }
 
   function resetScanCard() {
@@ -3316,6 +3344,8 @@
     if (!card) return;
     card.className = 'scan-card';
     card.innerHTML = '<div class="sc-empty">Chưa có lượt quét</div>';
+    var live = document.getElementById('scanLiveMsg');
+    if (live) live.textContent = '';
   }
 
   // P1: khi mở task đã có lượt quét — khôi phục scan card từ log (lượt mới nhất).
@@ -3340,6 +3370,7 @@
       : (last.status === STATUS_C.EXTRA ? 'scan-card extra' : 'scan-card ok');
     card.className = cls;
     card.innerHTML = scanCardHTML(last.status || STATUS_C.PRESENT, last);
+    setScanLiveMsg_(last.status || STATUS_C.PRESENT, last, null);
   }
 
   var toastTimer = null;
