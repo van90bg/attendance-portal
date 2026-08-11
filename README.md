@@ -61,7 +61,8 @@ RollCall_2/
 ├── scripts/
 │   ├── build-local.js     # gộp template 3 file → index.local.html (test local)
 │   ├── cdp-helper.js      # CDP verify UI (geometry là truth)
-│   └── test-local-mock.js # tự động test UI local mock qua CDP (11/11)
+│   ├── test-local-mock.js # tự động test UI local mock qua CDP (11/11)
+│   └── audit-css.js       # rà dead CSS 3 file template (exit 1 nếu có dead; --full xem dynamic)
 ├── skills/                # skill đóng gói cho agent (project-skill + references)
 └── docs/                  # deploy-codespace-actions.md (how-to deploy)
 ```
@@ -77,6 +78,7 @@ Mock local (trình duyệt không render GAS template → gộp trước):
 
 ```bash
 node scripts/build-local.js     # → index.local.html
+node scripts/audit-css.js         # rà dead CSS (168 class — 0 dead hiện tại; --full xem class nối chuỗi)
 ```
 
 Rồi mở `index.local.html` bằng browser (mock tự nạp khi không có `google.script.run`).
