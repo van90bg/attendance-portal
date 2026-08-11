@@ -709,9 +709,9 @@
         var field = STAFF_FILTERABLE[h];
         if (field) {
           var hasF = hasFunnel_(STAFF_FILTERS, field);
-          headHtml += '<th class="th-filter" data-col="' + field + '"><span class="th-label">' + esc(h) + '</span><button type="button" class="th-funnel' + (hasF ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'staff\')" aria-label="Lọc ' + esc(h) + '" title="Lọc ' + esc(h) + '">' + FUNNEL_SVG + '</button></th>';
+          headHtml += '<th scope="col" class="th-filter" data-col="' + field + '"><span class="th-label">' + esc(h) + '</span><button type="button" class="th-funnel' + (hasF ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'staff\')" aria-label="Lọc ' + esc(h) + '" title="Lọc ' + esc(h) + '">' + FUNNEL_SVG + '</button></th>';
         } else {
-          headHtml += '<th>' + esc(h) + '</th>';
+          headHtml += '<th scope="col">' + esc(h) + '</th>';
         }
       }
       headHtml += '</tr>';
