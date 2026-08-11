@@ -1,4 +1,4 @@
-<style>
+﻿<style>
     :root {
       color-scheme: light;  /* thay cho <meta color-scheme> — GAS addMetaTag không cho phép tag này; CSS tương đương meta */
       --primary: #0b57d0;
@@ -977,6 +977,7 @@
     #viewHome { min-height: 100%; }
     /* Cuộn TRONG card khi nội dung dài (đồng bộ các view khác — 2026-08-11) */
     #viewAbout .card { max-height: calc(100vh - var(--header-h) - 48px); overflow-y: auto; }
+    #viewReports .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; overflow-y: auto; }  /* reports có topbar — trừ 120 như viewStats để trang không cuộn */
     #viewStats .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; }  /* -120: trừ cả topbar + main padding để trang không cuộn khi wrap max */
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1033,6 +1034,7 @@
       <button class="side-item active" data-page="home" onclick="selectPage('home')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span><span class="side-lbl">Trang chủ</span></button>
       <button class="side-item" data-page="stats" onclick="selectPage('stats')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-8"/><path d="M22 20H2"/></svg></span><span class="side-lbl">Thống kê</span></button>
       <button class="side-item" data-page="attendance" onclick="selectPage('attendance')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span class="side-lbl">Điểm danh</span></button>
+      <button class="side-item" data-page="reports" onclick="selectPage('reports')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg></span><span class="side-lbl">Báo cáo</span></button>
       <button class="side-item" data-page="data" onclick="selectPage('data')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><span class="side-lbl">Dữ liệu chấm công</span></button>
       <button class="side-item" data-page="config" id="sideConfigItem" onclick="selectPage('config')" style="display:none;" title="Cấu hình (chỉ editor)"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="side-lbl">Cấu hình</span></button>
       <button class="side-item" data-page="about" onclick="selectPage('about')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg></span><span class="side-lbl">Giới thiệu</span></button>
@@ -1285,6 +1287,22 @@
 </main>
 </div>
 
+
+<!-- T-3b: Reports view (placeholder — chấm công tháng theo mail đăng nhập) -->
+<section id="viewReports" class="hidden">
+  <div class="view-topbar">
+    <div class="view-topbar-title">
+      <div class="task-title">Báo cáo</div>
+      <div class="task-meta">Tính năng đang phát triển</div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="padding:48px 16px;text-align:center;color:var(--text);opacity:.65;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">Báo cáo chấm công theo tháng</div>
+      <div style="font-size:13px;line-height:1.7;">Đang xây dựng — hiển thị chấm công tháng của từng nhân viên theo email đăng nhập.</div>
+    </div>
+  </div>
+</section>
 
 <!-- T-3: About view (replaces aboutModal) -->
 <section id="viewAbout" class="hidden">
@@ -1562,7 +1580,7 @@
   function repairViewParents() {
     var main = document.getElementById('main-content');
     if (!main) return;
-    ['viewHome', 'viewStats', 'viewStaff', 'viewAbout', 'viewScan', 'viewTasks', 'viewConfig'].forEach(function (id) {
+    ['viewHome', 'viewStats', 'viewStaff', 'viewAbout', 'viewScan', 'viewTasks', 'viewConfig', 'viewReports'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el && el.parentElement !== main) {
         main.appendChild(el);  // di chuyển (appendChild tự gỡ khỏi cha cũ + xếp cuối main)
@@ -2092,7 +2110,7 @@
     } catch (e) { /* kiosk không hỗ trợ audio — bỏ qua */ }
   }
 
-  /* ===== T-3: View management (viewTasks, viewScan, viewAbout) ===== */
+  /* ===== T-3: View management (7 view: home/stats/tasks/scan/staff/config/reports/about) ===== */
   var lastViewBeforeAbout = 'viewTasks'; // remember where we came from
   function showSection(sectionName) {
     // Track last non-about view for back navigation
@@ -2112,6 +2130,7 @@
     document.getElementById('viewStaff').classList.add('hidden');
     document.getElementById('viewAbout').classList.add('hidden');
     document.getElementById('viewConfig').classList.add('hidden');
+    document.getElementById('viewReports').classList.add('hidden');
     // Stop auto-focus loop when leaving scan view
     stopAutoFocusLoop();
     // Show target view
@@ -2130,7 +2149,7 @@
   try { SIDEBAR_COMPACT = localStorage.getItem('ap2_sidebar_compact') === '1'; } catch (e) {}
 
   // Ánh xạ page → section id hiển thị
-  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', about: 'viewAbout' };
+  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', reports: 'viewReports', about: 'viewAbout' };
   var ACTIVE_PAGE = 'home';
 
   function selectPage(page) {

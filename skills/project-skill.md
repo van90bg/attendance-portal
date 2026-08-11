@@ -1,4 +1,4 @@
-# Project Skill — Attendance Portal (RollCall v2)
+﻿# Project Skill — Attendance Portal (RollCall v2)
 
 > Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/rollcall-kiosk-v2x`).
 > Dùng khi: bất kỳ edit nào với repo này (UI, server, tests, docs).
@@ -16,11 +16,11 @@
 
 App scope mở rộng: quản lý chấm công, không chỉ điểm danh. Layout: `<header>` (controls: userEmail · net-dot · 🔊 · ⟳ — ĐÃ BỎ 📋/ⓘ) > `.app-shell` (flex) = `#sidebar` (240↔48px, icon SVG đơn sắc currentColor, KHÔNG side-head, nút thu gọn `☰`) + `#main-content`.
 
-Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewTasks', data:'viewStaff', config:'viewConfig', about:'viewAbout' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
+Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewTasks', data:'viewStaff', config:'viewConfig', reports:'viewReports', about:'viewAbout' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
 
 - viewHome: hero logo local (`sea-logo.svg`/`spx-express.svg`) + tên + đồng hồ realtime (`renderHomeClock`, Intl Asia/Ho_Chi_Minh).
 - viewStats: pivot fullscreen — 2 bảng Contract×Ca + Agency×Ca, MỖI TEAM 1 bảng (Ca dọc), filter Station · Ngày · Department. viewStaff (page key `data`): bảng StaffData fullscreen (search `#staffSearch` + count `#staffCount`).
-- View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig']`.
+- View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig','viewReports']`.
 
 ## 3. Architecture mental model (đọc TRƯỚC mọi fix)
 
