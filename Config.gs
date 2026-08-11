@@ -111,7 +111,7 @@ const CACHE_TTL = {
                              // invalidate mọi write (insertTask_/updateTaskStatus_) → 60s không stale
   LOG_ROWS: 30,              // 30s — log rows theo taskId (đường quét — cập nhật incremental, không invalidate mỗi scan)
   TASK_COUNTS: 30,
-  SEARCH_STAFF: 15,          // 15s — kết quả tìm NV xuyên task (on-demand, TTL ngắn — đủ tránh quét sheet lớn lặp lại khi tìm cùng mã)
+  SEARCH_STAFF: 5,           // S4 (review 2026-08-11): 15s→5s — search manager+ không track sid để invalidate per-write; TTL 5s giảm cửa sổ stale sau scan/complete/reopen, vẫn đủ chặn quét sheet lớn lặp lại
   STAFF_STATS: 3600,        // 1h — danh sách StaffData full cho view thống kê (chỉ đọc; StaffData đổi theo khung giờ nên cache dài, invalidate khi syncFromCsv)
   TZ: 24 * 60 * 60,          // 24h — timezone (cache 1 lần, KHÔNG gọi trong loop)
   SETTINGS: 60,              // 60s — cấu hình (admin hiếm đổi; saveSettings_ invalidate ngay)
