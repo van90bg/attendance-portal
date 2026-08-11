@@ -980,7 +980,7 @@
       .home-hero { min-height: calc(100vh - var(--header-h) - var(--bottom-nav-h) - 24px); }
       /* Mobile: nút topbar gọn + title 1 dòng — tiết chiều dọc (scan topbar 151px quá cao, 2026-08-11) */
       .view-topbar { row-gap: 6px; }
-      .view-topbar .btn { padding: 7px 12px; font-size: 13px; }
+      .view-topbar .btn { padding: 8px 14px; min-height: 40px; font-size: 13px; }  /* touch 40px (audit 375px: trước 29px) */
       .view-topbar .task-title { font-size: 16px; }
       .view-topbar .task-meta { font-size: 11px; }
       /* viewScan: topbar + counters + input + bảng xếp chồng vượt viewport → cuộn TRONG section,
@@ -992,6 +992,11 @@
       .scan-card { padding: 12px 16px; margin-top: 10px; }
       /* Chips (chọn Station/Ca/Team/Hình thức/Ngày — create modal + stats filter): touch ~36px thay 27px (2026-08-11) */
       .pick { padding: 8px 14px; font-size: 13px; }
+      /* Touch nút nhỏ mobile (audit CDP 375px — 2026-08-11): btn-sm 27px · btn-icon 27px · pag-btn 26px → min-height chốt 36px */
+      .btn-sm { padding: 8px 14px; min-height: 36px; font-size: 13px; }
+      .list-search .btn-icon { padding: 8px 11px; min-height: 36px; }
+      .pag-btn { padding: 6px 12px; min-height: 36px; font-size: 13px; min-width: 36px; }
+      header .btn-icon-dark { min-height: 36px; padding: 6px 10px; font-size: 13px; }
     }
     /* Main: nhường chỗ khi mở sidebar; tự tràn khi ẩn/thu gọn */
     #main-content { flex: 1 1 auto; min-width: 0; min-height: 0; }
