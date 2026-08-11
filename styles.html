@@ -289,7 +289,8 @@
     #createModal.about-overlay .about-dialog { transform: scale(.95); transition: transform .2s ease-out; }
     #createModal.about-overlay.open .about-dialog { transform: scale(1); }
     /* touch target 44px (v1) */
-    #createModal .about-dialog .btn { min-height: 44px; font-size: 14px; font-weight: 600; }
+    /* Touch target modal chung (2026-08-11): paste/create/confirm — 44px kiosk, font 14px gọn */
+    .about-dialog .btn { min-height: 44px; font-size: 14px; font-weight: 600; }
     @media (max-width: 719px) {
       #createModal .about-dialog {
         width: 100vw; max-width: 100vw;
