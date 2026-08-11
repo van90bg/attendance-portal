@@ -3294,7 +3294,8 @@
     if (!target) { resetScanCard(); return; }
     // C2: Dư = cam (extra), đã điểm danh/đã có mặt = cam (warn, không phải lỗi), lỗi = đỏ, ok = xanh.
     // FREE phase1: status PENDING ('Chưa điểm danh') → xanh (primary) — chưa phải lỗi/cảnh báo.
-    var cls = (status === STATUS_C.PENDING || status === 'Chưa điểm danh') ? 'pending'
+    // C4 (review 2026-08-11): wire value PENDING = '-' — so 'Chưa điểm danh' là dead arm
+    var cls = (status === STATUS_C.PENDING) ? 'pending'
       : (mode === 'err' ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok')));
     card.className = 'scan-card ' + cls;
     card.innerHTML = scanCardHTML(status, target);
@@ -3324,7 +3325,8 @@
     // P1-2: khôi phục đúng màu như showScanCard (3171) — PENDING→pending (xanh),
     // EXTRA→extra (cam), còn lại→ok. Trước đây chỉ phân biệt EXTRA vs ok nên mở lại
     // task có lượt quét phase1 (PENDING) sẽ bị tô xanh ok thay vì pending.
-    var cls = (last.status === STATUS_C.PENDING || last.status === 'Chưa điểm danh') ? 'scan-card pending'
+    // C4 (review 2026-08-11): wire value PENDING = '-' — so 'Chưa điểm danh' là dead arm
+    var cls = (last.status === STATUS_C.PENDING) ? 'scan-card pending'
       : (last.status === STATUS_C.EXTRA ? 'scan-card extra' : 'scan-card ok');
     card.className = cls;
     card.innerHTML = scanCardHTML(last.status || STATUS_C.PRESENT, last);
