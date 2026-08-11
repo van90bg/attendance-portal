@@ -156,7 +156,11 @@ function taskCountersForList_() {
       const taskId = String(row[LOG_COLS.TASK_ID] || '').trim();
       if (!taskId) continue;
       const st = String(row[LOG_COLS.STATUS] || '');
-      const hasScan = !!row[LOG_COLS.TIME_SCAN];
+      // S3/D1 (review 2026-08-11): epoch là nguồn sự thật — khớp computeCounters
+      // (Number(timeScanEpoch)>0, ScanLogic.gs:124). Trước dùng !!cell — cell junk/
+      // string legacy (safeDate_ parse fail) vẫn tính scanned → list lệch detail.
+      const dScan = safeDate_(row[LOG_COLS.TIME_SCAN]);
+      const hasScan = dScan ? dScan.getTime() > 0 : false;
       if (!out[taskId]) out[taskId] = { total: 0, scanned: 0, extra: 0 };
       out[taskId].total++;
       if (hasScan) out[taskId].scanned++;
