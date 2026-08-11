@@ -654,11 +654,11 @@
       map[a][b] = (map[a][b] || 0) + 1;
     });
     var rowLabel = rowField === 'slotCode' ? 'Ca' : rowField;
-    var html = '<table class="stats-table"><thead><tr><th>' + esc(rowLabel) + '</th>';
-    colKeys.forEach(function (c) { html += '<th>' + esc(c) + '</th>'; });
-    html += '<th class="total">Tổng</th></tr></thead><tbody>';
+    var html = '<table class="stats-table"><thead><tr><th scope="col">' + esc(rowLabel) + '</th>';
+    colKeys.forEach(function (c) { html += '<th scope="col">' + esc(c) + '</th>'; });
+    html += '<th scope="col" class="total">Tổng</th></tr></thead><tbody>';
     rowKeys.forEach(function (a) {
-      html += '<tr><td class="row-head">' + esc(a) + '</td>';
+      html += '<tr><td scope="row" class="row-head">' + esc(a) + '</td>';
       var rowTotal = 0;
       colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td>' + fmtN(v) + '</td>'; });
       html += '<td class="total">' + fmtN(rowTotal) + '</td></tr>';
