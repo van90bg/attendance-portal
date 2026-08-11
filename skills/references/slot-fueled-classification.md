@@ -1,6 +1,6 @@
 # Slot-based classification ('Tự do' = FREE) — approved 2026-08-08
 
-Status: **user-approved design, NOT yet implemented** (mockup sketches/005-dropdown-config 005e approved; real `index.html` still has 2 tabs). When implementing, follow this plan exactly and keep `taskType` stored.
+Status: **user-approved design, đã implement vào app thật** (mockup sketches/005-dropdown-config 005e approved — thư mục sketches đã xóa 2026-08-11; real app giờ dùng dropdown config 1 chế độ). When implementing, follow this plan exactly and keep `taskType` stored.
 
 ## Decision
 Replace the modal's Free/Reconcile **tab** with a magic **slot value `'Tự do'`** inside the Ca dropdown. `'Tự do'` means FREE: no roster pre-fill, task starts OPEN (phase1 builds the danh sách), phases behave exactly like today's noList flow. Any real slotCode → reconcile (pre-fill roster, task starts ATTEND).

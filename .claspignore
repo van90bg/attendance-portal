@@ -42,7 +42,6 @@ index.local.html
 codegraph.json
 .codegraph/**
 
-# ===== Sketches / local sim (không push GAS) =====
-sketches/**
+# ===== Local assets / sim (không push GAS) =====
 .freebuff/**
 *.svg

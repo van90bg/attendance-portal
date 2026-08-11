@@ -18,7 +18,7 @@ App scope mở rộng: quản lý chấm công, không chỉ điểm danh. Layou
 
 Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewTasks', data:'viewStaff', config:'viewConfig', reports:'viewReports', about:'viewAbout' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
 
-- viewHome: hero logo local (`sea-logo.svg`/`spx-express.svg`) + tên + đồng hồ realtime (`renderHomeClock`, Intl Asia/Ho_Chi_Minh).
+- viewHome: hero logo SPX — URL remote `https://spx.vn/new_static/assets/images/sea-logo.svg` (`onerror` ẩn khi không tải được, KHÔNG dùng file svg local — đã xóa 2026-08-11) + tên + đồng hồ realtime (`renderHomeClock`, Intl Asia/Ho_Chi_Minh).
 - viewStats: pivot fullscreen — 2 bảng Contract×Ca + Agency×Ca, MỖI TEAM 1 bảng (Ca dọc), filter Station · Ngày · Department. viewStaff (page key `data`): bảng StaffData fullscreen (search `#staffSearch` + count `#staffCount`).
 - View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig','viewReports']`.
 
@@ -59,7 +59,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - Table headers Vietnamese: Ngày · Mã NV · Tên NV · Ca · Team · Giờ có mặt · Giờ quét · Trạng thái. (StaffData table riêng — xem §9.)
 - FREE description: "Quét lần 1 lấy danh sách, lần 2 điểm danh; NV lần 2 chưa có lần 1 → Dư."
 - Task type badge: FREE → 'Quét tự do' (purple), RECONCILE → 'Đối chiếu' (blue). List order: STT, Mã task, Loại, Station, Team, Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác.
-- Modal: với đổi màn tạo task → MUST làm HTML mockup trước (`sketches/00X`), user duyệt, mới implement (luật user — strict).
+- Modal: với đổi màn tạo task → MUST làm HTML mockup trước (thư mục mockup riêng — `sketches/` đã xóa 2026-08-11), user duyệt, mới implement (luật user — strict).
 - Slot-based: FREE sends `slotCode:['Tự do']` thay `noList:true` (magic value `'Tự do'`, mutually exclusive với real slots; FREE hide Hình thức + disable Ngày). `classifyScan`/`pasteCodes` đọc `taskType` từ sheet — KHÔNG đổi.
 
 ## 6. Scan table column/sort coupling — PITFALL (2026-08-08: 11 col, Mã NV added)
