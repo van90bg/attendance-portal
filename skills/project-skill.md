@@ -1,4 +1,4 @@
-﻿# Project Skill — Attendance Portal (RollCall v2)
+# Project Skill — Attendance Portal (RollCall v2)
 
 > Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/rollcall-kiosk-v2x`).
 > Dùng khi: bất kỳ edit nào với repo này (UI, server, tests, docs).
@@ -9,7 +9,7 @@
 
 - Local: `C:\Users\Van90BG\Documents\AppScript\RollCall_2_deploy` · Remote `main` (CI self-clasp).
 - **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug (`gh run list --limit 5`, đối chiếu `.head_sha`).
-- Test: `npm run test` = 110 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
+- Test: `npm run test` = 114 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
 - Frontend (tách 3 file 2026-08-11): `index.html` (HTML + `<?!= include() ?>` GAS template) + `styles.html` (CSS) + `app.html` (JS) — cả 3 CRLF. Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService `.gs`. Test local: `node scripts/build-local.js` → `index.local.html` (trình duyệt không render template).
 
 ## 2. Shell: Attendance Portal (2026-08-09)
@@ -28,7 +28,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - `logRow.status`: `PENDING`(-/Chưa điểm danh) · `PRESENT`(Có mặt) · `ABSENT`(Vắng) · `EXTRA`(Dư).
 - **Epoch là nguồn sự thật** cho counters/sort: `timeRefEpoch`/`timeScanEpoch` (text `HH:mm:ss` mất ngày qua đêm). `computeCounters` đếm theo epoch.
 - `classifyScan(cfg,task,logRows,staffId)` → `{action:update|append|reject, phase, field, status}`.
-- Layers: `scanStaffApi`(Code) → `scanStaff`(ScanService) → `classifyScan`(ScanLogic) + `appendLogRow_`/`updateLogRowScan_`(Database). LockService + try/catch — không throw client, trả `ok:false`.
+- Layers: `scanStaffApi`(Code) → `scanStaff`(ScanService) → `classifyScan`(ScanLogic) + `appendLogRow_`/`updateLogRowScan_`/`batchUpdateLogRows_`(LogRepo). LockService + try/catch — không throw client, trả `ok:false`.
 - `reopenTask` → ATTEND (KHÔNG quay OPEN); client recompute phase từ `task.status`.
 - ROSTER reconcile → created với `status: ATTEND` (pre-fill log); FREE (noList) → `status:OPEN`.
 - **NO LIST phase2 rule**: NV lạ scanned trong phase2 → **EXTRA (Dư)**, KHÔNG phải PRESENT. Client `optimistic status` phải mirror server (`target.status === EXTRA ? EXTRA : PRESENT`).
@@ -78,7 +78,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - **`getSpreadsheet_` KHÔNG tự tạo DB**: Config `ALLOW_DB_AUTO_CREATE=false` → throw `'Chưa cấu hình spreadsheet…'` (fail loudly, đừng phân mảnh).
 - StaffData header: cấu hình 20 cột tên đúng CSV (bao gồm `'No.'` — không `'No'`) — `STAFF_DATA_HEADER` trong Config; `ensureSheets_` set header chỉ khi empty.
 
-## 8. Deterministic editing (bắt buộc trên index.html)
+## 8. Deterministic editing (bắt buộc trên 3 file template index/styles/app)
 
 - Fuzzy patch BANNED; sed/echo trong bash làm hỏng VN+CRLF -> dùng script Python/Node deterministic (xem `skills/references/deterministic-batch-runner.md` + `scripts` pattern).
 - Python pattern: read/write với `newline=''`; ĐỌC dùng `encoding='utf-8-sig'` (strip BOM), GHI dùng `encoding='utf-8'` (KHÔNG sig — utf-8-sig write THÊM BOM gây khoảng trống trên header khi GAS serve, lesson 9982293); anchor literal `\r\n`; mọi replace `assert count==1`.
@@ -135,7 +135,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## Verify workflow
 
-- Logic changes → `npm run test` (110/110). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (114/114). UI-only → parse+CRLF đủ.
 - CDP: `node scripts/build-local.js` trước rồi `node scripts/cdp-helper.js open "file:///.../index.local.html?t=N"` — geometry `getBoundingClientRect` là truth; check `scrollHeight` vs `innerHeight`, `section.parentElement` (repair), table parents.
 - Production bug: `gh run list --limit 5` TRƯỚC khi kết luận — CI trễ → user test GAS build cũ.
 
