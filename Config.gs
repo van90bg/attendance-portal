@@ -129,7 +129,7 @@ const CACHE_KEYS = {
   SEARCH_STAFF: 'rc2_search_staff_v1_',   // prefix + staffId — kết quả tìm NV xuyên task (TTL 15s)
   STAFF_STATS: 'rc2_staffStats_v1',     // toàn bộ StaffData (list full) — view thống kê, TTL 30s
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)
-  SETTINGS: 'rc2_settings_v1',
+  SETTINGS: 'rc2_settings_v2',  // v2: thêm group lists station/team/slotcode/department (2026-08-11)
 };
 
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====
@@ -162,11 +162,18 @@ const WEB_APP = {
 // lọc/lập lịch + báo cáo theo mail (P1). Key chưa có kế hoạch dùng thì KHÔNG thêm (tránh
 // config chết). Whitelist: key lạ không nằm trong đây bị saveSettings_ bỏ qua.
 const SETTINGS_DEFAULTS = {
+  // Single values (Config sheet: cột Key/Value, Group rỗng) — pre-select khi tạo task
   defaultStation: '',   // Station mặc định — pre-select khi tạo task (P1)
   defaultSlotCode: '',  // Ca (slot) mặc định — pre-select khi tạo task (P1)
   defaultTeam: '',      // Team mặc định — pre-select khi tạo task (P1)
-  department: '',       // Department mặc định — lọc/lập lịch NV (P1: báo cáo theo mail)
   roleMap: {},          // { email: role } — phân quyền mở rộng (P1: RoleService — Auth.getRole_)
+  // Group lists (Config sheet: 4 cột Key/Value/Group/Index — mỗi dòng 1 giá trị có thứ tự)
+  // Config Admin render thành danh sách lựa chọn (dropdown tạo task / filter);
+  // thêm/bớt giá trị = thêm/xoá dòng trong sheet, KHÔNG đụng JSON như roleMap.
+  station: [],    // danh sách Station (key station1..stationN, group='station', index=1..N)
+  team: [],       // danh sách Team
+  slotcode: [],   // danh sách Slot Code (Ca)
+  department: [], // danh sách Department
 };
 
 // ===== Role (phân quyền mở rộng — nền cho trang Config Admin & báo cáo theo mail) =====

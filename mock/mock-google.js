@@ -102,9 +102,15 @@
 
   // Settings Admin (mock): state bền giữa save/get — giống prod đọc sheet thật.
   var SETTINGS_DEFAULTS_MOCK = {
-    defaultStation: '', defaultSlotCode: '', defaultTeam: '', department: '', roleMap: {},  // khớp SETTINGS_DEFAULTS (Config.gs)
+    defaultStation: '', defaultSlotCode: '', defaultTeam: '', roleMap: {},  // single keys (Config.gs)
+    station: [], team: [], slotcode: [], department: [],  // group keys — khớp SETTINGS_DEFAULTS (Config.gs)
   };
-  var MOCK_SETTINGS = {};
+  var MOCK_SETTINGS = {
+    station: ['HN2 SOC', 'HN SOC'],
+    team: ['Inbound', 'Outbound'],
+    slotcode: ['08:00-17:00', '13:00-01:00', '18:00-02:00'],
+    department: ['SOC'],
+  };
 
   var handlers = {
     getMetaApi: function () {

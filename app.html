@@ -1368,9 +1368,18 @@
     { key: 'defaultStation', label: 'Station mặc định', placeholder: 'VD: KHO-01' },
     { key: 'defaultSlotCode', label: 'Slot Code (Ca) mặc định', placeholder: 'VD: Ca 1' },
     { key: 'defaultTeam', label: 'Team mặc định', placeholder: 'VD: Team A' },
-    { key: 'department', label: 'Department mặc định', placeholder: 'VD: Kho Chính' },
+    // department KHÔNG ở đây — đã chuyển thành group (CFG_GROUPS): key đơn Sửa/Xoá
+    // sẽ gửi {department: string} → server group branch xóa SẠCH danh sách Department.
   ];
   var CFG_STATE = {}; // bản sao settings hiện tại — render lại khi Huỷ sửa
+  // Group lists (Config sheet 4 cột Key/Value/Group/Index — 2026-08-11): danh sách lựa chọn
+  // cho dropdown tạo task / filter. Mỗi group 1 section: item Sửa/Xoá + nút + Thêm.
+  var CFG_GROUPS = [
+    { key: 'station', label: 'Danh sách Station' },
+    { key: 'team', label: 'Danh sách Team' },
+    { key: 'slotcode', label: 'Danh sách Slot Code (Ca)' },
+    { key: 'department', label: 'Danh sách Department' },
+  ];
 
   function renderConfigForm(s) {
     CFG_STATE = s || {};
@@ -1382,7 +1391,8 @@
   function renderCfgList() {
     var box = document.getElementById('cfgList');
     if (!box) return;
-    box.innerHTML = CFG_FIELDS.map(function (f) {
+    // (1) Single defaults — pre-select khi tạo task
+    var html = CFG_FIELDS.map(function (f) {
       var v = CFG_STATE[f.key];
       var val = (v === null || v === undefined || v === '') ? '<span class="cfg-empty-val">(trống)</span>' : esc(String(v));
       return '<div class="cfg-item" data-key="' + f.key + '">'
@@ -1394,6 +1404,87 @@
         + '</div>'
       + '</div>';
     }).join('');
+    // (2) Group lists — danh sách lựa chọn (station/team/slotcode/department)
+    html += '<div class="cfg-group-sep" role="separator" aria-label="Danh sách lựa chọn"></div>';
+    html += CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g); }).join('');
+    box.innerHTML = html;
+  }
+
+  // Render 1 group section: title + item list (Sửa/Xoá) + nút Thêm
+  function cfgGroupHtml_(g) {
+    var list = safeArr(CFG_STATE[g.key]);
+    var items = list.length
+      ? list.map(function (v, i) {
+          return '<div class="cfg-item cfg-item-group" data-group="' + g.key + '" data-idx="' + i + '">'
+            + '<div class="cfg-item-label cfg-item-idx">#' + (i + 1) + '</div>'
+            + '<div class="cfg-item-value">' + esc(String(v)) + '</div>'
+            + '<div class="cfg-item-actions">'
+              + '<button type="button" class="btn btn-outline btn-sm" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')">Sửa</button>'
+              + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')">Xoá</button>'
+            + '</div>'
+          + '</div>';
+        }).join('')
+      : '<div class="cfg-empty-val cfg-group-empty">(chưa có — bấm + Thêm)</div>';
+    return '<div class="cfg-group" data-group="' + g.key + '">'
+      + '<div class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + list.length + ' mục</span></div>'
+      + items
+      + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
+    + '</div>';
+  }
+
+  // Sửa item group: thay item idx bằng input + Lưu/Huỷ
+  function editCfgGroupItem(group, idx) {
+    var box = document.getElementById('cfgList');
+    if (!box) return;
+    var list = safeArr(CFG_STATE[group]);
+    var cur = list[idx] === undefined ? '' : list[idx];
+    var item = box.querySelector('.cfg-item-group[data-group="' + group + '"][data-idx="' + idx + '"]');
+    if (!item) return;
+    item.innerHTML = '<div class="cfg-item-label cfg-item-idx">#' + (idx + 1) + '</div>'
+      + '<input class="cfg-input cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="Giá trị" autocomplete="off">'
+      + '<div class="cfg-item-actions">'
+        + '<button type="button" class="btn btn-sm" onclick="saveCfgGroupItem(\'' + group + '\',' + idx + ')">Lưu</button>'
+        + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelCfgGroupEdit(\'' + group + '\',' + idx + ')">Huỷ</button>'
+      + '</div>';
+    var inp = document.getElementById('cfgGroupEditInput');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+
+  function cancelCfgGroupEdit() { renderCfgList(); }
+
+  function saveCfgGroupItem(group, idx) {
+    var inp = document.getElementById('cfgGroupEditInput');
+    var v = inp ? inp.value.trim() : '';
+    var list = safeArr(CFG_STATE[group]).slice();
+    list[idx] = v;
+    var btn = document.querySelector('.cfg-item-group[data-idx="' + idx + '"] .cfg-item-actions button');
+    setBtnBusy_(btn, 'Đang lưu…');
+    var patch = {}; patch[group] = list;
+    saveConfigPatch(patch, 'Đã lưu ' + groupLabel_(group));
+  }
+
+  function deleteCfgGroupItem(group, idx) {
+    showConfirm('Xoá mục', 'Xoá "' + String(safeArr(CFG_STATE[group])[idx]) + '" khỏi ' + groupLabel_(group) + '?', function () {
+      var list = safeArr(CFG_STATE[group]).slice();
+      list.splice(idx, 1);
+      var patch = {}; patch[group] = list;
+      saveConfigPatch(patch, 'Đã xoá mục khỏi ' + groupLabel_(group));
+    });
+  }
+
+  function addCfgGroupItem(group) {
+    // KHÔNG gọi server: append '' cục bộ + mở ô nhập ngay (server lọc item rỗng → gọi server
+    // rồi reload sẽ không thấy row mới — UX hỏng). User nhập giá trị → Lưu → save cả mảng.
+    var list = safeArr(CFG_STATE[group]).slice();
+    list.push('');
+    CFG_STATE[group] = list;
+    renderCfgList();
+    editCfgGroupItem(group, list.length - 1);
+  }
+
+  function groupLabel_(group) {
+    for (var i = 0; i < CFG_GROUPS.length; i++) { if (CFG_GROUPS[i].key === group) return CFG_GROUPS[i].label; }
+    return group;
   }
 
   function editCfgField(key) {
