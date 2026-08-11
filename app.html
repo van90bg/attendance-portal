@@ -1683,11 +1683,7 @@
         META = meta;
         // #10: gợi ý tìm theo role — manager+ mới nhắc tìm NV (searchLogsByStaff gate manager)
         var lsEl = document.getElementById('listSearch');
-        if (lsEl) {
-          lsEl.placeholder = canManager_()
-            ? 'Tìm Ops (Ops6219) hoặc task (R2026)'
-            : 'Tìm task (R2026)';
-        }
+        if (lsEl) lsEl.placeholder = 'Tìm ' + listSearchHint_();
         // Hiển thị user ở header (v1 style) — chỉ tên, KHÔNG badge quyền
         var uEl = document.getElementById('userEmail');
         if (uEl) {
@@ -2195,12 +2191,17 @@
     var r = META && META.role ? String(META.role).toLowerCase() : '';
     return ROLE_RANK[r] !== undefined && ROLE_RANK[r] >= ROLE_RANK.manager;
   }
+  // Gợi ý tìm theo role — manager+ mới nhắc tìm NV (searchLogsByStaff gate manager).
+  // 1 nguồn duy nhất: dùng cho placeholder #listSearch + toast rỗng runListSearch.
+  function listSearchHint_() {
+    return canManager_() ? 'Ops (Ops6219) hoặc task (R2026)' : 'task (R2026)';
+  }
   // F-search: chạy tìm theo giá trị #listSearch. Mã Ops => tìm NV xuyên task;
     // còn lại (bắt đầu R + số / chuỗi bất kỳ) => tìm task theo mã.
     function runListSearch() {
       var inp = document.getElementById("listSearch");
       var raw = inp ? inp.value.trim() : "";
-      if (!raw) { showToast("Nhập mã Ops (Ops6219) hoặc mã task (R2026) để tìm", true); return; }
+      if (!raw) { showToast("Nhập " + listSearchHint_() + " để tìm", true); return; }
       // #10: tìm NV xuyên task cần role manager+ (server cũng gate fail-closed) — chặn sớm trước RPC
       if (BARCODE_ID_RE.test(raw)) {
         if (!canManager_()) {
