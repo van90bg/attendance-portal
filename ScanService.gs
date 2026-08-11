@@ -179,6 +179,10 @@ function scanStaff(taskId, rawStaffId) {
       }
     }
 
+    // S5 (review 2026-08-11): race-branch — nếu re-check tìm thấy existing (kiosk khác
+    // vừa append trong lock), logRows snapshot cũ thiếu row đó → counters undercount 1
+    // cho đến lần load sau. Push existing vào để đếm đúng ngay (mirror append path:167).
+    if (existing && logRows.indexOf(existing) === -1) logRows.push(existing);
     const counters = computeCounters({ STATUS: STATUS }, logRows);
     // P2 benchmark: tổng + tách giai đoạn — QA prod đọc Stackdriver biết ngay
     // bottleneck (read sheet vs write). Phân tích: t1→t2 = đọc task+log (full sheet),
