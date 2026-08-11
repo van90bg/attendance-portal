@@ -83,4 +83,15 @@ function ensureSheets_() {
     logSheet.insertColumnAfter(logSheet.getLastColumn());
     logSheet.getRange(1, colIdx).setValue(LOG_HEADER_BY_COL[String(colIdx)] || '');
   }
+  // D3 (review 2026-08-11): inverse branch — sheet legacy >11 cột (thời cardIn/cardOut,
+  // Config.gs ghi chú bỏ 2026-08-03) không bao giờ bị check. Writer dùng LOG_COL_COUNT=11
+  // sẽ ghi DATE (cột 11 theo LOG_COLS.DATE) vào cột mang header cũ (vd cardIn) — data sai
+  // âm thầm. KHÔNG tự xóa/trim (destructive, có thể mất dữ liệu báo cáo cũ) — log loud
+  // để operator dọn tay khi thấy trên Stackdriver.
+  if (logSheet.getLastColumn() > LOG_COL_COUNT) {
+    const hdr = logSheet.getRange(1, 1, 1, logSheet.getLastColumn()).getValues()[0];
+    console.error('LOG SHEET có ' + logSheet.getLastColumn() + ' cột (> ' + LOG_COL_COUNT
+      + ') — cột ' + (LOG_COL_COUNT + 1) + ' mang header "' + String(hdr[LOG_COL_COUNT] || '')
+      + '". Writer ghi 11 giá trị, DATE sẽ vào cột sai header. Dọn sheet về 11 cột hoặc migration tay.');
+  }
 }
