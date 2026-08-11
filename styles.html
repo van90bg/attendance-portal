@@ -60,7 +60,7 @@
       line-height: 1.5;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;  /* card giãn tới chân trang — hết khoảng trống cuối (2026-08-11) */
+      height: 100vh; height: 100dvh; overflow: hidden;  /* khóa 1 màn hình: nội dung dài cuộn TRONG card, trang không cuộn (2026-08-11) */
     }
     header {
       background: var(--card);
@@ -121,10 +121,10 @@
 
     main {
       max-width: 1920px; margin: 0 auto; padding: var(--space-4);
-      flex: 1 0 auto; display: flex; flex-direction: column; min-width: 0;
+      flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0;
     }  /* wide-screen: tận dụng màn lớn cho nhiều cột */
     /* View active giãn full chiều cao — card chạm đáy viewport (2026-08-11) */
-    main > section { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 0; }
+    main > section { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
     main > section > .card { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .card {
       background: var(--card);
@@ -902,7 +902,7 @@
     }
     /* ===== Attendance Portal — Sidebar điều hướng chính ===== */
     body { overflow-x: hidden; }
-    .app-shell { display: flex; min-height: 0; }
+    .app-shell { display: flex; flex: 1 1 auto; min-height: 0; }
     #sidebar {
       flex: 0 0 240px; width: 240px;
       background: var(--header-bg);
@@ -950,7 +950,7 @@
       #sidebar { flex-basis: 200px; width: 200px; position: fixed; left: 0; top: var(--header-h); bottom: 0; z-index: 40; }
     }
     /* Main: nhường chỗ khi mở sidebar; tự tràn khi ẩn/thu gọn */
-    #main-content { flex: 1 1 auto; min-width: 0; }
+    #main-content { flex: 1 1 auto; min-width: 0; min-height: 0; }
 
     /* ===== Trang chủ — logo + tên + đồng hồ lớn ===== */
     #viewHome { min-height: 100%; }
@@ -958,6 +958,7 @@
     #viewAbout .card { max-height: calc(100vh - var(--header-h) - 48px); overflow-y: auto; }
     #viewReports .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; overflow-y: auto; }  /* reports có topbar — trừ 120 như viewStats để trang không cuộn */
     #viewStats .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; }  /* -120: trừ cả topbar + main padding để trang không cuộn khi wrap max */
+    #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }  /* form dài → cuộn trong card, trang không cuộn */
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       min-height: calc(100vh - var(--header-h) - 48px);
