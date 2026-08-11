@@ -135,7 +135,11 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## Verify workflow
 
-- Logic changes → `npm run test` (114/114). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (114/114 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
+- **Checklist 3 audit (2026-08-11) — chạy sau MỌI batch**:
+  - `npm run test:css` — dead CSS class (styles.html vs index/app + JS render động); exit 1 nếu có dead.
+  - `npm run test:gs` — hàm/const/API dead trong 14 file .gs (đối chiếu gs + index/app + mock + tests + scripts); exit 1 nếu dead/treo.
+  - `npm run test:style` — computed style class chung qua CDP (--strict; cần Chrome); exit 1 nếu lệch ngoài ALLOWED_DRIFT (modal 44px touch / btn-sm / cfg-card / flabel 56px / card+table-wrap flex scan là chủ đích).
 - CDP: `node scripts/build-local.js` trước rồi `node scripts/cdp-helper.js open "file:///.../index.local.html?t=N"` — geometry `getBoundingClientRect` là truth; check `scrollHeight` vs `innerHeight`, `section.parentElement` (repair), table parents.
 - Production bug: `gh run list --limit 5` TRƯỚC khi kết luận — CI trễ → user test GAS build cũ.
 
