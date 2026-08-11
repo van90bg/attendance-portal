@@ -95,6 +95,7 @@ function scanStaff(taskId, rawStaffId) {
     let timeRefEpoch = 0;
     let scannedName = null;
     let extraRow = null;
+    let existing = null;  // S5 (review 2026-08-11): hoist khỏi block append — race-branch push counters đọc được; block-scoped let trước đây gây ReferenceError 'existing is not defined'
     // field do classifyScan chỉ định: 'timeRef' (phase1: Giờ có mặt) | 'timeScan' (phase2: Giờ quét)
     const field = result.field;
     if (result.action === 'update') {
@@ -118,7 +119,6 @@ function scanStaff(taskId, rawStaffId) {
     } else if (result.action === 'append') {
       // P2-6: re-check cache (có thể kiosk khác vừa push dòng này trong lock) trước khi append
       // → tránh Dư TRÙNG LẶP khi 2 kiosk quét CÙNG staffId lạ trong cửa sổ cache TTL.
-      let existing = null;
       try { existing = findLogRow(readLogRowsCached_(taskId), staffId); } catch (e) { console.warn('recheck cache fail', e.message); }
       const now = new Date();
       // Đọc staffIndex CHỈ khi thực sự cần append (lazy). G: wrap try/catch — nếu
