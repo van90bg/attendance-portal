@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TaskService.gs — Nghiệp vụ task (tạo/đóng/chuyển phase) + pre-fill log.
  *
  * 2-phase attendance: tạo task → phase1 (Mở, quét Giờ có mặt) → phase2 (Điểm danh,
@@ -52,13 +52,12 @@ function createReconcileTask(input) {
   // Deploy "Anyone within @spxexpress.com" → getActiveUser() trả email người đăng nhập thật.
   const createdBy = getActiveEmail_() || 'web';
 
-  // 2026-08-07: CẢ 2 luồng (reconcile + FREE) đều cần station + team.
+  // 2026-08-07: CẢ 2 luồng (reconcile + FREE) đều cần station.
   // Reconcile thêm slotCode; FREE tự gán slotCode='Tự do' (xem build task dưới).
-  if (!station || !filterTeams.length) {
-    return { ok: false, taskId: null, count: 0, message: 'Thiếu station/team' };
-  }
-  if (!noList && !filterSlots.length) {
-    return { ok: false, taskId: null, count: 0, message: 'Thiếu slotCode (Ca)' };
+  // 2026-08-11: team/slot RỖNG hợp lệ = 'Tất cả' (không lọc) — filterStaffByGroup bỏ lọc
+  // khi mảng rỗng; guard deduped.length dưới vẫn chặn task 0 NV. Station luôn bắt buộc.
+  if (!station) {
+    return { ok: false, taskId: null, count: 0, message: 'Thiếu station' };
   }
 
   const lock = LockService.getScriptLock();

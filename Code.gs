@@ -71,6 +71,14 @@ function getFilterOptionsApi() {
       slotCode: getSetting_('defaultSlotCode'),
       team: getSetting_('defaultTeam'),
     },
+    // lists (Config sheet qua SettingsService) — danh sách lựa chọn Admin khai báo.
+    // Client MERGE với distinct StaffData (union, dedup) để không mất giá trị thực
+    // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → kiosk OK.
+    lists: {
+      stations: settingsList_('stations'),
+      teams: settingsList_('teams'),
+      slotcodes: settingsList_('slotcodes'),
+    },
   };
 }
 

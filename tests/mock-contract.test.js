@@ -96,12 +96,17 @@ test('getSettingsApi settings có đủ keys của server SETTINGS_DEFAULTS', as
   assert.deepEqual(missing, [], 'mock thiếu key settings so server: ' + missing.join(', '));
 });
 
-// getFilterOptionsApi kèm defaults (pre-select tạo task) — mock phải trả đủ shape.
-test('getFilterOptionsApi shape khớp server: { ok, stationGroups, defaults }', async () => {
+// getFilterOptionsApi kèm defaults (pre-select tạo task) + lists (danh sách Admin khai báo
+// — client merge với distinct StaffData) — mock phải trả đủ shape khớp server.
+test('getFilterOptionsApi shape khớp server: { ok, stationGroups, defaults, lists }', async () => {
   const { call } = loadMock();
   const f = await call('getFilterOptionsApi');
-  assert.deepEqual(Object.keys(f).sort(), ['defaults', 'ok', 'stationGroups']);
+  assert.deepEqual(Object.keys(f).sort(), ['defaults', 'lists', 'ok', 'stationGroups']);
   assert.deepEqual(Object.keys(f.defaults || {}).sort(), ['slotCode', 'station', 'team']);
+  assert.deepEqual(Object.keys(f.lists || {}).sort(), ['slotcodes', 'stations', 'teams']);
+  assert.ok(Array.isArray(f.lists.stations), 'lists.stations phải là mảng');
+  assert.ok(Array.isArray(f.lists.teams), 'lists.teams phải là mảng');
+  assert.ok(Array.isArray(f.lists.slotcodes), 'lists.slotcodes phải là mảng');
 });
 
 // searchLogsByStaffApi gate manager server-side → shape { ok, rows } (client phân biệt

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * mock-google.js — Mock google.script.run cho test UI local (mở index.html trực tiếp).
  *
  * KHÔNG push lên GAS production (đã .claspignore). Chỉ dùng khi chạy file://
@@ -129,8 +129,8 @@
       return { ok: true, index: slim };
     },
     getFilterOptionsApi: function () {
-      // Khớp server: trả cây stationGroups cho modal tạo task (3 cấp checkbox)
-      // Khớp server: chỉ trả stationGroups (client render 4 cột checkbox từ đây)
+      // Khớp server: trả cây stationGroups cho modal tạo task + defaults (pre-select) + lists
+      // (danh sách Admin khai báo — client merge với distinct StaffData qua mergeOpts_).
       return {
         ok: true,
         defaults: {
@@ -138,6 +138,12 @@
           station: (MOCK_SETTINGS.defaultStation || ''),
           slotCode: (MOCK_SETTINGS.defaultSlotCode || ''),
           team: (MOCK_SETTINGS.defaultTeam || ''),
+        },
+        lists: {
+          // khớp server getFilterOptionsApi.lists (SettingsService settingsList_)
+          stations: (MOCK_SETTINGS.stations || []).slice(),
+          teams: (MOCK_SETTINGS.teams || []).slice(),
+          slotcodes: (MOCK_SETTINGS.slotcodes || []).slice(),
         },
         stationGroups: [
           {

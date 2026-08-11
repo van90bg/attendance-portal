@@ -1706,7 +1706,9 @@
         if (!res.ok) { _releaseRefreshLock(); showToast(res.message, true); return; }
         STATION_GROUPS = res.stationGroups || [];
         CFG_DEFAULTS = res.defaults || CFG_DEFAULTS;
-        var canCreate = STATION_GROUPS.length > 0;
+        CFG_LISTS = res.lists || { stations: [], teams: [], slotcodes: [] };
+        // Admin khai báo station trong Config (chưa có data) vẫn tạo task được.
+        var canCreate = STATION_GROUPS.length > 0 || (CFG_LISTS.stations || []).length > 0;
         document.getElementById('btnCreate').disabled = !canCreate;
         // Modal mở trước khi options về (load chậm): SEL chưa chọn gì → áp dụng defaults ngay.
         // Đã có chọn tay thì KHÔNG đè (tôn trọng thao tác user).
@@ -1734,8 +1736,8 @@
     var contractType = SEL.contractTypes;
     var date = SEL.date;
     if (isFreeSel()) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal('—'); return; }
-    // Cascade: đếm theo filter hiện có — station + team đủ là bắt đầu đếm (Ca tùy chọn)
-    if (!station || !team.length) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0); return; }
+    // Cascade: đếm theo filter hiện có — station bắt buộc; team/slot rỗng = 'Tất cả' (không lọc)
+    if (!station) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0); return; }
     clearTimeout(_previewTimer);
     var seq = ++_previewSeq;
     _previewTimer = setTimeout(function () {
@@ -1755,6 +1757,25 @@
   var STATION_GROUPS = [];   // từ server getFilterOptionsApi.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
   // defaults từ Config sheet (SettingsService qua getFilterOptionsApi.defaults) — pre-select tạo task
   var CFG_DEFAULTS = { station: '', slotCode: '', team: '' };
+  // lists từ Config sheet (SettingsService qua getFilterOptionsApi.lists) — danh sách Admin khai báo.
+  // Client MERGE với distinct StaffData (mergeOpts_) để không mất giá trị thực có trong dữ liệu NV.
+  var CFG_LISTS = { stations: [], teams: [], slotcodes: [] };
+  // Union 2 mảng, dedup, giữ thứ tự a trước rồi b (giá trị trùng chỉ lấy của a).
+  function mergeOpts_(a, b) {
+    var out = [];
+    // Object.create(null): tránh prototype collision (key 'constructor'/'toString'… bị coi là đã thấy)
+    var seen = Object.create(null);
+    [a, b].forEach(function (src) {
+      (src || []).forEach(function (v) {
+        var k = String(v);
+        if (v === '' || v === undefined || v === null) return;
+        if (seen[k]) return;
+        seen[k] = true;
+        out.push(v);
+      });
+    });
+    return out;
+  }
   var SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false };  // trạng thái tick hiện tại
   function resetSel() {
     SEL = { station: '', teams: [], slots: [], contractTypes: [], date: '', noList: false };
@@ -1769,10 +1790,14 @@
     for (var i = 0; i < STATION_GROUPS.length; i++) {
       if (STATION_GROUPS[i].station === d.station) { g = STATION_GROUPS[i]; break; }
     }
-    if (!g) return;  // station mặc định không tồn tại trong dữ liệu → bỏ qua (không chọn bừa)
+    if (!g && CFG_LISTS.stations.indexOf(d.station) === -1) return;  // station mặc định không có trong data lẫn settings → bỏ qua
     SEL.station = d.station;
-    if (d.team && stationTeams().indexOf(d.team) !== -1) SEL.teams = [d.team];
-    if (d.slotCode && selSlotOptions().indexOf(d.slotCode) !== -1) SEL.slots = [d.slotCode];
+    // Validate theo MERGED options (settings + data) — default team/slot khai trong Config
+    // nhưng chưa có StaffData vẫn pre-select được (chip giờ hiển thị merged).
+    var mTeams = mergeOpts_(CFG_LISTS.teams, stationTeams());
+    if (d.team && mTeams.indexOf(d.team) !== -1) SEL.teams = [d.team];
+    var mSlots = mergeOpts_(CFG_LISTS.slotcodes, selSlotOptions());
+    if (d.slotCode && mSlots.indexOf(d.slotCode) !== -1) SEL.slots = [d.slotCode];
   }
   // Contract server giữ nguyên: slotCode/team là mảng; station/date string.
   function groupSelectedSlots() { return SEL.slots.slice(); }
@@ -1822,29 +1847,40 @@
     var c = document.getElementById('chipsStation');
     if (!c) return;
     var html = '';
-    STATION_GROUPS.forEach(function (g) {
-      var on = SEL.station === g.station;
-      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="station" data-val="' + escAttr(g.station) + '" aria-pressed="' + on + '">' + esc(g.station) + '</button>';
+    var dataStations = STATION_GROUPS.map(function (g) { return g.station; });
+    mergeOpts_(CFG_LISTS.stations, dataStations).forEach(function (st) {
+      var on = SEL.station === st;
+      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="station" data-val="' + escAttr(st) + '" aria-pressed="' + on + '">' + esc(st) + '</button>';
     });
     c.innerHTML = html;
   }
   function renderSelTeam() {
     var c = document.getElementById('chipsTeam');
     if (!c) return;
-    var opts = stationTeams();
+    var opts = mergeOpts_(CFG_LISTS.teams, stationTeams());
     if (!SEL.station) { c.innerHTML = ''; return; }
-    c.innerHTML = opts.map(function (v) {
+    // 'Tất cả' on CHỈ khi đã chọn hết mọi option (rỗng = chưa chọn = off). Bấm Tất cả khi rỗng → chọn hết (on);
+    // bấm lại khi đang hết → bỏ hết (rỗng, off). Rỗng vẫn = 'không lọc' khi tạo task (server bỏ lọc mảng rỗng).
+    var allOn = opts.length > 0 && opts.every(function (v) { return SEL.teams.indexOf(v) !== -1; });
+    var html = '<button type="button" class="pick all' + (allOn ? ' on' : '') + '" data-col="team" data-val="__ALL__" aria-pressed="' + allOn + '">Tất cả</button>';
+    opts.forEach(function (v) {
       var on = SEL.teams.indexOf(v) !== -1;
-      return '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="team" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
-    }).join('');
+      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="team" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
+    });
+    c.innerHTML = html;
   }
   function renderSelSlot() {
     var c = document.getElementById('chipsSlot');
     if (!c) return;
-    var opts = selSlotOptions();
+    var opts = mergeOpts_(CFG_LISTS.slotcodes, selSlotOptions());
     if (!SEL.station) { c.innerHTML = ''; return; }
     var freeOn = SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
-    var html = '<button type="button" class="pick free' + (freeOn ? ' on' : '') + '" data-col="slot" data-val="' + escAttr(SLOT_FREE_MAGIC) + '" aria-pressed="' + freeOn + '">' + esc('Tự do') + '</button>';
+    // Chọn 'Tất cả' = mọi ca hợp lệ; free ('Tự do') là mode riêng — bấm 'Tất cả' khi đang free sẽ bỏ free.
+    var realOpts = opts.filter(function (v) { return v !== SLOT_FREE_MAGIC; });
+    // free mode (slots=['Tự do']) không chứa ca thật → every false → allOn false tự nhiên; rỗng = off.
+    var allOn = realOpts.length > 0 && realOpts.every(function (v) { return SEL.slots.indexOf(v) !== -1; });
+    var html = '<button type="button" class="pick all' + (allOn ? ' on' : '') + '" data-col="slot" data-val="__ALL__" aria-pressed="' + allOn + '">Tất cả</button>';
+    html += '<button type="button" class="pick free' + (freeOn ? ' on' : '') + '" data-col="slot" data-val="' + escAttr(SLOT_FREE_MAGIC) + '" aria-pressed="' + freeOn + '">' + esc('Tự do') + '</button>';
     opts.forEach(function (v) {
       var on = SEL.slots.indexOf(v) !== -1;
       html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="slot" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
@@ -1856,10 +1892,13 @@
     if (!c) return;
     var opts = selContractOptions();
     if (!SEL.station) { c.innerHTML = ''; return; }
-    c.innerHTML = opts.map(function (v) {
+    var allOn = opts.length > 0 && opts.every(function (v) { return SEL.contractTypes.indexOf(v) !== -1; });
+    var html = '<button type="button" class="pick all' + (allOn ? ' on' : '') + '" data-col="contract" data-val="__ALL__" aria-pressed="' + allOn + '">Tất cả</button>';
+    opts.forEach(function (v) {
       var on = SEL.contractTypes.indexOf(v) !== -1;
-      return '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="contract" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
-    }).join('');
+      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="contract" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
+    });
+    c.innerHTML = html;
   }
   function renderSelDate() {
     var g = stationData();
@@ -1928,6 +1967,27 @@
       }
       var arr = (col === 'team') ? SEL.teams : (col === 'slot') ? SEL.slots : SEL.contractTypes;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
+      // Chip 'Tất cả' — toggle: (a) đang RỖNG (không lọc) → chọn hết; (b) đang CHỌN HẾT → bỏ hết;
+      // (c) đang chọn vài giá trị → chọn hết. Rỗng = 'không lọc' = Tất cả về mặt lọc (server bỏ lọc mảng rỗng).
+      if (val === '__ALL__') {
+        var allOpts = (col === 'team') ? mergeOpts_(CFG_LISTS.teams, stationTeams())
+          : (col === 'slot') ? mergeOpts_(CFG_LISTS.slotcodes, selSlotOptions()).filter(function (v) { return v !== SLOT_FREE_MAGIC; })
+          : selContractOptions();
+        var isEmpty = arr.length === 0;
+        var isFull = allOpts.length > 0 && allOpts.every(function (v) { return arr.indexOf(v) !== -1; });
+        arr.length = 0;
+        // Rỗng hoặc chưa đủ → chọn hết; đang chọn hết → bỏ hết (giữ rỗng)
+        if (isEmpty || !isFull) { arr.push.apply(arr, allOpts); }
+        // slot: chọn/bỏ 'Tất cả' → thoát free mode (bỏ magic Tự do nếu có)
+        if (col === 'slot') { var ifr = SEL.slots.indexOf(SLOT_FREE_MAGIC); if (ifr >= 0) SEL.slots.splice(ifr, 1); }
+        // team đổi → cascade bỏ slot không còn hợp lệ (trừ free)
+        if (col === 'team' && SEL.slots.indexOf(SLOT_FREE_MAGIC) === -1) {
+          var avail = selSlotOptions();
+          SEL.slots = SEL.slots.filter(function (s) { return avail.indexOf(s) !== -1; });
+        }
+        renderAllSelects(); refreshModeUI(); updateCreatePreview();
+        return;
+      }
       if (col === 'team') {
         toggleArr(SEL.teams, val, !pressed);
         // cascade: Ca thuộc Station+Team — bỏ slot đã chọn không còn trong filter
@@ -2236,12 +2296,10 @@
       // createdBy KHÔNG gửi — server lấy từ Session.getActiveUser() (P2-8)
       // noList KHÔNG gửi — server derive qua isFreeSlotSelection_ (slotCode=['Tự do'])
     };
-    if (!input.station || !input.team.length) {
-      showToast('Vui lòng chọn Station và ít nhất 1 Team', true);
-      return;
-    }
-    if (!isFree && !input.slotCode.length) {
-      showToast('Vui lòng chọn ít nhất 1 Ca', true);
+    // 2026-08-11: team/slot rỗng = 'Tất cả' (không lọc) — chỉ Station bắt buộc.
+    // Server filterStaffByGroup bỏ lọc khi mảng rỗng; guard 0 NV server vẫn chặn.
+    if (!input.station) {
+      showToast('Vui lòng chọn Station', true);
       return;
     }
     if (isFree) input.slotCode = [SLOT_FREE_MAGIC];

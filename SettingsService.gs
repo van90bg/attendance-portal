@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SettingsService.gs — Đọc/ghi cấu hình Config sheet (nền tảng trang Config Admin).
  *
  * Model:
@@ -38,6 +38,20 @@ function getSettings_() {
 function getSetting_(key) {
   const all = getSettings_();
   return (all && key in all) ? all[key] : undefined;
+}
+
+/** Đọc 1 setting dạng danh sách (JSON array như stations/teams/slotcodes) — luôn trả array.
+ * Settings sheet có thể chứa JSON string lệch kiểu (sửa tay) → parse an toàn, fallback []. */
+function settingsList_(key) {
+  const v = getSetting_(key);
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string' && v) {
+    try {
+      const p = JSON.parse(v);
+      if (Array.isArray(p)) return p;
+    } catch (e) { /* rơi xuống fallback */ }
+  }
+  return [];
 }
 
 /** Ghi patch settings vào Config sheet — editor-only (fail-closed).
