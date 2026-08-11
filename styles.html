@@ -254,7 +254,7 @@
     }
     #createModal .create-actions { display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
     .create-total { font-size: 13px; color: var(--muted); }
-    .create-total b { color: var(--warning); font-weight: 700; }
+    .create-total b { color: var(--amber-dark); font-weight: 700; }
 
     /* v1: badge count nhẹ — nền xám nhạt, bo tròn, chữ muted (không lấn át) */
     /* ===== Commit 2026-08-08: modal tạo task gọn — dropdown thay 5 cây checkbox ===== */
@@ -576,7 +576,7 @@
         .pag-btn.active { background: var(--amber); border-color: var(--amber); color: #fff; font-weight: 700; }
         .pag-ellipsis { padding: 3px 4px; color: var(--muted); letter-spacing: 1px; }
     .muted { color: var(--muted); font-size: 13px; }
-    .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; color: var(--warning); }
+    .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; color: var(--amber-dark); }
     .task-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
     /* FIX(2026-08-09): .hidden dùng !important — phải thắng mọi rule hiển thị khác,
        nếu không section không bao giờ ẩn (chồng view). */
@@ -742,7 +742,7 @@
       margin-bottom: 10px; flex-wrap: wrap;
     }
     .section-heading {
-      margin: 0; font-size: 16px; color: var(--warning); font-weight: 700;
+      margin: 0; font-size: 16px; color: var(--amber-dark); font-weight: 700;
       text-transform: uppercase; letter-spacing: .5px;
       display: flex; align-items: center; gap: 8px;
     }
@@ -889,7 +889,7 @@
       text-align: left; font-weight: 600; background: var(--surface-muted);
     }
     .stats-table td.total {
-      background: #fff3e0; font-weight: 800; color: var(--amber);
+      background: #fff3e0; font-weight: 800; color: var(--amber-dark);
     }
     .stats-table tr:hover td { background: var(--row-hover); }
     .stats-table tr:hover td.row-head { background: var(--surface-muted); }
