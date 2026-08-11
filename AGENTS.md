@@ -87,6 +87,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 - Dead CSS audit: `node scripts/audit-css.js` — rà class selector styles.html đối chiếu index.html + app.html (class="" / classList / className literal + nối chuỗi / querySelector / getElementsByClassName) → phân loại DEAD chắc chắn vs DYNAMIC; **exit 1 nếu có dead** (chạy sau mỗi batch CSS). `--full` in thêm class nối chuỗi.
 - Dead GAS audit: `node scripts/audit-gs.js` — rà hàm/const top-level 14 file .gs đối chiếu toàn bộ nguồn (gs + index/app + mock + tests + scripts); phân loại **DEAD** (không ai gọi) + **API TREO** (*Api server có nhưng client không gọi — drift mock↔server↔client); **exit 1 nếu có dead/treo** (chạy sau mỗi batch server). Entry runtime GAS (doGet/doPost/include) không tính.
+- Style audit: `node scripts/audit-style.js [--strict]` — boot Chrome headless + đo computed style mọi class chung (SHARED_CLASSES trong script) → in class lệch fingerprint; `--strict` exit 1 nếu có lệch ngoài ALLOWED_DRIFT (chủ đích: modal 44px touch / btn-sm / cfg-card / flabel 56px / card+table-wrap flex scan). Bỏ element display:none (nhiễu min-height 0px). Chạy sau batch UI đổi style; cần Chrome.
 
 ## 8. Đọc thêm
 
