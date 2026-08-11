@@ -8,11 +8,11 @@
       --success: #188038;
       --bg: #f5f6f8;
       --card: #ffffff;
-      --card-radius: 12px;   /* surface chung: card + scan-topbar — 1 nguồn bo góc */
+      --card-radius: 12px;   /* surface chung: card + view-topbar — 1 nguồn bo góc */
       --card-ok-bg: #e6f4ea;
       --card-err-bg: #fce8e6;
       --card-extra-bg: #fef7e0;
-      --header-h: 59px;  /* chiều cao header 1 hàng (padding 10×2 + nội dung ~39) — 1 nguồn cho topbar sticky + #viewList height.
+      --header-h: 59px;  /* chiều cao header 1 hàng (padding 10×2 + nội dung ~39) — 1 nguồn cho topbar sticky + #viewTasks height.
                            FIX(2026-08-09): JS syncHeaderH() đo header THẬT (DOMContentLoaded/load/resize/meta-load) và ghi đè token —
                            header wrap (font/zoom/màn hẹp) làm token tĩnh lệch → doc cao hơn viewport → scroll dọc luôn bật. */
       --border: #d9dce1;
@@ -120,7 +120,7 @@
     }
 
     /* ===== Layout 2 cột cho Scan view (tham khảo v1) ===== */
-    .scan-topbar {
+    .view-topbar {
       position: sticky;
       top: var(--header-h); /* ngay dưới header command center */
       z-index: 30;
@@ -138,26 +138,15 @@
       transition: box-shadow .15s, border-color .15s;
     }
     /* Khi dính (stuck) — đổ bóng đậm hơn tách khỏi nội dung cuộn */
-    .scan-topbar.stuck, .view-toolbar.stuck {
+    .view-topbar.stuck {
       border-color: var(--border);
       box-shadow: 0 2px 10px rgba(0,0,0,.10);
     }
-    .scan-topbar-title { flex: 1; text-align: center; }
+    .view-topbar-title { flex: 1; text-align: center; }
 
-    /* Toolbar đầu viewList (Tạo task) — compact, đồng bộ scan-topbar (2026-08-10) */
-    .view-toolbar {
-      position: sticky; top: var(--header-h); z-index: 30;
-      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-      margin-bottom: 12px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--card-radius);
-      padding: 6px 14px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.07);
-      transition: box-shadow .15s, border-color .15s;
-    }
-    .view-toolbar .task-list-toolbar { margin-bottom: 0; flex: 1; }
-    .view-toolbar > p { flex-basis: 100%; font-size: 12px; }
+    /* Toolbar chung các view (2026-08-11): List/Scan/Stats/Staff/Config — 1 class dùng chung */
+    .view-topbar .task-list-toolbar { margin-bottom: 0; flex: 1; }
+    .view-topbar > p { flex-basis: 100%; font-size: 12px; }
     .scan-layout {
       display: flex;
       gap: 16px;
@@ -202,10 +191,8 @@
       header .brand img { display: none; }  /* logo external — ẩn trên màn nhỏ, tránh load/tràn */
       header #netText { display: none; }    /* giữ net-dot, ẩn chữ — tiết chiều ngang */
       header .brand .title { font-size: 15px; letter-spacing: .5px; }
-      header .header-search { max-width: 140px; }
       header .btn-icon-dark { padding: 4px 9px; min-height: 28px; font-size: 13px; }
-      .scan-topbar { top: 0; }  /* bỏ sticky theo header — tránh đè khi header wrap */
-      .view-toolbar { top: 0; }  /* sync scan-topbar: tránh đè khi header wrap trên viewList */
+      .view-topbar { top: 0; }  /* bỏ sticky theo header — tránh đè khi header wrap */
       .card { padding: 10px; }  /* trên màn hẹp tiết diện — vẫn giữ var(--card-radius) */
     }
 
@@ -560,9 +547,8 @@
     .muted { color: var(--muted); font-size: 13px; }
     .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
     .task-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-    /* FIX(2026-08-09): .hidden phải thắng #viewList{display:flex} (ID > class) —
-       nếu không viewList không bao giờ ẩn, section chồng nhau. Dùng !important
-       vì #viewList dùng display:flex làm layout-wide (không thể đổi ID rule). */
+    /* FIX(2026-08-09): .hidden dùng !important — phải thắng mọi rule hiển thị khác,
+       nếu không section không bao giờ ẩn (chồng view). */
     .hidden { display: none !important; }
     .spinner {
       width: 16px; height: 16px;
@@ -672,28 +658,29 @@
       .bg-task-indicator .bg-task-count { display: none; }
       .bg-task-indicator { padding: 2px 7px; }
     }
-    header .header-search {
+    /* Ô tìm kiếm trong view-topbar (viewTasks) — style sáng hợp card (2026-08-11) */
+    .list-search {
       display: flex; align-items: center; gap: 4px;
-      background: #1b202e;  /* FIX(2026-08-09): header TỐI — --surface (#f5f6f8 sáng) là token thời header trắng cũ, để lộ khối sáng giữa header tối */
-      border: 1px solid var(--header-border);
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
       border-radius: 6px;
       padding: 2px 6px;
-      margin: 0 8px;
-      max-width: 320px; width: 100%;
+      max-width: 320px; flex: 0 1 320px;  /* flex inline cạnh heading — không wrap dòng riêng */
     }
-    header .header-search input[type=search] {
+    .list-search input[type=search] {
       border: none; outline: none;
-      background: transparent; color: var(--header-text, #e2e8f0); font-size: 14px;
+      background: transparent; color: var(--text); font-size: 14px;
       width: 100%; min-width: 140px; padding: 6px 4px;
     }
-    /* Ẩn nút ✕ native của WebKit/Blink — tránh 2 nút xoá trong ô tìm kiếm (dùng #btnSearchClear). */
-    header .header-search input[type=search]::-webkit-search-cancel-button,
-    header .header-search input[type=search]::-webkit-search-decoration {
+    /* Ẩn nút ✕ native của WebKit/Blink — tránh 2 nút xoá trong ô tìm kiếm (dùng #btnListSearchClear). */
+    .list-search input[type=search]::-webkit-search-cancel-button,
+    .list-search input[type=search]::-webkit-search-decoration {
       -webkit-appearance: none; appearance: none; display: none;
     }
-    header .header-search input[type=search]::-ms-clear { display: none; }  /* IE/Edge legacy */
-    header .header-search input[type=search]::placeholder { color: #aebccf; }
-    header .header-search .btn-icon-dark { padding: 4px 6px; }
+    .list-search input[type=search]::-ms-clear { display: none; }  /* IE/Edge legacy */
+    .list-search input[type=search]::placeholder { color: var(--muted); }
+    .list-search .btn-icon { padding: 4px 8px; background: var(--surface-muted); border: 1px solid var(--border); border-radius: 6px; color: var(--text); cursor: pointer; }
+    .list-search .btn-icon:hover { background: var(--surface); border-color: var(--primary); }
     header .btn-icon-dark {
       min-height: 40px;  /* P2 touch >= 44 - header compact */
       background: transparent;
@@ -720,7 +707,7 @@
 
     /* FIX(2026-08-09): header luôn 1 hàng (desktop >=601px) — trước đây wrap làm header cao hơn
        --header-h:59px (75px@1024, 129px@768, 170px@375) → doc cao hơn viewport → scroll dọc
-       luôn bật + sidebar/scan-topbar sticky bị ẩn sau header. */
+       luôn bật + sidebar/view-topbar sticky bị ẩn sau header. */
     @media (min-width: 601px) {
       header { flex-wrap: nowrap; }
       header .header-search { flex: 0 1 auto; min-width: 0; }
@@ -868,7 +855,7 @@
       text-transform: uppercase; letter-spacing: .4px;
     }
     .stats-team-title:first-child { margin-top: 0; }
-    .stats-table-wrap { overflow-x: auto; max-height: calc(100vh - 260px); overflow-y: auto; }
+    .stats-table-wrap { overflow-x: auto; max-height: calc(100vh - 260px); overflow-y: auto; flex: 1 1 auto; min-height: 0; }
     .stats-table {
       width: 100%; border-collapse: collapse; font-size: 13px;
     }
@@ -988,6 +975,9 @@
 
     /* ===== Trang chủ — logo + tên + đồng hồ lớn ===== */
     #viewHome { min-height: 100%; }
+    /* Cuộn TRONG card khi nội dung dài (đồng bộ các view khác — 2026-08-11) */
+    #viewAbout .card { max-height: calc(100vh - var(--header-h) - 48px); overflow-y: auto; }
+    #viewStats .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; }  /* -120: trừ cả topbar + main padding để trang không cuộn khi wrap max */
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       min-height: calc(100vh - var(--header-h) - 48px);
@@ -1024,12 +1014,6 @@
       <img src="https://spx.vn/new_static/assets/images/sea-logo.svg" alt="SPX logo" width="74" height="26" onerror="this.style.display='none'">
       <span class="title"><span id="brandTitle" class="brand-accent">Attendance Portal</span></span>
     </div>
-    <!-- F-search: ô tìm mã Ops toàn cục (reuse taskListTable để hiển thị kết quả) -->
-    <div id="headerSearch" class="header-search" role="search" aria-label="Tìm mã Ops">
-      <input type="search" id="globalSearch" placeholder="Tìm Ops (Ops6219) hoặc task (R2026)" autocomplete="off" spellcheck="false" aria-label="Tìm mã Ops">
-      <button class="btn-icon-dark" id="btnGlobalSearch" onclick="runSearch()" title="Tìm (Enter)" aria-label="Tìm">🔍</button>
-      <button class="btn-icon-dark" id="btnSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
-    </div>
     <div class="header-right">
       <small id="userEmail" class="header-user" aria-label="Người dùng đang đăng nhập"></small>
       <span class="net-dot" id="netDot" title="Trạng thái mạng"></span>
@@ -1060,11 +1044,16 @@
   <main id="main-content" tabindex="-1">
 
   <!-- ================= VIEW 1: Tạo task / danh sách ================= -->
-  <section id="viewList">
-    <div class="view-toolbar">
+  <section id="viewTasks">
+    <div class="view-topbar">
       <div class="task-list-toolbar">
         <h2 class="section-heading">+ ĐỐI CHIẾU DANH SÁCH</h2>
         <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
+      </div>
+      <div class="list-search" role="search" aria-label="Tìm mã Ops">
+        <input type="search" id="listSearch" placeholder="Tìm Ops (Ops6219) hoặc task (R2026)" autocomplete="off" spellcheck="false" aria-label="Tìm mã Ops">
+        <button class="btn-icon" id="btnListSearch" onclick="runListSearch()" title="Tìm (Enter)" aria-label="Tìm">🔍</button>
+        <button class="btn-icon" id="btnListSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
       </div>
       <p style="color:var(--muted);font-size:12px;margin:0;">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
     </div>
@@ -1111,9 +1100,9 @@
   <!-- ================= VIEW 2: Màn quét ================= -->
   <section id="viewScan" class="hidden">
     <!-- Topbar: nút quay lại + tiêu đề + Kết thúc (sticky — luôn hiện khi cuộn) -->
-    <div class="scan-topbar">
+    <div class="view-topbar">
       <button class="btn btn-ghost" onclick="backToList()">← Danh sách task</button>
-      <div class="scan-topbar-title">
+      <div class="view-topbar-title">
         <div class="task-title" id="scanTaskTitle"></div>
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
@@ -1200,8 +1189,8 @@
 
   <!-- ================= VIEW STATS: Thống kê (tách từ viewStaff — fullscreen) ================= -->
   <section id="viewStats" class="hidden">
-    <div class="scan-topbar">
-      <div class="scan-topbar-title">
+    <div class="view-topbar">
+      <div class="view-topbar-title">
         <div class="task-title">THỐNG KÊ</div>
         <div class="task-meta" id="statsMeta">Contract × Ca · Agency × Ca — theo Team (lọc Station + Ngày)</div>
       </div>
@@ -1227,8 +1216,8 @@
   </section>
 
   <section id="viewStaff" class="hidden">
-    <div class="scan-topbar">
-      <div class="scan-topbar-title">
+    <div class="view-topbar">
+      <div class="view-topbar-title">
         <div class="task-title">Dữ liệu chấm công</div>
         <div class="task-meta" id="staffMeta">Đang tải…</div>
       </div>
@@ -1259,8 +1248,8 @@
 
   <!-- ================= VIEW CONFIG: Cấu hình Admin (SettingsService) ================= -->
   <section id="viewConfig" class="hidden">
-    <div class="scan-topbar">
-      <div class="scan-topbar-title">
+    <div class="view-topbar">
+      <div class="view-topbar-title">
         <div class="task-title">Cấu hình</div>
         <div class="task-meta" id="configMeta">Đang tải…</div>
       </div>
@@ -1298,7 +1287,7 @@
 
 
 <!-- T-3: About view (replaces aboutModal) -->
-<section id="aboutView" class="hidden">
+<section id="viewAbout" class="hidden">
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <h2 style="margin:0;font-size:20px;font-weight:700;">Giới thiệu Attendance Portal</h2>
@@ -1573,7 +1562,7 @@
   function repairViewParents() {
     var main = document.getElementById('main-content');
     if (!main) return;
-    ['viewHome', 'viewStats', 'viewStaff', 'aboutView', 'viewScan', 'viewList', 'viewConfig'].forEach(function (id) {
+    ['viewHome', 'viewStats', 'viewStaff', 'viewAbout', 'viewScan', 'viewTasks', 'viewConfig'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el && el.parentElement !== main) {
         main.appendChild(el);  // di chuyển (appendChild tự gỡ khỏi cha cũ + xếp cuối main)
@@ -1583,7 +1572,7 @@
 
   // FIX(2026-08-09): đồng bộ --header-h = chiều cao header THẬT — token tĩnh 59px lệch khi
   // header wrap (font/zoom/màn hẹp) → doc cao hơn viewport → scroll dọc vĩnh viễn +
-  // sidebar/scan-topbar sticky bị ẩn sau header. Chạy khi DOM sẵn sàng + load + resize.
+  // sidebar/view-topbar sticky bị ẩn sau header. Chạy khi DOM sẵn sàng + load + resize.
   function syncHeaderH() {
     var hEl = document.querySelector('header');
     if (!hEl) return;
@@ -1608,11 +1597,11 @@
     // F2: cho phép dán danh sách mã trực tiếp vào scanInput (thay thế nút "Dán danh sách mã").
     // Barcode scanner = keyboard emulation → không bao giờ trigger paste event; chỉ clipboard (Ctrl+V) mới đến.
     document.getElementById('scanInput').addEventListener('paste', onScanInputPaste);
-    // F-search: Enter trên ô tìm header → chay tim; Escape → clear (xử lý trong onSearchKeydown).
-    var _gs = document.getElementById('globalSearch');
-    if (_gs) _gs.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); runSearch(); }
-      else if (e.key === 'Escape') { onSearchKeydown(e); }
+    // F-search: Enter trên ô tìm (viewTasks) → chay tim; Escape → clear (xử lý trong onListSearchKeydown).
+    var _ls = document.getElementById('listSearch');
+    if (_ls) _ls.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); runListSearch(); }
+      else if (e.key === 'Escape') { onListSearchKeydown(e); }
     });
     initNetworkStatus();
     initBgIndicator();   // indicator tác vụ nền (header) — ẩn ban đầu, hiện khi có scan/RPC/silent
@@ -1676,9 +1665,9 @@
     updateSortIndicators();
   }
 
-  /* ===== Topbar sticky (scan-topbar + view-toolbar) — thêm viền/bóng khi dính ===== */
+  /* ===== Topbar sticky (.view-topbar chung) — thêm viền/bóng khi dính ===== */
   function updateStuckBars() {
-    var bars = document.querySelectorAll('.scan-topbar, .view-toolbar');
+    var bars = document.querySelectorAll('.view-topbar');
     if (!bars.length) return;
     // FIX(2026-08-09): đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
     var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
@@ -1784,6 +1773,8 @@
   // F6: modal spin cho nút chuyển trạng thái (Kết thúc / Chuyển điểm danh / Mở lại) —
   // thay loadingOverlay toàn màn để thấy rõ đang xử lý ở ngay tâm màn, hết khi nhận phản hồi.
   function showModalSpin(msg) {
+    var ov = document.getElementById('loadingOverlay');
+    if (ov && !ov.classList.contains('hide')) return;  // overlay toàn màn đang hiện — tránh 2 spinner đè nhau
     var m = document.getElementById('spinModal');
     var l = document.getElementById('spinModalMsg');
     if (!m) return;
@@ -2101,25 +2092,25 @@
     } catch (e) { /* kiosk không hỗ trợ audio — bỏ qua */ }
   }
 
-  /* ===== T-3: View management (3 views: viewList, viewScan, aboutView) ===== */
-  var lastViewBeforeAbout = 'viewList'; // remember where we came from
+  /* ===== T-3: View management (viewTasks, viewScan, viewAbout) ===== */
+  var lastViewBeforeAbout = 'viewTasks'; // remember where we came from
   function showSection(sectionName) {
     // Track last non-about view for back navigation
-    if (sectionName === 'aboutView') {
+    if (sectionName === 'viewAbout') {
       var currentView = document.getElementById('viewScan');
       if (currentView && !currentView.classList.contains('hidden')) {
         lastViewBeforeAbout = 'viewScan';
       } else {
-        lastViewBeforeAbout = 'viewList';
+        lastViewBeforeAbout = 'viewTasks';
       }
     }
     // Hide all views
     document.getElementById('viewHome').classList.add('hidden');
     document.getElementById('viewStats').classList.add('hidden');
-    document.getElementById('viewList').classList.add('hidden');
+    document.getElementById('viewTasks').classList.add('hidden');
     document.getElementById('viewScan').classList.add('hidden');
     document.getElementById('viewStaff').classList.add('hidden');
-    document.getElementById('aboutView').classList.add('hidden');
+    document.getElementById('viewAbout').classList.add('hidden');
     document.getElementById('viewConfig').classList.add('hidden');
     // Stop auto-focus loop when leaving scan view
     stopAutoFocusLoop();
@@ -2139,7 +2130,7 @@
   try { SIDEBAR_COMPACT = localStorage.getItem('ap2_sidebar_compact') === '1'; } catch (e) {}
 
   // Ánh xạ page → section id hiển thị
-  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewList', data: 'viewStaff', config: 'viewConfig', about: 'aboutView' };
+  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', about: 'viewAbout' };
   var ACTIVE_PAGE = 'home';
 
   function selectPage(page) {
@@ -2442,10 +2433,10 @@
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('pasteModal');
       if (m && m.classList.contains('open')) { closePasteModal(); return; }
-      // aboutView is now a section, not a modal - go back to previous view
-      var aboutView = document.getElementById('aboutView');
-      if (aboutView && !aboutView.classList.contains('hidden')) {
-        showSection(lastViewBeforeAbout || 'viewList');
+      // viewAbout is now a section, not a modal - go back to previous view
+      var aboutV = document.getElementById('viewAbout');
+      if (aboutV && !aboutV.classList.contains('hidden')) {
+        showSection(lastViewBeforeAbout || 'viewTasks');
         return;
       }
     }
@@ -3017,7 +3008,7 @@
   /* F-search: === TÌM KIẾM MÃ OPS XUYÊN TASK === */
   // Chuyển thead + empty msg của taskListTable giữa chế độ danh sách (all) và tìm kiếm (search).
   // STATE nguồn sống: LIST_MODE === 'search' (có trong search). Auto-focus loop + manual refresh
-  // không xung đột vì viewScan ẩn khi ở viewList.
+  // không xung đột vì viewScan ẩn khi ở viewTasks.
   function setListMode(mode) {
   LIST_MODE = mode;
   var head = document.getElementById("taskListHead");
@@ -3032,14 +3023,14 @@
       empty.innerHTML = "Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b>";
     }
   }
-    var cl = document.getElementById("btnSearchClear");
+    var cl = document.getElementById("btnListSearchClear");
     if (cl) cl.style.display = (mode === "search" || mode === "task") ? "" : "none";
   }
 
-  // F-search: chạy tìm theo giá trị #globalSearch. Mã Ops => tìm NV xuyên task;
+  // F-search: chạy tìm theo giá trị #listSearch. Mã Ops => tìm NV xuyên task;
     // còn lại (bắt đầu R + số / chuỗi bất kỳ) => tìm task theo mã.
-    function runSearch() {
-      var inp = document.getElementById("globalSearch");
+    function runListSearch() {
+      var inp = document.getElementById("listSearch");
       var raw = inp ? inp.value.trim() : "";
       if (!raw) { showToast("Nhập mã Ops (Ops6219) hoặc mã task (R2026) để tìm", true); return; }
       if (BARCODE_ID_RE.test(raw)) { runSearchStaff(raw); return; }
@@ -3049,7 +3040,7 @@
         function runSearchStaff(q) {
           var q2 = q.toUpperCase();
           LIST_PAGE = 1; // dữ liệu mới → về trang đầu
-          showSection("viewList");
+          showSection("viewTasks");
           setListMode("search");
           var skel = document.getElementById("taskSkeleton");
           var tbl = document.getElementById("taskListTable");
@@ -3089,7 +3080,7 @@
         // Tìm theo mã task — dùng ALL_HEAD + renderTaskList_ (giữ nút Quét/Xem + counters).
         function runSearchTask(q) {
           LIST_PAGE = 1; // dữ liệu mới → về trang đầu
-          showSection("viewList");
+          showSection("viewTasks");
           setListMode("task");
       var skel = document.getElementById("taskSkeleton");
       var tbl = document.getElementById("taskListTable");
@@ -3166,9 +3157,9 @@
     setListMode('all');
     openScan(taskId);
   }
-  // Xoá tìm kiếp: dọn input, về list thường, restore header.
+  // Xoá tìm kiếm: dọn input, về list thường.
   function clearSearch() {
-    var inp = document.getElementById("globalSearch");
+    var inp = document.getElementById("listSearch");
     if (inp) inp.value = "";
     clearSearchGo();
   }
@@ -3177,7 +3168,7 @@
     loadTaskList();
   }
   // Tắt search khi ấn Escape (nếu đang search/task-search + không có modal mở).
-  function onSearchKeydown(e) {
+  function onListSearchKeydown(e) {
     if (e && e.key === "Escape" && (LIST_MODE === "search" || LIST_MODE === "task")) {
       clearSearch();
     }
@@ -3259,7 +3250,7 @@
         : 'Đang xử lý lượt quét — chờ xong rồi quay lại', true);
       return;
     }
-    showSection('viewList');
+    showSection('viewTasks');
     loadTaskList();
   }
 
@@ -3314,7 +3305,7 @@
     CURRENT_COUNTERS = data.counters || { scanned: 0, absent: 0, extra: 0 };
     renderCounters(CURRENT_COUNTERS);
 
-    // T-2: Nút "Dán danh sách mã" trên scan-topbar — chỉ hiện khi FREE + open + canScanOpen.
+    // T-2: Nút "Dán danh sách mã" trên view-topbar — chỉ hiện khi FREE + open + canScanOpen.
     // (nút tĩnh trong HTML; ở đây chỉ bật/tắt display theo task vừa render)
     var pasteBtn = document.getElementById('btnPaste');
     var isFree = data.task.taskType === TASK_TYPE_C.FREE;
