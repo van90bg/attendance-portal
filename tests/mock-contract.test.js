@@ -70,10 +70,10 @@ test('client-called APIs đều có mock handler (mock không thiếu)', () => {
   assert.deepEqual(missing, [], 'client gọi nhưng mock thiếu handler: ' + missing.join(', '));
 });
 
-test('getMetaApi shape khớp server: { ok, appTitle, userEmail, isEditor } — không labels/tableHeaders', async () => {
+test('getMetaApi shape khớp server: { ok, appTitle, userEmail, isEditor, role } — không labels/tableHeaders', async () => {
   const { call } = loadMock();
   const meta = await call('getMetaApi');
-  assert.deepEqual(Object.keys(meta).sort(), ['appTitle', 'isEditor', 'ok', 'userEmail']);
+  assert.deepEqual(Object.keys(meta).sort(), ['appTitle', 'isEditor', 'ok', 'role', 'userEmail']);
 });
 
 test('getSettingsApi shape khớp server: { ok, settings }', async () => {

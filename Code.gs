@@ -52,6 +52,9 @@ function getMetaApi() {
     ok: true,
     appTitle: UI_LABELS.APP_TITLE,
     userEmail: getActiveEmail_(),
+    // #10: role cho client placeholder/gate. Fallback ROLES.DEFAULT nếu getRole_ ném
+    // (Config sheet lỗi) — KHÔNG để boot RPC getMetaApi sập → markServerFail mỗi lần mở app.
+    role: (function () { try { return getRole_(getActiveEmail_()); } catch (e) { return ROLES.DEFAULT; } })(),
     isEditor: isEditor_(),  // client ẩn/hiện trang Cấu hình (viewConfig)
   };
 }

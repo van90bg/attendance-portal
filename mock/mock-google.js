@@ -116,9 +116,9 @@
 
   var handlers = {
     getMetaApi: function () {
-      // Khớp server getMetaApi (Code.gs): { ok, appTitle, userEmail, isEditor }.
-      // Mock LUÔN editor (isEditor:true) — để test trang Cấu hình ở local; server thật gate bằng DEPLOYER_EMAIL.
-      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, userEmail: '', isEditor: true };
+      // Khớp server getMetaApi (Code.gs): { ok, appTitle, userEmail, isEditor, role }.
+      // Mock LUÔN editor (isEditor:true) + role admin (server getRole_: editor => ADMIN) — để test trang Cấu hình ở local.
+      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, userEmail: '', isEditor: true, role: 'admin' };
     },
     warmStaffCacheApi: function () {
       // Khớp server: slim index { staffId, staffName, slotCode, station, team, workstation, agency }

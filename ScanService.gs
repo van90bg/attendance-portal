@@ -275,7 +275,7 @@ function pasteCodes(taskId, rawLines) {
     );
     
     const now = new Date();
-    const appendRows = []; // rows to batch append
+    let appendRows = []; // rows to batch append
     const results = [];
     let success = 0;
     let failed = 0;
@@ -323,6 +323,24 @@ function pasteCodes(taskId, rawLines) {
         success++;
       }
     });
+    // #2 (review 2026-08-11): re-check cache TRƯỚC khi ghi — kiosk khác có thể vừa ghi cùng
+    // staffId trong cửa sổ cache (pattern scanStaff race-branch). Mã đã có dòng trong cache
+    // tươi → chuyển thành UPDATE (ghi thời gian + status) thay vì append trùng (Dư trùng lặp).
+    if (appendRows.length > 0) {
+      const fresh = readLogRowsCached_(taskId) || [];
+      const existingMap = {};
+      fresh.forEach(function (r) { existingMap[String(r.staffId || '').toUpperCase()] = r; });
+      const kept = [];
+      appendRows.forEach(function (row) {
+        const ex = existingMap[String(row[1] || '').toUpperCase()];
+        if (!ex) { kept.push(row); return; }
+        updateBatch.push({
+          rowIndex: ex._rowIndex, field: row[LOG_COLS.TIME_REF] ? 'timeRef' : 'timeScan',
+          time: now, newStatus: row[LOG_COLS.STATUS], keepStatus: ex.status,
+        });
+      });
+      appendRows = kept;
+    }
     if (updateBatch.length > 0) {
       batchUpdateLogRows_(taskId, updateBatch);
     }
