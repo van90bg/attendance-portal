@@ -89,10 +89,12 @@
         </table>
         <div class="empty" id="taskEmpty" style="display:none;">
                   <div class="empty-arrow">↑</div>
-                  <div><span id="taskEmptyText">Chưa có task nàu — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b></span></div>
-                      <div id="taskPagination" class="pag-wrap" style="display:none;"></div>
+                  <div><span id="taskEmptyText">Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b></span></div>
         </div>
       </div>
+      <!-- Phân trang task: NGOÀI .table-wrap (scroll) — luôn hiện đáy card, không phải cuộn xuống fold
+           (fix 2026-08-11: trước đây nằm trong #taskEmpty display:none → không bao giờ hiện) -->
+      <div id="taskPagination" class="pag-wrap" style="display:none;"></div>
     </div>
   </section>
 
@@ -242,8 +244,9 @@
               <tbody id="staffTableBody"></tbody>
             </table>
             <div class="empty" id="staffEmpty" style="display:none;">Không có nhân viên trong StaffData</div>
-            <div id="staffPagination" class="pag-wrap" style="display:none;"></div>
           </div>
+          <!-- Phân trang StaffData: NGOÀI .table-wrap (scroll) — luôn hiện đáy card (đồng bộ viewTasks) -->
+          <div id="staffPagination" class="pag-wrap" style="display:none;"></div>
         </div>
   </section>
 

@@ -56,20 +56,23 @@
   var LIST_MODE = 'all';
   // Header HTML cho 2 chế độ taskListTable (reuse cùng element #taskListTable).
   // Thead danh sách task — động (funnel phễu 4 cột: Loại/Station/Team/Trạng thái + state .on)
+  // Thead danh sách task — PHẢI khớp thứ tự body render: STT, Mã task, Loại, Station, Team,
+  // Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác (fix 2026-08-11:
+  // trước đây gom 4 funnel liên tiếp → 'Trạng thái' lệch sang cột 6, header/body lệch từ Ca).
+  function funnelTh_(lbl, field) {
+    var on = hasFunnel_(TASK_FILTERS, field);
+    return '<th scope="col" class="th-filter" data-col="' + field + '"><span class="th-label">' + lbl + '</span>' +
+      '<button type="button" class="th-funnel' + (on ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'task\')" aria-label="Lọc ' + lbl + '" title="Lọc ' + lbl + '">' + FUNNEL_SVG + '</button></th>';
+  }
   function taskHeadHtml_() {
-    var h = '<tr>' +
-      '<th scope="col">STT</th><th scope="col">Mã task</th>';
-    var filterable = ['Loại', 'Station', 'Team', 'Trạng thái'];
-    for (var fi = 0; fi < filterable.length; fi++) {
-      var lbl = filterable[fi];
-      var field = TASK_FILTERABLE[lbl];
-      var on = hasFunnel_(TASK_FILTERS, field);
-      h += '<th scope="col" class="th-filter" data-col="' + field + '"><span class="th-label">' + lbl + '</span>' +
-        '<button type="button" class="th-funnel' + (on ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'task\')" aria-label="Lọc ' + lbl + '" title="Lọc ' + lbl + '">' + FUNNEL_SVG + '</button></th>';
-    }
-    h += '<th scope="col">Ca</th><th scope="col">Tổng NV</th><th scope="col">Đã quét</th><th scope="col">Dư</th>' +
+    return '<tr>' +
+      '<th scope="col">STT</th><th scope="col">Mã task</th>' +
+      funnelTh_('Loại', 'taskType') +
+      funnelTh_('Station', 'station') +
+      funnelTh_('Team', 'team') +
+      '<th scope="col">Ca</th><th scope="col">Tổng NV</th><th scope="col">Đã quét</th><th scope="col">Dư</th>' +
+      funnelTh_('Trạng thái', 'status') +
       '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
-    return h;
   }
   var SEARCH_HEAD = '<tr>' +
         '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
@@ -1910,10 +1913,14 @@
       if (cnt) cnt.textContent = all.length;
       if (!all.length) {
         if (empty) empty.style.display = '';
-        // Có filter phễu đang áp → báo khớp lọc (không gợi ý tạo task sai ngữ cảnh)
         var emptyTxt = document.getElementById('taskEmptyText');
-        if (emptyTxt && Object.keys(TASK_FILTERS).some(function (f) { return TASK_FILTERS[f] && TASK_FILTERS[f].length; })) {
-          emptyTxt.innerHTML = 'Không có task khớp bộ lọc đang áp — bấm <b>Xoá lọc</b> trên funnel để xem toàn bộ';
+        var hasFilter = Object.keys(TASK_FILTERS).some(function (f) { return TASK_FILTERS[f] && TASK_FILTERS[f].length; });
+        if (emptyTxt) {
+          // Có filter đang áp → báo khớp lọc; hết filter → reset về message mặc định
+          // (fix 2026-08-11: trước chỉ set khi có filter, xoá filter mà dataset 0 task → message cũ dính)
+          emptyTxt.innerHTML = hasFilter
+            ? 'Không có task khớp bộ lọc đang áp — bấm <b>Xoá lọc</b> trên funnel để xem toàn bộ'
+            : 'Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b>';
         }
         renderPaginator_('taskPagination', 0, 1, 'goListPage');
         return;
