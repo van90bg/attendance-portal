@@ -41,26 +41,35 @@
       return {
         taskId: taskId, staffId: s.staffId, staffName: s.staffName,
         slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation,
-        timeRefText: '09:00:00',
+        // timeRefEpoch CHỈ cho NV đã quét (scanned) — presentAt đếm đúng 2.
+        // NV chưa quét: timeRef rỗng → client phase OPEN không chặn 'Đã có mặt' khi quét họ.
+        timeRefText: scanned ? '09:00:00' : '',
+        timeRefEpoch: scanned ? 1783072800000 : 0,  // 09:00:00 — Giờ có mặt (presentAt; khớp server computeCounters)
         timeScanText: scanned ? (i === 0 ? '09:02:15' : '09:03:40') : '',
-        timeScanEpoch: scanned ? 1783080000000 + i * 1000 : 0,  // sort key (khớp server)
+        timeScanEpoch: scanned ? 1783072800000 + (i === 0 ? 135000 : 220000) : 0,  // 09:02:15 / 09:03:40 — sort key
         status: scanned ? 'Có mặt' : '-',
         dateText: '2026-08-01',  // ngày vào làm (StaffData Date) — khớp server yyyy-MM-dd
       };
     });
+    // Dư row: NV lạ phase 2 → Dư ghi Giờ quét (ScanLogic) — CÓ timeScanEpoch như scanStaffApi push.
+    // Khớp server computeCounters: scanned đếm mọi row timeScanEpoch>0 kể cả Dư.
+    // timeScanEpoch khớp timeScanText '09:05:00' (= 09:02:15 + 165s).
     log.push({
       taskId: taskId, staffId: 'Ops999999', staffName: 'NV-DU', slotCode: '', station: '', team: '',
-      workstation: '', timeRefText: '', timeScanText: '09:05:00', status: 'Dư',
+      workstation: '', timeRefText: '', timeScanText: '09:05:00', timeScanEpoch: 1783073100000, status: 'Dư',
     });
     return log;
   }
 
   function counters(log) {
-    var c = { scanned: 0, absent: 0, extra: 0 };
+    // Khớp server computeCounters (ScanLogic.gs): 5 field — scanned, presentAt, absent, extra, total.
+    // Epoch > 0 là nguồn sự thật duy nhất (text mất ngày xuyên nửa đêm).
+    var c = { scanned: 0, presentAt: 0, absent: 0, extra: 0, total: log.length };
     log.forEach(function (r) {
-      // Khớp server computeCounters (ScanLogic.gs:82): epoch > 0 là nguồn sự thật duy nhất
       var hasScan = Number(r.timeScanEpoch) > 0;
+      var hasRef = Number(r.timeRefEpoch) > 0;
       if (hasScan) c.scanned++;
+      if (hasRef) c.presentAt++;
       if (r.status === 'Dư') c.extra++;
       else if (!hasScan) c.absent++;
     });
