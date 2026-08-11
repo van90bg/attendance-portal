@@ -141,10 +141,6 @@ const UI_LABELS = {
   TASK_CLOSED: 'Task đã kết thúc',
   STAFF_NOT_FOUND: 'Không tìm thấy nhân viên',
   CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn',
-  // 2-phase attendance labels (server trả về task.status === TASK_STATUS.*)
-  TASK_PHASE_OPEN: 'Mở',          // phase 1: chờ điểm danh / ghi Giờ có mặt
-  TASK_PHASE_ATTEND: 'Điểm danh',  // phase 2: đang quét Giờ quét
-  TASK_PHASE_DONE: 'Xong',        // đã kết thúc
   TRANSITION_BLOCKED: 'Chỉ chuyển sang điểm danh khi task đang ở trạng thái Mở',
   COMPLETE_BLOCKED: 'Chỉ kết thúc task khi đang ở trạng thái Điểm danh',
   SCAN_OPEN_OWNER_ONLY: 'Chỉ owner mới quét được ở phase Mở (task này)',
