@@ -148,10 +148,9 @@
       border-color: var(--border);
       box-shadow: 0 2px 10px rgba(0,0,0,.10);
     }
-    .view-topbar-title { flex: 1; text-align: center; }
+    .view-topbar-title { flex: 1; text-align: left; }
 
     /* Toolbar chung các view (2026-08-11): List/Scan/Stats/Staff/Config — 1 class dùng chung */
-    .view-topbar > p { flex-basis: 100%; font-size: 12px; }
     .scan-layout {
       display: flex;
       gap: 16px;
@@ -540,7 +539,7 @@
         .pag-btn.active { background: var(--amber); border-color: var(--amber); color: #fff; font-weight: 700; }
         .pag-ellipsis { padding: 3px 4px; color: var(--muted); letter-spacing: 1px; }
     .muted { color: var(--muted); font-size: 13px; }
-    .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+    .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; color: var(--warning); }
     .task-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
     /* FIX(2026-08-09): .hidden dùng !important — phải thắng mọi rule hiển thị khác,
        nếu không section không bao giờ ẩn (chồng view). */
@@ -983,7 +982,6 @@
     /* ===== Class dùng chung theo view/modal (gom inline style, 2026-08-11) ===== */
     .about-cell { padding: 8px; border: 1px solid var(--border); text-align: left; }
     /* viewTasks hint */
-    .task-hint { color: var(--muted); font-size: 12px; margin: 0; }
     /* viewStaff — số NV đậm */
     #staffCount { font-weight: 700; }
     /* viewReports placeholder */
