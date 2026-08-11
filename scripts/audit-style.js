@@ -51,6 +51,7 @@ const ALLOWED_DRIFT = [
   'btn-danger',        // confirmOkBtn trong modal (44px touch) — chủ đích
   'cfg-card',          // card form Cấu hình — padding 16px khác card thường
   'flabel',            // viewStats label cột min-width 56px (căn dọc) vs modal auto — chủ đích
+  'pick',              // .pick.on (active: nền cam + weight 700) vs .pick thường — trạng thái chọn là chủ đích
   'card',              // card trong scan-layout là flex item (min-width auto) — chủ đích
   'table-wrap',        // scan table là flex item (min-width auto) — chủ đích
 ];

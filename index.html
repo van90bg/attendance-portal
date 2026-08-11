@@ -259,13 +259,8 @@
     <div class="card cfg-card">
       <form id="configForm" onsubmit="return false;" style="display:none;">
         <div class="cfg-section">
-          <div class="cfg-section-title">Cấu hình vận hành</div>
-          <div class="cfg-grid">
-            <label class="cfg-field"><span>Station mặc định</span><input id="cfgDefaultStation" class="cfg-input" placeholder="VD: KHO-01" autocomplete="off"></label>
-            <label class="cfg-field"><span>Slot Code (Ca) mặc định</span><input id="cfgDefaultSlotCode" class="cfg-input" placeholder="VD: Ca 1" autocomplete="off"></label>
-            <label class="cfg-field"><span>Team mặc định</span><input id="cfgDefaultTeam" class="cfg-input" placeholder="VD: Team A" autocomplete="off"></label>
-            <label class="cfg-field"><span>Department mặc định</span><input id="cfgDepartment" class="cfg-input" placeholder="VD: Kho Chính" autocomplete="off"></label>
-          </div>
+          <div class="cfg-section-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá từng mục — lưu ngay</span></div>
+          <div id="cfgList" class="cfg-list"></div>
         </div>
 
         <div class="cfg-section">
@@ -275,7 +270,7 @@
         </div>
 
         <div class="cfg-actions">
-          <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)">💾 Lưu cấu hình</button>
+          <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)">💾 Lưu phân quyền</button>
           <span class="cfg-status" id="cfgStatus"></span>
         </div>
       </form>

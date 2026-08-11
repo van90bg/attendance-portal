@@ -328,10 +328,16 @@
     updateStuckBars();
   }
 
+  /* Mobile/tablet (pointer: coarse): KHÔNG tự focus scan input — bàn phím ảo tự bật đè nửa
+     màn hình khi mở task quét. Kiosk desktop (chuột/barcode scanner) vẫn auto-focus như cũ. (2026-08-11) */
+  var COARSE_POINTER = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   /* ===== Auto-focus loop (tham khảo v1): giữ focus vào scan input trên kiosk touch ===== */
   function startAutoFocusLoop() {
+    if (COARSE_POINTER) return;  // mobile/tablet: không auto-focus — bàn phím không tự bật
     if (AUTO_FOCUS_TIMER) return;
     AUTO_FOCUS_TIMER = setInterval(function () {
+      // Mobile/tablet: nếu pointer thành coarse (hybrid device) → dừng hẳn, không focus
+      if (COARSE_POINTER) { stopAutoFocusLoop(); return; }
       // S10: modal đang mở → không giật focus về scan input
       if (anyModalOpen()) return;
       var scanView = document.getElementById('viewScan');
@@ -457,7 +463,7 @@
   var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
 
 
-  function loadStaffView(btn) {
+  function loadStaffView(btn, silent) {
     var skel = document.getElementById('staffSkeleton');
     var tbl = document.getElementById('staffTable');
     var empty = document.getElementById('staffEmpty');
@@ -471,7 +477,7 @@
       .withSuccessHandler(function (res) {
         restore();
         if (!res || !res.ok) {
-          showToast((res && res.message) || 'Lỗi tải StaffData', true);
+          if (!silent) showToast((res && res.message) || 'Lỗi tải StaffData', true);
           return;
         }
         STAFF_ROWS = safeArr(res.staff);
@@ -483,13 +489,13 @@
         renderStaffStats();
         renderStaffDataTable();
         STAFF_LOADED_AT = Date.now();
-        showToast('Đã cập nhật ' + STAFF_ROWS.length + ' NV · ' + now, false);
+        if (!silent) showToast('Đã cập nhật ' + STAFF_ROWS.length + ' NV · ' + now, false);
         markServerOk();
       })
       .withFailureHandler(function (err) {
         restore();
         markServerFail();
-        showToast('Lỗi tải StaffData: ' + err.message, true);
+        if (!silent) showToast('Lỗi tải StaffData: ' + err.message, true);
         if (skel) skel.style.display = 'none';
       })
       .getStaffStatsApi();
@@ -497,7 +503,7 @@
 
   // Mở Thống kê/Dữ liệu: chỉ fetch nếu CHƯA có data hoặc data đã cũ (theo khung giờ).
   // StaffData ít đổi → không gọi server mỗi lần mở view (tránh flash + RPC thừa).
-  function ensureStaffData(force) {
+  function ensureStaffData(force, silent) {
     if (!force && STAFF_ROWS.length && (Date.now() - STAFF_LOADED_AT) < STAFF_MAX_AGE_MS) {
       initStatsChipEvents();
       renderStatsFilters();
@@ -505,7 +511,7 @@
       renderStaffDataTable();
       return;
     }
-    loadStaffView();
+    loadStaffView(null, silent);
   }
 
   // ===== Filter chips bảng Thống kê: Station + Date (client-side, single-select) =====
@@ -1146,18 +1152,99 @@
       .getSettingsApi();
   }
 
+  // ===== Cấu hình vận hành — danh sách mục, mỗi mục Sửa/Xoá lưu ngay (2026-08-11) =====
+  var CFG_FIELDS = [
+    { key: 'defaultStation', label: 'Station mặc định', placeholder: 'VD: KHO-01' },
+    { key: 'defaultSlotCode', label: 'Slot Code (Ca) mặc định', placeholder: 'VD: Ca 1' },
+    { key: 'defaultTeam', label: 'Team mặc định', placeholder: 'VD: Team A' },
+    { key: 'department', label: 'Department mặc định', placeholder: 'VD: Kho Chính' },
+  ];
+  var CFG_STATE = {}; // bản sao settings hiện tại — render lại khi Huỷ sửa
+
   function renderConfigForm(s) {
-    setInput('cfgDefaultStation', s.defaultStation);
-    setInput('cfgDefaultSlotCode', s.defaultSlotCode);
-    setInput('cfgDefaultTeam', s.defaultTeam);
-    setInput('cfgDepartment', s.department);
-    renderRoleRows(s.roleMap || {});
+    CFG_STATE = s || {};
+    renderCfgList();
+    renderRoleRows((s && s.roleMap) || {});
     CFG_LOADED = true;
   }
 
-  function setInput(id, v) {
-    var el = document.getElementById(id);
-    if (el) el.value = (v === null || v === undefined) ? '' : v;
+  function renderCfgList() {
+    var box = document.getElementById('cfgList');
+    if (!box) return;
+    box.innerHTML = CFG_FIELDS.map(function (f) {
+      var v = CFG_STATE[f.key];
+      var val = (v === null || v === undefined || v === '') ? '<span class="cfg-empty-val">(trống)</span>' : esc(String(v));
+      return '<div class="cfg-item" data-key="' + f.key + '">'
+        + '<div class="cfg-item-label">' + esc(f.label) + '</div>'
+        + '<div class="cfg-item-value">' + val + '</div>'
+        + '<div class="cfg-item-actions">'
+          + '<button type="button" class="btn btn-outline btn-sm" onclick="editCfgField(\'' + f.key + '\')">Sửa</button>'
+          + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCfgField(\'' + f.key + '\')">Xoá</button>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  }
+
+  function editCfgField(key) {
+    var box = document.getElementById('cfgList');
+    if (!box) return;
+    var f = null;
+    for (var i = 0; i < CFG_FIELDS.length; i++) { if (CFG_FIELDS[i].key === key) { f = CFG_FIELDS[i]; break; } }
+    if (!f) return;
+    var cur = CFG_STATE[key];
+    box.innerHTML = '<div class="cfg-item cfg-item-edit" data-key="' + key + '">'
+      + '<div class="cfg-item-label">' + esc(f.label) + '</div>'
+      + '<input class="cfg-input cfg-edit-input" id="cfgEditInput" value="' + escAttr(String(cur === null || cur === undefined ? '' : cur)) + '" placeholder="' + escAttr(f.placeholder) + '" autocomplete="off">'
+      + '<div class="cfg-item-actions">'
+        + '<button type="button" class="btn btn-sm" onclick="saveCfgField(\'' + key + '\')">Lưu</button>'
+        + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelCfgEdit()">Huỷ</button>'
+      + '</div>'
+    + '</div>';
+    var inp = document.getElementById('cfgEditInput');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+
+  function cancelCfgEdit() { renderCfgList(); }
+
+  function saveCfgField(key) {
+    var inp = document.getElementById('cfgEditInput');
+    var v = inp ? inp.value.trim() : '';
+    var btn = document.querySelector('.cfg-item-edit .cfg-item-actions button');
+    setBtnBusy_(btn, 'Đang lưu…');
+    var patch = {}; patch[key] = v;
+    saveConfigPatch(patch, 'Đã lưu ' + fieldLabel_(key));
+  }
+
+  function deleteCfgField(key) {
+    showConfirm('Xoá cấu hình', 'Xoá \"' + fieldLabel_(key) + '\" — giá trị sẽ trống (dùng mặc định).', function () {
+      var patch = {}; patch[key] = '';
+      saveConfigPatch(patch, 'Đã xoá ' + fieldLabel_(key));
+    });
+  }
+
+  function fieldLabel_(key) {
+    for (var i = 0; i < CFG_FIELDS.length; i++) { if (CFG_FIELDS[i].key === key) return CFG_FIELDS[i].label; }
+    return key;
+  }
+
+  // Lưu patch 1 mục (vận hành) — server nhận patch, trả thông báo
+  function saveConfigPatch(patch, okMsg) {
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.ok) {
+          showToast((res && res.message) || 'Lỗi lưu cấu hình', true);
+          renderCfgList(); // thoát edit state — hiện giá trị server cũ
+          return;
+        }
+        showToast(okMsg || res.message || 'Đã lưu', false);
+        loadConfigView(); // đọc lại từ server (cache đã invalidate)
+      })
+      .withFailureHandler(function (err) {
+        markServerFail();
+        showToast('Lỗi lưu cấu hình: ' + err.message, true);
+        renderCfgList(); // thoát edit state — tránh kẹt input
+      })
+      .saveSettingsApi(patch);
   }
 
   function renderRoleRows(map) {
@@ -1198,8 +1285,6 @@
 
   function addRoleRow() { appendRoleRow('', 'viewer'); }
 
-  function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
-
   function collectRoleMap() {
     var map = {};
     var rows = document.querySelectorAll('#cfgRoleRows .cfg-role-row');
@@ -1213,31 +1298,22 @@
     return map;
   }
 
-  function collectConfigPatch() {
-    return {
-      defaultStation: val('cfgDefaultStation'),
-      defaultSlotCode: val('cfgDefaultSlotCode'),
-      defaultTeam: val('cfgDefaultTeam'),
-      department: val('cfgDepartment'),
-      roleMap: collectRoleMap(),
-    };
-  }
-
   function saveConfig(btn) {
-    var patch = collectConfigPatch();
+    // Nút "Lưu phân quyền" — chỉ gửi roleMap (mục vận hành tự lưu khi Sửa/Xoá)
+    var patch = { roleMap: collectRoleMap() };
     setBtnBusy_(btn, 'Đang lưu…');
-    function restore() { restoreBtnLabel_(btn, '💾 Lưu cấu hình'); }
+    function restore() { restoreBtnLabel_(btn, '💾 Lưu phân quyền'); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
-        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi lưu cấu hình', true); return; }
-        showToast(res.message || 'Đã lưu cấu hình', false);
+        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi lưu phân quyền', true); return; }
+        showToast(res.message || 'Đã lưu phân quyền', false);
         loadConfigView(); // đọc lại từ server (cache đã invalidate)
       })
       .withFailureHandler(function (err) {
         restore();
         markServerFail();
-        showToast('Lỗi lưu cấu hình: ' + err.message, true);
+        showToast('Lỗi lưu phân quyền: ' + err.message, true);
       })
       .saveSettingsApi(patch);
   }
@@ -1260,6 +1336,9 @@
         var cfgItem = document.getElementById('sideConfigItem');
         if (cfgItem) cfgItem.style.display = (meta && meta.isEditor) ? '' : 'none';
         refreshAll();
+        // Prefetch nền StaffData — mở Thống kê/Dữ liệu lần đầu KHÔNG delay
+        // (CDP: cold 280ms → warm ~22ms; silent = không toast lúc khởi động; 2026-08-11)
+        if (typeof ensureStaffData === 'function') { ensureStaffData(false, true); }
         // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
         // khi quét đầu thay vì về sau. KHÔNG block UI — chỉ warm cache.
         try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) { /* ignore */ }
@@ -1978,7 +2057,9 @@
         // T-1: áp dụng owner gate CUỐI CÙNG — nguồn quyết định cuối cho disabled/placeholder/
         // nút Chuyển điểm danh/nút paste (không bị logic phase ở trên ghi đè).
         applyScanPermission();
-        if (canScan && !scanOwnerLocked) {
+        // Mobile/tablet (pointer:coarse): KHÔNG focus ngay — bàn phím ảo tự bật đè màn hình
+        // khi mở task quét (2026-08-11). Kiosk desktop giữ auto-focus như cũ.
+        if (canScan && !scanOwnerLocked && !COARSE_POINTER) {
           scanInput.focus();
         }
   }
