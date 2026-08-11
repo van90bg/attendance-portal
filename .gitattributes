@@ -1,0 +1,4 @@
+# styles.html bi git detect -text (binary heuristic) -> autocrlf khong ap dung -> churn full-file moi edit.
+# text+eol=crlf: index = LF (khop HEAD), worktree = CRLF. File template moi gap van de nay
+# thi them dong rieng (KHONG dung *.html chung - se churn index/app.html).
+styles.html text eol=crlf

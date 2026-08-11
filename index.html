@@ -45,21 +45,22 @@
   <!-- ================= VIEW 1: Tạo task / danh sách ================= -->
   <section id="viewTasks">
     <div class="view-topbar">
-      <div class="task-list-toolbar">
-        <h2 class="section-heading">+ ĐỐI CHIẾU DANH SÁCH</h2>
-        <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
+      <div class="view-topbar-title">
+        <div class="task-title">Điểm danh</div>
+        <div class="task-meta">Đối chiếu danh sách theo Station / Ca / Team — tạo task, quét giờ có mặt, điểm danh, bàn giao</div>
       </div>
-      <div class="list-search" role="search" aria-label="Tìm mã Ops">
-        <input type="search" id="listSearch" placeholder="Tìm Ops (Ops6219) hoặc task (R2026)" autocomplete="off" spellcheck="false" aria-label="Tìm mã Ops">
-        <button class="btn-icon" id="btnListSearch" onclick="runListSearch()" title="Tìm (Enter)" aria-label="Tìm">🔍</button>
-        <button class="btn-icon" id="btnListSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
-      </div>
+      <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
       <p class="task-hint">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
     </div>
 
     <div class="card">
       <div class="task-list-toolbar">
         <h2 class="section-heading">DANH SÁCH TASK <span id="taskCount" class="task-count-badge">0</span></h2>
+        <div class="list-search" role="search" aria-label="Tìm mã Ops">
+          <input type="search" id="listSearch" placeholder="Tìm Ops (Ops6219) hoặc task (R2026)" autocomplete="off" spellcheck="false" aria-label="Tìm mã Ops">
+          <button class="btn-icon" id="btnListSearch" onclick="runListSearch()" title="Tìm (Enter)" aria-label="Tìm">🔍</button>
+          <button class="btn-icon" id="btnListSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
+        </div>
       </div>
       <div class="table-wrap" id="taskListWrap">
         <div class="skeleton-wrap" id="taskSkeleton" style="display:none;">
@@ -133,7 +134,7 @@
       <div class="scan-col-right">
         <div class="card">
           <div class="att-toolbar">
-            <div class="att-search">
+            <div class="list-search" role="search" aria-label="Tìm nhân viên">
               <input type="search" id="scanSearch" placeholder="Tìm mã NV, tên…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false">
             </div>
             <select id="scanStatusFilter" aria-label="Lọc theo trạng thái">
@@ -225,7 +226,7 @@
 
     <div class="card">
           <div class="att-toolbar">
-            <div class="att-search">
+            <div class="list-search" role="search" aria-label="Tìm nhân viên">
               <input type="search" id="staffSearch" placeholder="Tìm mã NV, tên, agency…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false" oninput="renderStaffDataTable()">
             </div>
             <span class="bg-task-count" id="staffCount">0 NV</span>
