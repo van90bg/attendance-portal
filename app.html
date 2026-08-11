@@ -3234,6 +3234,7 @@
               // C: silent=true → KHÔNG reset UI (skeleton/ẩn table) — chỉ render view mới lên view cũ (mượt, không nháy toàn bộ)
               loadTaskDetail(CURRENT_TASK.taskId, true);
             } else {
+              hideModalSpin();
               showToast(res.message, true);
               if (btn) btn.disabled = false;
             }
