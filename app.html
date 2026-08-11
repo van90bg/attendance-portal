@@ -772,15 +772,21 @@
   var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', reports: 'viewReports', about: 'viewAbout' };
   var ACTIVE_PAGE = 'home';
 
+  /* Đồng bộ active cho cả sidebar lẫn bottom nav mobile (2026-08-11) */
+  function setActiveNav_(page) {
+    var items = document.querySelectorAll('.side-item, .bottom-nav .nav-item');
+    for (var i = 0; i < items.length; i++) {
+      var on = items[i].getAttribute('data-page') === page;
+      items[i].classList.toggle('active', on);
+      items[i].setAttribute('aria-current', on ? 'page' : 'false');
+    }
+  }
+
   function selectPage(page) {
     var target = PAGE_VIEWS[page];
     if (!target || !document.getElementById(target)) return;
-    // Cập nhật active menu
-    var items = document.querySelectorAll('.side-item');
-    for (var i = 0; i < items.length; i++) {
-      items[i].className = items[i].getAttribute('data-page') === page ? 'side-item active' : 'side-item';
-      items[i].setAttribute('aria-current', items[i].getAttribute('data-page') === page ? 'page' : 'false');
-    }
+    // Cập nhật active menu — sidebar + bottom nav mobile
+    setActiveNav_(page);
     ACTIVE_PAGE = page;
     showSection(target);
     // Lazy-load theo page

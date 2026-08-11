@@ -36,9 +36,12 @@ function build() {
   let html = readFile('index.html');
   const bom = html.charCodeAt(0) === 0xfeff ? html.charAt(0) : '';
   if (bom) html = html.slice(1);
-  const out = bom + html
+  let out = bom + html
     .replace("<?!= include('styles') ?>", readFile('styles.html'))
     .replace("<?!= include('app') ?>", readFile('app.html'));
+  // Local: inject viewport meta giống GAS addMetaTag('viewport', ...) — mobile emulation chuẩn (2026-08-11)
+  out = out.replace('<a href="#main-content" class="skip-link">', '<meta name="viewport" content="width=device-width, initial-scale=1">\n<a href="#main-content" class="skip-link">');
+
   // Guard: template syntax đổi mà không cập nhật build-local → fail loud, không sinh file hỏng.
   if (out.includes('<?!=')) {
     throw new Error('build-local: còn sót directive <?!= ... ?> chưa thay thế — index.html đổi syntax?');
