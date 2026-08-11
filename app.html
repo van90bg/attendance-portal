@@ -142,7 +142,8 @@
   }
 
     // ===== Pagination (tham khảo v1 scan.html — 50 dòng/trang) =====
-    var PAGE_SIZE = 50;
+    var SCAN_PAGE_SIZE = 50;  // bảng quét scanTable: 50 NV/trang
+    var LIST_PAGE_SIZE = 100;  // viewTasks: 100 task/trang (đồng bộ viewStaff 2026-08-11)
     var LIST_PAGE = 1; // trang hiện tại: task list / kết quả tìm
     var SCAN_PAGE = 1; // trang hiện tại: bảng quét scanTable
 
@@ -153,7 +154,7 @@
     function renderPaginator_(containerId, total, current, goFn, pageSize) {
       var el = document.getElementById(containerId);
       if (!el) return;
-      var ps = pageSize || PAGE_SIZE;  // viewStaff truyền STAFF_PAGE_SIZE=100 (2026-08-11)
+      var ps = pageSize || SCAN_PAGE_SIZE;  // scan mặc định 50; staff/tasks truyền pageSize riêng
       if (!total || total <= ps) {
         el.innerHTML = '';
         el.style.display = 'none';
@@ -483,7 +484,7 @@
   var STATS = { station: '', date: '', department: '' };
   var _statsChipsBound = false;       // đã bind event chips filter (1 lần)
   var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
-  var STAFF_PAGE_SIZE = 100;  // phân trang StaffData: 100 NV/trang (viewTasks dùng 50 — 2026-08-11)
+  var STAFF_PAGE_SIZE = 100;  // phân trang StaffData: 100 NV/trang (viewTasks dùng LIST_PAGE_SIZE=100 — 2026-08-11)
   var STAFF_PAGE = 1;
   var STAFF_FILTERS = {};  // filter phễu Excel viewStaff: field -> mảng giá trị đang chọn ([] = tất cả)
   var TASK_FILTERS = {};   // filter phễu Excel viewTasks: field -> mảng giá trị đang chọn ([] = tất cả)
@@ -1922,17 +1923,17 @@
             ? 'Không có task khớp bộ lọc đang áp — bấm <b>Xoá lọc</b> trên funnel để xem toàn bộ'
             : 'Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b>';
         }
-        renderPaginator_('taskPagination', 0, 1, 'goListPage');
+        renderPaginator_('taskPagination', 0, 1, 'goListPage', LIST_PAGE_SIZE);
         return;
       }
       if (empty) empty.style.display = 'none';
-      // Pagination: slice theo trang hiện tại (PAGE_SIZE=50)
+      // Pagination: slice theo trang hiện tại (LIST_PAGE_SIZE=100)
       var total = all.length;
-      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      var totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
       if (LIST_PAGE > totalPages) LIST_PAGE = totalPages;
       if (LIST_PAGE < 1) LIST_PAGE = 1;
-      var start = (LIST_PAGE - 1) * PAGE_SIZE;
-      var pageItems = all.slice(start, start + PAGE_SIZE);
+      var start = (LIST_PAGE - 1) * LIST_PAGE_SIZE;
+      var pageItems = all.slice(start, start + LIST_PAGE_SIZE);
       for (var pi = 0; pi < pageItems.length; pi++) {
         var t = pageItems[pi];
         var tr = document.createElement('tr');
@@ -1952,7 +1953,7 @@
           '<td>' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-ghost btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
         body.appendChild(tr);
       }
-      renderPaginator_('taskPagination', total, LIST_PAGE, 'goListPage');
+      renderPaginator_('taskPagination', total, LIST_PAGE, 'goListPage', LIST_PAGE_SIZE);
     }
 
   /* F-search: === TÌM KIẾM MÃ OPS XUYÊN TASK === */
@@ -2070,17 +2071,17 @@
       if (cnt) cnt.textContent = all.length;
       if (!all.length) {
         if (empty) empty.style.display = "";
-        renderPaginator_("taskPagination", 0, 1, "goListPage");
+        renderPaginator_("taskPagination", 0, 1, "goListPage", LIST_PAGE_SIZE);
         return;
       }
       if (empty) empty.style.display = "none";
-      // Pagination: slice theo trang hiện tại (PAGE_SIZE=50)
+      // Pagination: slice theo trang hiện tại (LIST_PAGE_SIZE=100)
       var total = all.length;
-      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      var totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
       if (LIST_PAGE > totalPages) LIST_PAGE = totalPages;
       if (LIST_PAGE < 1) LIST_PAGE = 1;
-      var start = (LIST_PAGE - 1) * PAGE_SIZE;
-      var pageItems = all.slice(start, start + PAGE_SIZE);
+      var start = (LIST_PAGE - 1) * LIST_PAGE_SIZE;
+      var pageItems = all.slice(start, start + LIST_PAGE_SIZE);
       for (var pi = 0; pi < pageItems.length; pi++) {
         var r = pageItems[pi];
         var tr = document.createElement("tr");
@@ -2099,7 +2100,7 @@
           '<td><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
         body.appendChild(tr);
       }
-      renderPaginator_("taskPagination", total, LIST_PAGE, "goListPage");
+      renderPaginator_("taskPagination", total, LIST_PAGE, "goListPage", LIST_PAGE_SIZE);
     }
   // Mở task từ kết quả tìm kiếm → thoát search (reset mode+header) rồi mở scan.
   // Mở task từ kết quả tìm kiếp → thoát search (reset mode+header) rồi mở scan.
@@ -2470,12 +2471,12 @@
       }
       empty.style.display = 'none';
       if (tbl) tbl.style.display = '';
-      // Pagination: slice theo trang hiện tại (PAGE_SIZE=50)
+      // Pagination: slice theo trang hiện tại (SCAN_PAGE_SIZE=50)
       var total = rows.length;
-      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      var totalPages = Math.max(1, Math.ceil(total / SCAN_PAGE_SIZE));
       if (SCAN_PAGE > totalPages) SCAN_PAGE = totalPages;
       if (SCAN_PAGE < 1) SCAN_PAGE = 1;
-      var start = (SCAN_PAGE - 1) * PAGE_SIZE;
+      var start = (SCAN_PAGE - 1) * SCAN_PAGE_SIZE;
       _paintScanRows(body, rows, start);
       renderPaginator_('scanPagination', total, SCAN_PAGE, 'goScanPage');
     }
@@ -2485,7 +2486,7 @@
       var existing = {};
       var i, tr;
       var start = startIdx || 0;
-      var pageItems = rows.slice(start, start + PAGE_SIZE);
+      var pageItems = rows.slice(start, start + SCAN_PAGE_SIZE);
       for (i = 0; i < body.children.length; i++) {
         tr = body.children[i];
         if (tr.dataset && tr.dataset.id) existing[tr.dataset.id] = tr;
