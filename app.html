@@ -2324,6 +2324,7 @@
         }
       })
       .withFailureHandler(function (err) {
+        markServerFail();  // P2: RPC fail → server offline
         BUSY = false;
         if (btn) btn.disabled = false;
         showToast('Lỗi tạo task: ' + err.message, true);
@@ -2492,6 +2493,7 @@
         hideLoadingOverlay();  // P2: load xong → ẩn spinner
       })
       .withFailureHandler(function (err) {
+        markServerFail();  // P2: RPC fail → server offline
         if (seq !== SCAN_LOAD_SEQ) return; // response của task cũ — bỏ qua
         hideLoadingOverlay();  // P2: load lỗi cũng ẩn spinner
         if (silent) return; // RPC nền lỗi — giữ view đang hiển thị (cache) — không phá UX
