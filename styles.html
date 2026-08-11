@@ -907,6 +907,29 @@
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
+    /* Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox */
+    #staffTable th.th-filter { position: relative; }
+    .th-funnel {
+      display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+      background: transparent; border: none; color: var(--muted); cursor: pointer;
+      padding: 3px 4px; margin-left: 4px; border-radius: 5px; line-height: 1;
+    }
+    .th-funnel:hover { background: var(--surface-soft); color: var(--amber-dark); }
+    .th-funnel.on { color: var(--amber); background: var(--card-extra-bg); }
+    .staff-filter-panel {
+      position: fixed; z-index: 70; min-width: 210px; max-width: 260px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.16); padding: 10px 12px;
+    }
+    .sfp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+    .sfp-body { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+    .sfp-opt { display: flex; align-items: center; gap: 7px; font-size: 13px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
+    .sfp-opt:hover { background: var(--surface-muted); }
+    .sfp-opt input { accent-color: var(--amber); width: 15px; height: 15px; flex-shrink: 0; }
+    .sfp-opt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sfp-empty { color: var(--muted); font-size: 12px; padding: 6px; }
+    .sfp-foot { display: flex; gap: 8px; margin-top: 10px; }
+    @media (max-width: 700px) { .staff-filter-panel { max-width: 85vw; } }
     /* Filter chips bảng Thống kê (Station + Ngày) */
     .stats-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .stats-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

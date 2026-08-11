@@ -137,18 +137,19 @@
     // (nhất quán với các button khác trong v2 — không cần delegation listener).
     // total = số dòng tổng (trước slice); current = trang đang xem; goFn = tên hàm
     // global nhận page, ví dụ goListPage / goScanPage.
-    function renderPaginator_(containerId, total, current, goFn) {
+    function renderPaginator_(containerId, total, current, goFn, pageSize) {
       var el = document.getElementById(containerId);
       if (!el) return;
-      if (!total || total <= PAGE_SIZE) {
+      var ps = pageSize || PAGE_SIZE;  // viewStaff truyền STAFF_PAGE_SIZE=100 (2026-08-11)
+      if (!total || total <= ps) {
         el.innerHTML = '';
         el.style.display = 'none';
         return;
       }
-      var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      var totalPages = Math.max(1, Math.ceil(total / ps));
       var page = Math.min(current, totalPages);
-      var start = (page - 1) * PAGE_SIZE + 1;
-      var end = Math.min(page * PAGE_SIZE, total);
+      var start = (page - 1) * ps + 1;
+      var end = Math.min(page * ps, total);
 
       var html = '<div class="pag-bar">';
       html += '<span class="pag-info">' + start + '–' + end + ' / ' + total + '</span>';
@@ -192,6 +193,14 @@
       } else {
         renderTaskList_(LAST_TASK_LIST.tasks || []);
       }
+    }
+
+    // Phân trang StaffData: set trang + render lại (100 NV/trang).
+    function goStaffPage(page) {
+      var p = Math.max(1, parseInt(page, 10) || 1);
+      if (p === STAFF_PAGE) return;
+      STAFF_PAGE = p;
+      renderStaffDataTable();
     }
 
     // Phân trang bảng scan: set trang + render lại scanTable (đã slice).
@@ -461,6 +470,17 @@
   var STATS = { station: '', date: '', department: '' };
   var _statsChipsBound = false;       // đã bind event chips filter (1 lần)
   var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
+  var STAFF_PAGE_SIZE = 100;  // phân trang StaffData: 100 NV/trang (viewTasks dùng 50 — 2026-08-11)
+  var STAFF_PAGE = 1;
+  var STAFF_FILTERS = {};  // filter phễu Excel: field -> mảng giá trị đang chọn ([] = tất cả)
+  var _staffFilterCol = null;  // cột đang mở dropdown filter
+  // Cột filter được (tên header -> field trong row) — các cột còn lại không lọc (No/ID/Name/Email/giờ/remark)
+  var STAFF_FILTERABLE = {
+    'Agency': 'agency', 'Contract Type': 'contractType', 'Event ID': 'eventId', 'Matching Type': 'matchingType',
+    'Gender': 'gender', 'Department': 'department', 'Slot Code': 'slotCode', 'Workstation': 'workstation',
+    'Team': 'team', 'Station': 'station', 'Date': 'date'
+  };
+  var FUNNEL_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>';
 
 
   function loadStaffView(btn, silent) {
@@ -640,6 +660,7 @@
     var q = (document.getElementById('staffSearch') || {}).value || '';
     var ql = q.trim().toLowerCase();
     var rows = STAFF_ROWS.filter(function (r) {
+      if (!staffMatchesFilter_(r)) return false;
       if (!ql) return true;
       var hay = (String(r.staffId||'') + ' ' + String(r.staffName||'') + ' ' + String(r.agency||'') + ' ' + String(r.team||'')).toLowerCase();
       return hay.indexOf(ql) !== -1;
@@ -657,15 +678,39 @@
       if (tbl) tbl.style.display = 'none';
       if (empty) empty.style.display = '';
       if (skel) skel.style.display = 'none';
+      // 0 kết quả → ẩn luôn thanh phân trang cũ (không để dính '101–158 / 158' trên bảng trống)
+      var pagEl = document.getElementById('staffPagination');
+      if (pagEl) { pagEl.innerHTML = ''; pagEl.style.display = 'none'; }
       return;
     }
-    if (head) head.innerHTML = '<tr>' + STAFF_TABLE_HEAD.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr>';
+    if (head) {
+      var headHtml = '<tr>';
+      for (var hi = 0; hi < STAFF_TABLE_HEAD.length; hi++) {
+        var h = STAFF_TABLE_HEAD[hi];
+        var field = STAFF_FILTERABLE[h];
+        if (field) {
+          var hasF = hasStaffFilter_(field);
+          headHtml += '<th class="th-filter" data-col="' + field + '"><span class="th-label">' + esc(h) + '</span><button type="button" class="th-funnel' + (hasF ? ' on' : '') + '" onclick="toggleStaffFilter(\'' + field + '\', event)" aria-label="Lọc ' + esc(h) + '" title="Lọc ' + esc(h) + '">' + FUNNEL_SVG + '</button></th>';
+        } else {
+          headHtml += '<th>' + esc(h) + '</th>';
+        }
+      }
+      headHtml += '</tr>';
+      head.innerHTML = headHtml;
+    }
     // P1-fix 2026-08-09: trước đây dùng `staff.map` — biến KHÔNG tồn tại (ReferenceError)
     // → renderStaffDataTable luôn throw → bảng NV không bao giờ hiện. Phải lọc theo `rows`
     // (đã filter theo ô tìm kiếm) chứ không phải STAFF_ROWS.
-    var trs = rows.map(function (r, i) {
+    // Phân trang: slice theo STAFF_PAGE (100 NV/trang)
+    var total = rows.length;
+    var totalPages = Math.max(1, Math.ceil(total / STAFF_PAGE_SIZE));
+    if (STAFF_PAGE > totalPages) STAFF_PAGE = totalPages;
+    if (STAFF_PAGE < 1) STAFF_PAGE = 1;
+    var startIdx = (STAFF_PAGE - 1) * STAFF_PAGE_SIZE;
+    var pageRows = rows.slice(startIdx, startIdx + STAFF_PAGE_SIZE);
+    var trs = pageRows.map(function (r, i) {
       return '<tr>' +
-        '<td>' + esc(r.no || (i + 1)) + '</td>' +
+        '<td>' + esc(r.no || (startIdx + i + 1)) + '</td>' +
         '<td>' + esc(r.date) + '</td>' +
         '<td><b>' + esc(r.staffId) + '</b></td>' +
         '<td>' + esc(r.staffName) + '</td>' +
@@ -691,7 +736,99 @@
     if (tbl) tbl.style.display = '';
     if (empty) empty.style.display = 'none';
     if (skel) skel.style.display = 'none';
+    renderPaginator_('staffPagination', total, STAFF_PAGE, 'goStaffPage', STAFF_PAGE_SIZE);
   }
+
+  /* ===== Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox ===== */
+  function hasStaffFilter_(f) { return STAFF_FILTERS[f] && STAFF_FILTERS[f].length > 0; }
+  function staffMatchesFilter_(r) {
+    for (var f in STAFF_FILTERS) {
+      var sel = STAFF_FILTERS[f];
+      if (!sel || !sel.length) continue;
+      if (sel.indexOf(String((r && r[f]) || '')) === -1) return false;
+    }
+    return true;
+  }
+  function staffFilterOptions_(f) {
+    var seen = {}; var out = [];
+    (STAFF_ROWS || []).forEach(function (r) {
+      var v = String((r && r[f]) || '').trim();
+      if (v && !seen[v]) { seen[v] = true; out.push(v); }
+    });
+    return out.sort();
+  }
+  function toggleStaffFilter(field, ev) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    var panel = document.getElementById('staffFilterPanel');
+    var th = ev && ev.target ? ev.target.closest('th') : null;
+    if (!panel || !th) return;
+    if (_staffFilterCol === field && panel.style.display !== 'none') { closeStaffFilter(); return; }
+    _staffFilterCol = field;
+    var r = th.getBoundingClientRect();
+    var lbl = th.querySelector('.th-label');
+    document.getElementById('sfpTitle').textContent = 'Lọc: ' + (lbl ? lbl.textContent : field);
+    var sel = STAFF_FILTERS[field] || [];
+    renderStaffFilterOptions_(field, sel);
+    panel.style.display = '';
+    panel.style.left = Math.max(8, Math.min(r.left, window.innerWidth - Math.min(panel.offsetWidth || 240, 260))) + 'px';
+    panel.style.top = (r.bottom + 4) + 'px';
+    // nút Xoá lọc hiện khi có filter đang áp
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = hasStaffFilter_(field) ? 'visible' : 'hidden';
+  }
+  function renderStaffFilterOptions_(field, sel) {
+    var opts = staffFilterOptions_(field);
+    var html = opts.map(function (v) {
+      var checked = sel.indexOf(v) !== -1;
+      return '<label class="sfp-opt"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onStaffFilterCheck(\'' + field + '\', this)"> <span>' + esc(v) + '</span></label>';
+    }).join('') || '<div class="sfp-empty">(không có giá trị)</div>';
+    document.getElementById('sfpBody').innerHTML = html;
+  }
+  function onStaffFilterCheck(field, cb) {
+    var sel = (STAFF_FILTERS[field] || []).slice();
+    var v = cb.getAttribute('data-val');
+    if (cb.checked) { if (sel.indexOf(v) === -1) sel.push(v); }
+    else { sel = sel.filter(function (x) { return x !== v; }); }
+    STAFF_FILTERS[field] = sel;
+    STAFF_PAGE = 1;
+    renderStaffDataTable();
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = hasStaffFilter_(field) ? 'visible' : 'hidden';
+    // cập nhật trạng thái funnel icon
+    var th = document.querySelector('#staffTableHead th[data-col="' + field + '"]');
+    if (th) { var fb = th.querySelector('.th-funnel'); if (fb) fb.classList.toggle('on', hasStaffFilter_(field)); }
+  }
+  function setStaffFilterAll(field, on) {
+    STAFF_FILTERS[field] = on ? staffFilterOptions_(field) : [];
+    STAFF_PAGE = 1;
+    renderStaffDataTable();
+    renderStaffFilterOptions_(field, STAFF_FILTERS[field]);
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = on ? 'visible' : 'hidden';
+  }
+  function clearStaffFilter() {
+    if (!_staffFilterCol) return;
+    STAFF_FILTERS[_staffFilterCol] = [];
+    STAFF_PAGE = 1;
+    renderStaffDataTable();
+    renderStaffFilterOptions_(_staffFilterCol, []);
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = 'hidden';
+  }
+  function closeStaffFilter() {
+    var panel = document.getElementById('staffFilterPanel');
+    if (panel) panel.style.display = 'none';
+    _staffFilterCol = null;
+  }
+  document.addEventListener('click', function (e) {
+    var panel = document.getElementById('staffFilterPanel');
+    if (!panel || panel.style.display === 'none') return;
+    if (panel.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.th-funnel')) return;
+    closeStaffFilter();
+  });
+  // đóng filter khi cuộn bảng (thead sticky — panel fixed không bám theo)
+  document.addEventListener('scroll', function () { if (_staffFilterCol) closeStaffFilter(); }, true);
 
   /* ===== Âm thanh toggle (tham khảo v1) ===== */
   var SOUND_ON = true;
