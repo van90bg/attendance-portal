@@ -15,7 +15,8 @@
  *      - Trang KHÔNG cuộn (body height:100vh + overflow hidden — nội dung dài cuộn TRONG card)
  *      - Bottom nav mobile không che nội dung
  *      - Card vừa màn hình (đo theo viewport THẬT = body height — KHÔNG innerHeight:
- *        headless mobile emulation báo innerHeight 1007 nhưng body 844, đo nhầm → gap giả 247px)
+ *        headless mobile emulation báo innerHeight 1007 nhưng body 844, đo nhầm → gap giả 247px;
+ *        đo card THẤP NHẤT — viewConfig xếp dọc <1280px: card roleMap dưới form, đo card đầu = gap giả)
  *      - Bảng có dữ liệu (Tasks/Scan/Staff/Stats)
  *      - viewScan mobile: card cao hơn section là ĐÚNG (section overflow-y:auto cuộn trong) — miễn trừ
  *   3. In PASS/FAIL từng check + summary, exit code 0/1 (dùng được trong CI/script).
@@ -132,7 +133,14 @@ const MEASURE = `(() => {
   var sec = document.querySelector('main section:not(.hidden)');
   if (!sec) return { err: 'no visible section' };
   var id = sec.id;
-  var card = sec.querySelector('.card');
+  // card THẤP NHẤT (bottom max) — không phải card đầu: viewConfig <1280px xếp dọc
+  // (card roleMap nằm DƯỚI form) → đo card đầu ra gap giả = chiều cao card dưới (2026-08-11)
+  var cards = sec.querySelectorAll('.card');
+  var card = null;
+  for (var ci = 0; ci < cards.length; ci++) {
+    if (!card || cards[ci].getBoundingClientRect().bottom > card.getBoundingClientRect().bottom) card = cards[ci];
+  }
+  var cardRef = card ? (card.id ? '#' + card.id : '.' + (card.className || '').trim().split(/\s+/)[0]) : null;
   var nav = document.getElementById('bottomNav');
   var sidebar = document.getElementById('sidebar');
   var vh = Math.round(document.body.getBoundingClientRect().height);
@@ -147,6 +155,7 @@ const MEASURE = `(() => {
     navTop: navTop,
     coveredByNav: navTop != null && secR.bottom > navTop + 2,
     cardBottomGap: cardR ? Math.round(vh - cardR.bottom) : null,
+    cardRef: cardRef,
     tblRows: tbl ? tbl.rows.length : 0,
     tblCols: tbl && tbl.rows[0] ? tbl.rows[0].cells.length : 0,
   };
@@ -186,7 +195,7 @@ async function runViewport(ws, vp) {
         check(`${n}: card nội dung cuộn trong section`, v.cardBottomGap < 0, `gap=${v.cardBottomGap}`);
       } else {
         const ok = v.cardBottomGap >= 0 && v.cardBottomGap <= (mobile ? 100 : 40);
-        check(`${n}: card vừa màn hình`, ok, `gap=${v.cardBottomGap}`);
+        check(`${n}: card vừa màn hình`, ok, `gap=${v.cardBottomGap} card=${v.cardRef}`);
       }
     }
     if (['viewTasks', 'viewScan', 'viewStaff', 'viewStats'].indexOf(v.id) !== -1) {

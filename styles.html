@@ -1056,11 +1056,11 @@
       .scan-input-wrap input { font-size: 20px; padding: 10px 14px; }
       .scan-card { padding: 12px 16px; margin-top: 10px; }
       /* Chips (chọn Station/Ca/Team/Hình thức/Ngày — create modal + stats filter): touch ~36px thay 27px (2026-08-11) */
-      .pick { padding: 8px 14px; font-size: 13px; }
+      .pick { padding: 8px 14px; font-size: 13px; min-height: 44px; display: inline-flex; align-items: center; }  /* U6: touch ≥44px (ngoài bảng) */
       /* Filter phễu mobile: option + funnel icon touch ≥33px (audit 375px — 2026-08-11) */
-      .staff-filter-panel .sfp-opt { padding: 9px 8px; }
+      .staff-filter-panel .sfp-opt { padding: 9px 8px; min-height: 44px; align-items: center; }  /* U6: touch ≥44px */
       .staff-filter-panel .sfp-opt input { width: 18px; height: 18px; }
-      .th-funnel { padding: 10px 12px; margin-left: 2px; }
+      .th-funnel { padding: 12px 12px; margin-left: 2px; }  /* svg 11px + 24 padding = 35px touch */
       /* Touch nút nhỏ mobile (audit CDP 375px — 2026-08-11): btn-sm 27px · btn-icon 27px · pag-btn 26px → min-height chốt 36px */
       .btn-sm { padding: 8px 14px; min-height: 36px; font-size: 13px; }
       .list-search .btn-icon { padding: 8px 11px; min-height: 36px; }
