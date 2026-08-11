@@ -10,7 +10,7 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 - Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Spreadsheet.gs` `Cache.gs` `StaffDataRepo.gs` `TaskRepo.gs` `LogRepo.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs` `Auth.gs` `Debug.gs` `SettingsService.gs` (Database.gs đã tách thành 5 repo file 2026-08-11).
 - Dữ liệu: 4 sheet — Config · StaffData (HR, 20 cột tên tiếng Anh) · AttendanceTask · AttendanceLog.
 
-**Shell UI (sidebar 6 trang):** Trang chủ (viewHome) · Thống kê (viewStats) · Điểm danh (viewList + viewScan từ nút Quét) · Dữ liệu chấm công (viewStaff) · Cấu hình (viewConfig — chỉ editor, ẩn theo meta.isEditor) · Giới thiệu (aboutView). Sidebar trái collapsible `240px ↔ 48px`, icon đơn sắc SVG, bỏ side-head, nút thu gọn `☰`. Header giữ userEmail · net-dot · âm thanh · Làm mới. Đã bỏ nút 📋/ⓘ cũ khỏi header.
+**Shell UI (sidebar 6 trang):** Trang chủ (viewHome) · Thống kê (viewStats) · Điểm danh (viewTasks + viewScan từ nút Quét) · Dữ liệu chấm công (viewStaff) · Cấu hình (viewConfig — chỉ editor, ẩn theo meta.isEditor) · Giới thiệu (viewAbout). Toolbar đầu MỌI view dùng chung 1 class `.view-topbar` (+ `.view-topbar-title`) — List/Scan/Stats/Staff/Config (rename 2026-08-11, hết `.scan-topbar`/`.view-toolbar`). Ô tìm NV/task (mã Ops/R2026) nằm TRONG viewTasks: `#listSearch` + `runListSearch()` (đã rời header). Sidebar trái collapsible `240px ↔ 48px`, icon đơn sắc SVG, bỏ side-head, nút thu gọn `☰`. Header giữ userEmail · net-dot · âm thanh · Làm mới. Đã bỏ nút 📋/ⓘ cũ khỏi header.
 
 ## 2. Quy tắc bất biến (KHÔNG bao giờ vi phạm)
 
@@ -59,15 +59,20 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 
 ## 5. View/UI pitfalls đã đóng (2026-08-09)
 
-- `.hidden { display:none !important }` — ID rule thường thắng class (chồng view).
-- `showSection` phải list ĐỦ mọi section mới (viewHome/viewStats...) — đừng quên thêm.
-- `repairViewParents()` chạy DOMContentLoaded — nếu parser eject section khỏi `<main>` (CDP: parent=BODY), nó kéo về. Khi thêm view: thêm id vào mảng repair.
+- `.hidden { display:none !important }` — !important để thắng MỌI rule hiển thị khác (tránh section chồng view).
+- `showSection` phải list ĐỦ mọi section (viewHome/viewStats/viewTasks/viewScan/viewStaff/viewConfig/viewAbout) — đừng quên thêm.
+- `repairViewParents()` chạy DOMContentLoaded — nếu parser eject section khỏi `<main>` (CDP: parent=BODY), nó kéo về. Khi thêm view: thêm id vào mảng repair (`['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig']`).
 - `--header-h: 59px` (header thực); khi cardio không flex giãn → card auto height + `.table-wrap` scroll nội bộ.
 - `taskListTable` KHÔNG được nằm trong `#taskSkeleton` (đã fix 2026-08-09).
 - Scan layout chuẩn: `.scan-layout > .scan-col-left (480px) + .scan-col-right` — card bảng phải trong `.scan-col-right`, không rớt cuối.
 - Giữ sync ID dupl: vd `statsStation` vs statsStation2 — grep id sau split.
 - StaffData table header = **tên cột sheet đúng** (`STAFF_TABLE_HEAD` 20 cột tiếng Anh), Clock In/Out dùng `fmtClockHMS` → `H:mm:ss`.
 - Sidebar icons: SVG stroke `currentColor` (đơn sắc) — không emoji.
+- **Chuẩn tên view (2026-08-11)**: `viewTasks` (danh sách task — sidebar 'Điểm danh') · `viewScan` · `viewHome` · `viewStats` · `viewStaff` · `viewConfig` · `viewAbout` — đồng bộ prefix `view*`. KHÔNG dùng tên cũ: viewList · aboutView · headerSearch · globalSearch · runSearch · scan-topbar · view-toolbar.
+- **Toolbar chung**: 1 class `.view-topbar` cho 5 view (List/Scan/Stats/Staff/Config) — sticky theo `--header-h`, `.stuck` đổ bóng; JS sync dùng `querySelectorAll('.view-topbar')`.
+- **Search trong viewTasks**: `#listSearch` + `#btnListSearch` + `#btnListSearchClear` nằm trong `.view-topbar`; hàm `runListSearch()` (nhánh con `runSearchStaff`/`runSearchTask` GIỮ tên) + `onListSearchKeydown` (Escape clear). CSS `.list-search` (style sáng hợp card).
+- **Spinner toàn màn**: `showModalSpin` có guard — nếu `#loadingOverlay` đang hiện thì KHÔNG mở spinModal (tránh 2 spinner đè nhau; khởi động refreshAll mở spinModal trong lúc overlay còn hiện — fix 2026-08-11).
+- **Scroll trong card**: các view dùng `.table-wrap`/`.stats-table-wrap` cuộn nội bộ; `#viewAbout .card` + `#viewStats .card` giới hạn `max-height` + cuộn trong (đồng bộ 2026-08-11) — giữ `pageScrolls:false`.
 
 ## 6. Workflow — fix & verify
 

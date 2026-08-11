@@ -16,11 +16,11 @@
 
 App scope mở rộng: quản lý chấm công, không chỉ điểm danh. Layout: `<header>` (controls: userEmail · net-dot · 🔊 · ⟳ — ĐÃ BỎ 📋/ⓘ) > `.app-shell` (flex) = `#sidebar` (240↔48px, icon SVG đơn sắc currentColor, KHÔNG side-head, nút thu gọn `☰`) + `#main-content`.
 
-Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewList', data:'viewStaff', about:'aboutView' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
+Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewTasks', data:'viewStaff', config:'viewConfig', about:'viewAbout' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
 
 - viewHome: hero logo local (`sea-logo.svg`/`spx-express.svg`) + tên + đồng hồ realtime (`renderHomeClock`, Intl Asia/Ho_Chi_Minh).
-- viewStats: pivot fullscreen (tabs Team×Ca · BPO · OS + station filter `#statsStation`). viewStaff (page key `data`): bảng StaffData fullscreen (search+count).
-- View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','aboutView','viewScan','viewList']`.
+- viewStats: pivot fullscreen — 2 bảng Contract×Ca + Agency×Ca, MỖI TEAM 1 bảng (Ca dọc), filter Station · Ngày · Department. viewStaff (page key `data`): bảng StaffData fullscreen (search `#staffSearch` + count `#staffCount`).
+- View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig']`.
 
 ## 3. Architecture mental model (đọc TRƯỚC mọi fix)
 
@@ -99,13 +99,17 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## About page + README sync
 
-- `#aboutView`: content Portal-oriented (5 mục), back → `selectPage('home')`.
+- `#viewAbout`: content Portal-oriented (5 mục), back → `selectPage('home')`.
 - README giữ sync (test counts, sidebar, app). Update cùng commit UI change.
 
 ## Pitfall checklist (2026-08-09)
 
 - `.hidden { display:none !important }` — thắng ID rule (chồng view).
 - `--header-h: 59px` đo thật (53 → scroll 6px).
+- **Chuẩn tên (2026-08-11)**: viewTasks (danh sách task) · viewScan · viewHome · viewStats · viewStaff · viewConfig · viewAbout (prefix `view*`). CẤM tên cũ: viewList · aboutView · headerSearch · globalSearch · runSearch · scan-topbar · view-toolbar.
+- **Toolbar chung**: 1 class `.view-topbar` (+ `.view-topbar-title`) cho List/Scan/Stats/Staff/Config — sticky `--header-h`, `.stuck` đổ bóng, JS sync `querySelectorAll('.view-topbar')`.
+- **Search**: `#listSearch` + `runListSearch()` trong viewTasks (đã rời header) — nhánh con giữ tên `runSearchStaff`/`runSearchTask`; Escape → `onListSearchKeydown` clear.
+- **Spinner**: `showModalSpin` guard — loadingOverlay đang hiện thì KHÔNG mở spinModal (2 spinner đè nhau; khởi động refreshAll mở spinModal khi overlay còn hiện — fix 2026-08-11).
 - `taskListTable` KHÔNG trong `#taskSkeleton` — parent chain check (`table.parentElement.id === 'taskSkeleton'` → table height 0).
 - Card stretch tạo trắng — card auto height; `.table-wrap` scroll `max-height: calc(100vh - 320px)`.
 - Scan layout chuẩn `.scan-layout > .scan-col-left(480)+.scan-col-right` — card bảng phải trong col-right (2026-08-09 fixed rớt chân).
