@@ -433,7 +433,8 @@
     }
     .badge.pending { background: var(--surface-muted); color: var(--muted); }
     .badge.present { background: var(--card-ok-bg); color: #137333; }
-    .badge.absent  { background: var(--card-err-bg); color: var(--danger); }
+    .badge.absent  { background: var(--card-err-bg); color: #b3261e; }
+    /* C3 (review 2026-08-11): --danger #d93025 = 4.05:1 trên #fce8e6 fail AA — dùng #b3261e (btn-danger hover ~5.4:1) */
     .badge.extra   { background: var(--card-extra-bg); color: #b45309; }
     .badge.open    { background: var(--primary-bg); color: var(--primary); }
     .badge.attend { background: var(--card-ok-bg); color: var(--success-dark); }
@@ -469,7 +470,7 @@
       font-size: 15px;
       font-weight: 500;
       letter-spacing: 0;
-      color: #8a93a6;
+      color: var(--muted);
       opacity: 1;
     }
     .scan-input-wrap input:focus {
