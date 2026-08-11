@@ -1404,9 +1404,9 @@
         + '</div>'
       + '</div>';
     }).join('');
-    // (2) Group lists — danh sách lựa chọn (station/team/slotcode/department)
+    // (2) Group lists — danh sách lựa chọn (station/team/slotcode/department) — grid 2 cột desktop
     html += '<div class="cfg-group-sep" role="separator" aria-label="Danh sách lựa chọn"></div>';
-    html += CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g); }).join('');
+    html += '<div class="cfg-groups">' + CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g); }).join('') + '</div>';
     box.innerHTML = html;
   }
 

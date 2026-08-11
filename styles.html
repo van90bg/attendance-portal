@@ -370,7 +370,7 @@
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
     .cfg-cols { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; }  /* Mẫu B (2026-08-11): 2 card cạnh nhau, giãn đầy section (audit-ui: card chạm đáy) */
     #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy như mọi view — nội dung cuộn trong từng card */
-    .cfg-card { padding: 16px; }
+    .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
     .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
@@ -379,6 +379,8 @@
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
     .cfg-list { display: flex; flex-direction: column; gap: 8px; }
+    /* Groups 2 cột grid (2026-08-11): 4 danh sách lựa chọn xếp 2×2 — card trái không quá dài (trước dọc 4 section) */
+    .cfg-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; align-items: start; }
     .cfg-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }
     .cfg-item-label { flex: 0 0 190px; font-size: 13px; font-weight: 600; color: var(--text); }
     .cfg-item-value { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
@@ -914,7 +916,7 @@
     #staffTable td { white-space: nowrap; }
     /* Cố định 4 cột đầu (No, Date, Staff ID, Staff Name) khi cuộn ngang */
     #staffTable thead th { position: sticky; top: 0; z-index: 2; }
-    #taskListTable thead th { position: sticky; top: 0; z-index: 2; background: var(--card); }
+    #taskListTable thead th { position: sticky; top: 0; z-index: 2; }  /* nền th chung var(--surface-muted) — đồng bộ staffTable/scanTable (2026-08-11) */
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
@@ -950,6 +952,7 @@
     .stats-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .stats-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .stats-filter-row .flabel { font-size: 12px; font-weight: 700; color: var(--amber-dark); min-width: 56px; }
+    .create-form .frow .flabel { min-width: 56px; }  /* đồng bộ cột label với stats-filters (2026-08-11) */
     .stats-filters .pick { font-size: 12px; }
 
     /* Màn hẹp: cột trái full-width, bảng thống kê cuộn theo chiều cao viewport */
@@ -1069,6 +1072,7 @@
       .cfg-cols { grid-template-columns: 1fr; }  /* <1280: 2 card xếp dọc full-width — content = viewport-272 (sidebar 240+padding), 1024→card chỉ 369px label 190+nút vỡ (CDP); ≥1280 (desktop 1384→card 549) giữ 2 cột */
     }
     @media (max-width: 700px) {
+      .cfg-groups { grid-template-columns: 1fr; }  /* mobile: 4 group xếp dọc 1 cột */
       .cfg-item { flex-wrap: wrap; }
       .cfg-item-label { flex-basis: 100%; }
       .cfg-role-row { flex-wrap: wrap; }
