@@ -27,6 +27,14 @@
       --focus-ring: rgba(232, 93, 4, .45);
       --accent: var(--amber);          /* accent chung — dùng amber làm chuẩn */
       --surface: #f5f6f8;              /* surface hover nhẹ (list-search .btn-icon:hover) — khớp --bg */
+      /* Màu bổ sung (token hóa 2026-08-11 — màu dùng >=2 chỗ) */
+      --row-hover: #f8faff;            /* hover hàng bảng (task/stats/staff) */
+      --primary-bg: #e8f0fe;           /* badge.open / badge-reconcile */
+      --surface-soft: #f0f1f3;          /* btn-ghost hover / badge.done — họ surface */
+      --amber-dark: #9a4d00;           /* text amber đậm trên nền trắng — AA 6.1:1 (flabel) */
+      --side-text: #c3cddb;            /* text sidebar dark (side-item) */
+      --side-text-muted: #b6c2d4;      /* text phụ dark-surface — dùng chung header #netText + sidebar */
+      --success-dark: #1e7e34;         /* text/bg xanh đậm (badge.attend) */
       /* Spacing 4pt grid (S1) */
       --space-1: 4px;
       --space-2: 8px;
@@ -104,7 +112,7 @@
       color: var(--muted);
       border: 1px solid var(--border);
     }
-    .btn-ghost:hover { background: #f0f1f3; }
+    .btn-ghost:hover { background: var(--surface-soft); }
     .btn-sm { padding: 6px 12px; font-size: 13px; }  /* nút nhỏ trong bảng — hết inline style */
     td.stt { width: 40px; text-align: center; color: var(--muted); font-size: 13px; }  /* STT hẹp, không đẩy widths */
 
@@ -239,7 +247,7 @@
         .create-form { display: grid; gap: 10px; margin-top: 10px; }
         .create-form .frow { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 8px; }
         .create-form .chips.disabled { opacity: .45; pointer-events: none; }
-        .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: #9a4d00; }
+        .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: var(--amber-dark); }
     .create-form .frow .fnote { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.3; }
     select.field-select {
       width: 100%; padding: 8px 30px 8px 10px; border: 1px solid var(--border, #e2e5ea); border-radius: 8px;
@@ -380,7 +388,7 @@
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
     th { background: var(--surface-muted); color: var(--muted); font-weight: 600; font-size: 13px; position: sticky; top: 0; }
-    tr:hover td { background: #f8faff; }
+    tr:hover td { background: var(--row-hover); }
     /* C4: dòng NV Dư — nền cam nhạt nổi bật giữa bảng */
     #scanTable tr.extra-row td { background: var(--card-extra-bg); }
     #scanTable tr.extra-row:hover td { background: #fdf0cd; }
@@ -396,11 +404,11 @@
     .badge.present { background: var(--card-ok-bg); color: #137333; }
     .badge.absent  { background: var(--card-err-bg); color: var(--danger); }
     .badge.extra   { background: var(--card-extra-bg); color: #b45309; }
-    .badge.open    { background: #e8f0fe; color: var(--primary); }
-    .badge.attend { background: var(--card-ok-bg); color: #1e7e34; }
-    .badge.done    { background: #f0f1f3; color: var(--muted); }
+    .badge.open    { background: var(--primary-bg); color: var(--primary); }
+    .badge.attend { background: var(--card-ok-bg); color: var(--success-dark); }
+    .badge.done    { background: var(--surface-soft); color: var(--muted); }
     .badge.badge-free      { background: #f3e8fd; color: #7c3aed; }
-    .badge.badge-reconcile { background: #e8f0fe; color: var(--primary); }
+    .badge.badge-reconcile { background: var(--primary-bg); color: var(--primary); }
 
     /* ===== Scan input ===== */
     .scan-row { display: flex; gap: 10px; }
@@ -613,7 +621,7 @@
       background: var(--success); box-shadow: 0 0 4px var(--success);
     }
     header .net-dot.offline { background: var(--danger); box-shadow: 0 0 4px var(--danger); }
-    header #netText { color: #b6c2d4; font-size: 12px; font-weight: 600; }
+    header #netText { color: var(--side-text-muted); font-size: 12px; font-weight: 600; }
 
     /* ===== Background task indicator (header) ===== */
     /* Bổ sung (2026-08-09): spinner + count khi có tác vụ nền đang chạy (scan queue /
@@ -677,7 +685,7 @@
       min-height: 40px;  /* P2 touch >= 44 - header compact */
       background: transparent;
       border: 1px solid var(--header-border);
-      color: #c3cddb;
+      color: var(--side-text);
       border-radius: 6px;
       padding: 6px 12px;
       font-size: 14px;
@@ -806,7 +814,7 @@
       .badge.absent  { background: var(--danger); color: #fff; }
       .badge.extra   { background: var(--warning); color: #fff; }
       .badge.open    { background: var(--primary); color: #fff; }
-      .badge.attend { background: #1e7e34; color: #fff; }
+      .badge.attend { background: var(--success-dark); color: #fff; }
       .badge.done    { background: #000; color: #fff; }
       .badge.badge-free      { background: #2a1f3d; color: #c9a2f2; }
       .badge.badge-reconcile { background: #1b2b4a; color: #8ab4f8; }
@@ -859,7 +867,7 @@
     .stats-table td.total {
       background: #fff3e0; font-weight: 800; color: var(--amber);
     }
-    .stats-table tr:hover td { background: #f8faff; }
+    .stats-table tr:hover td { background: var(--row-hover); }
     .stats-table tr:hover td.row-head { background: var(--surface-muted); }
 
     /* Thống kê 2 cột: Contract × Ca (trái) + Agency × Ca (phải) — 2026-08-11 */
@@ -883,11 +891,11 @@
     #staffTable thead th { position: sticky; top: 0; z-index: 2; }
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }
-    #staffTable tbody tr:hover td:nth-child(-n+4) { background: #f8faff; }
+    #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
     /* Filter chips bảng Thống kê (Station + Ngày) */
     .stats-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .stats-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .stats-filter-row .flabel { font-size: 12px; font-weight: 700; color: #9a4d00; min-width: 56px; }
+    .stats-filter-row .flabel { font-size: 12px; font-weight: 700; color: var(--amber-dark); min-width: 56px; }
     .stats-filters .pick { font-size: 12px; }
 
     /* Màn hẹp: cột trái full-width, bảng thống kê cuộn theo chiều cao viewport */
@@ -917,7 +925,7 @@
       display: flex; align-items: center; gap: 10px;
       width: 100%; min-height: 40px; padding: 8px 12px;
       background: transparent; border: 0; border-radius: 8px;
-      color: #c3cddb; font-size: 14px; font-weight: 600; text-align: left;
+      color: var(--side-text); font-size: 14px; font-weight: 600; text-align: left;
       cursor: pointer; white-space: nowrap;
       transition: background .15s, color .15s;
     }
@@ -930,7 +938,7 @@
     .side-compact {
       width: 100%; min-height: 36px;
       background: transparent; border: 1px solid var(--header-border); border-radius: 8px;
-      color: #b6c2d4; font-size: 16px; font-weight: 600; cursor: pointer; line-height: 1;
+      color: var(--side-text-muted); font-size: 16px; font-weight: 600; cursor: pointer; line-height: 1;
       transition: background .15s;
     }
     .side-compact:hover { background: rgba(255,255,255,.08); color: #fff; }
