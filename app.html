@@ -1375,10 +1375,10 @@
   // Group lists (Config sheet 4 cột Key/Value/Group/Index — 2026-08-11): danh sách lựa chọn
   // cho dropdown tạo task / filter. Mỗi group 1 section: item Sửa/Xoá + nút + Thêm.
   var CFG_GROUPS = [
-    { key: 'station', label: 'Danh sách Station' },
-    { key: 'team', label: 'Danh sách Team' },
-    { key: 'slotcode', label: 'Danh sách Slot Code (Ca)' },
-    { key: 'department', label: 'Danh sách Department' },
+    { key: 'stations', label: 'Danh sách Station' },
+    { key: 'teams', label: 'Danh sách Team' },
+    { key: 'slotcodes', label: 'Danh sách Slot Code (Ca)' },
+    { key: 'departments', label: 'Danh sách Department' },
   ];
 
   function renderConfigForm(s) {
@@ -1450,7 +1450,14 @@
     if (inp) { inp.focus(); inp.select(); }
   }
 
-  function cancelCfgGroupEdit() { renderCfgList(); }
+  function cancelCfgGroupEdit(group) {
+    // Huỷ sau khi Thêm (item '' chưa nhập) → pop item rỗng cuối, không để lại dòng trống
+    if (group && Array.isArray(CFG_STATE[group])) {
+      var list = CFG_STATE[group];
+      if (list.length && String(list[list.length - 1] || '').trim() === '') list.pop();
+    }
+    renderCfgList();
+  }
 
   function saveCfgGroupItem(group, idx) {
     var inp = document.getElementById('cfgGroupEditInput');

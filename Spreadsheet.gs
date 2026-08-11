@@ -58,18 +58,7 @@ function getSpreadsheet_() {
 
 /** Đảm bảo toàn bộ sheet tồn tại (dùng khi khởi tạo). */
 function ensureSheets_() {
-  // Config sheet 4 cột [Key, Value, Group, Index] (2026-08-11):
-  // - Single keys (defaultStation/roleMap...): Group rỗng — hành vi cũ giữ nguyên.
-  // - Group keys (station1..N/team1..N/slotcode1..N/department1..N): Group + Index —
-  //   danh sách lựa chọn có thứ tự, mỗi dòng 1 giá trị (SettingsService đọc/gom theo group).
-  const cfgSheet = getSheet_(SHEETS.CONFIG, ['Key', 'Value', 'Group', 'Index']);
-  // Migration an toàn: sheet cũ chỉ 2 cột (Key/Value) → thêm cột Group/Index (giống pattern
-  // migration cột log). getSheet_ chỉ set header khi sheet TRỐNG — sheet có data không tự vá.
-  while (cfgSheet.getLastColumn() < 4) {
-    const colIdx = cfgSheet.getLastColumn() + 1; // cột mới (1-based)
-    cfgSheet.insertColumnAfter(cfgSheet.getLastColumn());
-    cfgSheet.getRange(1, colIdx).setValue(colIdx === 3 ? 'Group' : 'Index');
-  }
+  getSheet_(SHEETS.CONFIG, ['Key', 'Value']);
   // Header chuẩn Att.csv (20 cột) — getSheet_ chỉ set khi sheet trống; syncFromCsv()
   // ghi đè dữ liệu từ dòng 2 (header dòng 1 giữ nguyên).
   getSheet_(SHEETS.STAFF_DATA, STAFF_DATA_HEADER);

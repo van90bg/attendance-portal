@@ -18,17 +18,16 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 
 const DEFAULTS = {
   defaultStation: '', defaultSlotCode: '', defaultTeam: '', roleMap: {},
-  station: [], team: [], slotcode: [], department: [],
+  stations: ['HN2 SOC', 'HN SOC'], teams: ['Inbound', 'Outbound', 'Manual', 'TBS', 'Prep-WH'],
+  slotcodes: ['08:00-17:00', '13:00-01:00', '13:00-22:00', '18:00-02:00', '18:00-05:00', '20:00-06:00', '22:00-06:00'],
+  departments: ['SOC'],
 };
 
 test('getSettings_ trả defaults khi Config sheet chưa có override', () => {
-  const { ctx, ss } = makeSandbox();
+  const { ctx } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  const got = clone(svc.getSettings_());
-  assert.deepEqual(got, DEFAULTS);
-  // Config sheet: header 4 cột [Key,Value,Group,Index] do ensureSheets_ đặt
-  assert.deepEqual(ss.sheets.Config.data[0], ['Key', 'Value', 'Group', 'Index']);
+  assert.deepEqual(clone(svc.getSettings_()), DEFAULTS);
 });
 
 test('saveSettings_ ghi Config sheet + getSettings_ merge override (cache invalidate)', () => {
@@ -41,10 +40,10 @@ test('saveSettings_ ghi Config sheet + getSettings_ merge override (cache invali
   // Config sheet: header + 2 row override
   assert.equal(ss.sheets.Config.getLastRow(), 3);
   // Cache bị invalidate sau save → đọc lại từ sheet (shared cache: nếu không invalidate, fail)
-  const s = clone(svc.getSettings_());
+  const s = svc.getSettings_();
   assert.equal(s.defaultStation, 'HN2 SOC');
   assert.equal(s.defaultTeam, 'Outbound');
-  assert.deepEqual(s.department, []); // group default rỗng
+  assert.deepEqual(clone(s.teams), ['Inbound', 'Outbound', 'Manual', 'TBS', 'Prep-WH']); // array default giữ nguyên
 });
 
 test('saveSettings_ update row cũ (không append trùng) — ghi 2 lần cùng key', () => {
@@ -52,11 +51,11 @@ test('saveSettings_ update row cũ (không append trùng) — ghi 2 lần cùng 
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   svc.saveSettings_({ defaultStation: 'A' });
-  svc.saveSettings_({ defaultStation: 'B', roleMap: { 'a@x.com': 'admin' } });
+  svc.saveSettings_({ defaultStation: 'B', defaultSlotCode: '08:00-17:00' });
   assert.equal(ss.sheets.Config.getLastRow(), 3); // header + 2 row (update, không trùng)
-  const s = clone(svc.getSettings_());
+  const s = svc.getSettings_();
   assert.equal(s.defaultStation, 'B');
-  assert.deepEqual(s.roleMap, { 'a@x.com': 'admin' });
+  assert.equal(s.defaultSlotCode, '08:00-17:00');
 });
 
 test('whitelist: key không trong SETTINGS_DEFAULTS bị bỏ qua (không ghi sheet)', () => {
@@ -75,75 +74,6 @@ test('whitelist: key không trong SETTINGS_DEFAULTS bị bỏ qua (không ghi sh
   assert.equal(ss.sheets.Config.getLastRow(), 2); // vẫn chỉ 1 row
 });
 
-test('group save: ghi 4 cột + getSettings_ gom theo Index (đọc lại, cache invalidate)', () => {
-  const { ctx, ss } = makeSandbox();
-  const svc = loadAll(ctx);
-  svc.ensureSheets_();
-  const res = svc.saveSettings_({ station: ['HN2 SOC', 'HN SOC'], team: ['Inbound', 'Outbound'], slotcode: ['08:00-17:00', '13:00-01:00'] });
-  assert.equal(res.ok, true);
-  assert.deepEqual(Array.from(res.saved).sort(), ['slotcode', 'station', 'team']);
-  // Sheet: header + 6 row group (key station1..2, team1..2, slotcode1..2) — mỗi row đủ 4 cột
-  assert.equal(ss.sheets.Config.getLastRow(), 7);
-  const s = clone(svc.getSettings_());
-  assert.deepEqual(s.station, ['HN2 SOC', 'HN SOC']);
-  assert.deepEqual(s.team, ['Inbound', 'Outbound']);
-  assert.deepEqual(s.slotcode, ['08:00-17:00', '13:00-01:00']);
-  assert.deepEqual(s.department, []); // group chưa ghi → default []
-});
-
-test('group save: thêm/xoá giữa chừng → index được ghi lại đúng (xóa row cũ không sót)', () => {
-  const { ctx, ss } = makeSandbox();
-  const svc = loadAll(ctx);
-  svc.ensureSheets_();
-  svc.saveSettings_({ station: ['A', 'B', 'C'] });
-  svc.saveSettings_({ station: ['X', 'C'] }); // bỏ B, đổi A→X — index mới 1..2
-  assert.equal(ss.sheets.Config.getLastRow(), 3); // header + 2 row (không tích lũy)
-  const s = clone(svc.getSettings_());
-  assert.deepEqual(s.station, ['X', 'C']);
-  const rows = clone(ss.sheets.Config.data.slice(1).map(function (r) { return r.slice(0, 4); }));
-  assert.deepEqual(rows, [['station1', 'X', 'station', 1], ['station2', 'C', 'station', 2]]);
-});
-
-test('group save: item rỗng bị bỏ qua (không ghi row rác)', () => {
-  const { ctx, ss } = makeSandbox();
-  const svc = loadAll(ctx);
-  svc.ensureSheets_();
-  svc.saveSettings_({ team: ['Inbound', '', 'Outbound'] });
-  assert.equal(ss.sheets.Config.getLastRow(), 3); // header + 2 row
-  assert.deepEqual(clone(svc.getSettings_()).team, ['Inbound', 'Outbound']);
-});
-
-test('group save: value không phải mảng → ghi list rỗng (không crash)', () => {
-  const { ctx, ss } = makeSandbox();
-  const svc = loadAll(ctx);
-  svc.ensureSheets_();
-  const res = svc.saveSettings_({ station: 'HN2 SOC' }); // lệch kiểu — coi như bỏ hết
-  assert.equal(res.ok, true);
-  assert.deepEqual(clone(svc.getSettings_()).station, []);
-});
-
-test('group save: group lạ (không trong defaults) bị bỏ qua', () => {
-  const { ctx, ss } = makeSandbox();
-  const svc = loadAll(ctx);
-  svc.ensureSheets_();
-  const res = svc.saveSettings_({ hackerGroup: ['x'], station: ['HN2 SOC'] });
-  assert.deepEqual(Array.from(res.ignored), ['hackerGroup']);
-  assert.deepEqual(clone(svc.getSettings_()).station, ['HN2 SOC']);
-});
-
-test('migration: Config sheet cũ 2 cột (header Key/Value + data) → ensureSheets_ thêm cột Group/Index', () => {
-  const { ctx, ss } = makeSandbox();
-  const svc = loadAll(ctx);
-  // Tạo sheet cũ 2 cột: header + 1 row single
-  const sh = ss.insertSheet('Config');
-  sh.data = [['Key', 'Value'], ['defaultStation', '"HN2 SOC"']];
-  svc.ensureSheets_();
-  assert.equal(ss.sheets.Config.getLastColumn(), 4);
-  assert.deepEqual(ss.sheets.Config.data[0], ['Key', 'Value', 'Group', 'Index']);
-  const s = svc.getSettings_();
-  assert.equal(s.defaultStation, 'HN2 SOC'); // row cũ vẫn đọc được (group rỗng → single)
-});
-
 test('gate editor: saveSettings_ fail-closed khi user thường', () => {
   const { ctx } = makeSandbox({ activeEmail: 'staff@spx.com' });
   const svc = loadAll(ctx);
@@ -160,15 +90,53 @@ test('API getSettingsApi/saveSettingsApi (Code.gs): editor OK, non-editor chặn
   const g = svc.getSettingsApi();
   assert.equal(g.ok, true);
   assert.equal(g.settings.defaultStation, '');
-  const w = svc.saveSettingsApi({ defaultTeam: 'Outbound' });
+  const w = svc.saveSettingsApi({ teams: ['Inbound', 'Outbound'] });
   assert.equal(w.ok, true);
-  assert.equal(svc.getSettingsApi().settings.defaultTeam, 'Outbound');
+  assert.deepEqual(clone(svc.getSettingsApi().settings.teams), ['Inbound', 'Outbound']);
   // non-editor → cả 2 API chặn
   const { ctx: ctx2 } = makeSandbox({ activeEmail: 'staff@spx.com' });
   const svc2 = loadAll(ctx2);
   svc2.ensureSheets_();
   assert.equal(svc2.getSettingsApi().ok, false);
-  assert.equal(svc2.saveSettingsApi({ defaultTeam: 'X' }).ok, false);
+  assert.equal(svc2.saveSettingsApi({ teams: ['X'] }).ok, false);
+});
+
+test('group JSON: save array → 1 row JSON trong sheet + getSettings_ đọc lại đúng (cache invalidate)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  // Config sheet 2 cột [Key, Value] — KHÔNG có cột Group/Index (model JSON)
+  assert.deepEqual(ss.sheets.Config.data[0], ['Key', 'Value']);
+  const res = svc.saveSettings_({ stations: ['HN2 SOC', 'HN SOC', 'HCM SOC'], slotcodes: ['08:00-17:00'] });
+  assert.equal(res.ok, true);
+  assert.deepEqual(Array.from(res.saved).sort(), ['slotcodes', 'stations']);
+  // 1 key = 1 row, value = JSON array string (không tách nhiều dòng)
+  assert.equal(ss.sheets.Config.getLastRow(), 3); // header + 2 row
+  assert.equal(ss.sheets.Config.data[1][0], 'stations');
+  assert.deepEqual(JSON.parse(ss.sheets.Config.data[1][1]), ['HN2 SOC', 'HN SOC', 'HCM SOC']);
+  const s = clone(svc.getSettings_());
+  assert.deepEqual(s.stations, ['HN2 SOC', 'HN SOC', 'HCM SOC']);
+  assert.deepEqual(s.slotcodes, ['08:00-17:00']);
+  assert.deepEqual(s.teams, DEFAULTS.teams); // group chưa override → default giữ nguyên
+});
+
+test('group JSON: ghi lại cả mảng (thêm/xoá) — update row cũ, không tích lũy', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  svc.saveSettings_({ stations: ['A', 'B', 'C'] });
+  svc.saveSettings_({ stations: ['X', 'C'] }); // bỏ B, đổi A→X — ghi đè cả mảng
+  assert.equal(ss.sheets.Config.getLastRow(), 2); // header + 1 row (update, không trùng)
+  assert.deepEqual(clone(svc.getSettings_()).stations, ['X', 'C']);
+});
+
+test('group JSON: key lạ (không trong defaults) bị bỏ qua', () => {
+  const { ctx } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  const res = svc.saveSettings_({ hackerGroup: ['x'], stations: ['HN2 SOC'] });
+  assert.deepEqual(Array.from(res.ignored), ['hackerGroup']);
+  assert.deepEqual(clone(svc.getSettings_()).stations, ['HN2 SOC']);
 });
 
 test('getSetting_ đọc 1 key sau khi save; key lạ → undefined', () => {

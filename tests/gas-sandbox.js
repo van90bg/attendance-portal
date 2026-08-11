@@ -47,10 +47,7 @@ function makeSheet(name) {
     getDataRange: () => makeRange(sheet, 1, 1, sheet.getLastRow(), Math.max(1, sheet.getLastColumn())),
     getRange: (r, c, nr, nc) => makeRange(sheet, r, c, nr === undefined ? 1 : nr, nc === undefined ? 1 : nc),
     appendRow: (vals) => { sheet.data.push(vals.slice()); },
-    // deleteRow(xóa row 1-based, khớp Sheet API) + insertColumnAfter (chèn 1 cột TRỐNG cuối)
-    // — SettingsService group save (xóa cũ + ghi lại) + migration Config 2→4 cột cần thật.
-    deleteRow: (r) => { sheet.data.splice(r - 1, 1); },
-    insertColumnAfter: () => { sheet.data.forEach((row) => { row.push(''); }); },
+    insertColumnAfter: () => {},
   };
   return sheet;
 }
