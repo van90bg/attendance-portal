@@ -249,11 +249,11 @@
 
   <!-- Panel filter phễu viewStaff (2026-08-11): fixed theo header th, đóng khi click ngoài -->
   <div id="staffFilterPanel" class="staff-filter-panel" style="display:none;" role="dialog" aria-label="Lọc dữ liệu">
-    <div class="sfp-head"><b id="sfpTitle"></b><button type="button" class="btn btn-ghost btn-sm" id="sfpClear" onclick="clearStaffFilter()">Xoá lọc</button></div>
+    <div class="sfp-head"><b id="sfpTitle"></b><button type="button" class="btn btn-ghost btn-sm" id="sfpClear" onclick="clearFunnel()">Xoá lọc</button></div>
     <div class="sfp-body" id="sfpBody"></div>
     <div class="sfp-foot">
-      <button type="button" class="btn btn-outline btn-sm" onclick="setStaffFilterAll(_staffFilterCol, true)">Chọn tất cả</button>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="setStaffFilterAll(_staffFilterCol, false)">Bỏ hết</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="setFunnelAll(_funnel.col, true, _funnel.ctx.key)">Chọn tất cả</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="setFunnelAll(_funnel.col, false, _funnel.ctx.key)">Bỏ hết</button>
     </div>
   </div>
 

@@ -55,12 +55,22 @@
   // Khi search, taskListTable dùng SEARCH_HEAD + renderSearchResults_ (thêm cột Mã NV/Tên NV).
   var LIST_MODE = 'all';
   // Header HTML cho 2 chế độ taskListTable (reuse cùng element #taskListTable).
-  var ALL_HEAD = '<tr>' +
-    '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Loại</th>' +
-    '<th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
-    '<th scope="col">Tổng NV</th><th scope="col">Đã quét</th><th scope="col">Dư</th>' +
-    '<th scope="col">Trạng thái</th><th scope="col">Tạo lúc</th><th scope="col">Người tạo</th>' +
-    '<th scope="col">Thao tác</th></tr>';
+  // Thead danh sách task — động (funnel phễu 4 cột: Loại/Station/Team/Trạng thái + state .on)
+  function taskHeadHtml_() {
+    var h = '<tr>' +
+      '<th scope="col">STT</th><th scope="col">Mã task</th>';
+    var filterable = ['Loại', 'Station', 'Team', 'Trạng thái'];
+    for (var fi = 0; fi < filterable.length; fi++) {
+      var lbl = filterable[fi];
+      var field = TASK_FILTERABLE[lbl];
+      var on = hasFunnel_(TASK_FILTERS, field);
+      h += '<th scope="col" class="th-filter" data-col="' + field + '"><span class="th-label">' + lbl + '</span>' +
+        '<button type="button" class="th-funnel' + (on ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'task\')" aria-label="Lọc ' + lbl + '" title="Lọc ' + lbl + '">' + FUNNEL_SVG + '</button></th>';
+    }
+    h += '<th scope="col">Ca</th><th scope="col">Tổng NV</th><th scope="col">Đã quét</th><th scope="col">Dư</th>' +
+      '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
+    return h;
+  }
   var SEARCH_HEAD = '<tr>' +
         '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
         '<th scope="col">Điểm danh</th><th scope="col">Loại</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
@@ -472,13 +482,18 @@
   var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
   var STAFF_PAGE_SIZE = 100;  // phân trang StaffData: 100 NV/trang (viewTasks dùng 50 — 2026-08-11)
   var STAFF_PAGE = 1;
-  var STAFF_FILTERS = {};  // filter phễu Excel: field -> mảng giá trị đang chọn ([] = tất cả)
-  var _staffFilterCol = null;  // cột đang mở dropdown filter
+  var STAFF_FILTERS = {};  // filter phễu Excel viewStaff: field -> mảng giá trị đang chọn ([] = tất cả)
+  var TASK_FILTERS = {};   // filter phễu Excel viewTasks: field -> mảng giá trị đang chọn ([] = tất cả)
+  var _funnel = { col: null, ctx: null };  // dropdown phễu đang mở: col (field) + ctx ('staff'|'task')
   // Cột filter được (tên header -> field trong row) — các cột còn lại không lọc (No/ID/Name/Email/giờ/remark)
   var STAFF_FILTERABLE = {
     'Agency': 'agency', 'Contract Type': 'contractType', 'Event ID': 'eventId', 'Matching Type': 'matchingType',
     'Gender': 'gender', 'Department': 'department', 'Slot Code': 'slotCode', 'Workstation': 'workstation',
     'Team': 'team', 'Station': 'station', 'Date': 'date'
+  };
+  // Cột filter được ở viewTasks (tên header -> field trong task) — Loại/Station/Team/Trạng thái
+  var TASK_FILTERABLE = {
+    'Loại': 'taskType', 'Station': 'station', 'Team': 'team', 'Trạng thái': 'status'
   };
   var FUNNEL_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>';
 
@@ -660,7 +675,7 @@
     var q = (document.getElementById('staffSearch') || {}).value || '';
     var ql = q.trim().toLowerCase();
     var rows = STAFF_ROWS.filter(function (r) {
-      if (!staffMatchesFilter_(r)) return false;
+      if (!funnelMatches_(STAFF_FILTERS, r)) return false;
       if (!ql) return true;
       var hay = (String(r.staffId||'') + ' ' + String(r.staffName||'') + ' ' + String(r.agency||'') + ' ' + String(r.team||'')).toLowerCase();
       return hay.indexOf(ql) !== -1;
@@ -689,8 +704,8 @@
         var h = STAFF_TABLE_HEAD[hi];
         var field = STAFF_FILTERABLE[h];
         if (field) {
-          var hasF = hasStaffFilter_(field);
-          headHtml += '<th class="th-filter" data-col="' + field + '"><span class="th-label">' + esc(h) + '</span><button type="button" class="th-funnel' + (hasF ? ' on' : '') + '" onclick="toggleStaffFilter(\'' + field + '\', event)" aria-label="Lọc ' + esc(h) + '" title="Lọc ' + esc(h) + '">' + FUNNEL_SVG + '</button></th>';
+          var hasF = hasFunnel_(STAFF_FILTERS, field);
+          headHtml += '<th class="th-filter" data-col="' + field + '"><span class="th-label">' + esc(h) + '</span><button type="button" class="th-funnel' + (hasF ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'staff\')" aria-label="Lọc ' + esc(h) + '" title="Lọc ' + esc(h) + '">' + FUNNEL_SVG + '</button></th>';
         } else {
           headHtml += '<th>' + esc(h) + '</th>';
         }
@@ -739,96 +754,116 @@
     renderPaginator_('staffPagination', total, STAFF_PAGE, 'goStaffPage', STAFF_PAGE_SIZE);
   }
 
-  /* ===== Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox ===== */
-  function hasStaffFilter_(f) { return STAFF_FILTERS[f] && STAFF_FILTERS[f].length > 0; }
-  function staffMatchesFilter_(r) {
-    for (var f in STAFF_FILTERS) {
-      var sel = STAFF_FILTERS[f];
+  /* ===== Filter phễu Excel dùng chung (viewStaff + viewTasks, 2026-08-11): funnel header + dropdown checkbox ===== */
+  // Mỗi bảng 1 context: nguồn rows (options), filter map, render lại, selector thead
+  var STAFF_FILTER_CTX = {
+    key: 'staff', filters: STAFF_FILTERS,
+    rows: function () { return STAFF_ROWS; },
+    render: function () { STAFF_PAGE = 1; renderStaffDataTable(); },
+    headSel: '#staffTableHead'
+  };
+  var TASK_FILTER_CTX = {
+    key: 'task', filters: TASK_FILTERS,
+    rows: function () { return safeArr(LAST_TASK_LIST.tasks); },
+    render: function () {
+      LIST_PAGE = 1;
+      if (LIST_MODE === 'task') renderTaskList_(safeArr(LAST_TASK_SEARCH));
+      else renderTaskList_(safeArr(LAST_TASK_LIST.tasks));
+    },
+    headSel: '#taskListHead'
+  };
+  function funnelCtx_(key) { return key === 'task' ? TASK_FILTER_CTX : STAFF_FILTER_CTX; }
+  function hasFunnel_(filters, f) { return filters[f] && filters[f].length > 0; }
+  function funnelMatches_(filters, r) {
+    for (var f in filters) {
+      var sel = filters[f];
       if (!sel || !sel.length) continue;
       if (sel.indexOf(String((r && r[f]) || '')) === -1) return false;
     }
     return true;
   }
-  function staffFilterOptions_(f) {
+  function funnelOptions_(rows, f) {
     var seen = {}; var out = [];
-    (STAFF_ROWS || []).forEach(function (r) {
+    (rows || []).forEach(function (r) {
       var v = String((r && r[f]) || '').trim();
       if (v && !seen[v]) { seen[v] = true; out.push(v); }
     });
     return out.sort();
   }
-  function toggleStaffFilter(field, ev) {
+  function toggleFunnel(field, ev, key) {
     if (ev && ev.stopPropagation) ev.stopPropagation();
     var panel = document.getElementById('staffFilterPanel');
     var th = ev && ev.target ? ev.target.closest('th') : null;
     if (!panel || !th) return;
-    if (_staffFilterCol === field && panel.style.display !== 'none') { closeStaffFilter(); return; }
-    _staffFilterCol = field;
+    var ctx = funnelCtx_(key);
+    if (_funnel.col === field && _funnel.ctx === ctx && panel.style.display !== 'none') { closeFunnel(); return; }
+    _funnel.col = field; _funnel.ctx = ctx;
     var r = th.getBoundingClientRect();
     var lbl = th.querySelector('.th-label');
     document.getElementById('sfpTitle').textContent = 'Lọc: ' + (lbl ? lbl.textContent : field);
-    var sel = STAFF_FILTERS[field] || [];
-    renderStaffFilterOptions_(field, sel);
+    var sel = ctx.filters[field] || [];
+    renderFunnelOptions_(field, sel);
     panel.style.display = '';
     panel.style.left = Math.max(8, Math.min(r.left, window.innerWidth - Math.min(panel.offsetWidth || 240, 260))) + 'px';
     panel.style.top = (r.bottom + 4) + 'px';
     // nút Xoá lọc hiện khi có filter đang áp
     var clearBtn = document.getElementById('sfpClear');
-    if (clearBtn) clearBtn.style.visibility = hasStaffFilter_(field) ? 'visible' : 'hidden';
+    if (clearBtn) clearBtn.style.visibility = hasFunnel_(ctx.filters, field) ? 'visible' : 'hidden';
   }
-  function renderStaffFilterOptions_(field, sel) {
-    var opts = staffFilterOptions_(field);
+  function renderFunnelOptions_(field, sel) {
+    var ctx = _funnel.ctx;
+    var opts = funnelOptions_(ctx.rows(), field);
     var html = opts.map(function (v) {
       var checked = sel.indexOf(v) !== -1;
-      return '<label class="sfp-opt"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onStaffFilterCheck(\'' + field + '\', this)"> <span>' + esc(v) + '</span></label>';
+      return '<label class="sfp-opt"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onFunnelCheck(\'' + field + '\', this, \'' + ctx.key + '\')"> <span>' + esc(v) + '</span></label>';
     }).join('') || '<div class="sfp-empty">(không có giá trị)</div>';
     document.getElementById('sfpBody').innerHTML = html;
   }
-  function onStaffFilterCheck(field, cb) {
-    var sel = (STAFF_FILTERS[field] || []).slice();
+  function onFunnelCheck(field, cb, key) {
+    var ctx = funnelCtx_(key);
+    var sel = (ctx.filters[field] || []).slice();
     var v = cb.getAttribute('data-val');
     if (cb.checked) { if (sel.indexOf(v) === -1) sel.push(v); }
     else { sel = sel.filter(function (x) { return x !== v; }); }
-    STAFF_FILTERS[field] = sel;
-    STAFF_PAGE = 1;
-    renderStaffDataTable();
+    ctx.filters[field] = sel;
+    ctx.render();
     var clearBtn = document.getElementById('sfpClear');
-    if (clearBtn) clearBtn.style.visibility = hasStaffFilter_(field) ? 'visible' : 'hidden';
+    if (clearBtn) clearBtn.style.visibility = hasFunnel_(ctx.filters, field) ? 'visible' : 'hidden';
     // cập nhật trạng thái funnel icon
-    var th = document.querySelector('#staffTableHead th[data-col="' + field + '"]');
-    if (th) { var fb = th.querySelector('.th-funnel'); if (fb) fb.classList.toggle('on', hasStaffFilter_(field)); }
+    var th = document.querySelector(ctx.headSel + ' th[data-col="' + field + '"]');
+    if (th) { var fb = th.querySelector('.th-funnel'); if (fb) fb.classList.toggle('on', hasFunnel_(ctx.filters, field)); }
   }
-  function setStaffFilterAll(field, on) {
-    STAFF_FILTERS[field] = on ? staffFilterOptions_(field) : [];
-    STAFF_PAGE = 1;
-    renderStaffDataTable();
-    renderStaffFilterOptions_(field, STAFF_FILTERS[field]);
+  function setFunnelAll(field, on, key) {
+    var ctx = funnelCtx_(key);
+    ctx.filters[field] = on ? funnelOptions_(ctx.rows(), field) : [];
+    ctx.render();
+    renderFunnelOptions_(field, ctx.filters[field]);
     var clearBtn = document.getElementById('sfpClear');
     if (clearBtn) clearBtn.style.visibility = on ? 'visible' : 'hidden';
   }
-  function clearStaffFilter() {
-    if (!_staffFilterCol) return;
-    STAFF_FILTERS[_staffFilterCol] = [];
-    STAFF_PAGE = 1;
-    renderStaffDataTable();
-    renderStaffFilterOptions_(_staffFilterCol, []);
+  function clearFunnel() {
+    if (!_funnel.col || !_funnel.ctx) return;
+    var ctx = _funnel.ctx;
+    ctx.filters[_funnel.col] = [];
+    ctx.render();
+    renderFunnelOptions_(_funnel.col, []);
     var clearBtn = document.getElementById('sfpClear');
     if (clearBtn) clearBtn.style.visibility = 'hidden';
   }
-  function closeStaffFilter() {
+  function closeFunnel() {
     var panel = document.getElementById('staffFilterPanel');
     if (panel) panel.style.display = 'none';
-    _staffFilterCol = null;
+    _funnel.col = null; _funnel.ctx = null;
   }
   document.addEventListener('click', function (e) {
     var panel = document.getElementById('staffFilterPanel');
     if (!panel || panel.style.display === 'none') return;
     if (panel.contains(e.target)) return;
     if (e.target.closest && e.target.closest('.th-funnel')) return;
-    closeStaffFilter();
+    closeFunnel();
   });
   // đóng filter khi cuộn bảng (thead sticky — panel fixed không bám theo)
-  document.addEventListener('scroll', function () { if (_staffFilterCol) closeStaffFilter(); }, true);
+  document.addEventListener('scroll', function () { if (_funnel.col) closeFunnel(); }, true);
 
   /* ===== Âm thanh toggle (tham khảo v1) ===== */
   var SOUND_ON = true;
@@ -1837,13 +1872,22 @@
       var empty = document.getElementById('taskEmpty');
       var body = document.getElementById('taskListBody');
       var cnt = document.getElementById('taskCount');
-      var all = safeArr(tasks);
+      // Filter phễu viewTasks (2026-08-11): lọc theo TASK_FILTERS trước khi phân trang
+      var all = safeArr(tasks).filter(function (t) { return funnelMatches_(TASK_FILTERS, t); });
+      // thead động (funnel icon + trạng thái .on) — chỉ chế độ danh sách, không phải search NV
+      var head = document.getElementById('taskListHead');
+      if (head && LIST_MODE !== 'search') head.innerHTML = taskHeadHtml_();
       body.innerHTML = '';
       if (skel) skel.style.display = 'none';
       if (tbl) tbl.style.display = '';
       if (cnt) cnt.textContent = all.length;
       if (!all.length) {
         if (empty) empty.style.display = '';
+        // Có filter phễu đang áp → báo khớp lọc (không gợi ý tạo task sai ngữ cảnh)
+        var emptyTxt = document.getElementById('taskEmptyText');
+        if (emptyTxt && Object.keys(TASK_FILTERS).some(function (f) { return TASK_FILTERS[f] && TASK_FILTERS[f].length; })) {
+          emptyTxt.innerHTML = 'Không có task khớp bộ lọc đang áp — bấm <b>Xoá lọc</b> trên funnel để xem toàn bộ';
+        }
         renderPaginator_('taskPagination', 0, 1, 'goListPage');
         return;
       }
@@ -1886,7 +1930,7 @@
   function setListMode(mode) {
   LIST_MODE = mode;
   var head = document.getElementById("taskListHead");
-  if (head) head.innerHTML = (mode === "search" ? SEARCH_HEAD : ALL_HEAD);
+  if (head) head.innerHTML = (mode === "search" ? SEARCH_HEAD : taskHeadHtml_());
   var empty = document.getElementById("taskEmptyText");
   if (empty) {
     if (mode === "search") {
@@ -1951,7 +1995,7 @@
             })
             .searchLogsByStaffApi(q2);
         }
-        // Tìm theo mã task — dùng ALL_HEAD + renderTaskList_ (giữ nút Quét/Xem + counters).
+        // Tìm theo mã task — dùng taskHeadHtml_ + renderTaskList_ (giữ nút Quét/Xem + counters).
         function runSearchTask(q) {
           LIST_PAGE = 1; // dữ liệu mới → về trang đầu
           showSection("viewTasks");
