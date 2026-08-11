@@ -1,4 +1,4 @@
-# AGENTS.md — Attendance Portal (RollCall v2)
+﻿# AGENTS.md — Attendance Portal (RollCall v2)
 
 Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trước khi sửa code.
 
@@ -86,6 +86,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - `npm run test` → **114/114** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS + contract mock↔server + role — GAS API thật không test được trong Node). `index-html-parse` + `test-local-mock` tự build template qua `scripts/build-local.js` → `index.local.html` trước khi chạy.
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 - Dead CSS audit: `node scripts/audit-css.js` — rà class selector styles.html đối chiếu index.html + app.html (class="" / classList / className literal + nối chuỗi / querySelector / getElementsByClassName) → phân loại DEAD chắc chắn vs DYNAMIC; **exit 1 nếu có dead** (chạy sau mỗi batch CSS). `--full` in thêm class nối chuỗi.
+- Dead GAS audit: `node scripts/audit-gs.js` — rà hàm/const top-level 14 file .gs đối chiếu toàn bộ nguồn (gs + index/app + mock + tests + scripts); phân loại **DEAD** (không ai gọi) + **API TREO** (*Api server có nhưng client không gọi — drift mock↔server↔client); **exit 1 nếu có dead/treo** (chạy sau mỗi batch server). Entry runtime GAS (doGet/doPost/include) không tính.
 
 ## 8. Đọc thêm
 

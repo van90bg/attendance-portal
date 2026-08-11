@@ -32,28 +32,6 @@ const ALLOW_DB_AUTO_CREATE = false;
 
 // ===== Header StaffData (giữ đúng header Att.csv — index theo thứ tự cột) =====
 // Sheet StaffData lưu nguyên cấu trúc csv hệ thống (1 dòng = 1 NV–1 ca–1 station).
-const STAFF_DATA_COLS = {
-  NO: 0,
-  DATE: 1,
-  STAFF_ID: 2,
-  STAFF_NAME: 3,
-  STAFF_EMAIL: 4,
-  AGENCY: 5,
-  CONTRACT_TYPE: 6,
-  EVENT_ID: 7,
-  MATCHING_TYPE: 8,
-  GENDER: 9,
-  DEPARTMENT: 10,
-  CARD_IN: 11,        // Clock In Time (csv) — chỉ hiển thị, không sửa
-  CARD_OUT: 12,       // Clock Out Time (csv) — chỉ hiển thị, không sửa
-  ACTUAL_HOURS: 13,
-  CARD_IN_REMARK: 14,
-  CARD_OUT_REMARK: 15,
-  SLOT_CODE: 16,      // text "08:00-17:00"
-  WORKSTATION: 17,
-  TEAM: 18,
-  STATION: 19,
-};
 const STAFF_DATA_COL_COUNT = 20;
 // Header sheet StaffData — giữ đúng tên cột Att.csv (map qua CSV_HEADER_FIELD →
 // buildStaffIndex/buildStaffListFromValues đọc theo TÊN, không theo index). Đặt header
