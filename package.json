@@ -8,7 +8,8 @@
     "test": "npm run test:css && npm run test:gs && node --test tests/csv-normalize.test.js tests/scan-classify.test.js tests/two-phase.test.js tests/scanservice.test.js tests/paste-batch.test.js tests/create-free.test.js tests/search.test.js tests/index-html-parse.test.js tests/all-gs-load.test.js tests/settings-service.test.js tests/mock-contract.test.js tests/role-service.test.js",
     "test:css": "node scripts/audit-css.js",
     "test:gs": "node scripts/audit-gs.js",
-    "test:style": "node scripts/audit-style.js --strict"
+    "test:style": "node scripts/audit-style.js --strict",
+    "test:ui": "node scripts/audit-ui.js --quick"
   },
   "engines": {
     "node": ">=18"
