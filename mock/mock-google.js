@@ -18,14 +18,14 @@
       // (client không dùng, server không trả — drift đã xóa 2026-08-11).
     },
     staff: [
-      { staffId: 'Ops237511', staffName: 'NV001', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'GRG', contractType: 'BPO', cardIn: '20:15', cardOut: '06:20' },
-      { staffId: 'Ops196935', staffName: 'NV002', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'FEX', contractType: 'OS', cardIn: '20:18', cardOut: '06:25' },
-      { staffId: 'Ops229444', staffName: 'NV003', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'SKT', contractType: 'S-BPO', cardIn: '20:22', cardOut: '06:30' },
-      { staffId: 'Ops110512', staffName: 'NV004', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', agency: 'TPZ', contractType: 'I-BPO', cardIn: '20:25', cardOut: '06:35' },
-      { staffId: 'Ops124563', staffName: 'NV005', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', agency: 'GMG', contractType: 'OS', cardIn: '20:28', cardOut: '' },
-      { staffId: 'Ops129481', staffName: 'NV104', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', agency: 'AGR', contractType: 'OS', cardIn: '06:10', cardOut: '14:20' },
-      { staffId: 'Ops126503', staffName: 'NV105', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', agency: 'SKT', contractType: 'BPO', cardIn: '06:12', cardOut: '14:22' },
-      { staffId: 'Ops133754', staffName: 'NV020', slotCode: '22:00-06:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBMove', agency: 'FEX', contractType: 'OS', cardIn: '10:15', cardOut: '18:19' },
+      { staffId: 'Ops237511', staffName: 'NV001', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'GRG', contractType: 'BPO', date: '2026-08-02', cardIn: '20:15', cardOut: '06:20' },
+      { staffId: 'Ops196935', staffName: 'NV002', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'FEX', contractType: 'OS', date: '2026-08-02', cardIn: '20:18', cardOut: '06:25' },
+      { staffId: 'Ops229444', staffName: 'NV003', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBLoading', agency: 'SKT', contractType: 'S-BPO', date: '2026-08-02', cardIn: '20:22', cardOut: '06:30' },
+      { staffId: 'Ops110512', staffName: 'NV004', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', agency: 'TPZ', contractType: 'I-BPO', date: '2026-08-02', cardIn: '20:25', cardOut: '06:35' },
+      { staffId: 'Ops124563', staffName: 'NV005', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Outbound', workstation: 'OBHandover', agency: 'GMG', contractType: 'OS', date: '2026-08-02', cardIn: '20:28', cardOut: '' },
+      { staffId: 'Ops129481', staffName: 'NV104', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', agency: 'AGR', contractType: 'OS', date: '2026-08-01', cardIn: '06:10', cardOut: '14:20' },
+      { staffId: 'Ops126503', staffName: 'NV105', slotCode: '18:00-02:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', agency: 'SKT', contractType: 'BPO', date: '2026-08-01', cardIn: '06:12', cardOut: '14:22' },
+      { staffId: 'Ops133754', staffName: 'NV020', slotCode: '22:00-06:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBMove', agency: 'FEX', contractType: 'OS', date: '2026-08-01', cardIn: '10:15', cardOut: '18:19' },
     ],
     tasks: [
       { taskId: 'R20260802-0900', taskType: 'reconcile', station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00' },

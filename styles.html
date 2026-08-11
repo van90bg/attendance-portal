@@ -859,15 +859,19 @@
     .stats-table-wrap { overflow-x: auto; max-height: calc(100vh - 260px); overflow-y: auto; flex: 1 1 auto; min-height: 0; }
     .stats-table {
       width: 100%; border-collapse: collapse; font-size: 13px;
+      table-layout: fixed;  /* cột dữ liệu chia đều — Ca/Tổng width cố định (CDP: Ca 188 vs OS 72 lệch) */
     }
     .stats-table th, .stats-table td {
       padding: 5px 8px; border: 1px solid var(--border);
       text-align: center; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;  /* fixed layout: cell dài không tràn sang cell kế */
     }
     .stats-table th {
       background: var(--surface-muted); color: var(--muted);
       font-weight: 700; font-size: 12px; position: sticky; top: 0;
     }
+    .stats-table th:first-child, .stats-table td.row-head { width: 110px; }
+    .stats-table th.total, .stats-table td.total { width: 70px; }
     .stats-table td.row-head {
       text-align: left; font-weight: 600; background: var(--surface-muted);
     }

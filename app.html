@@ -517,7 +517,7 @@
   // ===== Filter chips bảng Thống kê: Station + Date (client-side, single-select) =====
   function renderStatsFilters() {
     renderStatsChipGroup('statsChipsStation', 'station', distinctSorted_(STAFF_ROWS, 'station'));
-    renderStatsChipGroup('statsChipsDate', 'date', distinctSorted_(STAFF_ROWS, 'date'));
+    renderStatsChipGroup('statsChipsDate', 'date', distinctSorted_(STAFF_ROWS, 'date', true));
     renderStatsChipGroup('statsChipsDepartment', 'department', distinctSorted_(STAFF_ROWS, 'department'));
   }
   function renderStatsChipGroup(id, col, vals) {
@@ -531,13 +531,17 @@
     el.innerHTML = html;
   }
   // distinct + sort các giá trị field (client, không RPC)
-  function distinctSorted_(rows, field) {
+  function distinctSorted_(rows, field, desc) {
     var seen = {}, out = [];
     (rows || []).forEach(function (r) {
       var v = String((r && r[field]) || '').trim();
       if (v && !seen[v]) { seen[v] = true; out.push(v); }
     });
-    return out.sort();
+    // Ngày: sort giảm dần (gần nhất cạnh 'Tất cả', format yyyy-MM-dd ISO); field khác: tăng dần
+    out.sort(function (a, b) {
+      return desc ? (a < b ? 1 : a > b ? -1 : 0) : (a < b ? -1 : a > b ? 1 : 0);
+    });
+    return out;
   }
   // Bind click cho chips filter (1 lần, event delegation)
   function initStatsChipEvents() {
