@@ -78,37 +78,6 @@ function previewStaffApi(input) {
   };
 }
 
-/**
- * Đếm số NV cho từng option trong 1 cột, CÓ tính ngữ cảnh các filter KHÁC đã chọn.
- * Client gửi `base` = tổ hợp filter hiện tại (station/slotCode/team/contractType/date),
- * `col` = cột đang đếm, `options` = danh sách option của cột đó.
- * Count mỗi option = filter với base, nhưng cột `col` bị ghi đè bằng [option] duy nhất.
- * @returns {{ok: boolean, counts: Object<string, number>}}
- */
-function previewStaffCountsApi(input) {
-  const staffList = readStaffList_();
-  const base = (input && input.base) || {};
-  const col = input && input.col;
-  // P2-5: guard Array.isArray — client có thể gửi sai kiểu (I4 sót server)
-  const options = Array.isArray(input && input.options) ? input.options : [];
-  const bSlot = Array.isArray(base.slotCode) ? base.slotCode : [];
-  const bTeam = Array.isArray(base.team) ? base.team : [];
-  const bContract = Array.isArray(base.contractType) ? base.contractType : [];
-  const counts = {};
-  options.forEach(function (opt) {
-    const f = {
-      station: base.station,
-      slotCode: (col === 'slot') ? [opt] : bSlot,
-      team: (col === 'team') ? [opt] : bTeam,
-      contractType: (col === 'contract') ? [opt] : bContract,
-      date: (col === 'date') ? opt : base.date,
-    };
-    const filtered = filterStaffByGroup(staffList, f);
-    counts[opt] = dedupeStaffByGroup(filtered).length;
-  });
-  return { ok: true, counts: counts };
-}
-
 /** View StaffData: trả toàn bộ StaffData (full 20 field) cho bảng danh sách + thống kê.
  * Gate: requireRole_('operator') — viewer (role P1) bị chặn. Hiện tại mọi user là
  * operator+ (mặc định) nên KHÔNG đổi hành vi. Chỉ đọc — cache 30s (STAFF_STATS). */

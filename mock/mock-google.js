@@ -158,29 +158,6 @@
       var filtered = mockFilterStaff(base);
       return { ok: true, count: mockDedupe(filtered).length };
     },
-    previewStaffCountsApi: function (input) {
-      // per-option count: base = filter hiện tại, mỗi option ghi đè cột đó = [opt]
-      var base = {
-        station: input && input.station,
-        slotCode: (input && input.slotCode) || [],
-        team: (input && input.team) || [],
-        contractType: (input && input.contractType) || [],
-        date: input && input.date,
-      };
-      var opts = (input && input.options) || [];
-      var col = input && input.col;
-      var out = {};
-      opts.forEach(function (opt) {
-        var ob = JSON.parse(JSON.stringify(base));
-        if (col === 'team') ob.team = [opt];
-        else if (col === 'slot') ob.slotCode = [opt];
-        else if (col === 'contract') ob.contractType = [opt];
-        else if (col === 'date') ob.date = opt;
-        else if (col === 'station') ob.station = opt;
-        out[opt] = mockDedupe(mockFilterStaff(ob)).length;
-      });
-      return { ok: true, counts: out };
-    },
     getTaskListApi: function () {
       return MOCK_DATA.tasks.slice();
     },
