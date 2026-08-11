@@ -106,7 +106,7 @@
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
       <button class="btn btn-outline" id="btnPaste" onclick="openPasteModal()" style="display:none" aria-label="Dán danh sách mã" title="Dán danh sách mã">Dán danh sách mã</button>
-      <button class="btn btn-primary" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
+      <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Kết thúc task">Kết thúc</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
     </div>
@@ -152,7 +152,7 @@
             <table id="scanTable" style="display:none;">
               <thead>
                 <tr>
-                  <th scope="col" class="stt-col">STT</th>
+                  <th scope="col">STT</th>
                   <th scope="col" data-sort="0" class="sortable" aria-sort="none">Mã NV</th>
                   <th scope="col" data-sort="1" class="sortable" aria-sort="none">Tên NV</th>
                   <th scope="col" data-sort="2" class="sortable" aria-sort="none">Agency</th>
