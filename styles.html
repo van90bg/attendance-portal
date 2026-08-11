@@ -364,15 +364,16 @@
     .att-toolbar select { flex: 0 0 auto; width: auto; max-width: 190px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
 
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
-    .cfg-card { padding: 16px; max-width: 640px; }  /* desktop: card gọn — trước rộng 1112px, nút Sửa/Xoá ở x=1233; 640px: x~757 không phải di chuột nhiều (CDP 1384) */
-    .cfg-section { margin-bottom: 20px; }
+    .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
+    .cfg-cols { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; }  /* Mẫu B (2026-08-11): 2 card cạnh nhau, giãn đầy section (audit-ui: card chạm đáy) */
+    #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy như mọi view — nội dung cuộn trong từng card */
+    .cfg-card { padding: 16px; }
     .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
     .cfg-role-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
     .cfg-role-email { flex: 1 1 280px; min-width: 0; }
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
-    .cfg-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
     .cfg-list { display: flex; flex-direction: column; gap: 8px; }
     .cfg-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }
@@ -1025,13 +1026,15 @@
     #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }  /* form dài → cuộn trong card, trang không cuộn */
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
+    @media (max-width: 1280px) {
+      .cfg-cols { grid-template-columns: 1fr; }  /* <1280: 2 card xếp dọc full-width — content = viewport-272 (sidebar 240+padding), 1024→card chỉ 369px label 190+nút vỡ (CDP); ≥1280 (desktop 1384→card 549) giữ 2 cột */
+    }
     @media (max-width: 700px) {
       .cfg-item { flex-wrap: wrap; }
       .cfg-item-label { flex-basis: 100%; }
       .cfg-role-row { flex-wrap: wrap; }
       .cfg-role-email { flex: 1 1 100%; }
       .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
-      .cfg-actions { position: sticky; bottom: 0; z-index: 3; background: var(--card); padding: 10px 0 2px; margin-top: 0; }
     }
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;

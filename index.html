@@ -253,29 +253,25 @@
         <div class="task-title">Cấu hình</div>
         <div class="task-meta" id="configMeta">Đang tải…</div>
       </div>
-      <button class="btn btn-outline" onclick="loadConfigView(this)" aria-label="Làm mới cấu hình" title="Làm mới">⟳ Làm mới</button>
+      <div class="topbar-actions">
+        <button class="btn btn-outline" onclick="loadConfigView(this)" aria-label="Làm mới cấu hình" title="Làm mới">⟳ Làm mới</button>
+        <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)" style="display:none;">💾 Lưu phân quyền</button>
+      </div>
     </div>
 
-    <div class="card cfg-card">
-      <form id="configForm" onsubmit="return false;" style="display:none;">
-        <div class="cfg-section">
-          <div class="cfg-section-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá từng mục — lưu ngay</span></div>
-          <div id="cfgList" class="cfg-list"></div>
-        </div>
-
-        <div class="cfg-section">
-          <div class="cfg-section-title">Phân quyền (roleMap) <span class="cfg-hint">email → role; bỏ trống email để xóa dòng</span></div>
-          <div id="cfgRoleRows"></div>
-          <button type="button" class="btn btn-outline btn-sm" onclick="addRoleRow()">+ Thêm role</button>
-        </div>
-
-        <div class="cfg-actions">
-          <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)">💾 Lưu phân quyền</button>
-          <span class="cfg-status" id="cfgStatus"></span>
-        </div>
+    <div class="cfg-cols" id="configWrap" style="display:none;">
+      <form id="configForm" onsubmit="return false;" class="card cfg-card">
+        <div class="cfg-section-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá từng mục — lưu ngay</span></div>
+        <div id="cfgList" class="cfg-list"></div>
       </form>
-      <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ editor (DEPLOYER_EMAIL)</div>
+      <div class="card cfg-card">
+        <div class="cfg-section-title">Phân quyền (roleMap) <span class="cfg-hint">email → role; bỏ trống email để xóa dòng</span></div>
+        <div id="cfgRoleRows"></div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addRoleRow()">+ Thêm role</button>
+        <div class="cfg-status" id="cfgStatus"></div>
+      </div>
     </div>
+    <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ editor (DEPLOYER_EMAIL)</div>
   </section>
 </main>
 </div>

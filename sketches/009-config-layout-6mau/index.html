@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup viewConfig — 6 mẫu layout</title>
+<style>
+  :root {
+    --header-h: 59px;
+    --card: #ffffff;
+    --card-radius: 12px;
+    --border: #d9dce1;
+    --text: #1f1f1f;
+    --muted: #5f6368;
+    --amber: #e85d04;
+    --amber-dark: #9a4d00;
+    --header-bg: #0d111a;
+    --header-text: #f4f7fb;
+    --header-border: #3a4a66;
+    --surface-muted: #f1f3f4;
+    --primary: #1a56db;
+    --primary-dark: #1446b5;
+    --primary-bg: #e8f0fe;
+    --surface-soft: #f0f1f3;
+    --row-hover: #f8faff;
+    --danger: #b3261e;
+    --card-extra-bg: #fef7e0;
+    --space-4: 16px;
+    --space-3: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #eef0f3; color: var(--text); }
+  /* ==== Shell chung mô phỏng app ==== */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 240px; background: var(--header-bg); color: var(--header-text);
+    padding: 14px 10px; flex-shrink: 0;
+  }
+  .sidebar .logo { font-weight: 800; font-size: 14px; padding: 6px 10px 16px; border-bottom: 1px solid var(--header-border); margin-bottom: 10px; }
+  .nav-item { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 4px; color: #aeb9cc; }
+  .nav-item.active { background: rgba(255,255,255,.1); color: #fff; }
+  .main { flex: 1; padding: 16px; min-width: 0; display: flex; flex-direction: column; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--card-radius);
+    padding: 8px 14px; margin-bottom: 12px;
+  }
+  .topbar .t { font-weight: 800; font-size: 16px; text-transform: uppercase; color: var(--amber-dark); }
+  .topbar .m { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .btn {
+    border: none; border-radius: 8px; padding: 10px 18px; font-size: 15px; font-weight: 600;
+    cursor: pointer; background: var(--primary); color: #fff; white-space: nowrap;
+  }
+  .btn-outline { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-sm { padding: 6px 12px; font-size: 13px; min-height: 36px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 16px; }
+  .sec-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+  .sec-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
+  /* ==== Mẫu chung ==== */
+  .cfg-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); margin-bottom: 8px; }
+  .cfg-item .lbl { flex: 0 0 190px; font-size: 13px; font-weight: 600; }
+  .cfg-item .val { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
+  .cfg-item .acts { display: flex; gap: 6px; flex-shrink: 0; }
+  .role-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .role-row input, .role-row select {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff;
+  }
+  .role-row .em { flex: 1 1 auto; min-width: 0; }
+  .role-row select { flex: 0 0 150px; }
+  /* ==== Thanh demo điều hướng mẫu ==== */
+  .picker { position: sticky; top: 0; z-index: 50; background: var(--header-bg); color: #fff; display: flex; gap: 8px; padding: 10px 16px; align-items: center; }
+  .picker a { color: #cfd8e8; text-decoration: none; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.08); padding: 6px 12px; border-radius: 999px; }
+  .picker a.on { background: var(--amber); color: #fff; }
+  .sample { border-bottom: 3px dashed #b9bfc9; padding: 14px 0 26px; }
+  .sample-title { font-size: 15px; font-weight: 800; color: var(--header-bg); margin: 4px 0 10px; }
+  .sample-title span { color: var(--amber); font-weight: 800; }
+
+  /* ================= MẪU A: 1 card, 2 cột (grid) ================= */
+  .a-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  /* ================= MẪU B: 2 card riêng cạnh nhau ================= */
+  .b-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  /* ================= MẪU C: 1 cột full-width (fix co ngang) ================= */
+  /* ================= MẪU D: 2 cột + role dạng bảng ================= */
+  .d-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .d-table th, .d-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  .d-table th { background: var(--surface-muted); color: var(--muted); font-weight: 700; }
+  /* ================= MẪU E: 2 cột + cột info nhỏ ================= */
+  .e-cols { display: grid; grid-template-columns: 1fr 1fr 280px; gap: 14px; }
+  .e-info { background: var(--card-extra-bg); border: 1px solid #f0d9a8; border-radius: 8px; padding: 12px; font-size: 12px; color: #6b5c30; }
+  /* ================= MẪU F: Tabs ================= */
+  .f-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .f-tab { padding: 8px 16px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 700; background: var(--surface-muted); color: var(--muted); border: 1px solid var(--border); border-bottom: none; cursor: pointer; }
+  .f-tab.on { background: var(--card); color: var(--amber-dark); border-bottom: 2px solid var(--amber); }
+  .f-panel { border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 14px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  @media (max-width: 900px) {
+    .a-grid, .b-cols, .e-cols { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="picker" id="top">
+  <span style="font-weight:800;font-size:12px;">6 MẪU:</span>
+  <a href="#A" class="on">A. 1 card 2 cột</a>
+  <a href="#B">B. 2 card cạnh nhau</a>
+  <a href="#C">C. 1 cột full</a>
+  <a href="#D">D. Role bảng</a>
+  <a href="#E">E. + cột info</a>
+  <a href="#F">F. Tabs</a>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">ROLLCALL v2</div>
+    <div class="nav-item">Trang chủ</div>
+    <div class="nav-item">Thống kê</div>
+    <div class="nav-item">Điểm danh</div>
+    <div class="nav-item">Dữ liệu chấm công</div>
+    <div class="nav-item active">Cấu hình</div>
+  </aside>
+  <main class="main">
+
+    <!-- ============ MẪU A: 1 card, 2 cột grid — nút Lưu trên topbar ============ -->
+    <section class="sample" id="A">
+      <div class="sample-title"><span>A.</span> 1 card chia 2 cột (Cấu hình | Phân quyền) — nút Lưu lên topbar</div>
+      <div class="topbar">
+        <div><div class="t">Cấu hình</div><div class="m">Cấu hình vận hành · Phân quyền (roleMap)</div></div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline">⟳ Làm mới</button>
+          <button class="btn">💾 Lưu phân quyền</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="a-grid">
+          <div>
+            <div class="sec-title">Cấu hình vận hành <span class="sec-hint">Sửa / Xoá — lưu ngay</span></div>
+            <div class="cfg-item"><div class="lbl">Station mặc định</div><div class="val">KHO-01</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Slot Code mặc định</div><div class="val">Ca 1 (08:00–17:00)</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Team mặc định</div><div class="val">Team A</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Department mặc định</div><div class="val">Kho Chính</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          </div>
+          <div>
+            <div class="sec-title">Phân quyền (roleMap) <span class="sec-hint">email → role</span></div>
+            <div class="role-row"><input class="em" placeholder="email@spx.com"><select><option>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+            <div class="role-row"><input class="em" value="thu.nguyen@spx.com"><select><option selected>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+            <div class="role-row"><input class="em" value="hai.tran@spx.com"><select><option>admin</option><option selected>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+            <button class="btn btn-outline btn-sm" style="margin-top:4px;">+ Thêm role</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MẪU B: 2 card riêng cạnh nhau ============ -->
+    <section class="sample" id="B">
+      <div class="sample-title"><span>B.</span> 2 card riêng biệt (Cấu hình | Phân quyền) — nút Lưu topbar</div>
+      <div class="topbar">
+        <div><div class="t">Cấu hình</div><div class="m">2 card độc lập — mỗi card 1 việc</div></div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline">⟳ Làm mới</button>
+          <button class="btn">💾 Lưu phân quyền</button>
+        </div>
+      </div>
+      <div class="b-cols">
+        <div class="card">
+          <div class="sec-title">Cấu hình vận hành <span class="sec-hint">lưu ngay khi Sửa/Xoá</span></div>
+          <div class="cfg-item"><div class="lbl">Station mặc định</div><div class="val">KHO-01</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          <div class="cfg-item"><div class="lbl">Slot Code mặc định</div><div class="val">Ca 1</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          <div class="cfg-item"><div class="lbl">Team mặc định</div><div class="val">Team A</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          <div class="cfg-item"><div class="lbl">Department mặc định</div><div class="val">Kho Chính</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+        </div>
+        <div class="card">
+          <div class="sec-title">Phân quyền (roleMap) <span class="sec-hint">bỏ trống email để xoá dòng</span></div>
+          <div class="role-row"><input class="em" placeholder="email@spx.com"><select><option>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+          <div class="role-row"><input class="em" value="thu.nguyen@spx.com"><select><option selected>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+          <div class="role-row"><input class="em" value="hai.tran@spx.com"><select><option>admin</option><option selected>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+          <button class="btn btn-outline btn-sm">+ Thêm role</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MẪU C: 1 cột full-width (fix co ngang đơn giản) ============ -->
+    <section class="sample" id="C">
+      <div class="sample-title"><span>C.</span> 1 cột full-width — bỏ max-width co ngang, nút Lưu topbar</div>
+      <div class="topbar">
+        <div><div class="t">Cấu hình</div><div class="m">Đơn giản nhất — giữ form dọc, bỏ co ngang</div></div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline">⟳ Làm mới</button>
+          <button class="btn">💾 Lưu phân quyền</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title">Cấu hình vận hành <span class="sec-hint">Sửa / Xoá — lưu ngay</span></div>
+        <div class="cfg-item"><div class="lbl">Station mặc định</div><div class="val">KHO-01</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+        <div class="cfg-item"><div class="lbl">Slot Code mặc định</div><div class="val">Ca 1 (08:00–17:00)</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+        <div class="cfg-item"><div class="lbl">Team mặc định</div><div class="val">Team A</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+        <div class="cfg-item"><div class="lbl">Department mặc định</div><div class="val">Kho Chính</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+        <div class="sec-title" style="margin-top:20px;">Phân quyền (roleMap) <span class="sec-hint">email → role</span></div>
+        <div class="role-row"><input class="em" placeholder="email@spx.com"><select><option>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+        <div class="role-row"><input class="em" value="thu.nguyen@spx.com"><select><option selected>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+        <div class="role-row"><input class="em" value="hai.tran@spx.com"><select><option>admin</option><option selected>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+        <button class="btn btn-outline btn-sm">+ Thêm role</button>
+      </div>
+    </section>
+
+    <!-- ============ MẪU D: 2 cột + role dạng bảng ============ -->
+    <section class="sample" id="D">
+      <div class="sample-title"><span>D.</span> 2 cột — role dạng bảng (email | role | xoá) — nút Lưu topbar</div>
+      <div class="topbar">
+        <div><div class="t">Cấu hình</div><div class="m">RoleMap dạng bảng — dễ nhìn với nhiều role</div></div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline">⟳ Làm mới</button>
+          <button class="btn">💾 Lưu phân quyền</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="a-grid">
+          <div>
+            <div class="sec-title">Cấu hình vận hành <span class="sec-hint">lưu ngay</span></div>
+            <div class="cfg-item"><div class="lbl">Station mặc định</div><div class="val">KHO-01</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Slot Code mặc định</div><div class="val">Ca 1</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Team mặc định</div><div class="val">Team A</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Department mặc định</div><div class="val">Kho Chính</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          </div>
+          <div>
+            <div class="sec-title">Phân quyền (roleMap) <span class="sec-hint">bỏ trống email để xoá dòng</span></div>
+            <table class="d-table">
+              <thead><tr><th>Email</th><th>Role</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><input class="em" style="width:100%;" value="thu.nguyen@spx.com"></td><td><select><option selected>admin</option><option>manager</option><option>viewer</option></select></td><td><button class="btn btn-ghost btn-sm">✕</button></td></tr>
+                <tr><td><input class="em" style="width:100%;" value="hai.tran@spx.com"></td><td><select><option>admin</option><option selected>manager</option><option>viewer</option></select></td><td><button class="btn btn-ghost btn-sm">✕</button></td></tr>
+                <tr><td><input class="em" style="width:100%;" placeholder="email@spx.com"></td><td><select><option>admin</option><option>manager</option><option>viewer</option></select></td><td><button class="btn btn-ghost btn-sm">✕</button></td></tr>
+              </tbody>
+            </table>
+            <button class="btn btn-outline btn-sm" style="margin-top:8px;">+ Thêm role</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MẪU E: 2 cột + cột info ============ -->
+    <section class="sample" id="E">
+      <div class="sample-title"><span>E.</span> 2 cột chính + cột info nhỏ (hướng dẫn / trạng thái) — nút Lưu topbar</div>
+      <div class="topbar">
+        <div><div class="t">Cấu hình</div><div class="m">Cột info bên phải — giải thích + trạng thái lưu</div></div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline">⟳ Làm mới</button>
+          <button class="btn">💾 Lưu phân quyền</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="e-cols">
+          <div>
+            <div class="sec-title">Cấu hình vận hành <span class="sec-hint">lưu ngay</span></div>
+            <div class="cfg-item"><div class="lbl">Station mặc định</div><div class="val">KHO-01</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Slot Code mặc định</div><div class="val">Ca 1</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Team mặc định</div><div class="val">Team A</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+            <div class="cfg-item"><div class="lbl">Department mặc định</div><div class="val">Kho Chính</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          </div>
+          <div>
+            <div class="sec-title">Phân quyền (roleMap) <span class="sec-hint">email → role</span></div>
+            <div class="role-row"><input class="em" placeholder="email@spx.com"><select><option>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+            <div class="role-row"><input class="em" value="thu.nguyen@spx.com"><select><option selected>admin</option><option>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+            <div class="role-row"><input class="em" value="hai.tran@spx.com"><select><option>admin</option><option selected>manager</option><option>viewer</option></select><button class="btn btn-ghost btn-sm">✕</button></div>
+            <button class="btn btn-outline btn-sm">+ Thêm role</button>
+          </div>
+          <div>
+            <div class="sec-title">Trạng thái</div>
+            <div class="e-info">
+              <b>🟢 Đã đồng bộ</b><br>Lần lưu: 09:42 11/08/2026<br><br>
+              <b>Mẹo:</b> mục vận hành tự lưu khi bấm Sửa/Xoá. Phân quyền cần bấm <b>Lưu phân quyền</b> trên topbar.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MẪU F: Tabs ============ -->
+    <section class="sample" id="F">
+      <div class="sample-title"><span>F.</span> Tabs (Vận hành | Phân quyền) — tiết kiệm không gian — nút Lưu topbar</div>
+      <div class="topbar">
+        <div><div class="t">Cấu hình</div><div class="m">2 tab — mỗi lúc hiện 1 phần, gọn nhất trên mobile</div></div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline">⟳ Làm mới</button>
+          <button class="btn">💾 Lưu phân quyền</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="f-tabs"><div class="f-tab on">Cấu hình vận hành</div><div class="f-tab">Phân quyền</div></div>
+        <div class="f-panel">
+          <div class="cfg-item"><div class="lbl">Station mặc định</div><div class="val">KHO-01</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          <div class="cfg-item"><div class="lbl">Slot Code mặc định</div><div class="val">Ca 1 (08:00–17:00)</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          <div class="cfg-item"><div class="lbl">Team mặc định</div><div class="val">Team A</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+          <div class="cfg-item"><div class="lbl">Department mặc định</div><div class="val">Kho Chính</div><div class="acts"><button class="btn btn-ghost btn-sm">Sửa</button><button class="btn btn-ghost btn-sm">Xoá</button></div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

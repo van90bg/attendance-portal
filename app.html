@@ -1127,10 +1127,12 @@
   function loadConfigView(btn) {
     var meta = document.getElementById('configMeta');
     var empty = document.getElementById('configEmpty');
-    var form = document.getElementById('configForm');
+    var saveBtn = document.getElementById('cfgSaveBtn');
+    var wrap = document.getElementById('configWrap');
     if (meta) meta.textContent = 'Đang tải…';
     if (empty) empty.style.display = 'none';
-    if (form) form.style.display = 'none';
+    if (wrap) wrap.style.display = 'none';  // Mẫu B: ẩn cả khối 2 card khi tải
+    if (saveBtn) saveBtn.style.display = 'none';
     setBtnBusy_(btn, '⟳ Đang tải…');
     function restore() { restoreBtnLabel_(btn, '⟳ Làm mới'); }
     google.script.run
@@ -1140,10 +1142,12 @@
           showToast((res && res.message) || 'Lỗi tải cấu hình', true);
           if (empty) empty.style.display = '';
           if (meta) meta.textContent = 'Không tải được';
+          if (saveBtn) saveBtn.style.display = 'none';
           return;
         }
         renderConfigForm(res.settings || {});
-        if (form) form.style.display = '';
+        if (wrap) wrap.style.display = '';  // Mẫu B: hiện 2 card cạnh nhau
+        if (saveBtn) saveBtn.style.display = '';  // Mẫu B: nút Lưu phân quyền trên view-topbar
         if (meta) meta.textContent = 'Đã tải';
         markServerOk();
       })
@@ -1303,15 +1307,20 @@
   }
 
   function saveConfig(btn) {
-    // Nút "Lưu phân quyền" — chỉ gửi roleMap (mục vận hành tự lưu khi Sửa/Xoá)
+    // Nút "Lưu phân quyền" (view-topbar) — chỉ gửi roleMap (mục vận hành tự lưu khi Sửa/Xoá)
     var patch = { roleMap: collectRoleMap() };
     setBtnBusy_(btn, 'Đang lưu…');
     function restore() { restoreBtnLabel_(btn, '💾 Lưu phân quyền'); }
+    function setStatus(t, ok) {
+      var st = document.getElementById('cfgStatus');
+      if (st) { st.textContent = t; st.style.color = ok ? 'var(--success)' : 'var(--danger)'; }
+    }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
-        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi lưu phân quyền', true); return; }
+        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi lưu phân quyền', true); setStatus('Lỗi lưu', false); return; }
         showToast(res.message || 'Đã lưu phân quyền', false);
+        setStatus('Đã lưu ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }), true);
         loadConfigView(); // đọc lại từ server (cache đã invalidate)
       })
       .withFailureHandler(function (err) {
