@@ -1002,10 +1002,43 @@
       .home-clock { font-size: 44px; }
       .home-logo { height: 64px; }
     }
-    /* ===== viewAbout — class dùng chung (gom inline style lặp, 2026-08-11) ===== */
+    /* ===== Class dùng chung theo view/modal (gom inline style, 2026-08-11) ===== */
     .about-cell { padding: 8px; border: 1px solid var(--border); text-align: left; }
+    /* viewTasks hint */
+    .task-hint { color: var(--muted); font-size: 12px; margin: 0; }
+    /* viewStaff — số NV đậm */
+    #staffCount { font-weight: 700; }
+    /* viewReports placeholder */
+    .reports-empty { padding: 48px 16px; text-align: center; color: var(--text); opacity: .65; }
+    .reports-empty-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .reports-empty-desc { font-size: 13px; line-height: 1.7; }
+    /* viewAbout */
+    .about-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .about-title { margin: 0; font-size: 20px; font-weight: 700; }
+    .about-body { line-height: 1.7; font-size: 14px; color: var(--text); }
+    .about-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    .about-thead { background: var(--surface-muted); }
+    /* Paste modal */
+    .paste-dialog { max-width: 560px; }
+    .paste-title { margin: 0 0 12px; font-size: 16px; color: var(--text); }
+    .paste-hint { margin: 0 0 10px; }  /* font-size/color đã có .muted */
+    .paste-textarea { width: 100%; min-height: 200px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 13px; line-height: 1.5; resize: vertical; }
+    .paste-count-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
+    .paste-track { height: 8px; background: var(--surface-muted); border-radius: 4px; overflow: hidden; position: relative; }
+    .paste-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 40%; background: var(--primary); border-radius: 4px; animation: pasteSlide 1.1s ease-in-out infinite; }
+    .paste-progress-text { margin-top: 4px; font-size: 12px; color: var(--muted); }
+    .paste-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    /* Confirm modal */
+    .confirm-dialog { max-width: 380px; }
+    .confirm-title { font-size: 16px; margin: 0 0 8px; }
+    .confirm-msg { color: var(--muted); font-size: 14px; margin: 0 0 18px; line-height: 1.5; white-space: pre-line; }
+    .confirm-footer { display: flex; gap: 10px; justify-content: flex-end; }
+    /* Spin modal */
+    .spin-dialog { width: auto; max-width: 280px; text-align: center; padding: 26px 30px; border-top: 3px solid var(--amber); }
+    .spin-msg { margin-top: 14px; color: var(--muted); font-size: 14px; font-weight: 600; }
     .about-h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 700; color: var(--primary); }
     .about-list { margin: 8px 0 8px 20px; padding: 0; }
+    .about-list-lh { line-height: 1.8; }
   </style>
 <a href="#main-content" class="skip-link">Chuyển đến nội dung chính</a>
 
@@ -1061,7 +1094,7 @@
         <button class="btn-icon" id="btnListSearch" onclick="runListSearch()" title="Tìm (Enter)" aria-label="Tìm">🔍</button>
         <button class="btn-icon" id="btnListSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
       </div>
-      <p style="color:var(--muted);font-size:12px;margin:0;">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
+      <p class="task-hint">Tạo task mới: chọn <b>Station / Ca / Team</b> trong popup — NV thuộc nhóm sẽ được đối chiếu khi quét.</p>
     </div>
 
     <div class="card">
@@ -1235,7 +1268,7 @@
             <div class="att-search">
               <input type="search" id="staffSearch" placeholder="Tìm mã NV, tên, agency…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false" oninput="renderStaffDataTable()">
             </div>
-            <span class="bg-task-count" id="staffCount" style="font-weight:700;">0 NV</span>
+            <span class="bg-task-count" id="staffCount">0 NV</span>
           </div>
           <div class="table-wrap">
             <div class="skeleton-wrap" id="staffSkeleton" style="display:none;">
@@ -1301,9 +1334,9 @@
     </div>
   </div>
   <div class="card">
-    <div style="padding:48px 16px;text-align:center;color:var(--text);opacity:.65;">
-      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">Báo cáo chấm công theo tháng</div>
-      <div style="font-size:13px;line-height:1.7;">Đang xây dựng — hiển thị chấm công tháng của từng nhân viên theo email đăng nhập.</div>
+    <div class="reports-empty">
+      <div class="reports-empty-title">Báo cáo chấm công theo tháng</div>
+      <div class="reports-empty-desc">Đang xây dựng — hiển thị chấm công tháng của từng nhân viên theo email đăng nhập.</div>
     </div>
   </div>
 </section>
@@ -1311,11 +1344,11 @@
 <!-- T-3: About view (replaces aboutModal) -->
 <section id="viewAbout" class="hidden">
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="margin:0;font-size:20px;font-weight:700;">Giới thiệu Attendance Portal</h2>
+    <div class="about-head">
+      <h2 class="about-title">Giới thiệu Attendance Portal</h2>
       <button class="btn btn-ghost" onclick="selectPage('home')" aria-label="Quay lại">← Trang chủ</button>
     </div>
-    <div style="line-height:1.7;font-size:14px;color:var(--text);">
+    <div class="about-body">
 
       <h3 class="about-h3">1. Attendance Portal là gì?</h3>
       <p><b>Attendance Portal</b> là ứng dụng quản lý thông tin chấm công & điểm danh cho kho SPX Express — thay thế màn hình điểm danh đơn lẻ bằng một cổng làm việc tập trung. Dữ liệu nhân sự lấy từ sheet <b>StaffData</b>, dữ liệu chấm công lưu tại <b>AttendanceTask</b> / <b>AttendanceLog</b>.</p>
@@ -1328,7 +1361,7 @@
       </ul>
 
       <h3 class="about-h3">2. Luồng điểm danh cơ bản</h3>
-      <ol class="about-list" style="line-height:1.8;">
+      <ol class="about-list about-list-lh">
         <li><b>Tạo task:</b> Chọn Station → Ca (Slot Code) → Team → nhấn <b>+ Tạo task</b>.</li>
         <li><b>Quét Giờ có mặt (phase Mở):</b> Quét mã NV (bắt đầu bằng <b>Ops</b>) — NV trong danh sách: Chưa điểm danh; NV lạ: Dư.</li>
         <li><b>Chuyển điểm danh:</b> task sang phase 2 — quét lại để ghi Giờ quét (Có mặt); NV lạ vẫn Dư.</li>
@@ -1336,9 +1369,9 @@
       </ol>
 
       <h3 class="about-h3">3. Trạng thái đối chiếu (badge)</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+      <table class="about-table">
         <thead>
-          <tr style="background:var(--surface-muted);">
+          <tr class="about-thead">
             <th class="about-cell">Badge</th>
             <th class="about-cell">Ý nghĩa</th>
           </tr>
@@ -1360,7 +1393,7 @@
       </ul>
 
       <h3 class="about-h3">5. Hiệu năng & kỹ thuật</h3>
-      <ul class="about-list" style="line-height:1.8;">
+      <ul class="about-list about-list-lh">
         <li><b>Cache đa tầng</b> — task theo mã 60s, danh sách 30s, chi tiết 15s; mọi ghi đều xóa cache đúng chỗ nên dữ liệu không bao giờ cũ vô hạn.</li>
         <li><b>Ghi batch:</b> kết thúc task 1000 NV = 1 lần ghi (setValues), không lặp từng dòng.</li>
         <li><b>Khóa ghi (LockService):</b> nhiều máy quét cùng 1 task an toàn — không ghi đè nhau.</li>
@@ -1371,19 +1404,19 @@
 </section>
 
 <div id="pasteModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pasteModalTitle" onclick="if(event.target===this)closePasteModal()">
-  <div class="about-dialog" style="max-width:560px;">
-    <h2 id="pasteModalTitle" style="margin:0 0 12px;font-size:16px;color:var(--text);">Dán danh sách mã</h2>
-    <p class="muted" style="margin:0 0 10px;font-size:13px;">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần.</p>
-    <textarea id="pasteTextarea" style="width:100%;min-height:200px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px;line-height:1.5;resize:vertical;" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
-        <div id="pasteCountHint" style="margin-top:6px;font-size:12px;color:var(--muted);">Nhập mã NV để đếm tự động</div>
+  <div class="about-dialog paste-dialog">
+    <h2 id="pasteModalTitle" class="paste-title">Dán danh sách mã</h2>
+    <p class="muted paste-hint">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần.</p>
+    <textarea id="pasteTextarea" class="paste-textarea" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
+        <div id="pasteCountHint" class="paste-count-hint">Nhập mã NV để đếm tự động</div>
         <div id="pasteProgress" style="display:none;margin-top:8px;">
-          <div style="height:8px;background:var(--surface-muted);border-radius:4px;overflow:hidden;position:relative;">
-            <div id="pasteProgressFill" style="position:absolute;top:0;left:0;bottom:0;width:40%;background:var(--primary);border-radius:4px;animation:pasteSlide 1.1s ease-in-out infinite;"></div>
+          <div class="paste-track">
+            <div id="pasteProgressFill" class="paste-fill"></div>
           </div>
-          <div id="pasteProgressText" style="margin-top:4px;font-size:12px;color:var(--muted);">Đang xử lý…</div>
+          <div id="pasteProgressText" class="paste-progress-text">Đang xử lý…</div>
         </div>
         <div id="pastePreview" style="margin-top:10px;overflow:auto;display:none;"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+    <div class="paste-footer">
       <button class="btn btn-ghost" onclick="closePasteModal()">Huỷ</button>
       <button class="btn" id="btnPasteSubmit" onclick="submitPaste()">Dán</button>
     </div>
@@ -1432,10 +1465,10 @@
 
 <!-- Modal confirm dùng chung (thay alert/confirm trình duyệt — giữ UX đồng nhất) -->
 <div id="confirmModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmModalTitle" onclick="if(event.target===this)closeConfirmModal()">
-  <div class="about-dialog" style="max-width:380px;">
-    <h2 id="confirmModalTitle" style="font-size:16px;margin:0 0 8px;"></h2>
-    <p id="confirmModalMsg" style="color:var(--muted);font-size:14px;margin:0 0 18px;line-height:1.5;white-space:pre-line;"></p>
-    <div style="display:flex;gap:10px;justify-content:flex-end;">
+  <div class="about-dialog confirm-dialog">
+    <h2 id="confirmModalTitle" class="confirm-title"></h2>
+    <p id="confirmModalMsg" class="confirm-msg"></p>
+    <div class="confirm-footer">
       <button class="btn btn-ghost" id="confirmCancelBtn" onclick="closeConfirmModal()">Huỷ</button>
       <button class="btn btn-danger" id="confirmOkBtn">Đồng ý</button>
     </div>
@@ -1443,9 +1476,9 @@
 </div>
 
 <div id="spinModal" class="about-overlay" role="dialog" aria-modal="true" aria-label="Đang xử lý" aria-hidden="true">
-  <div class="about-dialog" style="width:auto;max-width:280px;text-align:center;padding:26px 30px;border-top:3px solid var(--amber);">
+  <div class="about-dialog spin-dialog">
     <div class="spin-big"></div>
-    <p id="spinModalMsg" role="status" aria-live="polite" style="margin-top:14px;color:var(--muted);font-size:14px;font-weight:600;"></p>
+    <p id="spinModalMsg" role="status" aria-live="polite" class="spin-msg"></p>
   </div>
 </div>
 
