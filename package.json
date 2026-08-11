@@ -5,7 +5,8 @@
   "description": "RollCall v2 — GAS WebApp điểm danh kiểm-soát có/vắng/trễ cho kho chuyển phát nhanh",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/csv-normalize.test.js tests/scan-classify.test.js tests/two-phase.test.js tests/scanservice.test.js tests/paste-batch.test.js tests/create-free.test.js tests/search.test.js tests/index-html-parse.test.js tests/all-gs-load.test.js tests/settings-service.test.js tests/mock-contract.test.js tests/role-service.test.js"
+    "test": "npm run test:css && node --test tests/csv-normalize.test.js tests/scan-classify.test.js tests/two-phase.test.js tests/scanservice.test.js tests/paste-batch.test.js tests/create-free.test.js tests/search.test.js tests/index-html-parse.test.js tests/all-gs-load.test.js tests/settings-service.test.js tests/mock-contract.test.js tests/role-service.test.js",
+    "test:css": "node scripts/audit-css.js"
   },
   "engines": {
     "node": ">=18"
