@@ -677,16 +677,16 @@
     rowKeys.forEach(function (a) {
       html += '<tr><td scope="row" class="row-head">' + esc(a) + '</td>';
       var rowTotal = 0;
-      colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td data-label="' + esc(c) + '">' + fmtN(v) + '</td>'; });
-      html += '<td class="total" data-label="Tổng">' + fmtN(rowTotal) + '</td></tr>';
+      colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td>' + fmtN(v) + '</td>'; });
+      html += '<td class="total">' + fmtN(rowTotal) + '</td></tr>';
     });
     html += '<tr><td class="total">Tổng</td>';
     var colTotal = 0;
     colKeys.forEach(function (c) {
       var n = 0; rowKeys.forEach(function (a) { n += (map[a] && map[a][c]) || 0; });
-      colTotal += n; html += '<td class="total" data-label="' + esc(c) + '">' + fmtN(n) + '</td>';
+      colTotal += n; html += '<td class="total">' + fmtN(n) + '</td>';
     });
-    html += '<td class="total" data-label="Tổng">' + fmtN(colTotal) + '</td></tr></tbody></table>';
+    html += '<td class="total">' + fmtN(colTotal) + '</td></tr></tbody></table>';
     return html;
   }
 

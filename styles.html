@@ -933,41 +933,6 @@
       .stats-table td:first-child { position: sticky; left: 0; z-index: 1; box-shadow: 1px 0 0 var(--border); }
     }
 
-    /* ===== PA2 (2026-08-12): màn ≤640px — bảng → thẻ dọc (nhãn từ data-label), hết kéo ngang ===== */
-    @media (max-width: 640px) {
-      #viewStats .card { max-height: none; }  /* bỏ khóa chiều cao — page scroll tự nhiên cho thẻ */
-      .stats-table-wrap { overflow: visible; }
-      .stats-table thead { display: none; }  /* nhãn nằm trong data-label từng ô */
-      .stats-table th:first-child, .stats-table td:first-child { position: static; }
-      .stats-table, .stats-table tbody { display: block; width: 100%; }
-      .stats-table tr {
-        display: block; border: 1px solid var(--border); border-radius: 8px;
-        margin: 0 0 8px; padding: 4px 10px;
-      }
-      .stats-table td {
-        display: flex; align-items: center; justify-content: space-between; gap: 8px;
-        border: 0; border-bottom: 1px dashed var(--border); padding: 6px 2px;
-        text-align: right; white-space: normal;
-      }
-      .stats-table td:last-child { border-bottom: 0; }
-      .stats-table td::before {
-        content: attr(data-label); font-weight: 600; color: var(--muted);
-        text-align: left; flex: 0 1 auto;
-      }
-      /* Nhãn dòng (Ca) + ô nhãn hàng tổng: dòng tiêu đề full-width của thẻ */
-      .stats-table tr td.row-head,
-      .stats-table tr td.total:first-child {
-        display: block; width: 100%; text-align: left; border: 0;
-        padding: 8px 2px 6px; font-weight: 800;
-      }
-      .stats-table tr td.row-head::before,
-      .stats-table tr td.total:first-child::before { content: ''; }
-      .stats-table tr td.row-head { background: none; }
-      .stats-table tr td.total:first-child { background: #fff3e0; }
-      .stats-table td.total { background: #fff3e0; font-weight: 700; }
-      .stats-table tr:hover td { background: transparent; }
-    }
-
     /* Bảng danh sách StaffData — 20 cột, scroll ngang */
     #staffTable { font-size: 13px; border-collapse: separate; border-spacing: 0; }
     #staffTable th { white-space: nowrap; }
