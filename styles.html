@@ -369,13 +369,14 @@
 
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
-    .cfg-cols { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; }  /* Mẫu B (2026-08-11): 2 card cạnh nhau, giãn đầy section (audit-ui: card chạm đáy) */
+    .cfg-cols { display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; }  /* 2026-08-12: roles đã tách section riêng (cfg-roles-card) — cột này chỉ còn card nhóm */
     #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy như mọi view — nội dung cuộn trong từng card */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
     .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
-    .cfg-role-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .cfg-role-list { display: flex; flex-direction: column; gap: 8px; }
+    .cfg-role-row { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }  /* đồng bộ .cfg-item (2026-08-12) */
     .cfg-role-email { flex: 1 1 280px; min-width: 0; }
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
@@ -389,13 +390,20 @@
     .cfg-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
     .cfg-edit-input { flex: 1 1 auto; }
     /* Group lists (2026-08-11): danh sách lựa chọn station/team/slotcode/department */
-    .cfg-group-sep { border-top: 1px dashed var(--border); margin: 14px 0 6px; }
     .cfg-group { margin-bottom: 14px; }
     .cfg-group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
     .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 0; }
     .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }
     .cfg-group-add { margin-top: 6px; }
     .cfg-group-empty { padding: 6px 2px; }
+    .cfg-roles-card { flex: 0 1 auto; min-height: 0; max-height: 45vh; overflow-y: auto; }  /* section riêng dưới nhóm — cuộn trong khi nhiều role, trang không cuộn */
+    .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; }
+    .cfg-item[draggable="true"] { cursor: grab; }
+    .cfg-item.cfg-dragging { opacity: .45; }
+    .cfg-item.cfg-drop-target, .cfg-group.cfg-drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; }
+    .cfg-default-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+    .cfg-default-label { flex: 0 0 190px; font-size: 13px; font-weight: 600; color: var(--text); }  /* cùng cỡ .cfg-item-label — căn thẳng hàng */
+    .cfg-default-select { flex: 1 1 auto; min-width: 0; }
     .btn-clear-filter {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
       border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer;
@@ -1108,6 +1116,9 @@
       .cfg-role-row { flex-wrap: wrap; }
       .cfg-role-email { flex: 1 1 100%; }
       .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
+      .cfg-default-row { flex-wrap: wrap; }
+      .cfg-default-label { flex-basis: 100%; }
+      .cfg-roles-card { max-height: none; }  /* mobile: role xếp dọc tự nhiên, cuộn theo trang */
     }
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
