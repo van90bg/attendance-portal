@@ -404,7 +404,8 @@
     .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }
     .cfg-group-add { margin-top: 6px; }
     .cfg-group-empty { padding: 6px 2px; }
-    .cfg-roles-card { flex: 0 1 auto; min-height: 0; max-height: 45vh; overflow-y: auto; }  /* section riêng dưới nhóm — cuộn trong khi nhiều role, trang không cuộn */
+    .cfg-roles-card { min-height: 0; }  /* grid item trong .cfg-cols — flex:0 1 auto + max-height:45vh bỏ vì grid 2 cột; card giãn full-height và đồng bộ cột config */
+    .cfg-role-list { overflow-y: auto; max-height: calc(100vh - var(--header-h) - 56px - 72px); }
     .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; }
     .cfg-item[draggable="true"] { cursor: grab; }
     .cfg-item.cfg-dragging { opacity: .45; }
@@ -1134,7 +1135,7 @@
       .cfg-role-row { flex-wrap: wrap; }
       .cfg-role-email { flex: 1 1 100%; }
       .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
-      .cfg-roles-card { max-height: none; }  /* mobile: role xếp dọc tự nhiên, cuộn theo trang */
+      .cfg-role-list { max-height: 40vh; }
     }
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
