@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup viewStats PA2 — Thẻ dọc mobile</title>
+<style>
+  :root {
+    --card: #ffffff;
+    --card-radius: 12px;
+    --border: #d9dce1;
+    --text: #1f1f1f;
+    --muted: #5f6368;
+    --amber: #e85d04;
+    --amber-dark: #9a4d00;
+    --header-bg: #0d111a;
+    --header-text: #f4f7fb;
+    --header-border: #3a4a66;
+    --surface-muted: #f1f3f4;
+    --primary: #1a56db;
+    --surface-soft: #f0f1f3;
+    --row-hover: #f8faff;
+    --space-4: 16px;
+    --space-3: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #dfe2e8; color: var(--text); }
+
+  /* ===== Khung mô phỏng điện thoại 390px ===== */
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 10px 40px; }
+  .stage-caption { font-size: 12px; color: var(--muted); text-align: center; }
+  .phone {
+    width: 390px; max-width: 96vw; background: #f4f5f7;
+    border-radius: 22px; border: 1px solid #c3c8d0; overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  }
+  .phone-header {
+    background: var(--header-bg); color: var(--header-text);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; font-size: 13px; font-weight: 700; letter-spacing: .3px;
+  }
+  .phone-header .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; margin-right: 6px; }
+
+  /* ===== Main + topbar ===== */
+  .main { padding: 10px; }
+  .view-topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--card-radius);
+    padding: 8px 12px; margin-bottom: 10px;
+  }
+  .task-title { font-size: 14px; font-weight: 800; color: var(--amber-dark); text-transform: uppercase; letter-spacing: .4px; }
+  .task-meta { font-size: 11px; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 10px; }
+
+  /* ===== Filter chips (tĩnh minh họa) ===== */
+  .stats-filters { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .stats-filter-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .flabel { font-size: 11px; font-weight: 700; color: var(--amber-dark); min-width: 56px; }
+  .chip {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px; background: var(--surface-muted);
+    border: 1px solid var(--border); color: var(--muted);
+  }
+  .chip.on { background: var(--amber); border-color: var(--amber); color: #fff; font-weight: 600; }
+
+  /* ===== Toggle Hiện tại / PA2 ===== */
+  .toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+  .toggle button {
+    flex: 1; padding: 8px 6px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--card); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .toggle button.active { background: var(--amber); border-color: var(--amber); color: #fff; }
+  .mode-note { font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+  .mode-note b { color: var(--amber-dark); }
+
+  /* ============================================================
+     CHẾ ĐỘ "HIỆN TẠI" — copy faithful từ styles.html (đang chạy GAS):
+     table-layout: fixed + width:100% + overflow:hidden/ellipsis
+     → cột bị bóp, nội dung dài bị cắt cụt "…", KHÔNG scroll ngang
+     ============================================================ */
+  .now .stats-table-wrap { overflow-x: auto; overflow-y: auto; }
+  .now .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  .now .stats-table th, .now .stats-table td {
+    padding: 5px 8px; border: 1px solid var(--border);
+    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .now .stats-table th { background: var(--surface-muted); color: var(--muted); font-weight: 700; font-size: 12px; }
+  .now .stats-table th:first-child, .now .stats-table td.row-head { width: 110px; }
+  .now .stats-table th.total, .now .stats-table td.total { width: 70px; }
+  .now .stats-table td.row-head { text-align: left; font-weight: 600; background: var(--surface-muted); }
+  .now .stats-table td.total { background: #fff3e0; font-weight: 800; color: var(--amber-dark); }
+  .now .stats-grid { display: grid; grid-template-columns: 1fr; gap: 6px 10px; align-items: start; }
+  .now .stats-team-block { min-width: 0; }
+
+  /* ============================================================
+     CHẾ ĐỘ "PA2 — THẺ DỌC" (đề xuất): mỗi dòng bảng → 1 thẻ
+     title = Ca (row-head), mỗi ô = label + giá trị, hết cắt cụt
+     ============================================================ */
+  .pa2 .stats-table-wrap { overflow: visible; }
+  .pa2 .stats-grid { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: start; }
+  .pa2 .stats-team-block { min-width: 0; }
+  .pa2 .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .pa2 .stats-table thead { display: none; }  /* nhãn nằm trong data-label từng ô */
+  .pa2 .stats-table, .pa2 .stats-table tbody { display: block; }
+  .pa2 .stats-table tr {
+    display: block; border: 1px solid var(--border); border-radius: 8px;
+    margin: 0 0 8px; padding: 4px 10px; background: var(--card);
+  }
+  .pa2 .stats-table td {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border: 0; border-bottom: 1px dashed var(--border); padding: 6px 2px;
+    text-align: right; white-space: normal;
+  }
+  .pa2 .stats-table td:last-child { border-bottom: 0; }
+  .pa2 .stats-table td::before {
+    content: attr(data-label); font-weight: 600; color: var(--muted);
+    text-align: left; flex: 0 1 auto;
+  }
+  .pa2 .stats-table tr td.row-head,
+  .pa2 .stats-table tr td.total:first-child {
+    display: block; width: 100%; text-align: left; border: 0;
+    padding: 8px 2px 6px; font-weight: 800;
+  }
+  .pa2 .stats-table tr td.row-head::before,
+  .pa2 .stats-table tr td.total:first-child::before { content: ''; }
+  .pa2 .stats-table tr td.row-head { background: none; }
+  .pa2 .stats-table tr td.total:first-child { background: #fff3e0; }
+  .pa2 .stats-table td.total { background: #fff3e0; font-weight: 700; }
+  .pa2 .stats-table tr:hover td { background: transparent; }
+
+  /* Team title chung */
+  .stats-team-title {
+    margin: 12px 0 6px; font-size: 12px; font-weight: 800; color: var(--primary);
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .stats-team-title:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-caption">📱 Mô phỏng màn hình <b>390px</b> — viewStats (Thống kê) — bấm nút để so sánh 2 chế độ trên cùng dữ liệu</div>
+  <div class="phone">
+    <div class="phone-header"><span><span class="dot"></span>Attendance Portal</span><span>SPX</span></div>
+    <div class="main">
+      <div class="view-topbar">
+        <div>
+          <div class="task-title">Thống kê</div>
+          <div class="task-meta">Contract × Ca · Agency × Ca — theo Team</div>
+        </div>
+        <button style="font-size:11px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--muted);cursor:pointer;">⟳ Làm mới</button>
+      </div>
+      <div class="card">
+        <div class="stats-filters">
+          <div class="stats-filter-row"><span class="flabel">Station</span>
+            <span class="chip on">HN2 SOC</span><span class="chip">HN1 SOC</span><span class="chip">HN3 SOC</span></div>
+          <div class="stats-filter-row"><span class="flabel">Ngày</span>
+            <span class="chip on">2026-08-01</span><span class="chip">2026-07-31</span></div>
+          <div class="stats-filter-row"><span class="flabel">Department</span>
+            <span class="chip on">SOC</span><span class="chip">RETAIL</span></div>
+        </div>
+        <div class="toggle">
+          <button id="btnNow" class="active" onclick="setMode('now')">Hiện tại</button>
+          <button id="btnPa2" onclick="setMode('pa2')">PA2 — Thẻ dọc</button>
+        </div>
+        <div class="mode-note" id="modeNote"></div>
+        <div id="statsWrap"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== Dữ liệu mẫu (giống model thật: team / slotCode / contractType / agency) =====
+  function rep(n, fn) { var a = []; for (var i = 0; i < n; i++) a.push(fn(i)); return a; }
+  var ROWS = [].concat(
+    // Outbound — 2 ca, 4 contract, 5 agency
+    rep(12, function () { return { team: 'Outbound', slotCode: '08:00-17:00', contractType: 'BPO', agency: 'GRG' }; }),
+    rep(8,  function () { return { team: 'Outbound', slotCode: '08:00-17:00', contractType: 'OS',  agency: 'FEX' }; }),
+    rep(3,  function () { return { team: 'Outbound', slotCode: '08:00-17:00', contractType: 'S-BPO', agency: 'SKT' }; }),
+    rep(2,  function () { return { team: 'Outbound', slotCode: '08:00-17:00', contractType: 'I-BPO', agency: 'TPZ' }; }),
+    rep(7,  function () { return { team: 'Outbound', slotCode: '13:00-22:00', contractType: 'BPO', agency: 'GMG' }; }),
+    rep(9,  function () { return { team: 'Outbound', slotCode: '13:00-22:00', contractType: 'OS',  agency: 'GRG' }; }),
+    rep(4,  function () { return { team: 'Outbound', slotCode: '13:00-22:00', contractType: 'S-BPO', agency: 'CÔNG TY CỔ PHẦN VẬN CHUYỂN NHANH' }; }),
+    // Inbound — 3 ca, 4 contract, 5 agency
+    rep(10, function () { return { team: 'Inbound', slotCode: '18:00-02:00', contractType: 'BPO', agency: 'FEX' }; }),
+    rep(6,  function () { return { team: 'Inbound', slotCode: '18:00-02:00', contractType: 'OS',  agency: 'TPZ' }; }),
+    rep(5,  function () { return { team: 'Inbound', slotCode: '22:00-06:00', contractType: 'BPO', agency: 'SKT' }; }),
+    rep(4,  function () { return { team: 'Inbound', slotCode: '22:00-06:00', contractType: 'I-BPO', agency: 'GMG' }; }),
+    rep(3,  function () { return { team: 'Inbound', slotCode: '22:00-06:00', contractType: 'OS',  agency: 'GRG' }; })
+  );
+
+  // ===== Pivot giống app.html: statsPivot(rows, rowField, colField) =====
+  function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function fmtN(v) { return String(v); }
+  function pivot(rows, rowField, colField) {
+    var rowKeys = [], colKeys = [], seenR = {}, seenC = {}, map = {};
+    rows.forEach(function (r) {
+      var a = (r[rowField] || '').trim(), b = (r[colField] || '').trim();
+      if (a && !seenR[a]) { seenR[a] = true; rowKeys.push(a); }
+      if (b && !seenC[b]) { seenC[b] = true; colKeys.push(b); }
+    });
+    rowKeys.sort(); colKeys.sort();
+    rows.forEach(function (r) {
+      var a = (r[rowField] || '').trim(), b = (r[colField] || '').trim();
+      if (!(a && b)) return;
+      if (!map[a]) map[a] = {};
+      map[a][b] = (map[a][b] || 0) + 1;
+    });
+    return { rowKeys: rowKeys, colKeys: colKeys, map: map };
+  }
+  function teamBlocks(rows) {
+    var teams = [], seen = {};
+    rows.forEach(function (r) { var t = (r.team || '').trim(); if (t && !seen[t]) { seen[t] = true; teams.push(t); } });
+    teams.sort();
+    return teams.map(function (t) { return { name: t, rows: rows.filter(function (r) { return (r.team || '').trim() === t; }) }; });
+  }
+
+  function tableHTML(p, colLabel) {
+    var rowLabel = 'Ca';
+    var html = '<table class="stats-table"><thead><tr><th>' + esc(rowLabel) + '</th>';
+    p.colKeys.forEach(function (c) { html += '<th>' + esc(c) + '</th>'; });
+    html += '<th class="total">Tổng</th></tr></thead><tbody>';
+    p.rowKeys.forEach(function (a) {
+      html += '<tr><td class="row-head">' + esc(a) + '</td>';
+      var rt = 0;
+      p.colKeys.forEach(function (c) { var v = (p.map[a] && p.map[a][c]) || 0; rt += v; html += '<td>' + fmtN(v) + '</td>'; });
+      html += '<td class="total">' + fmtN(rt) + '</td></tr>';
+    });
+    html += '<tr><td class="total">Tổng</td>';
+    var ct = 0;
+    p.colKeys.forEach(function (c) {
+      var n = 0; p.rowKeys.forEach(function (a) { n += (p.map[a] && p.map[a][c]) || 0; });
+      ct += n; html += '<td class="total">' + fmtN(n) + '</td>';
+    });
+    html += '<td class="total">' + fmtN(ct) + '</td></tr></tbody></table>';
+    return html;
+  }
+
+  // Bản PA2: giống hệt bảng nhưng mỗi ô dữ liệu mang data-label (nhãn từ header cột)
+  function tableHTMLpa2(p) {
+    var rowLabel = 'Ca';
+    var html = '<table class="stats-table"><thead><tr><th>' + esc(rowLabel) + '</th>';
+    p.colKeys.forEach(function (c) { html += '<th>' + esc(c) + '</th>'; });
+    html += '<th class="total">Tổng</th></tr></thead><tbody>';
+    p.rowKeys.forEach(function (a) {
+      html += '<tr><td class="row-head">' + esc(a) + '</td>';
+      var rt = 0;
+      p.colKeys.forEach(function (c) { var v = (p.map[a] && p.map[a][c]) || 0; rt += v; html += '<td data-label="' + esc(c) + '">' + fmtN(v) + '</td>'; });
+      html += '<td class="total" data-label="Tổng">' + fmtN(rt) + '</td></tr>';
+    });
+    html += '<tr><td class="total">Tổng</td>';
+    var ct = 0;
+    p.colKeys.forEach(function (c) {
+      var n = 0; p.rowKeys.forEach(function (a) { n += (p.map[a] && p.map[a][c]) || 0; });
+      ct += n; html += '<td class="total" data-label="' + esc(c) + '">' + fmtN(n) + '</td>';
+    });
+    html += '<td class="total" data-label="Tổng">' + fmtN(ct) + '</td></tr></tbody></table>';
+    return html;
+  }
+
+  function render() {
+    var mode = currentMode;
+    var wrap = document.getElementById('statsWrap');
+    var html = '<div class="stats-grid">';
+    teamBlocks(ROWS).forEach(function (tb) {
+      var pC = pivot(tb.rows, 'slotCode', 'contractType');
+      var pA = pivot(tb.rows, 'slotCode', 'agency');
+      html += '<div class="stats-team-block"><h4 class="stats-team-title">' + esc(tb.name) + '</h4>'
+        + (mode === 'pa2' ? tableHTMLpa2(pC) : tableHTML(pC)) + '</div>';
+      html += '<div class="stats-team-block"><h4 class="stats-team-title">' + esc(tb.name) + ' — Agency</h4>'
+        + (mode === 'pa2' ? tableHTMLpa2(pA) : tableHTML(pA)) + '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+    var note = document.getElementById('modeNote');
+    if (mode === 'now') {
+      note.innerHTML = '<b>Hiện tại:</b> bảng <code>table-layout:fixed</code> + <code>width:100%</code> — cột bị bóp đều, '
+        + 'ô dài hơn cột bị <b>cắt cụt "…"</b> (không có scroll ngang để xem đủ). Thử để ý header ca <b>08:00-17:00</b> '
+        + 'và tên agency dài ở Inbound.';
+    } else {
+      note.innerHTML = '<b>PA2 — Thẻ dọc:</b> mỗi dòng bảng thành 1 thẻ: dòng đầu = tên ca (title), mỗi ô = '
+        + '<i>nhãn + giá trị</i>, hàng <b>Tổng</b> nền cam. Đọc đủ nội dung, không kéo ngang.';
+    }
+  }
+
+  var currentMode = 'now';
+  function setMode(m) {
+    currentMode = m;
+    document.getElementById('btnNow').className = m === 'now' ? 'active' : '';
+    document.getElementById('btnPa2').className = m === 'pa2' ? 'active' : '';
+    render();
+  }
+  render();
+</script>
+</body>
+</html>
