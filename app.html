@@ -569,9 +569,10 @@
 
   // ===== Filter chips bảng Thống kê: Station + Date (client-side, single-select) =====
   function renderStatsFilters() {
-    renderStatsChipGroup('statsChipsStation', 'station', distinctSorted_(STAFF_ROWS, 'station'));
+    // Thứ tự chip theo Config (danh sách Admin khai báo); giá trị lệch xếp sau, vẫn hiển thị đủ.
+    renderStatsChipGroup('statsChipsStation', 'station', orderedByCfg_(distinctSorted_(STAFF_ROWS, 'station'), CFG_LISTS.stations));
     renderStatsChipGroup('statsChipsDate', 'date', distinctSorted_(STAFF_ROWS, 'date', true));
-    renderStatsChipGroup('statsChipsDepartment', 'department', distinctSorted_(STAFF_ROWS, 'department'));
+    renderStatsChipGroup('statsChipsDepartment', 'department', orderedByCfg_(distinctSorted_(STAFF_ROWS, 'department'), CFG_LISTS.departments));
   }
   function renderStatsChipGroup(id, col, vals) {
     var el = document.getElementById(id);
@@ -628,29 +629,52 @@
     });
   }
 
+  // Config định nghĩa thứ tự hiển thị stats: giá trị có trong Config xếp theo thứ tự khai,
+  // giá trị lệch (ngoài Config) gom cuối nhóm 'Khác' (policy 2026-08-12) — không mất dữ liệu.
+  function splitByConfig_(vals, cfgList) {
+    var list = cfgList || [];
+    // Config chưa khai chiều này → giữ nguyên hành vi cũ (sort alphabet), KHÔNG gom 'Khác'.
+    if (!list.length) return { ordered: vals.slice().sort(), others: [] };
+    var cfg = list.filter(function (v) { return vals.indexOf(v) !== -1; });
+    var others = vals.filter(function (v) { return list.indexOf(v) === -1; });
+    return { ordered: cfg, others: others };
+  }
+  // Sắp theo Config trước (thứ tự khai), phần lệch giữ nguyên thứ tự cũ — dùng cho chips filter.
+  function orderedByCfg_(vals, cfgList) {
+    var s = splitByConfig_(vals, cfgList);
+    return s.ordered.concat(s.others);
+  }
+
   function renderStaffStats() {
     var wrap = document.getElementById('statsTableWrap');
     if (!wrap) return;
     var rows = staffFiltered();
     var teams = []; var seen = {};
     rows.forEach(function (r) { var t = (r.team || '').trim(); if (t && !seen[t]) { seen[t] = true; teams.push(t); } });
-    teams.sort();
     if (!teams.length) { wrap.innerHTML = '<div class="empty">Không có dữ liệu</div>'; return; }
+    teams.sort();
+    // Team theo thứ tự Config; team ngoài Config gom 1 block 'Khác' cuối cùng.
+    var tSplit = splitByConfig_(teams, CFG_LISTS.teams);
     var html = '<div class="stats-grid">';
     html += '<div class="stats-col-title">Contract Type × Ca — theo Team</div>';
     html += '<div class="stats-col-title">Agency × Ca — theo Team</div>';
-    teams.forEach(function (t) {
-      var teamRows = rows.filter(function (r) { return (r.team || '').trim() === t; });
-      html += '<div class="stats-team-block"><h4 class="stats-team-title">' + esc(t) + '</h4>'
-        + statsPivot(teamRows, 'slotCode', 'contractType') + '</div>';
-      html += '<div class="stats-team-block"><h4 class="stats-team-title">' + esc(t) + '</h4>'
-        + statsPivot(teamRows, 'slotCode', 'agency') + '</div>';
-    });
+    tSplit.ordered.forEach(function (t) { html += statsTeamBlocks(rows, [t], t); });
+    if (tSplit.others.length) html += statsTeamBlocks(rows, tSplit.others, 'Khác');
     html += '</div>';
     wrap.innerHTML = html;
     // U5 (review 2026-08-11): announce ngắn gọn — KHÔNG để screen reader đọc cả grid
     var a11y = document.getElementById('statsA11yMsg');
     if (a11y) a11y.textContent = 'Hiển thị ' + rows.length + ' nhân viên theo bộ lọc';
+  }
+  // 2 bảng (Contract×Ca + Agency×Ca) của 1 team hoặc nhóm gộp 'Khác' (nhiều team ngoài Config).
+  function statsTeamBlocks(rows, teamList, label) {
+    var teamRows = rows.filter(function (r) { return teamList.indexOf((r.team || '').trim()) !== -1; });
+    var title = label || teamList[0];
+    var cls = label === 'Khác' ? ' stats-other-title' : '';
+    return '<div class="stats-team-block"><h4 class="stats-team-title' + cls + '">' + esc(title) + '</h4>'
+      + statsPivot(teamRows, 'slotCode', 'contractType') + '</div>'
+      + '<div class="stats-team-block"><h4 class="stats-team-title' + cls + '">' + esc(title) + '</h4>'
+      + statsPivot(teamRows, 'slotCode', 'agency') + '</div>';
   }
 
   // Pivot chung: dòng = rowField, cột = colField — Ca dọc khi rowField='slotCode'; số 0 → '-'
@@ -662,20 +686,26 @@
       if (a && !rowSeen[a]) { rowSeen[a] = true; rowKeys.push(a); }
       if (b && !colSeen[b]) { colSeen[b] = true; colKeys.push(b); }
     });
-    rowKeys.sort(); colKeys.sort();
+    rowKeys.sort();
+    // Ca theo thứ tự Config (slotcodes); ca ngoài Config gom 1 dòng 'Khác' cuối (policy 2026-08-12).
+    var rSplit = splitByConfig_(rowKeys, CFG_LISTS.slotcodes);
+    var orderedRows = rSplit.ordered.slice();
+    if (rSplit.others.length) orderedRows.push('Khác');
+    colKeys.sort();
     var map = {};
     rows.forEach(function (r) {
       var a = (r[rowField] || '').trim(), b = (r[colField] || '').trim();
       if (!(a && b)) return;
-      if (!map[a]) map[a] = {};
-      map[a][b] = (map[a][b] || 0) + 1;
+      var aKey = rSplit.others.indexOf(a) !== -1 ? 'Khác' : a;
+      if (!map[aKey]) map[aKey] = {};
+      map[aKey][b] = (map[aKey][b] || 0) + 1;
     });
     var rowLabel = rowField === 'slotCode' ? 'Ca' : rowField;
     var html = '<table class="stats-table"><thead><tr><th scope="col">' + esc(rowLabel) + '</th>';
     colKeys.forEach(function (c) { html += '<th scope="col">' + esc(c) + '</th>'; });
     html += '<th scope="col" class="total">Tổng</th></tr></thead><tbody>';
-    rowKeys.forEach(function (a) {
-      html += '<tr><td scope="row" class="row-head">' + esc(a) + '</td>';
+    orderedRows.forEach(function (a) {
+      html += '<tr' + (a === 'Khác' ? ' class="stats-other-row"' : '') + '><td scope="row" class="row-head">' + esc(a) + '</td>';
       var rowTotal = 0;
       colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td>' + fmtN(v) + '</td>'; });
       html += '<td class="total">' + fmtN(rowTotal) + '</td></tr>';
@@ -683,7 +713,7 @@
     html += '<tr><td class="total">Tổng</td>';
     var colTotal = 0;
     colKeys.forEach(function (c) {
-      var n = 0; rowKeys.forEach(function (a) { n += (map[a] && map[a][c]) || 0; });
+      var n = 0; orderedRows.forEach(function (a) { n += (map[a] && map[a][c]) || 0; });
       colTotal += n; html += '<td class="total">' + fmtN(n) + '</td>';
     });
     html += '<td class="total">' + fmtN(colTotal) + '</td></tr></tbody></table>';
@@ -1767,7 +1797,7 @@
         if (!res.ok) { _releaseRefreshLock(); showToast(res.message, true); return; }
         STATION_GROUPS = res.stationGroups || [];
         CFG_DEFAULTS = res.defaults || CFG_DEFAULTS;
-        CFG_LISTS = res.lists || { stations: [], teams: [], slotcodes: [] };
+        CFG_LISTS = res.lists || { stations: [], teams: [], slotcodes: [], departments: [] };
         // Admin khai báo station trong Config (chưa có data) vẫn tạo task được.
         var canCreate = STATION_GROUPS.length > 0 || (CFG_LISTS.stations || []).length > 0;
         document.getElementById('btnCreate').disabled = !canCreate;
@@ -1820,7 +1850,7 @@
   var CFG_DEFAULTS = { station: '', slotCode: '', team: '' };
   // lists từ Config sheet (SettingsService qua getFilterOptionsApi.lists) — danh sách Admin khai báo.
   // Client MERGE với distinct StaffData (mergeOpts_) để không mất giá trị thực có trong dữ liệu NV.
-  var CFG_LISTS = { stations: [], teams: [], slotcodes: [] };
+  var CFG_LISTS = { stations: [], teams: [], slotcodes: [], departments: [] };
   // Union 2 mảng, dedup, giữ thứ tự a trước rồi b (giá trị trùng chỉ lấy của a).
   function mergeOpts_(a, b) {
     var out = [];

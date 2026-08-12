@@ -144,6 +144,7 @@
           stations: (MOCK_SETTINGS.stations || []).slice(),
           teams: (MOCK_SETTINGS.teams || []).slice(),
           slotcodes: (MOCK_SETTINGS.slotcodes || []).slice(),
+          departments: (MOCK_SETTINGS.departments || []).slice(),
         },
         stationGroups: [
           {
