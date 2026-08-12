@@ -335,53 +335,38 @@
     <div class="about-body">
 
       <h3 class="about-h3">1. Attendance Portal là gì?</h3>
-      <p><b>Attendance Portal</b> là ứng dụng quản lý thông tin chấm công & điểm danh cho kho SPX Express — thay thế màn hình điểm danh đơn lẻ bằng một cổng làm việc tập trung. Dữ liệu nhân sự lấy từ sheet <b>StaffData</b>, dữ liệu chấm công lưu tại <b>AttendanceTask</b> / <b>AttendanceLog</b>.</p>
-      <ul class="about-list">
-        <li><b>Trang chủ:</b> logo, đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chờ cho kiosk/chiếu.</li>
-        <li><b>Thống kê:</b> pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), lọc nhóm BPO / OS.</li>
-        <li><b>Điểm danh:</b> danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc.</li>
-        <li><b>Dữ liệu chấm công:</b> toàn bộ StaffData — 20 cột khớp tên sheet, tìm kiếm theo mã/tên/agency.</li>
-        <li><b>Giới thiệu:</b> trang này.</li>
-      </ul>
+      <p><b>Attendance Portal</b> là công cụ điểm danh & theo dõi chấm công cho kho SPX Express: tạo task theo Station / Ca / Team, quét mã nhân viên, và kết thúc ngày với kết quả rõ ràng ai có mặt, ai vắng.</p>
 
-      <h3 class="about-h3">2. Luồng điểm danh cơ bản</h3>
+      <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
-        <li><b>Tạo task:</b> Chọn Station → Ca (Slot Code) → Team → nhấn <b>+ Tạo task</b>.</li>
-        <li><b>Quét Giờ có mặt (phase Mở):</b> Quét mã NV (bắt đầu bằng <b>Ops</b>) — NV trong danh sách: Chưa điểm danh; NV lạ: Dư.</li>
-        <li><b>Chuyển điểm danh:</b> task sang phase 2 — quét lại để ghi Giờ quét (Có mặt); NV lạ vẫn Dư.</li>
-        <li><b>Kết thúc:</b> những NV chưa quét Giờ quét tự đánh <b>Vắng</b>; task về Xong. Có thể <b>Mở lại</b> để quét bổ sung.</li>
+        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Tạo task</b>.</li>
+        <li><b>Quét Giờ có mặt:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách chuyển sang Chưa điểm danh; người lạ tính là Dư.</li>
+        <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (Có mặt).</li>
+        <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
       </ol>
 
-      <h3 class="about-h3">3. Trạng thái đối chiếu (badge)</h3>
+      <h3 class="about-h3">3. Trạng thái sau điểm danh</h3>
       <table class="about-table">
         <thead>
           <tr class="about-thead">
-            <th scope="col" class="about-cell">Badge</th>
+            <th scope="col" class="about-cell">Trạng thái</th>
             <th scope="col" class="about-cell">Ý nghĩa</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Trong danh sách nhưng chưa quét Giờ quét — chưa tính là vắng.</td></tr>
-          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Quét lần 2 (Giờ quét) đúng NV trong danh sách.</td></tr>
-          <tr><td class="about-cell">Vắng</td><td class="about-cell">Chỉ gán khi <b>Kết thúc task</b> — những dòng chưa quét Giờ quét.</td></tr>
-          <tr><td class="about-cell">Dư</td><td class="about-cell">Quét NV <b>không có</b> trong danh sách task (sai ca / không có tên).</td></tr>
+          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Có trong danh sách nhưng chưa quét Giờ quét.</td></tr>
+          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Đã quét lần 2 thành công.</td></tr>
+          <tr><td class="about-cell">Vắng</td><td class="about-cell">Chưa quét Giờ quét khi task kết thúc.</td></tr>
+          <tr><td class="about-cell">Dư</td><td class="about-cell">Quét người không có trong danh sách (sai ca / không có tên).</td></tr>
         </tbody>
       </table>
 
-      <h3 class="about-h3">4. Thao tác nhanh</h3>
+      <h3 class="about-h3">4. Mẹo nhỏ</h3>
       <ul class="about-list">
-        <li><b>Dán danh sách mã:</b> task FREE/Mở (owner/admin) — dán hàng loạt mã NV 1 lần thay vì quét từng người; hệ thống gộp 1 lần ghi và báo mã lỗi.</li>
-        <li><b>Làm mới:</b> nút ⟳ trên header — tải lại danh sách task + dữ liệu HR.</li>
-        <li><b>Âm thanh:</b> 🔊/🔇 bật/tắt tiếng bíp khi quét thành công / báo lỗi.</li>
-        <li><b>Quét liên tục:</b> ô quét tự xóa + giữ focus — quét NV thứ 2 ngay khi bíp, không cần click lại.</li>
-      </ul>
-
-      <h3 class="about-h3">5. Hiệu năng & kỹ thuật</h3>
-      <ul class="about-list about-list-lh">
-        <li><b>Cache đa tầng</b> — task theo mã 60s, danh sách 30s, chi tiết 15s; mọi ghi đều xóa cache đúng chỗ nên dữ liệu không bao giờ cũ vô hạn.</li>
-        <li><b>Ghi batch:</b> kết thúc task 1000 NV = 1 lần ghi (setValues), không lặp từng dòng.</li>
-        <li><b>Khóa ghi (LockService):</b> nhiều máy quét cùng 1 task an toàn — không ghi đè nhau.</li>
-        <li><b>Ôm sóc lỗi:</b> quét mã lạ/sai người phase → phản hồi rõ (toast + card) chứ không để yên lặng.</li>
+        <li><b>Dán danh sách mã:</b> ở task quét tự do, dán cả danh sách mã NV 1 lần thay vì quét từng người.</li>
+        <li><b>Quét liên tục:</b> ô quét tự xóa sau mỗi lần — quét người tiếp theo ngay, không cần click lại.</li>
+        <li><b>Âm thanh:</b> bật/tắt tiếng bíp bằng nút loa trên header.</li>
+        <li><b>Làm mới:</b> nhấn nút ⟳ trên header để cập nhật dữ liệu mới nhất.</li>
       </ul>
     </div>
   </div>
