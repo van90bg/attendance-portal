@@ -106,12 +106,14 @@
     stations: ['HN2 SOC', 'HN SOC'], teams: ['Inbound', 'Outbound', 'Manual', 'TBS', 'Prep-WH'],
     slotcodes: ['08:00-17:00', '13:00-01:00', '13:00-22:00', '18:00-02:00', '18:00-05:00', '20:00-06:00', '22:00-06:00'],
     departments: ['SOC'],  // group keys = JSON array — khớp SETTINGS_DEFAULTS (Config.gs)
+    agencies: [],  // thứ tự cột Agency stats (rỗng = giữ alphabet)
   };
   var MOCK_SETTINGS = {
     stations: ['HN2 SOC', 'HN SOC'],
     teams: ['Inbound', 'Outbound'],
     slotcodes: ['08:00-17:00', '13:00-01:00', '18:00-02:00'],
     departments: ['SOC'],
+    agencies: ['GRG', 'FEX', 'SKT'],  // demo: mock staff có GRG/FEX/SKT (có trong Config) + TPZ/GMG/AGR (lệch → Khác)
   };
 
   var handlers = {
@@ -145,6 +147,7 @@
           teams: (MOCK_SETTINGS.teams || []).slice(),
           slotcodes: (MOCK_SETTINGS.slotcodes || []).slice(),
           departments: (MOCK_SETTINGS.departments || []).slice(),
+          agencies: (MOCK_SETTINGS.agencies || []).slice(),
         },
         stationGroups: [
           {

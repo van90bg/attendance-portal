@@ -21,6 +21,7 @@ const DEFAULTS = {
   stations: ['HN2 SOC', 'HN SOC'], teams: ['Inbound', 'Outbound', 'Manual', 'TBS', 'Prep-WH'],
   slotcodes: ['08:00-17:00', '13:00-01:00', '13:00-22:00', '18:00-02:00', '18:00-05:00', '20:00-06:00', '22:00-06:00'],
   departments: ['SOC'],
+  agencies: [],
 };
 
 test('getSettings_ trả defaults khi Config sheet chưa có override', () => {

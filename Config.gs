@@ -171,6 +171,7 @@ const SETTINGS_DEFAULTS = {
   teams:       ['Inbound', 'Outbound', 'Manual', 'TBS', 'Prep-WH'],
   slotcodes:   ['08:00-17:00', '13:00-01:00', '13:00-22:00', '18:00-02:00', '18:00-05:00', '20:00-06:00', '22:00-06:00'],
   departments: ['SOC'],
+  agencies: [],           // thứ tự cột Agency trong Thống kê (policy 2026-08-12) — rỗng = giữ alphabet
 };
 
 // ===== Role (phân quyền mở rộng — nền cho trang Config Admin & báo cáo theo mail) =====

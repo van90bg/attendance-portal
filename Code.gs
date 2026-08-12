@@ -82,6 +82,7 @@ function getFilterOptionsApi() {
       teams: settingsList_('teams'),
       slotcodes: settingsList_('slotcodes'),
       departments: settingsList_('departments'),
+      agencies: settingsList_('agencies'),
     },
   };
 }
