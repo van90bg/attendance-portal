@@ -514,7 +514,7 @@
   var FUNNEL_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>';
 
 
-  function loadStaffView(btn, silent) {
+  function loadStaffView(btn, silent, fromRefresh) {
     var skel = document.getElementById('staffSkeleton');
     var tbl = document.getElementById('staffTable');
     var empty = document.getElementById('staffEmpty');
@@ -527,6 +527,7 @@
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
+        if (fromRefresh) _releaseRefreshLock();  // Finding#1: RPC refresh (stats/data) kết thúc → nhả lock (no-op khi gọi độc lập)
         if (!res || !res.ok) {
           if (!silent) showToast((res && res.message) || 'Lỗi tải StaffData', true);
           return;
@@ -545,6 +546,7 @@
       })
       .withFailureHandler(function (err) {
         restore();
+        if (fromRefresh) _releaseRefreshLock();  // Finding#1: RPC refresh fail → nhả lock
         markServerFail();
         if (!silent) showToast('Lỗi tải StaffData: ' + err.message, true);
         if (skel) skel.style.display = 'none';
@@ -1062,16 +1064,21 @@
 
   /* Đồng hồ + ngày trang chủ — realtime Asia/Ho_Chi_Minh (khớp fmtDate) */
   var CLOCK_TIMER = null;
+  // Finding#2 (2026-08-12): hoist formatter — trước đây tạo 2 Intl.DateTimeFormat MỖI tick 1s
+  // (kiosk ở home 24/7 = ~172k allocation/ngày). Giờ format TÁI DÙNG _fmtTZ (đã hoisted ở UTILITIES);
+  // chỉ thêm 1 formatter ngày — cùng pattern _fmtTZ (IIFE + try/catch).
+  var _clockFmtD = (function () {
+    try { return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }); }
+    catch (e) { return null; }
+  })();
   function tickHomeClock() {
     var el = document.getElementById('homeClock');
     var de = document.getElementById('homeDate');
     if (!el || !de) return;
     var now = new Date();
-    // Format giờ theo TZ HCM (dùng Intl như fmtDate)
-    var t = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
-    el.textContent = t;
-    var d = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
-    de.textContent = d;
+    // Format giờ theo TZ HCM — tái dùng _fmtTZ (như fmtDate), mỗi tick chỉ gọi .format()
+    el.textContent = _fmtTZ ? _fmtTZ.format(now) : now.toLocaleTimeString('vi-VN');
+    de.textContent = _clockFmtD ? _clockFmtD.format(now) : now.toLocaleDateString('vi-VN');
   }
   function renderHomeClock() {
     tickHomeClock();
@@ -1735,12 +1742,18 @@
     showModalSpin('Đang làm mới…');  // B3: spinModal khi bấm Làm mới (ẩn ở _releaseRefreshLock)
     _refreshLock = true;
     _refreshPending = 2;  // loadFilterOptions + loadTaskList
+    // Finding#1 (2026-08-12): stats/data — refreshAll còn fire RPC thứ 3 loadStaffView.
+    // Đếm đủ 3 và cho loadStaffView nhả lock qua cờ 'refresh' (chỉ khi GỌI TỪ refreshAll).
+    // Prefetch ensureStaffData (startup/silent) gọi loadStaffView độc lập → KHÔNG đụng lock,
+    // tránh nhả lock sớm khi mới 1/2 RPC refresh xong.
+    var withStaffRefresh = (ACTIVE_PAGE === 'stats' || ACTIVE_PAGE === 'data');
+    if (withStaffRefresh) _refreshPending = 3;  // loadFilterOptions + loadTaskList + loadStaffView
     var btn = document.getElementById('btnRefresh');
     if (btn) { btn.disabled = true; btn.style.opacity = .6; }
     loadFilterOptions();
     loadTaskList();
     // Header "Làm mới" cũng làm mới StaffData khi đang ở Thống kê/Dữ liệu (1 nút = tất cả)
-    if (ACTIVE_PAGE === 'stats' || ACTIVE_PAGE === 'data') loadStaffView();
+    if (withStaffRefresh) loadStaffView(null, false, 'refresh');
     // bảo hiểm an toàn: phòng RPC không bao giờ resolve (treo) — vẫn nhả sau 5s
     setTimeout(function () {
       if (_refreshPending > 0) _refreshPending = 1;  // ép nhả ở vòng kế
