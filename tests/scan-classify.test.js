@@ -113,25 +113,4 @@ test('computeCounters: PENDING + có timeScan (data-repair) → đếm scanned, 
   assert.equal(c.total, 2);
 });
 
-test('buildExtraRow: tạo dòng Dư với thông tin staff nếu có', () => {
-  const now = new Date('2026-08-02T08:00:00');
-  const staffInfo = {
-    staffName: 'NhanVien Mau 099', slotCode: '13:00-22:00', station: 'HN2 SOC',
-    team: 'Inbound', workstation: 'IBReceiving', cardIn: '12:00:00', cardOut: '',
-  };
-  const row = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS000099', staffInfo, now, 'timeScan');
-  assert.equal(row.status, CFG.STATUS.EXTRA);
-  assert.equal(row.staffName, 'NhanVien Mau 099');
-  assert.equal(row.timeScan, now);
-  assert.equal(row.timeScanEpoch, now.getTime());  // append phase2: timeScan epoch → counter scanned=1
-  assert.equal(row.timeRef, null);
-  assert.equal(row.timeRefEpoch, 0);
-  // computeCounters phải đếm NV vừa append là scanned=1 (không phải 0)
-  const c = ScanLogic.computeCounters(CFG, [row]);
-  assert.equal(c.scanned, 1);
-  assert.equal(c.extra, 1);
-  // Không có staffInfo → các trường rỗng, không crash
-  const row2 = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS999999', null, now, 'timeScan');
-  assert.equal(row2.staffName, '');
-  assert.equal(row2.status, CFG.STATUS.EXTRA);
-});
+

@@ -40,13 +40,8 @@ function makeCtx(overrides) {
     // Test có thể override riêng readTaskCached_ để khóa đường dùng cache.
     readTaskCached_: () => overrides.readTaskCached_ ? overrides.readTaskCached_() : (overrides.readTask_ ? overrides.readTask_() : null),
     readLogRowsCached_: () => overrides.logRows || [],
-    appendLogRow_: () => {},
-    updateLogRowScan_: () => {},
-    updateLogRowRef_: () => {},
-    findLogRow: (rows, id) => {
-      const n = String(id).trim().toUpperCase();
-      return (rows || []).find((r) => String(r.staffId || '').trim().toUpperCase() === n) || null;
-    },
+    batchUpdateLogRows_: () => 0,
+    batchAppendLogRows_: () => ({ startRow: 0, count: 0, rowIndices: [] }),
     readStaffIndex_: () => STAFF_INDEX,
     computeCounters: () => ({ scanned: 0, absent: 0, extra: 0, total: 0 }),
     isEditor_: () => false,

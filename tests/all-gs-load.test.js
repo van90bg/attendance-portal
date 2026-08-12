@@ -136,11 +136,11 @@ test('batchAppendLogRows_ + updateLogRowScan_ + searchLogsByStaff/searchTasksByQ
   ]);
   assert.equal(res.count, 1);
   assert.equal(ss.sheets.AttendanceLog.getLastRow(), 4); // header + 2 + 1
-  // Scan: update dòng OPS000001 → Có mặt
+  // Scan: update dòng OPS000001 → Có mặt (qua batchUpdateLogRows_ — seam B 2026-08-12 thay updateLogRowScan_ cũ)
   const rows = svc.readLogRows_(taskId);
   const row1 = rows.find((r) => r.staffId === 'OPS000001');
   assert.ok(row1, 'có row OPS000001');
-  svc.updateLogRowScan_(row1, new Date(), 'Có mặt');
+  svc.batchUpdateLogRows_(taskId, [{ rowIndex: row1._rowIndex, field: 'timeScan', time: new Date(), newStatus: 'Có mặt', keepStatus: row1.status }]);
   const detail = svc.readTaskDetailCached_(taskId);
   const updated = detail.log.find((r) => r.staffId === 'OPS000001');
   assert.equal(updated.status, 'Có mặt');

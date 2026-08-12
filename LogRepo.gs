@@ -335,41 +335,7 @@ function resetAbsentToPending_(taskId) {
   return n;
 }
 
-/**
- * Cập nhật timeScan + status cho 1 dòng (theo _rowIndex) — 1 setValues batch.
- * @param {Object} row — từ readLogRows_/readLogRowsCached_ (luôn có _rowIndex, taskId)
- */
-function updateLogRowScan_(row, timeScan, status) {
-  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
-  sheet.getRange(row._rowIndex, LOG_COLS.TIME_SCAN + 1, 1, 2).setValues([[timeScan, status]]);
-  invalidateTaskDetailCache_(row.taskId);
-  invalidateTaskListCache_();  // Minor#4
-  // U2: cập nhật row trong LOG_ROWS cache (incremental) — scan kế không chạm sheet.
-  // KHÔNG nhét Date timeScan vào cache: JSON→string; schema slim chỉ có text+epoch.
-  updateLogRowCache_(row.taskId, row._rowIndex, function (r) {
-    r.status = status;
-    r.timeScanText = formatTime_(timeScan);
-    r.timeScanEpoch = timeScan.getTime();
-  });
-  return true;
-}
 
-/**
- * Cập nhật TIME_REF (Giờ có mặt) cho 1 dòng (phase1) — 1 setValues batch.
- * @param {Object} row — từ readLogRows_/readLogRowsCached_ (luôn có _rowIndex, taskId)
- */
-function updateLogRowRef_(row, timeRef) {
-  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
-  sheet.getRange(row._rowIndex, LOG_COLS.TIME_REF + 1, 1, 1).setValue(timeRef);
-  invalidateTaskDetailCache_(row.taskId);
-  invalidateTaskListCache_();  // Minor#4
-  // U2: cập nhật row trong LOG_ROWS cache (incremental) — scan kế không chạm sheet.
-  updateLogRowCache_(row.taskId, row._rowIndex, function (r) {
-    r.timeRefText = formatTime_(timeRef);
-    r.timeRefEpoch = timeRef.getTime();
-  });
-  return true;
-}
 
 /**
  * Cập nhật 1 dòng trong LOG_ROWS cache sau khi ghi sheet (incremental).
@@ -480,55 +446,4 @@ function writeBatchRuns_(sheet, updates, field) {
   }
 }
 
-/** Append dòng mới (quét lạ → Dư). */
-function appendLogRow_(row) {
-  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
-  sheet.appendRow([
-    row.taskId, row.staffId, row.staffName, row.slotCode, row.station, row.team, row.workstation,
-    row.timeRef || '', row.timeScan || '', row.status, row.date || '',
-  ]);
-  // P2-7: _rowIndex thật từ sheet (KHÔNG suy từ cache — cache chia sẻ giữa kiosk có thể lệch)
-  row._rowIndex = sheet.getLastRow();
-  // I3 FIX: chen dong moi vao LOG_ROWS cache (incremental) thay vi xoa.
-  // Neu khong, thiet bi 2 quet CUNG staffId la trong cua so TTL (30s) se cache-miss
-  // dong moi → classifyScan ra 'append' → ghi DONG 'Du' TRUNG LAP.
-  // Chen vao cache giu nguyen incremental (khong bat rebuild full sheet).
-  pushLogRowToCache_(row);
-  invalidateTaskDetailCache_(row.taskId);
-  invalidateTaskListCache_();  // Minor#4: scan xong counters list phải cập nhật ngay (không lag 30s)
-}
 
-/**
- * Chen 1 dòng mới vào LOG_ROWS cache (sau append) để thiết bị khác không đọc thiếu.
- * Chỉ chạm cache NẾU đang có (cache hit) — miss thì dòng sau rebuild từ sheet.
- * @param {Object} row — object dòng log (phải có taskId + _rowIndex)
- */
-function pushLogRowToCache_(row) {
-  try {
-    const key = CACHE_KEYS.LOG_ROWS + row.taskId;
-    const cached = cache_().get(key);
-    if (cached === null) return; // miss — không xây cache trong luồng ghi
-    const rows = JSON.parse(cached);
-    // P2-7: _rowIndex lấy từ row._rowIndex (đã set = sheet.getLastRow() sau append)
-    const slim = {
-      taskId: row.taskId,
-      staffId: row.staffId,
-      staffName: row.staffName,
-      slotCode: row.slotCode,
-      station: row.station,
-      team: row.team,
-      timeRefText: row.timeRef ? formatTime_(row.timeRef) : '',
-      timeRefEpoch: row.timeRef ? row.timeRef.getTime() : 0,
-      timeScanText: row.timeScan ? formatTime_(row.timeScan) : '',
-      timeScanEpoch: row.timeScan ? row.timeScan.getTime() : 0,
-      status: row.status,
-      dateText: row.date || '',
-      _rowIndex: row._rowIndex || 0,
-    };
-    rows.push(slim);
-    cache_().put(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
-  } catch (e) {
-    console.warn('pushLogRowToCache_ fail', row && row.taskId, e.message);
-    invalidateLogRows_(row.taskId); // fail → xoá cache để lần sau rebuild đúng
-  }
-}

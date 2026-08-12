@@ -89,101 +89,39 @@ function scanStaff(taskId, rawStaffId) {
       };
     }
 
-    let timeScanText = '';
-    let timeScanEpoch = 0;
-    let timeRefText = '';
-    let timeRefEpoch = 0;
-    let scannedName = null;
-    let extraRow = null;
-    let existing = null;  // S5 (review 2026-08-11): hoist khỏi block append — race-branch push counters đọc được; block-scoped let trước đây gây ReferenceError 'existing is not defined'
-    // field do classifyScan chỉ định: 'timeRef' (phase1: Giờ có mặt) | 'timeScan' (phase2: Giờ quét)
+    // B (2026-08-12): seam commit — mọi quyết định ghi (update/append/race/enrich) qua
+    // planScanCommits (ScanLogic) — chung với pasteCodes, hết duplicate (architecture review B).
     const field = result.field;
-    if (result.action === 'update') {
-      const now = new Date();
-      if (field === 'timeScan') {
-        updateLogRowScan_(result.row, now, result.status);
-        result.row.timeScan = now;
-        result.row.timeScanEpoch = now.getTime();
-        timeScanText = formatTime_(now);
-        timeScanEpoch = now.getTime();
-      } else {
-        // phase1: ghi Giờ có mặt (TIME_REF), giữ status PENDING (chưa điểm danh)
-        updateLogRowRef_(result.row, now);
-        result.row.timeRef = now;
-        result.row.timeRefEpoch = now.getTime();
-        timeRefText = formatTime_(now);
-        timeRefEpoch = now.getTime();
-      }
-      result.row.status = result.status;
-      scannedName = result.row.staffName || null;
-    } else if (result.action === 'append') {
-      // P2-6: re-check cache (có thể kiosk khác vừa push dòng này trong lock) trước khi append
-      // → tránh Dư TRÙNG LẶP khi 2 kiosk quét CÙNG staffId lạ trong cửa sổ cache TTL.
-      try { existing = findLogRow(readLogRowsCached_(taskId), staffId); } catch (e) { console.warn('recheck cache fail', e.message); }
-      const now = new Date();
-      // Đọc staffIndex CHỈ khi thực sự cần append (lazy). G: wrap try/catch — nếu
-      // StaffData lỗi vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi".
-      let staffInfo = null;
-      if (!existing) {
-        try { staffInfo = (readStaffIndex_())[staffId] || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffInfo = null; }
-      }
-      // Gán (không khai báo lại) — extraRow đã hoist lên scope hàm để return đọc được.
-      extraRow = existing ? {
-        slotCode: existing.slotCode || '',
-        station: existing.station || '',
-        team: existing.team || '',
-        workstation: existing.workstation || '',
-      } : buildExtraRow({ STATUS: STATUS }, taskId, staffId, staffInfo, now, field);
-      if (existing) {
-        // Đã có (race) → commit thời gian vào row hiện hữu thay vì chỉ trả local.
-        // Minor#2 (audit): trước đây chỉ set local text/epoch, KHÔNG ghi sheet → nếu
-        // kiosk B quét phase2 khi A mới ghi phase1, thời gian hợp lệ bị rơi (NV phải quét lại).
-        if (field === 'timeScan') {
-          timeScanText = existing.timeScanText || formatTime_(now);
-          timeScanEpoch = Number(existing.timeScanEpoch) || now.getTime();
-          if (!existing.timeScanEpoch) {  // chưa có Giờ quét → GHI VÀO sheet (not skip)
-            updateLogRowScan_(existing, now, result.status || STATUS.EXTRA);
-            existing.timeScanText = timeScanText;
-            existing.timeScanEpoch = timeScanEpoch;
-            existing.status = result.status || STATUS.EXTRA;
-          }
-        } else {
-          timeRefText = existing.timeRefText || formatTime_(now);
-          timeRefEpoch = Number(existing.timeRefEpoch) || now.getTime();
-          if (!existing.timeRefEpoch) {  // chưa có Giờ có mặt — GHI vào sheet
-            updateLogRowRef_(existing, now);
-            existing.timeRefText = timeRefText;
-            existing.timeRefEpoch = timeRefEpoch;
-          }
-        }
-        scannedName = existing.staffName || null;
-        result.status = existing.status || STATUS.EXTRA;
-      } else {
-        // status ghi phải theo classifyScan trả (result.status) — KHÔNG hardcode EXTRA.
-        // noList quét đầu (phase1) = PENDING (Chưa điểm danh), phase2 = PRESENT.
-        // Fix #3: buildExtraRow giờ nhận status param (mặc định EXTRA).
-        extraRow.status = result.status || STATUS.EXTRA;
-        appendLogRow_(extraRow);
-        logRows.push(extraRow);
-        if (field === 'timeScan') {
-          timeScanText = formatTime_(now);
-          timeScanEpoch = now.getTime();
-        } else {
-          timeRefText = formatTime_(now);
-          timeRefEpoch = now.getTime();
-        }
-        scannedName = extraRow.staffName || null;
-        // KHÔNG hardcode EXTRA ở đây — result.status đã do classifyScan trả đúng
-        // (free task = PENDING/PRESENT, roster lạ = EXTRA). Hardcode sẽ ghi nhầm "Dư"
-        // cho quét tự do (Fix 2026-08-05).
-      }
+    const needsAppend = result.action === 'append';
+    // Re-check race: đọc lại cache sau lock (kiosk khác có thể vừa ghi cùng staffId)
+    const freshLogRows = needsAppend ? (readLogRowsCached_(taskId) || []) : logRows;
+    let staffIndex = null;
+    if (needsAppend) {
+      // Đọc staffIndex CHỈ khi cần append (lazy). G: wrap try/catch — StaffData lỗi
+      // vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi".
+      try { staffIndex = readStaffIndex_() || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffIndex = null; }
     }
-
-    // S5 (review 2026-08-11): race-branch — nếu re-check tìm thấy existing (kiosk khác
-    // vừa append trong lock), logRows snapshot cũ thiếu row đó → counters undercount 1
-    // cho đến lần load sau. Push existing vào để đếm đúng ngay (mirror append path:167).
-    if (existing && logRows.indexOf(existing) === -1) logRows.push(existing);
-    const counters = computeCounters({ STATUS: STATUS }, logRows);
+    const commit = planScanCommits(
+      { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+      task,
+      [{ code: staffId, action: result.action, field: result.field, status: result.status, row: result.row }],
+      freshLogRows, staffIndex, new Date(), formatTime_
+    );
+    if (commit.updates.length) batchUpdateLogRows_(taskId, commit.updates);
+    if (commit.appends.length) {
+      const appendRes = batchAppendLogRows_(commit.appends);
+      commit.appends.forEach(function (row, idx) {
+        const o = commit.outcomes[String(row[1] || '').toUpperCase()];
+        if (o) o.rowIndex = appendRes.rowIndices[idx] || 0;
+      });
+    }
+    const outcome = commit.outcomes[String(staffId).toUpperCase()];
+    const timeScanText = outcome ? outcome.timeScanText : '';
+    const timeScanEpoch = outcome ? outcome.timeScanEpoch : 0;
+    const timeRefText = outcome ? outcome.timeRefText : '';
+    const timeRefEpoch = outcome ? outcome.timeRefEpoch : 0;
+    const scannedName = outcome ? outcome.staffName : null;
+    const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));
     // P2 benchmark: tổng + tách giai đoạn — QA prod đọc Stackdriver biết ngay
     // bottleneck (read sheet vs write). Phân tích: t1→t2 = đọc task+log (full sheet),
     // t2→t3 = classify + write. Nếu read > 1.5s → cần index log (xem Database.gs).
@@ -197,8 +135,8 @@ function scanStaff(taskId, rawStaffId) {
     }
     return {
       ok: true,
-      message: result.status,
-      status: result.status,
+      message: outcome ? outcome.status : result.status,
+      status: outcome ? outcome.status : result.status,
       phase: result.phase,
       field: field,
       timeScanText: timeScanText,
@@ -206,10 +144,10 @@ function scanStaff(taskId, rawStaffId) {
       timeRefText: timeRefText,
       timeRefEpoch: timeRefEpoch,
       staffName: scannedName,
-      slotCode: result.action === 'append' ? (extraRow ? extraRow.slotCode : '') : (result.row ? result.row.slotCode : ''),
-      station: result.action === 'append' ? (extraRow ? extraRow.station : '') : (result.row ? result.row.station : ''),
-      team: result.action === 'append' ? (extraRow ? extraRow.team : '') : (result.row ? result.row.team : ''),
-      workstation: result.action === 'append' ? (extraRow ? extraRow.workstation : '') : (result.row ? result.row.workstation : ''),
+      slotCode: outcome ? outcome.slotCode : '',
+      station: outcome ? outcome.station : '',
+      team: outcome ? outcome.team : '',
+      workstation: outcome ? outcome.workstation : '',
       counters: counters,
     };
   } finally {
@@ -275,20 +213,30 @@ function pasteCodes(taskId, rawLines) {
     );
     
     const now = new Date();
-    let appendRows = []; // rows to batch append
     const results = [];
     let success = 0;
     let failed = 0;
-    
+
     // Process invalid format codes
     invalid.forEach(function (inv) {
       results.push({ code: inv.code, ok: false, status: null, message: 'Sai định dạng (phải bắt đầu bằng Ops)' });
       failed++;
     });
-        // M1 (audit): gom update plans → 1 batch (không N setValues + N cache invalidation riêng lẻ).
-    const updateBatch = [];
-    
-    // Process each plan
+
+    // B (2026-08-12): seam commit — gom re-check race + enrich staffIndex + gom batch vào
+    // planScanCommits (ScanLogic) — scanStaff + pasteCodes dùng chung, hết duplicate.
+    const commitActions = plans.filter(function (p) { return p.action !== 'reject'; });
+    let staffIndex = null;
+    if (commitActions.some(function (p) { return p.action === 'append'; })) {
+      try { staffIndex = readStaffIndex_() || null; } catch (e) { console.warn('readStaffIndex fail', e.message); staffIndex = null; }
+    }
+    // Re-check race: đọc lại cache sau khi giữ lock (kiosk khác có thể vừa ghi cùng mã)
+    const freshLogRows = readLogRowsCached_(taskId) || [];
+    const commit = planScanCommits(
+      { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+      task, commitActions, freshLogRows, staffIndex, now, formatTime_
+    );
+    // Results theo ĐÚNG thứ tự plans (reject/update/append xen kẽ như cũ)
     plans.forEach(function (plan) {
       if (plan.action === 'reject') {
         var msg = plan.reason === 'already-present' ? UI_LABELS.ALREADY_PRESENT :
@@ -297,75 +245,24 @@ function pasteCodes(taskId, rawLines) {
                   UI_LABELS.STAFF_NOT_FOUND;
         results.push({ code: plan.code, ok: false, status: null, message: msg });
         failed++;
-      } else if (plan.action === 'append') {
-        // Build row for batch append
-        const newRow = [
-          taskId,
-          plan.code.toUpperCase(),
-          '', // staffName - will be filled from staffIndex if available
-          '', '', '', '', // slotCode, station, team, workstation
-          plan.field === 'timeRef' ? now : '',
-          plan.field === 'timeScan' ? now : '',
-          plan.status,
-          '', // date
-        ];
-        appendRows.push(newRow);
-        results.push({ code: plan.code, ok: true, status: plan.status, message: plan.status });
-        success++;
-      } else if (plan.action === 'update') {
-        // M1: gom vào batch — ghi 1 đợt sau loop thay vì N setValues riêng biệt.
-        updateBatch.push({
-          rowIndex: plan.row._rowIndex, field: plan.field, time: now,
-          newStatus: plan.status,
-          keepStatus: plan.row.status,
-        });
-        results.push({ code: plan.code, ok: true, status: plan.status, message: plan.status });
-        success++;
+        return;
       }
+      const o = commit.outcomes[String(plan.code).trim().toUpperCase()];
+      const st = o ? o.status : plan.status;
+      results.push({ code: plan.code, ok: true, status: st, message: st });
+      success++;
     });
-    // #2 (review 2026-08-11): re-check cache TRƯỚC khi ghi — kiosk khác có thể vừa ghi cùng
-    // staffId trong cửa sổ cache (pattern scanStaff race-branch). Mã đã có dòng trong cache
-    // tươi → chuyển thành UPDATE (ghi thời gian + status) thay vì append trùng (Dư trùng lặp).
-    if (appendRows.length > 0) {
-      const fresh = readLogRowsCached_(taskId) || [];
-      const existingMap = {};
-      fresh.forEach(function (r) { existingMap[String(r.staffId || '').toUpperCase()] = r; });
-      const kept = [];
-      appendRows.forEach(function (row) {
-        const ex = existingMap[String(row[1] || '').toUpperCase()];
-        if (!ex) { kept.push(row); return; }
-        updateBatch.push({
-          rowIndex: ex._rowIndex, field: row[LOG_COLS.TIME_REF] ? 'timeRef' : 'timeScan',
-          time: now, newStatus: row[LOG_COLS.STATUS], keepStatus: ex.status,
-        });
+    if (commit.updates.length > 0) {
+      batchUpdateLogRows_(taskId, commit.updates);
+    }
+    if (commit.appends.length > 0) {
+      const appendRes = batchAppendLogRows_(commit.appends);
+      commit.appends.forEach(function (row, idx) {
+        const o = commit.outcomes[String(row[1] || '').toUpperCase()];
+        if (o) o.rowIndex = appendRes.rowIndices[idx] || 0;
       });
-      appendRows = kept;
     }
-    if (updateBatch.length > 0) {
-      batchUpdateLogRows_(taskId, updateBatch);
-    }
-    
-    // Batch append new rows
-    if (appendRows.length > 0) {
-      // Try to fill staffInfo from staffIndex for appended rows
-      let staffIndex = null;
-      try { staffIndex = readStaffIndex_(); } catch (e) { console.warn('readStaffIndex fail', e.message); }
-      if (staffIndex) {
-        appendRows.forEach(function (row) {
-          const info = staffIndex[row[1]]; // staffId is column 1
-          if (info) {
-            row[2] = info.staffName || '';
-            row[3] = info.slotCode || '';
-            row[4] = info.station || '';
-            row[5] = info.team || '';
-            row[6] = info.workstation || '';
-            row[10] = info.date || '';
-          }
-        });
-      }
-      batchAppendLogRows_(appendRows);
-    }
-    
+
     // Read updated log for fresh counters
     const updatedLogRows = readLogRowsCached_(taskId);
     const counters = computeCounters({ STATUS: STATUS }, updatedLogRows);

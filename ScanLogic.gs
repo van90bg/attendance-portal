@@ -132,46 +132,145 @@ function computeCounters(cfg, logRows) {
 }
 
 /**
- * Tạo dòng mới cho NV quét lạ (append) — dùng dữ liệu từ staffIndex nếu có.
- * @param {Object} cfg — { STATUS: {...} }
- * @param {string} taskId
- * @param {string} staffId
- * @param {Object|null} staffInfo — từ staffIndex (có thể null nếu không tìm thấy)
+ * B (2026-08-12): planScanCommits — seam THUẦN gom quyết định COMMIT scan.
+ * scanStaff + pasteCodes trước đây tự viết lại 3 thứ (duplicate logic — architecture review B):
+ *   1. re-check race (2 kiosk cùng staffId trong cửa sổ cache) → append biến update/skip
+ *   2. enrich append bằng staffIndex
+ *   3. gom update/append thành batch
+ * Hàm này nhận actions đã plan + log rows RE-CHECK (caller đọc lại sau khi giữ lock)
+ * và trả đúng shape 2 helper LogRepo tiêu thụ:
+ *   updates: [{rowIndex, field, time, newStatus?, keepStatus?}] → batchUpdateLogRows_
+ *   appends: [11 cột theo LOG_COL_COUNT]                            → batchAppendLogRows_
+ *   outcomes: {STAFFID: {action, field, timeRefText, timeRefEpoch, timeScanText,
+ *              timeScanEpoch, status, staffName, slotCode, station, team, workstation,
+ *              rowIndex}} — payload response client (scanStaff) / results (pasteCodes).
+ *
+ * Race semantics (thống nhất theo hành vi scanStaff, bảo thủ hơn pasteCodes cũ):
+ *  - append mà staffId ĐÃ có trong freshLogRows (kiosk khác vừa ghi trong lock):
+ *    + field 'timeScan' & chưa có timeScanEpoch → convert thành update timeScan
+ *    + field 'timeRef'   & chưa có timeRefEpoch   → convert thành update timeRef
+ *    + field đã có epoch (kiosk khác xong phase này) → KHÔNG ghi (không đè thời gian),
+ *      báo thông tin row hiện hữu.
+ *
+ * @param {Object} cfg — { STATUS, TASK_STATUS, TASK_TYPE }
+ * @param {Object} task — { taskId, taskType, status }
+ * @param {Array} actions — [{ code?, action:'update'|'append', field, status, row? }]
+ *   (classifyScan result / planBatchScans plan — cùng shape commit)
+ * @param {Array} freshLogRows — log rows RE-CHECK (slim: staffId, text, epoch, status, _rowIndex)
+ * @param {Object|null} staffIndex — map STAFFID → {staffName, slotCode, station, team, workstation, date}
  * @param {Date} now
- * @param {string} field — 'timeRef' (phase1: Giờ có mặt) | 'timeScan' (phase2: Giờ quét)
- * @param {string} status — status ghi cho dòng (mặc định EXTRA để roster lạ = Dư).
- *   noList QUÉT ĐẦU (phase1) truyền PENDING (Chưa điểm danh) — NV lạ chưa có
- *   Giờ quét nên KHÔNG gán Dư; chỉ phase2 (có Giờ quét) mới PRESENT. (Fix #3)
- * @returns {Object} row theo LOG_COLS
+ * @param {function(Date):string} fmtTime — formatTime_ (GAS); stub trong test
+ * @returns {{updates:Array, appends:Array, outcomes:Object}}
  */
-function buildExtraRow(cfg, taskId, staffId, staffInfo, now, field, status) {
-  var timeRef = null, timeScan = null, timeRefEpoch = 0, timeScanEpoch = 0;
-  if (field === 'timeScan') {
-    timeScan = now; timeScanEpoch = now ? now.getTime() : 0;
-  } else {
-    // mặc định phase1: ghi Giờ có mặt
-    timeRef = now; timeRefEpoch = now ? now.getTime() : 0;
-  }
-  return {
-    taskId: taskId,
-    staffId: staffId,
-    staffName: staffInfo ? staffInfo.staffName : '',
-    slotCode: staffInfo ? staffInfo.slotCode : '',
-    station: staffInfo ? staffInfo.station : '',
-    team: staffInfo ? staffInfo.team : '',
-    workstation: staffInfo ? staffInfo.workstation : '',
-    timeRef: timeRef,
-    timeScan: timeScan,
-    timeRefEpoch: timeRefEpoch,
-    // append phase2 cũng phải set timeScanEpoch (nguồn sự thật counters/sort).
-    timeScanEpoch: timeScanEpoch,
-    // 2026-08-07: FREE giữ staffInfo.date (ngày lên làm) cho cột Ngày — lấy từ StaffData,
-    // không phải ngày quét. NV quét lạ không có trong StaffData → để rỗng.
-    date: staffInfo ? (staffInfo.date || '') : '',
-    // status do caller truyền (mặc định EXTRA giữ behaviour roster lạ = Dư);
-    // noList quét đầu (phase1) truyền PENDING — Fix #3.
-    status: status || cfg.STATUS.EXTRA,
-  };
+function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtTime) {
+  const STATUS = cfg.STATUS;
+  const fmt = fmtTime || function () { return ''; };
+  const num = function (v) { return Number(v) || 0; };
+  const updates = [];
+  const appends = [];
+  const outcomes = {};
+  const existingMap = {};
+  (freshLogRows || []).forEach(function (r) {
+    existingMap[String(r.staffId || '').trim().toUpperCase()] = r;
+  });
+  (actions || []).forEach(function (a) {
+    const sid = String(a.code !== undefined && a.code !== null ? a.code : '').trim().toUpperCase();
+    if (!sid) return;
+    if (a.action === 'update' && a.row) {
+      const isScan = a.field === 'timeScan';
+      outcomes[sid] = {
+        action: 'update', field: a.field,
+        timeScanText: isScan ? fmt(now) : '',
+        timeScanEpoch: isScan ? now.getTime() : 0,
+        timeRefText: isScan ? '' : fmt(now),
+        timeRefEpoch: isScan ? 0 : now.getTime(),
+        status: a.status || STATUS.EXTRA,
+        staffName: a.row.staffName || null,
+        slotCode: a.row.slotCode || '', station: a.row.station || '',
+        team: a.row.team || '', workstation: a.row.workstation || '',
+        rowIndex: a.row._rowIndex || 0,
+      };
+      const u = { rowIndex: a.row._rowIndex, field: a.field, time: now, newStatus: a.status };
+      // timeScan: ghi STATUS (khớp updateLogRowScan_ cũ); timeRef: chỉ TIME_REF (khớp updateLogRowRef_)
+      if (isScan) u.keepStatus = a.row.status;
+      updates.push(u);
+      return;
+    }
+    if (a.action === 'append') {
+      const ex = existingMap[sid];
+      if (ex) {
+        // RACE: kiosk khác vừa append trong lock → chỉ ghi nếu phase CHƯA hoàn thành
+        if (a.field === 'timeScan' && !num(ex.timeScanEpoch)) {
+          updates.push({ rowIndex: ex._rowIndex, field: 'timeScan', time: now, newStatus: a.status || STATUS.EXTRA, keepStatus: ex.status });
+          outcomes[sid] = {
+            action: 'update', field: 'timeScan',
+            timeScanText: ex.timeScanText || fmt(now), timeScanEpoch: now.getTime(),
+            timeRefText: '', timeRefEpoch: 0,
+            status: a.status || STATUS.EXTRA,
+            staffName: ex.staffName || null,
+            slotCode: ex.slotCode || '', station: ex.station || '',
+            team: ex.team || '', workstation: ex.workstation || '',
+            rowIndex: ex._rowIndex || 0,
+          };
+        } else if (a.field === 'timeRef' && !num(ex.timeRefEpoch)) {
+          updates.push({ rowIndex: ex._rowIndex, field: 'timeRef', time: now });
+          outcomes[sid] = {
+            action: 'update', field: 'timeRef',
+            timeRefText: ex.timeRefText || fmt(now), timeRefEpoch: now.getTime(),
+            timeScanText: '', timeScanEpoch: 0,
+            status: ex.status || STATUS.EXTRA,
+            staffName: ex.staffName || null,
+            slotCode: ex.slotCode || '', station: ex.station || '',
+            team: ex.team || '', workstation: ex.workstation || '',
+            rowIndex: ex._rowIndex || 0,
+          };
+        } else {
+          // phase đã xong (kiosk khác) → KHÔNG ghi, báo row hiện hữu (không đè thời gian)
+          outcomes[sid] = {
+            action: 'update', field: a.field,
+            timeScanText: a.field === 'timeScan' ? (ex.timeScanText || fmt(now)) : '',
+            timeScanEpoch: a.field === 'timeScan' ? num(ex.timeScanEpoch) : 0,
+            timeRefText: a.field === 'timeRef' ? (ex.timeRefText || fmt(now)) : '',
+            timeRefEpoch: a.field === 'timeRef' ? num(ex.timeRefEpoch) : 0,
+            status: ex.status || STATUS.EXTRA,
+            staffName: ex.staffName || null,
+            slotCode: ex.slotCode || '', station: ex.station || '',
+            team: ex.team || '', workstation: ex.workstation || '',
+            rowIndex: ex._rowIndex || 0,
+          };
+        }
+        return;
+      }
+      // append thật — enrich staffIndex (nếu có)
+      const info = staffIndex ? staffIndex[sid] : null;
+      const isScan = a.field === 'timeScan';
+      appends.push([
+        task.taskId, sid,
+        info ? String(info.staffName || '') : '',
+        info ? String(info.slotCode || '') : '',
+        info ? String(info.station || '') : '',
+        info ? String(info.team || '') : '',
+        info ? String(info.workstation || '') : '',
+        isScan ? '' : now,
+        isScan ? now : '',
+        a.status || STATUS.EXTRA,
+        info ? String(info.date || '') : '',
+      ]);
+      outcomes[sid] = {
+        action: 'append', field: a.field,
+        timeScanText: isScan ? fmt(now) : '', timeScanEpoch: isScan ? now.getTime() : 0,
+        timeRefText: isScan ? '' : fmt(now), timeRefEpoch: isScan ? 0 : now.getTime(),
+        status: a.status || STATUS.EXTRA,
+        staffName: info ? info.staffName || null : null,
+        slotCode: info ? String(info.slotCode || '') : '',
+        station: info ? String(info.station || '') : '',
+        team: info ? String(info.team || '') : '',
+        workstation: info ? String(info.workstation || '') : '',
+        rowIndex: 0, // gán sau batchAppendLogRows_ (caller đối chiếu rowIndices)
+      };
+    }
+  });
+  return { updates: updates, appends: appends, outcomes: outcomes };
 }
 
 /**
@@ -376,8 +475,8 @@ if (typeof module !== 'undefined' && module.exports) {
     classifyScan: classifyScan,
     findLogRow: findLogRow,
     computeCounters: computeCounters,
-    buildExtraRow: buildExtraRow,
     canScanOpen_: canScanOpen_,
+    planScanCommits: planScanCommits,
     planBatchScans: planBatchScans,
     matchLogsByStaff: matchLogsByStaff,
     matchTasksByQuery: matchTasksByQuery,

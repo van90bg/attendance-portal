@@ -96,19 +96,7 @@ test('computeCounters: có Giờ có mặt nhưng chưa quét → Vắng (không
   assert.equal(c.total, 3);
 });
 
-test('buildExtraRow: field=timeScan ghi timeScan, field=timeRef ghi timeRef', () => {
-  const now = new Date('2026-08-02T08:00:00');
-  const rScan = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS1', null, now, 'timeScan');
-  assert.equal(rScan.timeScan, now);
-  assert.equal(rScan.timeScanEpoch, now.getTime());
-  assert.equal(rScan.timeRef, null);
-  assert.equal(rScan.timeRefEpoch, 0);
-  const rRef = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS2', null, now, 'timeRef');
-  assert.equal(rRef.timeRef, now);
-  assert.equal(rRef.timeRefEpoch, now.getTime());
-  assert.equal(rRef.timeScan, null);
-  assert.equal(rRef.timeScanEpoch, 0);
-});
+
 
 // ===== Nhánh "Quét tự do" (noList) — tạo task KHÔNG danh sách, quét 2 lần =====
 test('noList: createReconcileTask không cần group → log rỗng, status Mở', () => {
@@ -143,15 +131,7 @@ test('noList/RECONCILE: NV Dư (EXTRA) quét phase2 GIỮ Dư — KHÔNG đổi 
 });
 
 // ===== Fix #3: noList QUÉT ĐẦU (phase1) phải ghi PENDING (Chưa điểm danh), KHÔNG Dư =====
-test('buildExtraRow: status truyền vào được giữ (mặc định EXTRA fallback)', () => {
-  const now = new Date('2026-08-02T08:00:00');
-  const rDef = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS1', null, now, 'timeRef');
-  assert.equal(rDef.status, CFG.STATUS.EXTRA);
-  const rPen = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS1', null, now, 'timeRef', CFG.STATUS.PENDING);
-  assert.equal(rPen.status, CFG.STATUS.PENDING);
-  const rPre = ScanLogic.buildExtraRow(CFG, 'R1', 'OPS1', null, now, 'timeScan', CFG.STATUS.PRESENT);
-  assert.equal(rPre.status, CFG.STATUS.PRESENT);
-});
+
 
 test('noList (FREE) phase1 quét đầu: append PENDING — KHÔNG Dư', () => {
   // Quét tự do (taskType FREE) KHÔNG có danh sách → NV lạ hợp lệ, quét đầu
