@@ -1469,6 +1469,7 @@
     { key: 'teams', label: 'Danh sách Team' },
     { key: 'slotcodes', label: 'Danh sách Slot Code (Ca)' },
     { key: 'departments', label: 'Danh sách Department' },
+    { key: 'agencies', label: 'Danh sách Agency' },
   ];
 
   function renderConfigForm(s) {
@@ -1514,11 +1515,13 @@
             + '</div>'
           + '</div>';
         }).join('')
-      : '<div class="cfg-empty-val cfg-group-empty">(chưa có — bấm + Thêm)</div>';
+      : '<div class="cfg-empty-val cfg-group-empty">(chưa có)</div>';
     return '<div class="cfg-group" data-group="' + g.key + '">'
-      + '<div class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + list.length + ' mục</span></div>'
+      + '<div class="cfg-group-head">'
+        + '<div class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + list.length + ' mục</span></div>'
+        + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
+      + '</div>'
       + items
-      + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
     + '</div>';
   }
 
@@ -1591,14 +1594,15 @@
     for (var i = 0; i < CFG_FIELDS.length; i++) { if (CFG_FIELDS[i].key === key) { f = CFG_FIELDS[i]; break; } }
     if (!f) return;
     var cur = CFG_STATE[key];
-    box.innerHTML = '<div class="cfg-item cfg-item-edit" data-key="' + key + '">'
-      + '<div class="cfg-item-label">' + esc(f.label) + '</div>'
+    // Sửa INLINE đúng 1 item (cùng pattern group) — KHÔNG thay toàn bộ form (fix 2026-08-12)
+    var item = box.querySelector('.cfg-item[data-key="' + key + '"]');
+    if (!item) return;
+    item.innerHTML = '<div class="cfg-item-label">' + esc(f.label) + '</div>'
       + '<input class="cfg-input cfg-edit-input" id="cfgEditInput" value="' + escAttr(String(cur === null || cur === undefined ? '' : cur)) + '" placeholder="' + escAttr(f.placeholder) + '" autocomplete="off">'
       + '<div class="cfg-item-actions">'
         + '<button type="button" class="btn btn-sm" onclick="saveCfgField(\'' + key + '\')">Lưu</button>'
         + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelCfgEdit()">Huỷ</button>'
-      + '</div>'
-    + '</div>';
+      + '</div>';
     var inp = document.getElementById('cfgEditInput');
     if (inp) { inp.focus(); inp.select(); }
   }
@@ -1608,7 +1612,7 @@
   function saveCfgField(key) {
     var inp = document.getElementById('cfgEditInput');
     var v = inp ? inp.value.trim() : '';
-    var btn = document.querySelector('.cfg-item-edit .cfg-item-actions button');
+    var btn = document.querySelector('.cfg-item[data-key=\"' + key + '\"] .cfg-item-actions button');
     setBtnBusy_(btn, 'Đang lưu…');
     var patch = {}; patch[key] = v;
     saveConfigPatch(patch, 'Đã lưu ' + fieldLabel_(key));
@@ -1676,7 +1680,7 @@
     sel.value = known ? role : 'viewer';  // role lạ trong config cũ → clamp về viewer (không lưu '')
     var del = document.createElement('button');
     del.type = 'button'; del.className = 'btn btn-danger btn-sm';
-    del.textContent = '✕'; del.title = 'Xóa dòng role'; del.setAttribute('aria-label', 'Xóa dòng role');
+    del.textContent = 'Xoá'; del.title = 'Xoá dòng role'; del.setAttribute('aria-label', 'Xoá dòng role');
     del.onclick = function () { row.parentNode.removeChild(row); };
     row.appendChild(em); row.appendChild(sel); row.appendChild(del);
     box.appendChild(row);
@@ -1701,17 +1705,12 @@
     // Nút "Lưu phân quyền" (view-topbar) — chỉ gửi roleMap (mục vận hành tự lưu khi Sửa/Xoá)
     var patch = { roleMap: collectRoleMap() };
     setBtnBusy_(btn, 'Đang lưu…');
-    function restore() { restoreBtnLabel_(btn, '💾 Lưu phân quyền'); }
-    function setStatus(t, ok) {
-      var st = document.getElementById('cfgStatus');
-      if (st) { st.textContent = t; st.style.color = ok ? 'var(--success)' : 'var(--danger)'; }
-    }
+    function restore() { restoreBtnLabel_(btn, 'Lưu phân quyền'); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
-        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi lưu phân quyền', true); setStatus('Lỗi lưu', false); return; }
+        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi lưu phân quyền', true); return; }
         showToast(res.message || 'Đã lưu phân quyền', false);
-        setStatus('Đã lưu ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }), true);
         loadConfigView(); // đọc lại từ server (cache đã invalidate)
       })
       .withFailureHandler(function (err) {

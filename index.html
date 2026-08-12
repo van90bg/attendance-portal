@@ -279,7 +279,7 @@
       </div>
       <div class="topbar-actions">
         <button class="btn btn-outline" onclick="loadConfigView(this)" aria-label="Làm mới cấu hình" title="Làm mới">⟳ Làm mới</button>
-        <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)" style="display:none;">💾 Lưu phân quyền</button>
+        <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)" style="display:none;">Lưu phân quyền</button>
       </div>
     </div>
 
@@ -292,7 +292,6 @@
         <div class="cfg-section-title">Phân quyền (roleMap) <span class="cfg-hint">email → role; bỏ trống email để xóa dòng</span></div>
         <div id="cfgRoleRows"></div>
         <button type="button" class="btn btn-outline btn-sm" onclick="addRoleRow()">+ Thêm role</button>
-        <div class="cfg-status" id="cfgStatus"></div>
       </div>
     </div>
     <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ editor (DEPLOYER_EMAIL)</div>

@@ -381,19 +381,18 @@
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
     .cfg-list { display: flex; flex-direction: column; gap: 8px; }
     /* Groups 2 cột grid (2026-08-11): 4 danh sách lựa chọn xếp 2×2 — card trái không quá dài (trước dọc 4 section) */
-    .cfg-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; align-items: start; }
+    .cfg-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px 16px; align-items: start; }  /* 2 cột khi cột đủ rộng, tự về 1 cột khi hẹp — item không bị bóp (2026-08-12) */
     .cfg-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }
     .cfg-item-label { flex: 0 0 190px; font-size: 13px; font-weight: 600; color: var(--text); }
     .cfg-item-value { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
     .cfg-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
-    .cfg-item-edit { background: var(--card); }
     .cfg-edit-input { flex: 1 1 auto; }
-    .cfg-status { font-size: 13px; color: var(--muted); }
     /* Group lists (2026-08-11): danh sách lựa chọn station/team/slotcode/department */
     .cfg-group-sep { border-top: 1px dashed var(--border); margin: 14px 0 6px; }
     .cfg-group { margin-bottom: 14px; }
-    .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .cfg-group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 0; }
     .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }
     .cfg-group-add { margin-top: 6px; }
     .cfg-group-empty { padding: 6px 2px; }
