@@ -1,9 +1,14 @@
+---
+name: project-skill
+description: Attendance Portal (RollCall v2) — project skill. Use for ANY edit in this repo (UI, server, tests, docs): architecture mental model, gotchas, deterministic edit + batch runner, perf, pitfalls.
+---
+
 # Project Skill — Attendance Portal (RollCall v2)
 
 > Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/rollcall-kiosk-v2x`).
 > Dùng khi: bất kỳ edit nào với repo này (UI, server, tests, docs).
 > Nguồn: skill Hermes `rollcall-kiosk`. Nếu mâu thuẫn, Hermes skill là nguồn mới nhất.
-> References: xem `skills/references/` — `architecture-gotchas.md`, `deterministic-batch-runner.md`, `slot-fueled-classification.md`.
+> References: xem `references/` — `architecture-gotchas.md`, `deterministic-batch-runner.md`, `slot-fueled-classification.md`.
 
 ## 1. Repo facts
 
@@ -80,7 +85,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## 8. Deterministic editing (bắt buộc trên 3 file template index/styles/app)
 
-- Fuzzy patch BANNED; sed/echo trong bash làm hỏng VN+CRLF -> dùng script Python/Node deterministic (xem `skills/references/deterministic-batch-runner.md` + `scripts` pattern).
+- Fuzzy patch BANNED; sed/echo trong bash làm hỏng VN+CRLF -> dùng script Python/Node deterministic (xem `references/deterministic-batch-runner.md` + `scripts` pattern).
 - Python pattern: read/write với `newline=''`; ĐỌC dùng `encoding='utf-8-sig'` (strip BOM), GHI dùng `encoding='utf-8'` (KHÔNG sig — utf-8-sig write THÊM BOM gây khoảng trống trên header khi GAS serve, lesson 9982293); anchor literal `\r\n`; mọi replace `assert count==1`.
 - Verify BOM: sau edit chạy `head -c 3 <file> | xxd -p` — KHÔNG được ra `efbbbf` (file phải bắt đầu bằng `3c`/`2f`).
 - Khối lớn: block new sang `.txt` tạm rồi ghép bằng index (tránh tool-call >8K token).
@@ -145,6 +150,6 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## References (repo)
 
-- `skills/references/architecture-gotchas.md` — 2-phase model, Dư/PENDING timeline, staffIndex fixes.
-- `skills/references/deterministic-batch-runner.md` — known-good multi-file/multi-module runner skeleton + undo module pattern.
-- `skills/references/slot-fueled-classification.md` — approved plan modal redesign (magic 'Tự do', delete tabs, edge cases).
+- `references/architecture-gotchas.md` — 2-phase model, Dư/PENDING timeline, staffIndex fixes.
+- `references/deterministic-batch-runner.md` — known-good multi-file/multi-module runner skeleton + undo module pattern.
+- `references/slot-fueled-classification.md` — approved plan modal redesign (magic 'Tự do', delete tabs, edge cases).

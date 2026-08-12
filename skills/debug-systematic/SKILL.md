@@ -1,3 +1,8 @@
+---
+name: debug-systematic
+description: 4-phase systematic debugging — root cause BEFORE fix. Use for EVERY technical bug: test fail, production bug, weird behavior, perf. Required when: emergency, 'quick fix only', many failed fixes, unclear problem.
+---
+
 # Skill: Systematic Debugging (4-phase)
 
 > Dùng cho MỌI bug kỹ thuật: test fail, production bug, hành vi lạ, perf. **Bắt buộc khi:** gấp (emergency), "fix nhanh thôi", đã thử nhiều fix, fix trước không ăn, chưa hiểu rõ vấn đề.

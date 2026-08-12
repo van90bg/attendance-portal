@@ -52,7 +52,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - **Task 2 phase**: `task.status` = `open` (ghi Giờ có mặt/timeRef) → `attend` (ghi Giờ quét/timeScan) → `done`.
 - `logRow.status`: `PENDING`(-/Chưa điểm danh) · `PRESENT`(Có mặt) · `ABSENT`(Vắng) · `EXTRA`(Dư).
 - **Epoch là nguồn sự thật** cho counters/sort (`timeRefEpoch`/`timeScanEpoch` — text "HH:mm:ss" mất ngày qua đêm).
-- `classifyScan` xử lý mọi lane (roster/free) — xem `skills/project-skill.md` §"Architecture mental model".
+- `classifyScan` xử lý mọi lane (roster/free) — xem `skills/project-skill/SKILL.md` §"Architecture mental model".
 - **Không ghi đè cột lệch trong setValues** — LOG_COLS phải đồng bộ hệt nhau giữa ensureSheets_, methods, migration.
 - Dư (EXTRA): NV lạ phase 2 → Dư (KHÔNG phải Có mặt). `optimistic` client phải y hệt server.
 - **Role (2026-08-11)**: viewer<operator<manager<admin — ROLES (Config.gs) + roleMap (Config sheet qua SettingsService), đọc qua Auth.getRole_; gate chuẩn `requireRole_(min)`. operator là MẶC ĐỊNH — không được phá luồng kiosk (anonymous = operator). Gate hiện tại: getStaffStatsApi operator+ · searchLogsByStaffApi (lịch sử chấm công NV) manager+ · settings editor-only. Khi thêm API quản trị: gate TRONG try (pattern DEFENSE).
@@ -94,9 +94,8 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 
 - `README.md` — tổng quan cập nhật.
 - `Spec — RollCall v2.md` — spec đầy đủ.
-- `skills/` — bộ skill đóng gói cho agent:
-  - `project-skill.md` — skill dự án ĐẦY ĐỦ (architecture, gotchas, batch/perf, deterministic, pitfalls).
-  - `references/` — 3 reference: `architecture-gotchas.md` · `deterministic-batch-runner.md` · `slot-fueled-classification.md`.
-  - `audit-webapp-optimize.md` — 3-phase audit (code → UI/UX → optimize), P0/P1/P2, user duyệt trước khi fix.
-  - `review-gas-failure-modes.md` — review GAS with confidence scoring + failure modes checklist + MoA option.
-  - `debug-systematic.md` — 4-phase root-cause debugging (Iron Law: không fix trước root cause).
+- `skills/` — bộ skill chuẩn `SKILL.md` (format chuẩn Agent Skills — tái sử dụng đa công cụ AI: Claude Code, OpenCode, Codex, Cursor…):
+  - `project-skill/SKILL.md` — skill dự án ĐẦY ĐỦ (architecture, gotchas, batch/perf, deterministic, pitfalls) + `references/` (3 reference: `architecture-gotchas.md` · `deterministic-batch-runner.md` · `slot-fueled-classification.md`).
+  - `audit-webapp-optimize/SKILL.md` — 3-phase audit (code → UI/UX → optimize), P0/P1/P2, user duyệt trước khi fix.
+  - `review-gas-failure-modes/SKILL.md` — review GAS with confidence scoring + failure modes checklist + MoA option.
+  - `debug-systematic/SKILL.md` — 4-phase root-cause debugging (Iron Law: không fix trước root cause).

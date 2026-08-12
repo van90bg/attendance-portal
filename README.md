@@ -66,7 +66,7 @@ RollCall_2/
 │   ├── audit-gs.js        # rà hàm/const/API dead trong 14 file .gs (exit 1 nếu có dead/treo)
 │   ├── audit-style.js     # rà computed style class chung qua CDP (--strict exit 1 nếu lệch)
 │   └── audit-ui.js         # audit CDP 7 view x 4 viewport — layout/scroll/nav/card (exit 1 nếu FAIL; --quick)
-├── skills/                # skill đóng gói cho agent (project-skill + references)
+├── skills/               # skill chuẩn SKILL.md (Agent Skills format — tái sử dụng đa công cụ AI)
 └── docs/                  # deploy-codespace-actions.md (how-to deploy)
 ```
 

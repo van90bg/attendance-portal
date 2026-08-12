@@ -1,3 +1,8 @@
+---
+name: review-gas-failure-modes
+description: GAS review with failure-modes checklist + confidence scoring (+ MoA option). Use: post-feature git diff review, pre-deploy sanity check, or full-base review of kiosk/attendance/queue GAS web apps.
+---
+
 # Skill: GAS Review — Failure Modes & Confidence Scoring
 
 > Dùng khi: review sau feature mới (git diff), review code vừa viết trước khi declare done, pre-deploy sanity check, hoặc full-base review không git. Eco: kiosk/attendance/queue-style GAS tools.

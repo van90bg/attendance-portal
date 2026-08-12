@@ -1,3 +1,8 @@
+---
+name: audit-webapp-optimize
+description: 3-phase webapp audit (code → UI/UX → optimize) with P0/P1/P2 and user approval before fix. Use when: starting review of unread project, user reports many unspecific issues, before big refactor, or after many fixes want verification. Skip for single bug fixes.
+---
+
 # Skill: WebApp Audit & Optimize (3-phase)
 
 > Dùng khi: bắt đầu review dự án chưa đọc, user báo "có nhiều vấn đề" không chi tiết, trước refactor lớn, sau nhiều fix muốn verify. Bỏ qua khi chỉ fix 1 bug đơn lẻ.
@@ -55,4 +60,4 @@ Checklist:
 
 ---
 
-**Xem thêm:** `skills/review-gas-failure-modes.md` (checklist 40+ failure modes cụ thể kèm confidence scoring) • `skills/systematic-debugging.md` (debug từng issue sau audit).
+**Xem thêm:** `../review-gas-failure-modes/SKILL.md` (checklist 40+ failure modes cụ thể kèm confidence scoring) • `../debug-systematic/SKILL.md` (debug từng issue sau audit).
