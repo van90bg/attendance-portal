@@ -521,8 +521,8 @@
     }
     .scan-card.ok .sc-status { color: var(--success); }
     .scan-card.err .sc-status { color: var(--danger); }
-    .scan-card.extra .sc-status { color: var(--warning); }
-    .scan-card.warn .sc-status { color: var(--warning); }
+    .scan-card.extra .sc-status { color: var(--amber-dark); }
+    .scan-card.warn .sc-status { color: var(--amber-dark); }
     /* FREE phase1: NV mới quét lần 1 = 'Chưa điểm danh' (chưa phải lỗi/cảnh báo) → xanh dương. */
     .scan-card.pending .sc-status { color: var(--primary); }
     .scan-card.pending { border-color: var(--primary); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
@@ -550,7 +550,7 @@
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     #toast.ok { background: var(--success); }
     #toast.err { background: var(--danger); }
-    #toast.warn { background: var(--warning, #e85d04); }
+    #toast.warn { background: #b3530a; }  /* a11y (2026-08-12): #e37400 quá sáng — trắng 15px 3.10:1 → #b3530a 5.05:1 (toast Dư mỗi lần quét) */
     #toast .toast-text { display: inline-block; }
     #toast .toast-close {
       background: transparent; border: none; color: #fff; opacity: .8;
@@ -853,7 +853,7 @@
       .badge.pending { background: #000; color: #fff; }
       .badge.present { background: var(--success); color: #fff; }
       .badge.absent  { background: var(--danger); color: #fff; }
-      .badge.extra   { background: var(--warning); color: #fff; }
+      .badge.extra   { background: #b3530a; color: #fff; }  /* a11y (2026-08-12): #e37400 quá sáng — trắng 3.10:1 → #b3530a 5.05:1 */
       .badge.open    { background: var(--primary); color: #fff; }
       .badge.attend { background: var(--success-dark); color: #fff; }
       .badge.done    { background: #000; color: #fff; }

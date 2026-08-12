@@ -1176,7 +1176,7 @@
         if (res.failed > 0 && Array.isArray(res.results)) {
           var fails = res.results.filter(function (r) { return !r.ok; });
           if (fails.length) {
-            var detail = '<div style="margin-bottom:8px;font-size:13px;font-weight:600;color:var(--warning);">Chi tiết thất bại:</div>';
+            var detail = '<div style="margin-bottom:8px;font-size:13px;font-weight:600;color:var(--amber-dark);">Chi tiết thất bại:</div>';
             fails.forEach(function (r) {
               detail += '<div style="font-size:13px;padding:2px 0;border-bottom:1px solid var(--border);">'
                 + '<span style="font-family:monospace;">' + esc(r.code) + '</span>'
@@ -1283,7 +1283,7 @@
       if (!banner) {
         banner = document.createElement('div');
         banner.id = 'scanPermissionBanner';
-        banner.style.cssText = 'background:#fff3e0;border:1px solid var(--warning);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--warning);font-weight:600;';
+        banner.style.cssText = 'background:#fff3e0;border:1px solid var(--warning);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber-dark);font-weight:600;';
         banner.textContent = 'Chỉ owner mới quét được ở phase Mở (task này)';
         var card = document.querySelector('.scan-col-left .card');
         if (card && card.parentNode) card.parentNode.insertBefore(banner, card);
