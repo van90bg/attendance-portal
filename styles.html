@@ -951,14 +951,21 @@
       font-weight: 700; font-size: 12px; position: sticky; top: 0;
     }
     .stats-table th:first-child, .stats-table td.row-head { width: 110px; }
-    /* Mobile cards (≤640px, 2026-08-13): danh sách task thành thẻ gọn 3-4 dòng — ẩn Loại/Tạo lúc/Người tạo/Dư,
-       mỗi dòng nhiều thông tin (grid 3 cột): dòng 1 = Mã task + nút Quét/Xem · dòng 2 = Station/Team/Ca ·
-       dòng 3 = Trạng thái + Tổng NV + Đã quét */
+    /* Mobile cards (≤640px, 2026-08-13): danh sách task thành thẻ gọn 3-4 dòng, không tiêu đề ô — chỉ dữ liệu:
+       dòng 1 = Mã task + nút Quét/Xem · dòng 2 = Station · Team · Ca · dòng 3 = Trạng thái + Tổng + Đã quét;
+       ẩn Loại/Tạo lúc/Người tạo/Dư (chi tiết có ở màn quét) */
     @media (max-width: 640px) {
       #taskListTable thead { display: none; }
       #taskListTable tbody tr { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; background: var(--card); }
       #taskListTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 0; font-size: 13px; line-height: 1.35; }
-      #taskListTable tbody td[data-label]::before { content: attr(data-label); font-weight: 600; color: var(--muted); font-size: 11px; margin-right: 4px; text-transform: uppercase; letter-spacing: .3px; }
+      /* Bỏ tiêu đề ô trên thẻ (2026-08-13): chỉ còn dữ liệu — giữ nhãn ngắn 'Tổng'/'Đã quét' cho 2 số (số trần khó đoán) + dấu · ngăn cách giữa các mục */
+      #taskListTable tbody td[data-label]::before { content: none; }
+      #taskListTable tbody td[data-label="Tổng NV"]::before,
+      #taskListTable tbody td[data-label="Đã quét"]::before { content: attr(data-label); font-weight: 600; color: var(--muted); font-size: 11px; margin-right: 4px; }
+      #taskListTable tbody td[data-label="Station"]::after,
+      #taskListTable tbody td[data-label="Team"]::after,
+      #taskListTable tbody td[data-label="Tổng NV"]::after,
+      #taskListTable tbody td[data-label="Đã quét"]::after { content: ' ·'; color: var(--muted); }
       /* Ẩn trên mobile: STT + Loại + Tạo lúc + Người tạo + Dư (xem nhanh không cần — chi tiết có ở màn quét) */
       #taskListTable tbody td[data-label="STT"],
       #taskListTable tbody td[data-label="Loại"],
