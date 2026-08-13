@@ -98,6 +98,9 @@ async function startGateway(sandbox, env, port, token) {
   await sandbox.commands.run(`openclaw config set agents.defaults.model.primary ${model}`)
   await sandbox.commands.run('openclaw config set gateway.controlUi.allowInsecureAuth true')
   await sandbox.commands.run('openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true')
+  const origin = `https://${port}-${sandbox.sandboxId}.e2b.app`
+  console.log(`Allowing browser origin: ${origin}`)
+  await sandbox.commands.run(`openclaw config set gateway.controlUi.allowedOrigins '["${origin}"]'`)
   console.log('Starting OpenClaw gateway (nohup)...')
   await sandbox.commands.run(
     `bash -lc 'nohup openclaw gateway --allow-unconfigured --bind lan --auth token --token ${token} --port ${port} > /tmp/ocgw.log 2>&1 &'`
@@ -113,10 +116,16 @@ async function startGateway(sandbox, env, port, token) {
   }
 }
 
-async function stopGateway(sandbox) {
-  const res = await sandbox.commands.run(`bash -lc 'openclaw gateway stop 2>/dev/null || true'`)
-  if (res.stderr) console.warn(res.stderr)
-  await new Promise((r) => setTimeout(r, 1000))
+async function stopGateway(sandbox, port) {
+  await sandbox.commands.run(`bash -lc 'pkill -f "[o]penclaw gateway" 2>/dev/null || true'`)
+  for (let i = 0; i < 5; i++) {
+    if (!(await gatewayReady(sandbox, port))) break
+    await new Promise((r) => setTimeout(r, 1000))
+  }
+  if (await gatewayReady(sandbox, port)) {
+    await sandbox.commands.run(`bash -lc 'pkill -9 -f "[o]penclaw gateway" 2>/dev/null || true'`)
+    await new Promise((r) => setTimeout(r, 1000))
+  }
 }
 
 async function prepareSandbox(sandbox, env) {
@@ -131,7 +140,7 @@ async function prepareSandbox(sandbox, env) {
   const port = Number(env.OPENCLAW_PORT) || 18789
   const token = env.OPENCLAW_APP_TOKEN || crypto.randomBytes(16).toString('hex')
 
-  await stopGateway(sandbox)
+  await stopGateway(sandbox, port)
   await startGateway(sandbox, env, port, token)
   return { port, token }
 }
