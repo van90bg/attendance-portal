@@ -8,3 +8,7 @@ index.local.html
 .clasprc.json
 *.clasprc.json
 .env
+
+# ===== cloud-agent (local + runtime deps) =====
+cloud-agent/.env
+cloud-agent/node_modules/
