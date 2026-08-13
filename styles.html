@@ -427,7 +427,7 @@
     .cfg-empty-val { color: var(--muted); font-style: italic; }
     .cfg-item-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }  /* A4 (2026-08-13): khi item wrap (mobile) actions nhảy phải — thẳng hàng */
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
-    .cfg-default-btn { min-height: 36px; min-width: 36px; padding: 6px 8px; font-size: 12px; line-height: 1; }  /* icon-only ◉/◎ (2026-08-13): bỏ chữ "Mặc định" — tiết kiệm ~55px/item; viền amber + title đủ rõ */
+    .cfg-default-btn { min-height: 32px; padding: 4px 10px; font-size: 12px; line-height: 1.2; white-space: nowrap; }  /* nút chữ "◉/◎ Mặc định" (2026-08-13): bỏ icon-only — icon lẻ loi xấu trong cột Mặc định; trạng thái = nền amber */
     .cfg-save-dirty { background: var(--amber); border-color: var(--amber); animation: cfgSavePulse 1.4s ease-in-out infinite; }
     .cfg-refresh-dirty { border-color: var(--danger); color: var(--danger); }  /* B6 (2026-08-13): nhãn Hủy thay đổi nổi bật */
     @keyframes cfgSavePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, .30); } 50% { box-shadow: 0 0 0 6px rgba(232, 93, 4, 0); } }
