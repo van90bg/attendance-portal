@@ -142,9 +142,10 @@
         <span id="scanLiveMsg" class="sr-only" aria-live="polite"></span>
       </div>
       <div class="scan-col-right">
-        <div class="card">
+        <div class="card" id="scanListCard">
           <div class="att-toolbar">
             <h2 class="section-heading">DANH SÁCH NV</h2>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnScanListToggle" onclick="toggleScanList()" aria-expanded="false" title="Thu gọn / mở rộng danh sách">Mở rộng</button>
             <div class="list-search" role="search" aria-label="Tìm nhân viên">
               <input type="search" id="scanSearch" placeholder="Tìm mã NV, tên…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false">
             </div>

@@ -318,21 +318,32 @@
       }
     }
 
+  // Mobile (≤700px): thu gọn / mở rộng danh sách NV trong viewScan — mặc định thu gọn
+  // (chỉ counters + ô quét + nút quét + scanCard), mở ra khi cần xem bảng/lọc (2026-08-13).
+  function toggleScanList() {
+    var card = document.getElementById('scanListCard');
+    var btn = document.getElementById('btnScanListToggle');
+    if (!card || !btn) return;
+    var open = card.classList.toggle('scan-list-open');
+    btn.textContent = open ? 'Thu gọn' : 'Mở rộng';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
   function scanRowCells(r, idx) {
     var badge = badgeFor(r.status);
     var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
     return [
-      '<td class="stt">' + (idx + 1) + '</td>',
-      '<td><b>' + esc(r.staffId) + '</b></td>',
-      '<td>' + esc(r.staffName) + '</td>',
-      '<td>' + esc(staffRec && staffRec.agency ? staffRec.agency : '') + '</td>',
-      '<td>' + esc(r.station || '') + '</td>',
-      '<td>' + esc(r.team || '') + '</td>',
-      '<td>' + esc(r.slotCode || '') + '</td>',
-      '<td>' + esc(r.dateText || '') + '</td>',
-      '<td>' + esc(r.timeRefText || '') + '</td>',
-      '<td>' + esc(r.timeScanText || '') + '</td>',
-      '<td>' + badge + '</td>'
+      '<td class="stt" data-label="STT">' + (idx + 1) + '</td>',
+      '<td data-label="Mã NV"><b>' + esc(r.staffId) + '</b></td>',
+      '<td data-label="Tên NV">' + esc(r.staffName) + '</td>',
+      '<td data-label="Agency">' + esc(staffRec && staffRec.agency ? staffRec.agency : '') + '</td>',
+      '<td data-label="Station">' + esc(r.station || '') + '</td>',
+      '<td data-label="Team">' + esc(r.team || '') + '</td>',
+      '<td data-label="Ca">' + esc(r.slotCode || '') + '</td>',
+      '<td data-label="Ngày">' + esc(r.dateText || '') + '</td>',
+      '<td data-label="Giờ có mặt">' + esc(r.timeRefText || '') + '</td>',
+      '<td data-label="Giờ quét">' + esc(r.timeScanText || '') + '</td>',
+      '<td data-label="Trạng thái">' + badge + '</td>'
     ];
   }
 

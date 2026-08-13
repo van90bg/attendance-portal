@@ -370,7 +370,7 @@
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
     #cfgRefreshBtn { min-width: 150px; }  /* nhãn ⋆ Làm mới ↔ ✕ Hủy thay đổi đổi chữ không đổi rộng — nút Lưu không nhảy (2026-08-13) */
-    .cfg-cols { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); grid-template-rows: minmax(0, 1fr); }  /* 2026-08-13: 2 cột TRONG 1 card (55/45 — vận hành / role); ≤1279px về 1 cột */
+    .cfg-cols { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); grid-template-rows: minmax(0, 1fr); }  /* 2026-08-13: 2 cột TRONG 1 card (55/45 — vận hành / role); <1380px về 1 cột */
     #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy — mỗi cột cuộn riêng */
     .cfg-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }  /* min-width:0: grid item không phình theo min-content bảng (mobile role 718px bug 2026-08-13) */
     .cfg-col + .cfg-col { border-left: 1px solid var(--border); padding-left: 16px; }  /* divider giữa 2 cột trong 1 card (2026-08-13) */
@@ -1007,6 +1007,30 @@
       #taskListTable tbody td[data-label="Tên NV"] { grid-column: 2 / span 2; grid-row: 3; }
       #taskListTable tbody td[data-label="Điểm danh"] { grid-column: 2; grid-row: 1; }
     }
+    /* Mobile viewScan (≤640px, 2026-08-13): danh sách NV thành thẻ gọn 2 dòng — dòng 1 = Mã NV + Trạng thái, dòng 2 = Tên NV;
+       chỉ giữ thông tin cần, ẩn STT/Agency/Station/Team/Ca/Ngày/Giờ có mặt/Giờ quét (chi tiết có ở màn quét desktop) */
+    @media (max-width: 640px) {
+      #scanTable thead { display: none; }
+      #scanTable tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; background: var(--card); }
+      #scanTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 2px 0; font-size: 13px; line-height: 1.35; }
+      #scanTable tbody td[data-label="STT"], #scanTable tbody td[data-label="Agency"], #scanTable tbody td[data-label="Station"],
+      #scanTable tbody td[data-label="Team"], #scanTable tbody td[data-label="Ca"], #scanTable tbody td[data-label="Ngày"],
+      #scanTable tbody td[data-label="Giờ có mặt"], #scanTable tbody td[data-label="Giờ quét"] { display: none; }
+      #scanTable tbody td[data-label="Mã NV"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--primary-dark); }
+      #scanTable tbody td[data-label="Trạng thái"] { grid-column: 2; grid-row: 1; justify-self: end; }
+      #scanTable tbody td[data-label="Tên NV"] { grid-column: 1 / span 2; grid-row: 2; }
+      #scanTable tbody tr.extra-row td { background: transparent; }  /* thẻ extra — nền theo tr đã đặt ở tr */
+    }
+    #btnScanListToggle { display: none; }  /* desktop ẩn — chỉ mobile (2026-08-13) */
+    /* Mobile viewScan (≤700px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard; bấm Mở rộng mới hiện bảng + tìm/lọc (2026-08-13) */
+    @media (max-width: 700px) {
+      #btnScanListToggle { display: inline-flex; }
+      #scanListCard .list-search, #scanListCard #scanStatusFilter, #scanListCard #scanClearFilter, #scanListCard .table-wrap { display: none; }
+      #scanListCard.scan-list-open .list-search { display: flex; }
+      #scanListCard.scan-list-open #scanStatusFilter { display: inline-block; }
+      #scanListCard.scan-list-open #scanClearFilter { display: inline-block; }
+      #scanListCard.scan-list-open .table-wrap { display: block; }
+    }
     .stats-table th.total, .stats-table td.total { width: 70px; }
     .stats-table td.row-head {
       text-align: left; font-weight: 600; background: var(--surface-muted);
@@ -1206,12 +1230,13 @@
     #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }  /* 2026-08-13 gộp card: bảng vận hành + role mỗi vùng cuộn riêng (thead sticky) */
     #viewConfig #roleWrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }  /* cột role đồng hàng cột vận hành — cuộn riêng trong card */
     /* 2026-08-13: title Phân quyền nằm trong group-sep bảng role — bỏ cfg-section-title-role */
-    /* <1280px: 2 cột xếp dọc — card cuộn toàn phần (bỏ cuộn cột riêng), divider bỏ (2026-08-13) */
-    @media (max-width: 1279px) {
+    /* <1380px: 2 cột xếp dọc — card cuộn toàn phần (bỏ cuộn cột riêng), divider bỏ; card giới hạn 960px căn giữa (2026-08-13) */
+    @media (max-width: 1379px) {
       .cfg-cols { grid-template-columns: 1fr; }
       .cfg-col + .cfg-col { border-left: 0; padding-left: 0; margin-top: 14px; }
       #viewConfig .card { overflow-y: auto; }
       #viewConfig #cfgList, #viewConfig #roleWrap { flex: none; overflow: visible; }
+      #viewConfig .view-topbar, #viewConfig #configForm { max-width: 960px; }  /* <1380: card 960px — không giãn hết màn hình (laptop 1280-1366) */
     }
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
