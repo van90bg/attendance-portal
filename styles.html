@@ -1131,6 +1131,9 @@
     @media (min-width: 1281px) {
       .cfg-cols { grid-template-columns: 1fr 1fr; }  /* 2 card song song desktop rộng */
     }
+    @media (min-width: 2049px) {
+      .cfg-groups { grid-template-columns: 1fr 1fr; }  /* cap 2 cột tối đa — auto-fill minmax(280px) cho 3 cột trên màn siêu rộng (probe 2026-08-13: 2560→935px ≥ 3×280+gap) */
+    }
     @media (max-width: 1280px) {
       .cfg-cols { grid-template-columns: 1fr; }  /* <1280: 2 card xếp dọc full-width — content = viewport-272 (sidebar 240+padding), 1024→card chỉ 369px label 190+nút vỡ (CDP); ≥1280 (desktop 1384→card 549) giữ 2 cột */
     }

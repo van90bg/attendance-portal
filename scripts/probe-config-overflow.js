@@ -20,6 +20,8 @@ const INDEX_FILE = 'file:///' + path.resolve(__dirname, '..', 'index.local.html'
 
 const VIEWPORTS = [
   { w: 1384, h: 900, label: 'desktop1384', mobile: false },
+  { w: 1920, h: 1080, label: 'wide1920', mobile: false },
+  { w: 2560, h: 1440, label: 'ultrawide2560', mobile: false },
   { w: 1024, h: 768, label: 'tablet1024', mobile: false },
   { w: 390, h: 844, label: 'mobile390', mobile: true },
   { w: 375, h: 667, label: 'mobile375', mobile: true },
@@ -94,7 +96,11 @@ async function evalIn(ws, expression) {
 const SCAN = `(() => {
   var sec = document.getElementById('viewConfig');
   if (!sec) return { err: 'no viewConfig' };
-  var out = { overflow: [], ctx: {} };
+  var out = { overflow: [], ctx: { cols: {} } };
+  var g = document.querySelector('#cfgList .cfg-groups');
+  if (g) out.ctx.cols.cfgGroups = getComputedStyle(g).gridTemplateColumns.split(' ').length;
+  var rl = document.getElementById('cfgRoleRows');
+  if (rl) out.ctx.cols.cfgRoleList = getComputedStyle(rl).gridTemplateColumns.split(' ').length;
   function ctx(sel, el) {
     var r = el.getBoundingClientRect();
     out.ctx[sel] = { cw: Math.round(el.clientWidth), sw: Math.round(el.scrollWidth), w: Math.round(r.width), scrollX: el.scrollLeft > 0 };
@@ -109,7 +115,11 @@ const SCAN = `(() => {
     if (!el.classList || !el.classList.length) return;
     var cw = el.clientWidth, sw = el.scrollWidth;
     if (sw > cw + 1) {
-      out.overflow.push({
+      var groups = document.querySelector('#cfgList .cfg-groups');
+  if (groups) out.ctx.cols.cfgGroups = getComputedStyle(groups).gridTemplateColumns.split(' ').length;
+  var roleList = document.getElementById('cfgRoleRows');
+  if (roleList) out.ctx.cols.cfgRoleList = getComputedStyle(roleList).gridTemplateColumns.split(' ').length;
+  out.overflow.push({
         cls: (el.className || '').toString().slice(0, 60),
         id: el.id || '',
         cw: cw, sw: sw, diff: sw - cw,
@@ -139,7 +149,8 @@ async function main() {
     const v = m.value || {};
     console.log('\n===== ' + vp.label + ' ' + vp.w + 'x' + vp.h + ' =====');
     if (v.err) { console.log('  ERR', v.err); continue; }
-    console.log('  body cw=' + v.ctx.body.cw + ' | configWrap cw=' + v.ctx.configWrap.cw + ' sw=' + v.ctx.configWrap.sw
+    console.log('  cols cfgGroups=' + (v.ctx.cols && v.ctx.cols.cfgGroups) + ' cfgRoleList=' + (v.ctx.cols && v.ctx.cols.cfgRoleList));
+  console.log('  body cw=' + v.ctx.body.cw + ' | configWrap cw=' + v.ctx.configWrap.cw + ' sw=' + v.ctx.configWrap.sw
       + ' | configForm cw=' + v.ctx.configForm.cw + ' sw=' + v.ctx.configForm.sw
       + ' | roleWrap cw=' + v.ctx.roleWrap.cw + ' sw=' + v.ctx.roleWrap.sw);
     if (!v.overflow.length) {
