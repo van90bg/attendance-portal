@@ -121,44 +121,66 @@
     }
   }
 
+
+  // renderCfgList: 1 bảng gộp (cfg-table) — thead sticky + mỗi group 1 <tbody> (2026-08-13, mẫu bảng sketch 009).
   function renderCfgList() {
     var box = document.getElementById('cfgList');
     if (!box) return;
-    // Giữ vị trí cuộn card khi render lại — fix "lưu xong trỏ sang vị trí khác" (2026-08-12)
     var card = box.closest('.card');
-    var st = card ? card.scrollTop : 0;
-    box.innerHTML = '<div class="cfg-groups">' + CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g); }).join('') + '</div>';
+    var st = card ? card.scrollTop : 0;  // Giữ vị trí cuộn card khi render lại (2026-08-12)
+    var html = '<div class="cfg-table-wrap"><table class="cfg-table">'
+      + '<thead><tr>'
+        + '<th class="cfg-col-group">Nhóm</th>'
+        + '<th>Giá trị</th>'
+        + '<th>Mặc định</th>'
+        + '<th>Thao tác</th>'
+      + '</tr></thead>'
+      + CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g); }).join('')
+      + '</table></div>';
+    box.innerHTML = html;
     if (card) card.scrollTop = st;
   }
 
   // Render 1 group section: title + Mặc định (nếu có) + item list (kéo thả Sửa/Xoá) + nút Thêm
+
+  // Render 1 group <tbody>: dòng separator (colspan) mang title + count + nút Thêm, rồi các item
+  // row trên <tr class="cfg-item cfg-item-group"> (giữ class/selector cho flushGroupEdit_/
+  // editCfgGroupItem/drag*). Trong <td> dùng inline/inline-block — KHÔNG flex-on-cell (giữ table layout — 2026-08-13).
   function cfgGroupHtml_(g) {
     var list = safeArr(CFG_STATE[g.key]);
     var items = list.length
       ? list.map(function (v, i) {
-          return '<div class="cfg-item cfg-item-group' + (isDefault_(g.key, v) ? ' is-default' : '') + '" data-group="' + g.key + '" data-idx="' + i + '" draggable="true"'
+          var def = isDefault_(g.key, v);
+          return '<tr class="cfg-item cfg-item-group' + (def ? ' is-default' : '') + '" data-group="' + g.key + '" data-idx="' + i + '" draggable="true"'
             + ' ondragstart="dragCfgStart(event,\'' + g.key + '\',' + i + ')"'
             + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',' + i + ')"'
             + ' ondragend="dragCfgEnd(event)">'
-            + '<span class="cfg-drag-handle" title="Kéo để sắp xếp" aria-hidden="true">⋮⋮</span>'
-            + '<div class="cfg-item-label cfg-item-idx">#' + (i + 1) + '</div>'
-            + '<div class="cfg-item-value">' + esc(String(v)) + '</div>'
-            + '<div class="cfg-item-actions">'
-              + '<button type="button" class="btn btn-outline btn-sm cfg-default-btn' + (isDefault_(g.key, v) ? ' cfg-default-on' : '') + '" onclick="toggleCfgDefault(\'' + g.key + '\',\'' + escAttr(String(v)) + '\')" title="' + (isDefault_(g.key, v) ? 'Bỏ mặc định' : 'Đặt mặc định') + '" aria-label="' + (isDefault_(g.key, v) ? 'Bỏ mặc định ' : 'Đặt mặc định ') + esc(String(v)) + '">' + (isDefault_(g.key, v) ? '◉' : '◎') + '</button>'
+            + '<td class="cfg-col-group"></td>'
+            + '<td class="cfg-value-cell">'
+              + '<span class="cfg-drag-handle" title="Kéo để sắp xếp" aria-hidden="true">⋮⋮</span>'
+              + '<span class="cfg-item-label cfg-item-idx">#' + (i + 1) + '</span>'
+              + '<span class="cfg-item-value">' + esc(String(v)) + '</span>'
+            + '</td>'
+            + '<td class="cfg-default-cell">'
+              + '<button type="button" class="btn btn-outline btn-sm cfg-default-btn' + (def ? ' cfg-default-on' : '') + '" onclick="toggleCfgDefault(\'' + g.key + '\',\'' + escAttr(String(v)) + '\')" title="' + (def ? 'Bỏ mặc định' : 'Đặt mặc định') + '" aria-label="' + (def ? 'Bỏ mặc định ' : 'Đặt mặc định ') + esc(String(v)) + '">' + (def ? '◉' : '◎') + '</button>'
+            + '</td>'
+            + '<td class="cfg-item-actions">'
               + '<button type="button" class="btn btn-outline btn-sm" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')">Sửa</button>'
               + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')">Xoá</button>'
-            + '</div>'
-          + '</div>';
+            + '</td>'
+          + '</tr>';
         }).join('')
-      : '<div class="cfg-empty-val cfg-group-empty">(chưa có)</div>';
-    return '<div class="cfg-group" data-group="' + g.key + '"'
+      : '<tr class="cfg-empty-row"><td colspan="4" class="cfg-empty-val cfg-group-empty">(chưa có)</td></tr>';
+    return '<tbody class="cfg-group" data-group="' + g.key + '"'
       + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',-1)">'
-      + '<div class="cfg-group-head">'
-        + '<div class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + list.length + ' mục</span></div>'
-        + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
-      + '</div>'
+      + '<tr class="cfg-group-sep">'
+        + '<td colspan="4">'
+          + '<span class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + list.length + ' mục</span></span>'
+          + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
+        + '</td>'
+      + '</tr>'
       + items
-    + '</div>';
+    + '</tbody>';
   }
 
   function isDefault_(group, val) {
@@ -219,6 +241,9 @@
 
   // Sửa item group: thay item idx bằng input + Huỷ — commit khi blur/Enter (2026-08-13:
   // bỏ nút Lưu inline; thay đổi chỉ vào state cục bộ, chờ 'Lưu cấu hình' để ghi server).
+
+  // Sửa item group: thay <tr> bằng 4 ô — chỉ ô Giá trị chứa input + Huỷ ở cột Thao tác.
+  // Class cfg-item-group giữ trên <tr> để querySelector/closest (flushGroupEdit_) y hệt div cũ.
   function editCfgGroupItem(group, idx) {
     flushGroupEdit_();  // B1: chốt edit group đang dở trước khi mở cái khác / thêm mới
     var box = document.getElementById('cfgList');
@@ -227,11 +252,15 @@
     var cur = list[idx] === undefined ? '' : list[idx];
     var item = box.querySelector('.cfg-item-group[data-group="' + group + '"][data-idx="' + idx + '"]');
     if (!item) return;
-    item.innerHTML = '<div class="cfg-item-label cfg-item-idx">#' + (idx + 1) + '</div>'
-      + '<input class="cfg-input cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="Giá trị" autocomplete="off">'
-      + '<div class="cfg-item-actions">'
+    item.innerHTML = '<td class="cfg-col-group"></td>'
+      + '<td class="cfg-value-cell">'
+        + '<span class="cfg-item-label cfg-item-idx">#' + (idx + 1) + '</span>'
+        + '<input class="cfg-input cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="Giá trị" autocomplete="off">'
+      + '</td>'
+      + '<td class="cfg-default-cell"></td>'
+      + '<td class="cfg-item-actions">'
         + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelCfgGroupEdit(\'' + group + '\',' + idx + ')">Huỷ</button>'
-      + '</div>';
+      + '</td>';
     var inp = document.getElementById('cfgGroupEditInput');
     if (inp) {
       inp.focus(); inp.select();
@@ -323,90 +352,79 @@
     for (var i = 0; i < CFG_ROLES.length; i++) { if (CFG_ROLES[i].v === r) return CFG_ROLES[i].l; }
     return r || '?';
   }
+
+  // renderRoleRows: bảng (cfg-role-table) — mẫu D (sketch 009, 2026-08-13). HTML-string + inline
+  // onclick → startRoleEdit/deleteRoleRow/cancelRoleEdit; Enter/blur wire sau khi set innerHTML.
   function renderRoleRows() {
     var box = document.getElementById('cfgRoleRows');
     if (!box) return;
-    box.innerHTML = '';
     var map = (CFG_STATE.roleMap && typeof CFG_STATE.roleMap === 'object') ? CFG_STATE.roleMap : {};
     var keys = Object.keys(map);
+    var html = '<table class="cfg-role-table">'
+      + '<thead><tr><th>Email</th><th>Role</th><th></th></tr></thead>'
+      + '<tbody>';
     var any = false;
     keys.forEach(function (em) {
-      if (ROLE_EDIT && ROLE_EDIT.email === em && !ROLE_EDIT.isNew) { box.appendChild(roleRowEdit_(em, map[em])); any = true; }
-      else { box.appendChild(roleRowCard_(em, map[em])); any = true; }
+      if (ROLE_EDIT && ROLE_EDIT.email === em && !ROLE_EDIT.isNew) { html += roleRowEditHtml_(em, map[em]); any = true; }
+      else { html += roleRowCardHtml_(em, map[em]); any = true; }
     });
-    if (ROLE_EDIT && ROLE_EDIT.isNew) { box.appendChild(roleRowEdit_('', 'viewer')); any = true; }
-    if (!any) box.appendChild(roleRowEmpty_());
+    if (ROLE_EDIT && ROLE_EDIT.isNew) { html += roleRowEditHtml_('', 'viewer'); any = true; }
+    if (!any) html += '<tr class="cfg-empty-row"><td colspan="3" class="cfg-empty-val cfg-group-empty">(chưa có role)</td></tr>';
+    html += '</tbody></table>';
+    box.innerHTML = html;
+    wireRoleEditEvents_(box);
   }
 
-  function roleRowEmpty_() {
-    var d = document.createElement('div');
-    d.className = 'cfg-empty-val cfg-group-empty';
-    d.textContent = '(chưa có role)';
-    return d;
-  }
 
-  function roleRowCard_(email, role) {
-    var row = document.createElement('div');
-    row.className = 'cfg-role-row cfg-role-card';
-    var em = document.createElement('span');
-    em.className = 'cfg-role-email';
-    em.textContent = email || '(trống)';
-    em.title = email || '';  /* C1 (2026-08-13): ellipsis — tooltip hiện email đầy đủ */
-    var b = document.createElement('span');
-    b.className = 'cfg-role-badge';
-    b.textContent = roleLabel_(role);
-    var actions = document.createElement('div'); actions.className = 'cfg-item-actions';
-    var edit = document.createElement('button');
-    edit.type = 'button'; edit.className = 'btn btn-outline btn-sm';
-    edit.textContent = 'Sửa'; edit.title = 'Sửa role'; edit.setAttribute('aria-label', 'Sửa role');
-    edit.onclick = function () { startRoleEdit(email); };
-    var del = document.createElement('button');
-    del.type = 'button'; del.className = 'btn btn-danger btn-sm';
-    del.textContent = 'Xoá'; del.title = 'Xoá role'; del.setAttribute('aria-label', 'Xoá role');
-    del.onclick = function () {
-      showConfirm('Xoá role', 'Xoá role của "' + (email || '(trống)') + '"?', function () {
-        var map = CFG_STATE.roleMap || {};
-        delete map[email];
-        CFG_STATE.roleMap = map;
-        ROLE_EDIT = null;
-        renderRoleRows();
-        markCfgDirty_();
-      });
-    };
-    actions.appendChild(edit); actions.appendChild(del);
-    row.appendChild(em); row.appendChild(b); row.appendChild(actions);
-    return row;
-  }
-
-  function roleRowEdit_(email, role) {
-    var row = document.createElement('div');
-    row.className = 'cfg-role-row cfg-role-editing';
-    var em = document.createElement('input');
-    em.className = 'cfg-input cfg-role-email';
-    em.type = 'text'; em.placeholder = 'email@spxexpress.com'; em.autocomplete = 'off';
-    em.value = email || '';
-    var sel = document.createElement('select');
-    sel.className = 'cfg-input cfg-role-select';
-    CFG_ROLES.forEach(function (r) {
-      var o = document.createElement('option');
-      o.value = r.v; o.textContent = r.l;
-      if (r.v === role) o.selected = true;
-      sel.appendChild(o);
-    });
-    var cb = document.createElement('button');
-    cb.type = 'button'; cb.className = 'btn btn-ghost btn-sm';
-    cb.textContent = 'Huỷ'; cb.title = 'Huỷ sửa'; cb.setAttribute('aria-label', 'Huỷ sửa role');
-    cb.onclick = cancelRoleEdit;
-    row.appendChild(em); row.appendChild(sel); row.appendChild(cb);
-    em.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); commitRoleEdit(); }
-    });
+  // wireRoleEditEvents_: gắn Enter/blur cho input email khi đang sửa — chạy sau box.innerHTML.
+  function wireRoleEditEvents_(box) {
+    var row = box.querySelector('.cfg-role-editing');
+    if (!row) return;
+    var em = row.querySelector('.cfg-role-email');
+    if (!em) return;
+    em.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); commitRoleEdit(); } });
     em.addEventListener('blur', function () {
       if (!document.contains(em)) return;  // input đã bị gỡ (flush/render lại) → không commit nhầm (2026-08-13)
       ROLE_EDIT_TIMER = setTimeout(commitRoleEdit, 180);
     });
     setTimeout(function () { em.focus(); if (em.value) em.select(); }, 0);
-    return row;
+  }
+
+
+  function roleRowCardHtml_(email, role) {
+    return '<tr class="cfg-role-row cfg-role-card" data-email="' + escAttr(email || '') + '">'
+      + '<td class="cfg-role-email" title="' + escAttr(email || '') + '">' + esc(email || '(trống)') + '</td>'
+      + '<td><span class="cfg-role-badge">' + esc(roleLabel_(role)) + '</span></td>'
+      + '<td class="cfg-item-actions">'
+        + '<button type="button" class="btn btn-outline btn-sm" onclick="startRoleEdit(\'' + escAttr(email || '') + '\')" title="Sửa role" aria-label="Sửa role">Sửa</button>'
+        + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteRoleRow(\'' + escAttr(email || '') + '\')" title="Xoá role" aria-label="Xoá role">Xoá</button>'
+      + '</td>'
+    + '</tr>';
+  }
+
+  // Xoá 1 role (inline onclick — thay closure cũ khi chuyển sang HTML-string, 2026-08-13).
+  function deleteRoleRow(email) {
+    flushGroupEdit_();  // B1: chốt edit group đang dở trước khi hỏi xoá
+    showConfirm('Xoá role', 'Xoá role của "' + (email || '(trống)') + '"?', function () {
+      var map = CFG_STATE.roleMap || {};
+      delete map[email];
+      CFG_STATE.roleMap = map;
+      ROLE_EDIT = null;
+      renderRoleRows();
+      markCfgDirty_();
+    });
+  }
+
+
+  function roleRowEditHtml_(email, role) {
+    var opts = CFG_ROLES.map(function (r) {
+      return '<option value="' + r.v + '"' + (r.v === role ? ' selected' : '') + '>' + esc(r.l) + '</option>';
+    }).join('');
+    return '<tr class="cfg-role-row cfg-role-editing" data-email="' + escAttr(email || '') + '">'
+      + '<td><input class="cfg-input cfg-role-email" type="text" placeholder="email@spxexpress.com" autocomplete="off" value="' + escAttr(email || '') + '"></td>'
+      + '<td><select class="cfg-input cfg-role-select">' + opts + '</select></td>'
+      + '<td><button type="button" class="btn btn-ghost btn-sm" onclick="cancelRoleEdit()" title="Huỷ sửa" aria-label="Huỷ sửa role">Huỷ</button></td>'
+    + '</tr>';
   }
 
   function startRoleEdit(email) {

@@ -376,7 +376,17 @@
     .cfg-section-add { margin-left: auto; flex-shrink: 0; }  /* A3: ép phải đầu card */
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
-    .cfg-role-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 8px; align-items: start; }  /* 2 cột khi đủ rộng; align-items:start (2026-08-13): row không stretch theo track — hết hàng 664px trống + flex line giãn */
+    .cfg-role-list { display: block; }  /* container giờ chứa 1 <table> — bỏ grid (mẫu D 2026-08-13) */
+    /* viewConfig bảng role (mẫu D sketch 009 — 2026-08-13) */
+    .cfg-role-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .cfg-role-table thead th { background: var(--surface-muted); color: var(--muted); font-weight: 700; font-size: 13px; text-align: left; padding: 8px 10px; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+    .cfg-role-table tr.cfg-role-row { display: table-row; }  /* neutralize base .cfg-role-row/display:flex — <tr> phải là table-row, không vỡ cột (2026-08-13) */
+    .cfg-role-table tr.cfg-role-row > td { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
+    .cfg-role-table tr.cfg-role-row:hover > td { background: var(--row-hover); }
+    .cfg-role-table tr.cfg-role-card .cfg-role-email { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }  /* email td 1 dòng + tooltip (cherry-pick f3b8493) */
+    .cfg-role-table input.cfg-role-email, .cfg-role-table select.cfg-role-select { width: 100%; }
+    .cfg-role-table td.cfg-item-actions { display: table-cell; text-align: right; white-space: nowrap; }
+    .cfg-role-table tr.cfg-empty-row > td { color: var(--muted); font-style: italic; }
     .cfg-role-row { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); min-width: 0; }  /* đồng bộ .cfg-item + actions; min-width:0 (2026-08-13): grid track không phình theo min-content email nowrap; KHÔNG wrap desktop — email shrink + ellipsis 1 dòng, wrap chỉ mobile (media ≤700) */
     .cfg-role-email { flex: 1 1 auto; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* C1 (2026-08-13): email 1 dòng — dài thì truncate + tooltip title, hết vỡ chữ giữa từ */
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
@@ -386,8 +396,30 @@
     .cfg-role-editing .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
     .cfg-list { display: flex; flex-direction: column; gap: 8px; }
-    /* Groups 2 cột grid (2026-08-11): 4 danh sách lựa chọn xếp 2×2 — card trái không quá dài (trước dọc 4 section) */
-    .cfg-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px 16px; align-items: start; }  /* 2 cột khi cột đủ rộng, tự về 1 cột khi hẹp — item không bị bóp (2026-08-12) */
+
+    /* viewConfig bảng gộp (2026-08-13 — mẫu bảng sketch 009): 1 <table> thead sticky + mỗi group 1 <tbody> + item <tr>.
+       Trong <td> dùng inline/inline-block — KHÔNG flex-on-cell (giữ table-column alignment với thead) */
+    .cfg-table-wrap { overflow: auto; flex: 1 1 auto; min-height: 0; }
+    .cfg-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .cfg-table thead th { background: var(--surface-muted); color: var(--muted); font-weight: 700; font-size: 13px; text-align: left; padding: 8px 10px; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+    .cfg-table .cfg-col-group { width: 80px; }
+    .cfg-table tr.cfg-item, .cfg-table tr.cfg-item-group { display: table-row; }  /* neutralize base display:flex — <tr> phải là table-row (2026-08-13) */
+    .cfg-table tr.cfg-group-sep > td { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 4px; border-top: 2px solid var(--primary); background: var(--card); }  /* colspan=4: td hợp lệ làm flex — chỉ dòng separator, không cột */
+    .cfg-table .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .cfg-table tr.cfg-item-group > td { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
+    .cfg-table tr.cfg-item-group:hover > td { background: var(--row-hover); }
+    .cfg-table tr.cfg-item-group.is-default > td { background: #fff8f0; }  /* viền amber khi là mặc định — td mới paint, <tr> không paint (2026-08-13) */
+    .cfg-table .cfg-value-cell { white-space: nowrap; }  /* td giữ table-cell; children inline — handle/idx/value 1 dòng, value vẫn word-break khi dài */
+    .cfg-table .cfg-item-value { display: inline; vertical-align: middle; }
+    .cfg-table .cfg-item-idx { display: inline-block; vertical-align: middle; margin-right: 8px; min-width: 30px; }
+    .cfg-table .cfg-drag-handle { display: inline-block; vertical-align: middle; margin-right: 6px; }
+    .cfg-table .cfg-default-cell { width: 110px; text-align: center; white-space: nowrap; }
+    .cfg-table td.cfg-item-actions { display: table-cell; text-align: right; white-space: nowrap; }  /* override base display:flex — td là table-cell, buttons inline-block co cụm phải (2026-08-13) */
+    .cfg-table tr.cfg-empty-row > td { color: var(--muted); font-style: italic; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .cfg-table tr.cfg-drop-target, .cfg-table tbody.cfg-drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; }
+    .cfg-table .cfg-edit-input { width: 100%; }
+    .cfg-item-actions .btn + .btn { margin-left: 6px; }  /* gap giữa 2 nút Sửa/Xoá khi td không phải flex (table-cell) — 2026-08-13
+
     .cfg-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }
     .cfg-item-group { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }  /* composite với .cfg-item — drag-group item; wrap mọi breakpoint (2026-08-13): actions xuống dòng 2 khi value bị bóp */
     .cfg-item-label { font-size: 13px; font-weight: 600; color: var(--text); }  /* combo .cfg-item-idx — flex do idx quyết (bỏ basis 190px dead 2026-08-13) */
@@ -404,7 +436,7 @@
     .cfg-edit-input { flex: 1 1 auto; }
     /* Group lists (2026-08-11): danh sách lựa chọn station/team/slotcode/department */
     .cfg-group { margin-bottom: 14px; }
-    .cfg-group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+
     .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 0; }
     .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }
     .cfg-group-add { margin-top: 6px; }
@@ -1130,16 +1162,14 @@
     @media (min-width: 1281px) {
       .cfg-cols { grid-template-columns: 1fr 1fr; }  /* 2 card song song desktop rộng */
     }
-    @media (min-width: 2049px) {
-      .cfg-groups { grid-template-columns: 1fr 1fr; }  /* cap 2 cột tối đa — auto-fill minmax(280px) cho 3 cột trên màn siêu rộng (probe 2026-08-13: 2560→935px ≥ 3×280+gap) */
-    }
+
     @media (max-width: 1280px) {
       .cfg-cols { grid-template-columns: 1fr; }  /* <1280: 2 card xếp dọc full-width — content = viewport-272 (sidebar 240+padding), 1024→card chỉ 369px label 190+nút vỡ (CDP); ≥1280 (desktop 1384→card 549) giữ 2 cột */
     }
     @media (max-width: 700px) {
       #roleWrap { align-self: start; }  /* C1 (2026-08-13): chỉ card role không stretch — card form stretch + cuộn trong, trang không cuộn (bỏ .cfg-cols align-items:start — vỡ: body cuộn 3200px) */
-      .cfg-groups { grid-template-columns: 1fr; }  /* mobile: group xếp dọc 1 cột */
-      .cfg-role-list { grid-template-columns: 1fr; }  /* role: track minmax(360px) > container mobile → tràn ngang (probe 2026-08-13: 390→28px, 375→43px, 320→98px) */
+
+
       .cfg-item { flex-wrap: wrap; }
       .cfg-role-row { flex-wrap: wrap; }
       .cfg-role-email { flex: 1 1 100%; }  /* C1: email dòng riêng mobile (ellipsis) — badge + actions dòng 2 */
