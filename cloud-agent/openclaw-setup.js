@@ -124,13 +124,13 @@ async function startGateway(sandbox, env, port, token) {
 }
 
 async function stopGateway(sandbox, port) {
-  await sandbox.commands.run(`bash -lc 'pkill -f "[o]penclaw gateway" 2>/dev/null || true'`)
-  for (let i = 0; i < 5; i++) {
+  await sandbox.commands.run(`bash -lc 'pkill -f "[o]penclaw" 2>/dev/null || true'`)
+  for (let i = 0; i < 10; i++) {
     if (!(await gatewayReady(sandbox, port))) break
     await new Promise((r) => setTimeout(r, 1000))
   }
   if (await gatewayReady(sandbox, port)) {
-    await sandbox.commands.run(`bash -lc 'pkill -9 -f "[o]penclaw gateway" 2>/dev/null || true'`)
+    await sandbox.commands.run(`bash -lc 'pkill -9 -f "[o]penclaw" 2>/dev/null || true'`)
     await new Promise((r) => setTimeout(r, 1000))
   }
 }
