@@ -96,26 +96,26 @@ async function startGateway(sandbox, env, port, token) {
   const model = env.OPENCLAW_MODEL || 'openai/gpt-5.2'
   console.log(`Setting default model: ${model} ...`)
   await sandbox.commands.run(`openclaw config set agents.defaults.model.primary ${model}`)
-  console.log('Starting OpenClaw gateway...')
+  await sandbox.commands.run('openclaw config set gateway.controlUi.allowInsecureAuth true')
+  await sandbox.commands.run('openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true')
+  console.log('Starting OpenClaw gateway (nohup)...')
   await sandbox.commands.run(
-    `bash -lc 'openclaw config set gateway.controlUi.allowInsecureAuth true && ` +
-      `openclaw config set gateway.controlUi.dangerouslyDisableDeviceAuth true && ` +
-      `openclaw gateway --allow-unconfigured --bind lan --auth token --token ${token} --port ${port}'`,
-    { background: true }
+    `bash -lc 'nohup openclaw gateway --allow-unconfigured --bind lan --auth token --token ${token} --port ${port} > /tmp/ocgw.log 2>&1 &'`
   )
   for (let i = 0; i < 45; i++) {
     if (await gatewayReady(sandbox, port)) break
     await new Promise((r) => setTimeout(r, 1000))
   }
   if (!(await gatewayReady(sandbox, port))) {
-    console.warn('WARNING: gateway did not report listening within 45s - check logs inside sandbox.')
+    const log = await sandbox.commands.run('tail -n 10 /tmp/ocgw.log')
+    console.warn('WARNING: gateway did not report listening within 45s:')
+    console.warn(log.stdout || log.stderr)
   }
 }
 
 async function stopGateway(sandbox) {
-  await sandbox.commands.run(
-    `bash -lc 'for p in "[o]penclaw gateway" "[o]penclaw-gateway"; do for pid in $(pgrep -f "$p" || true); do kill "$pid" >/dev/null 2>&1 || true; done; done'`
-  )
+  const res = await sandbox.commands.run(`bash -lc 'openclaw gateway stop 2>/dev/null || true'`)
+  if (res.stderr) console.warn(res.stderr)
   await new Promise((r) => setTimeout(r, 1000))
 }
 
@@ -131,13 +131,8 @@ async function prepareSandbox(sandbox, env) {
   const port = Number(env.OPENCLAW_PORT) || 18789
   const token = env.OPENCLAW_APP_TOKEN || crypto.randomBytes(16).toString('hex')
 
-  const up = await gatewayReady(sandbox, port)
-  if (up) {
-    console.log('Gateway already running - skipping start.')
-  } else {
-    await stopGateway(sandbox)
-    await startGateway(sandbox, env, port, token)
-  }
+  await stopGateway(sandbox)
+  await startGateway(sandbox, env, port, token)
   return { port, token }
 }
 
