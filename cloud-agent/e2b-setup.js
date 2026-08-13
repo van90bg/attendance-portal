@@ -121,7 +121,7 @@ async function main() {
     const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 3600000
 
     console.log('Creating E2B sandbox...')
-    sandbox = await Sandbox.create({ envs, timeoutMs: timeout })
+    sandbox = await Sandbox.create({ apiKey: env.E2B_API_KEY, envs, timeoutMs: timeout })
     console.log(`Sandbox: ${sandbox.sandboxId} (timeout ${Math.round(timeout / 60000)} min, base plan ~60 min)`)
 
     process.once('SIGINT', async () => {
