@@ -75,6 +75,7 @@ async function ensureDeps() {
   console.log('Installing local deps into .sandbox-runner/ ...')
   const res = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--prefix', base, '@daytona/sdk', 'dotenv'], {
     stdio: 'inherit',
+    shell: true,
   })
   if (res.status !== 0) {
     console.error('npm install failed. Need Node.js >= 18 + npm.')

@@ -70,7 +70,7 @@ async function ensureDeps() {
   const base = path.join(__dirname, '.e2b-runner')
   if (fs.existsSync(path.join(base, 'node_modules', 'e2b'))) return base
   console.log('Installing local deps into .e2b-runner/ ...')
-  const res = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--prefix', base, 'e2b'], { stdio: 'inherit' })
+  const res = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--prefix', base, 'e2b'], { stdio: 'inherit', shell: true })
   if (res.status !== 0) {
     console.error('npm install failed. Need Node.js >= 18 + npm.')
     process.exit(1)
