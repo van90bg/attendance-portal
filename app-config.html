@@ -144,7 +144,7 @@
             + '<div class="cfg-item-label cfg-item-idx">#' + (i + 1) + '</div>'
             + '<div class="cfg-item-value">' + esc(String(v)) + '</div>'
             + '<div class="cfg-item-actions">'
-              + '<button type="button" class="btn btn-outline btn-sm cfg-default-btn' + (isDefault_(g.key, v) ? ' cfg-default-on' : '') + '" onclick="toggleCfgDefault(\'' + g.key + '\',\'' + escAttr(String(v)) + '\')" title="Đặt/Bỏ mặc định" aria-label="Mặc định ' + esc(String(v)) + '">' + (isDefault_(g.key, v) ? '◉' : '◎') + '<span class="cfg-default-badge">' + (isDefault_(g.key, v) ? ' Mặc định' : '') + '</span></button>'
+              + '<button type="button" class="btn btn-outline btn-sm cfg-default-btn' + (isDefault_(g.key, v) ? ' cfg-default-on' : '') + '" onclick="toggleCfgDefault(\'' + g.key + '\',\'' + escAttr(String(v)) + '\')" title="' + (isDefault_(g.key, v) ? 'Bỏ mặc định' : 'Đặt mặc định') + '" aria-label="' + (isDefault_(g.key, v) ? 'Bỏ mặc định ' : 'Đặt mặc định ') + esc(String(v)) + '">' + (isDefault_(g.key, v) ? '◉' : '◎') + '</button>'
               + '<button type="button" class="btn btn-outline btn-sm" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')">Sửa</button>'
               + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')">Xoá</button>'
             + '</div>'
@@ -351,6 +351,7 @@
     var em = document.createElement('span');
     em.className = 'cfg-role-email';
     em.textContent = email || '(trống)';
+    em.title = email || '';  /* C1 (2026-08-13): ellipsis — tooltip hiện email đầy đủ */
     var b = document.createElement('span');
     b.className = 'cfg-role-badge';
     b.textContent = roleLabel_(role);

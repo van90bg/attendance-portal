@@ -376,33 +376,30 @@
     .cfg-section-add { margin-left: auto; flex-shrink: 0; }  /* A3: ép phải đầu card */
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
-    .cfg-role-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 8px; }  /* 2 cột khi đủ rộng */
-    .cfg-role-row { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); flex-wrap: wrap; }  /* đồng bộ .cfg-item + actions */
-    .cfg-role-email { flex: 1 1 240px; min-width: 0; font-size: 14px; }  /* rộng hơn trên desktop */
-    .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 200px; min-width: 120px; }
-    .cfg-role-email { flex: 1 1 280px; min-width: 0; word-break: break-word; }  /* A1 (2026-08-13): email dài wrap — không tràn ngang */
+    .cfg-role-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 8px; align-items: start; }  /* 2 cột khi đủ rộng; align-items:start (2026-08-13): row không stretch theo track — hết hàng 664px trống + flex line giãn */
+    .cfg-role-row { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); min-width: 0; }  /* đồng bộ .cfg-item + actions; min-width:0 (2026-08-13): grid track không phình theo min-content email nowrap; KHÔNG wrap desktop — email shrink + ellipsis 1 dòng, wrap chỉ mobile (media ≤700) */
+    .cfg-role-email { flex: 1 1 auto; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* C1 (2026-08-13): email 1 dòng — dài thì truncate + tooltip title, hết vỡ chữ giữa từ */
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
     .cfg-role-card .cfg-role-email { font-weight: 600; color: var(--text); }
     .cfg-role-badge { flex: 0 0 auto; padding: 3px 10px; border-radius: 999px; background: var(--primary-bg); color: var(--primary-dark); font-size: 12px; font-weight: 700; white-space: nowrap; }
-    .cfg-role-editing .cfg-role-email { flex: 1 1 240px; }
+    .cfg-role-editing .cfg-role-email { flex: 1 1 240px; min-width: 0; white-space: normal; text-overflow: clip; }  /* input edit: không ellipsis — tự cuộn */
     .cfg-role-editing .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
     .cfg-list { display: flex; flex-direction: column; gap: 8px; }
     /* Groups 2 cột grid (2026-08-11): 4 danh sách lựa chọn xếp 2×2 — card trái không quá dài (trước dọc 4 section) */
     .cfg-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px 16px; align-items: start; }  /* 2 cột khi cột đủ rộng, tự về 1 cột khi hẹp — item không bị bóp (2026-08-12) */
     .cfg-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }
-    .cfg-item-group { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }  /* composite với .cfg-item — drag-group item (2026-08-12) */
-    .cfg-item-label { flex: 0 0 190px; font-size: 13px; font-weight: 600; color: var(--text); }
+    .cfg-item-group { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); }  /* composite với .cfg-item — drag-group item; wrap mọi breakpoint (2026-08-13): actions xuống dòng 2 khi value bị bóp */
+    .cfg-item-label { font-size: 13px; font-weight: 600; color: var(--text); }  /* combo .cfg-item-idx — flex do idx quyết (bỏ basis 190px dead 2026-08-13) */
     .cfg-item-value { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
     .cfg-item-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }  /* A4 (2026-08-13): khi item wrap (mobile) actions nhảy phải — thẳng hàng */
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
-    .cfg-default-btn { min-height: 36px; padding: 6px 8px; font-size: 12px; line-height: 1; }
+    .cfg-default-btn { min-height: 36px; min-width: 36px; padding: 6px 8px; font-size: 12px; line-height: 1; }  /* icon-only ◉/◎ (2026-08-13): bỏ chữ "Mặc định" — tiết kiệm ~55px/item; viền amber + title đủ rõ */
     .cfg-save-dirty { background: var(--amber); border-color: var(--amber); animation: cfgSavePulse 1.4s ease-in-out infinite; }
     .cfg-refresh-dirty { border-color: var(--danger); color: var(--danger); }  /* B6 (2026-08-13): nhãn Hủy thay đổi nổi bật */
     @keyframes cfgSavePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, .30); } 50% { box-shadow: 0 0 0 6px rgba(232, 93, 4, 0); } }
     .cfg-default-btn.cfg-default-on { background: var(--amber); color: #fff; border-color: var(--amber); }
-    .cfg-default-badge { font-size: 10px; font-weight: 600; margin-left: 4px; opacity: .85; }
     .cfg-item-group.is-default { border-color: var(--amber); background: #fff8f0; }  /* viền amber khi là mặc định */
     .cfg-edit-input { flex: 1 1 auto; }
     /* Group lists (2026-08-11): danh sách lựa chọn station/team/slotcode/department */
@@ -1140,13 +1137,13 @@
       .cfg-cols { grid-template-columns: 1fr; }  /* <1280: 2 card xếp dọc full-width — content = viewport-272 (sidebar 240+padding), 1024→card chỉ 369px label 190+nút vỡ (CDP); ≥1280 (desktop 1384→card 549) giữ 2 cột */
     }
     @media (max-width: 700px) {
-      .cfg-cols { align-items: start; }  /* A2: 1 cột dọc — card phải không bị stretch kéo dài theo card trái */
-      .cfg-groups { grid-template-columns: 1fr; }  /* mobile: 4 group xếp dọc 1 cột */
+      #roleWrap { align-self: start; }  /* C1 (2026-08-13): chỉ card role không stretch — card form stretch + cuộn trong, trang không cuộn (bỏ .cfg-cols align-items:start — vỡ: body cuộn 3200px) */
+      .cfg-groups { grid-template-columns: 1fr; }  /* mobile: group xếp dọc 1 cột */
       .cfg-role-list { grid-template-columns: 1fr; }  /* role: track minmax(360px) > container mobile → tràn ngang (probe 2026-08-13: 390→28px, 375→43px, 320→98px) */
       .cfg-item { flex-wrap: wrap; }
-      .cfg-item-label { flex-basis: 100%; }
       .cfg-role-row { flex-wrap: wrap; }
-      .cfg-role-email { flex: 1 1 100%; }
+      .cfg-role-email { flex: 1 1 100%; }  /* C1: email dòng riêng mobile (ellipsis) — badge + actions dòng 2 */
+      .cfg-role-badge { max-width: 60%; overflow: hidden; text-overflow: ellipsis; }  /* C1 (2026-08-13): badge dài "Manager — quản lý vận hành" (170px) + actions (124px) > content 320px → 3 dòng; cap 60% giữ 2 dòng */
       .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
       .cfg-role-list { flex: none; max-height: 40vh; }  /* A2: mobile — cao theo nội dung, không giãn */
     }
