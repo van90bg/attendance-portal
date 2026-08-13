@@ -10,6 +10,9 @@ mock/**
 node_modules/**
 package.json
 package-lock.json
+cloud-agent/**
+.opencode/**
+sketches/**
 
 # ===== Git / CI =====
 .git/**
