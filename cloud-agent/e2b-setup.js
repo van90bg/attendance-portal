@@ -61,10 +61,6 @@ function ensureGitignore() {
   fs.writeFileSync('.gitignore', txt + add.join('\n') + '\n')
 }
 
-function injectEnvVar(name, content) {
-  const base64 = Buffer.from(content).toString('base64')
-  return `${name}=$(echo '${base64}' | base64 -d)`
-}
 
 async function ensureDeps() {
   const base = path.join(__dirname, '.e2b-runner')
@@ -214,9 +210,8 @@ async function main() {
     await sandbox.commands.run(
       `mkdir -p ~/.config/opencode && echo '${configBase64}' | base64 -d > ~/.config/opencode/opencode.json`
     )
-    const envVar = injectEnvVar('OPENCODE_CONFIG_CONTENT', configJson)
     const workDir = repo && env.GITHUB_TOKEN ? `cd "${home}/project" && ` : ''
-    await sandbox.commands.run(`nohup ${envVar} ${workDir}opencode web --port ${OPENCODE_PORT} > /tmp/opencode-web.log 2>&1 &`)
+    await sandbox.commands.run(`${workDir}opencode web --port ${OPENCODE_PORT} > /tmp/opencode-web.log 2>&1`, { background: true })
 
     await new Promise((r) => setTimeout(r, 8000))
     const logRes = await sandbox.commands.run('tail -n 5 /tmp/opencode-web.log')
