@@ -32,7 +32,7 @@ Tất cả key đều điền vào `.env`; script tự forward vào sandbox, đ�
 | Anthropic / OpenAI / Gemini / Groq | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY` | trang chủ từng hãng | Built-in, chỉ cần env var |
 
 - Model string dạng `provider/model`, vd: `nvidia/nemotron-...`, `opencode/gemini-3.6-flash`, `kilo/anthropic/claude-sonnet-4.5`, `openrouter/...`
-- Kilo là provider custom (đã khai trong script): muốn thêm model của Kilo, lấy danh sách tại `https://api.kilo.ai/api/gateway/models` rồi bổ sung vào khối `provider.kilo.models` trong `index.js`.
+- Kilo là provider custom (đã khai trong script, không liệt kê model cứng): nhập model Kilo trực tiếp trong UI theo ID tại `https://api.kilo.ai/api/gateway/models`.
 - NVIDIA NIM tự host (on-prem) cũng được — đổi `provider.nvidia.options.baseURL` về endpoint NIM của bạn.
 
 ## One-shot: `daytona-setup.js` (1 file, project bất kỳ)
