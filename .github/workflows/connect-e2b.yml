@@ -1,0 +1,36 @@
+name: Connect E2B Sandbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      sandbox_id:
+        description: 'E2B sandbox ID (de trong = dung ID mac dinh)'
+        required: false
+        default: 'i6mpcvue368bkrnuplqt1'
+
+jobs:
+  connect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Connect + start OpenCode web
+        env:
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+        run: |
+          cd cloud-agent
+          node e2b-setup.js --connect "${{ inputs.sandbox_id }}" > /tmp/e2b.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 90); do
+            grep -q "OpenCode Web UI" /tmp/e2b.log && break
+            kill -0 $PID 2>/dev/null || break
+            sleep 2
+          done
+          cat /tmp/e2b.log
+          kill -INT $PID 2>/dev/null || true
+          wait $PID 2>/dev/null || true
