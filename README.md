@@ -1,4 +1,4 @@
-﻿# Attendance Portal (RollCall v2) — Quản lý chấm công & điểm danh
+# Attendance Portal (RollCall v2) — Quản lý chấm công & điểm danh
 
 > Hệ thống quản lý thông tin chấm công + điểm danh nhân viên kho (warehouse) bằng barcode, chạy trên **Google Apps Script WebApp** + **Google Sheets**.
 > Repo: `van90bg/rollcall-kiosk-v2x` · Spec chi tiết: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
@@ -54,10 +54,16 @@ RollCall_2/
 ├── SettingsService.gs     # đọc/ghi Config sheet (versioned cache) — nền trang Cấu hình Admin
 ├── index.html             # GAS template — HTML + <?!= include() ?> (KHÔNG BOM)
 ├── styles.html            # CSS — include vào index
-├── app.html               # JS client — include vào index
+├── app-core.html          # JS client (module 1/7) — state, utils, boot, nav, clock
+├── app-stats.html         # JS client (module 2/7) — viewStats
+├── app-staff.html         # JS client (module 3/7) — viewStaff + funnel
+├── app-modals.html        # JS client (module 4/7) — paste/create/confirm modals
+├── app-config.html        # JS client (module 5/7) — viewConfig admin
+├── app-tasks.html         # JS client (module 6/7) — task list + search + create
+├── app-scan.html          # JS client (module 7/7) — scan view + queue + actions
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 114 unit tests node --test
+├── tests/                 # 124 unit tests node --test
 ├── scripts/
 │   ├── build-local.js     # gộp template 3 file → index.local.html (test local)
 │   ├── cdp-helper.js      # CDP verify UI (geometry là truth)
@@ -73,7 +79,7 @@ RollCall_2/
 ## Cách chạy
 
 ```bash
-npm test                        # 114/114 pass
+npm test                        # 124/124 pass
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -81,8 +87,8 @@ Mock local (trình duyệt không render GAS template → gộp trước):
 
 ```bash
 node scripts/build-local.js     # → index.local.html
-node scripts/audit-css.js         # rà dead CSS (168 class — 0 dead hiện tại; --full xem class nối chuỗi)
-node scripts/audit-gs.js          # rà dead .gs (112 hàm — 0 dead hiện tại)
+node scripts/audit-css.js         # rà dead CSS (217 class — 0 dead hiện tại; --full xem class nối chuỗi)
+node scripts/audit-gs.js          # rà dead .gs (109 hàm — 0 dead hiện tại)
 node scripts/audit-style.js --strict # rà style class chung (33 class — 0 lệch thật hiện tại; cần Chrome)
 node scripts/audit-ui.js            # audit CDP toàn diện (110 check — 0 FAIL hiện tại; --quick chỉ desktop)
 ```
@@ -104,7 +110,7 @@ clasp deploy
 - Cột sheet: tiếng Anh · UI: tiếng Việt · Constants gom ở `Config.gs`
 - Cache versioned (`rc2_*_vN`) — thay đổi có invalidate
 - Mọi ghi log/đổi status → `invalidateTaskDetailCache_(taskId)`
-- Frontend 3 file GAS template (`index.html` + `styles.html` + `app.html`) — GAS chỉ nhận `.gs`/`.html`; doGet dùng `createTemplateFromFile` + `include()`
+- Frontend GAS template: `index.html` + `styles.html` (CSS) + **7 module JS `app-*.html`** (tách từ app.html 2026-08-13 — index.html include tuần tự, chung global scope) — GAS chỉ nhận `.gs`/`.html`; doGet dùng `createTemplateFromFile` + `include()`
 - `index.html` KHÔNG BOM — BOM đầu output GAS sinh khoảng trống phía trên header (lesson 9982293); deterministic write dùng `utf-8` (KHÔNG `sig`)
 
 ## Trạng thái (2026-08-11)
@@ -114,4 +120,6 @@ clasp deploy
 - ✅ Fix BOM regression — khoảng trống phía trên header trên GAS + guard test 3 file không BOM
 - ✅ Cấu hình Admin (SettingsService) + role gate (manager/operator/editor) + pre-select mặc định
 - ✅ Dọn rác repo (sketches/mockup cũ/docs planning) — `docs/` còn deploy guide
-- ✅ 114/114 test + 11/11 CDP local mock; ⏳ viewReports (báo cáo chấm công tháng) đang xây
+- ✅ 124/124 test + 11/11 CDP local mock; ⏳ viewReports (báo cáo chấm công tháng) đang xây
+- ✅ Vệ sinh (2026-08-13): bỏ BOM 3 file .gs + README/AGENTS (guard mới `tests/eol-bom.test.js`), chuẩn hóa CRLF qua `.gitattributes` (`*.gs` + 3 template `text eol=crlf`), untrack `.clasp.json`, xóa ID production khỏi docs/Spec
+- ✅ Tách module client (2026-08-13): `app.html` 3665 dòng → 7 module `app-*.html` (core/stats/staff/modals/config/tasks/scan)

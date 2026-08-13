@@ -1,4 +1,4 @@
-﻿/**
+/**
  * tests/mock-contract.test.js — Contract mock ↔ server API (chống drift).
  *
  * Sinh từ bài học 2026-08-11:
@@ -31,9 +31,13 @@ function serverApiNames() {
   return names;
 }
 
-/** Tên API client gọi: .XxxApi( trong app.html (JS tách riêng — call sites google.script.run). */
+/** Tên API client gọi: .XxxApi( trong app-*.html (JS tách module — call sites google.script.run). */
 function clientApiNames() {
-  const src = fs.readFileSync(path.join(ROOT, 'app.html'), 'utf8');
+  const src = fs.readdirSync(ROOT)
+    .filter((f) => /^app-.*\.html$/.test(f))
+    .sort()
+    .map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8'))
+    .join('\n');
   const names = new Set();
   for (const m of src.matchAll(/\.([A-Za-z_]\w*Api)\s*\(/g)) names.add(m[1]);
   return names;

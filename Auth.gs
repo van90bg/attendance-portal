@@ -1,8 +1,9 @@
 /**
  * Auth.gs — Định danh người dùng & quyền (tách từ Code.gs 2026-08-11).
  *
- * Deploy "Execute as: User accessing the web app" → Session.getActiveUser() trả
- * email người đăng nhập (rỗng khi anonymous). MỌI lấy email PHẢI qua
+ * Deploy (appsscript.json): executeAs USER_DEPLOYING + access DOMAIN → getActiveUser()
+ * trả email người truy cập TRONG domain (đã login Google); anonymous/ngoài
+ * domain → rỗng. MỌI lấy email PHẢI qua
  * getActiveEmail_() — 1 nguồn duy nhất, try/catch — KHÔNG lặp khối Session ở
  * nhiều file (trước đây lặp 5 chỗ ở Code/TaskService/ScanService).
  *
@@ -74,8 +75,8 @@ function requireRole_(minRole) {
 
 /**
  * Gate editor-only — chỉ thao tác QUẢN LÝ (tạo/kết thúc/mở lại task + debug/sync/setup).
- * Deploy "Execute as: User accessing the web app" → getEffectiveUser() = user đó
- * (KHÔNG phải deployer), nên so sánh active===effective là SAI và dễ bị bypass.
+ * Manifest executeAs USER_DEPLOYING → getEffectiveUser() LUÔN = deployer (script chạy với quyền
+ * deployer) — KHÔNG dùng so sánh active===effective để xác định editor.
  * Đúng: editor = user truy cập đã đăng nhập VÀ email trùng DEPLOYER_EMAIL
  * (lấy từ Script Properties — KHÔNG hardcode).
  * Bối cảnh: máy cá nhân của manager → chỉ cần định danh tài khoản, KHÔNG cần PIN.

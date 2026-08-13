@@ -118,8 +118,11 @@ test('ensureStaffData: mở view KHÔNG gọi loadStaffView trực tiếp (dùng
 });
 // Regression guard: UTF-8 BOM ở đầu index.html serve qua GAS sinh khoảng trống phía trên header
 // (lesson 9982293; BOM tái xuất ở 673d01a do write utf-8-sig). Cả 3 file template phải không BOM.
-test('3 file template KHÔNG có BOM đầu file', function () {
-  ['index.html', 'styles.html', 'app.html'].forEach(function (f) {
+test('index/styles + mọi module app-* KHÔNG có BOM đầu file', function () {
+  const parts = ['index.html', 'styles.html'].concat(
+    fs.readdirSync(path.join(__dirname, '..')).filter((f) => /^app-.*\.html$/.test(f))
+  );
+  parts.forEach(function (f) {
     const raw = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     assert.notEqual(raw.charCodeAt(0), 0xfeff, f + ' bắt đầu bằng UTF-8 BOM — xóa BOM');
   });

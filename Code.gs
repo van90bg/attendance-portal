@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Code.gs — Entry point + API endpoints (google.script.run).
  * Debug URL (?debug=1 / ?debug=createTask) xử lý trong Debug.gs (editor-gated);
  * quyền/định danh trong Auth.gs.
@@ -24,7 +24,7 @@
  * Editor tools (không phải *Api — chạy tay trong GAS editor): syncFromCsv(), setupSheets()
  */
 
-/** WebApp: template index.html — <?!= include() ?> nạp CSS/JS từ styles.html + app.html. */
+/** WebApp: template index.html — <?!= include() ?> nạp CSS/JS từ styles.html + app-*.html (7 module). */
 function doGet(e) {
   // Tự khởi tạo mọi sheet (kèm header) — không cần chạy setupSheets() tay.
   // getSheet_() chỉ set header khi sheet trống, nên gọi mỗi lần load rất rẻ.
@@ -46,8 +46,9 @@ function include(name) {
 
 /** Meta cho UI: title + user email (hiển thị header). */
 function getMetaApi() {
-  // Deploy "Anyone within @spxexpress.com" → getActiveUser() có email (user đăng nhập Google).
-  // Anonymous thật (không login) → rỗng. Hiển thị ở header như v1.
+  // Deploy (appsscript.json): executeAs USER_DEPLOYING + access DOMAIN → getActiveUser()
+  // có email user truy cập (login Google trong @spxexpress.com). Anonymous (không login)
+  // → rỗng. Hiển thị ở header như v1.
   return {
     ok: true,
     appTitle: UI_LABELS.APP_TITLE,

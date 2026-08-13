@@ -1,0 +1,170 @@
+<script>
+  /* ============================================================
+   * MODULE: app-stats.html — viewStats (Thống kê) — chips Station/Date/Department + pivot Team × Contract × Ca
+   * Tách từ app.html (2026-08-13 — P2-2 tách module client).
+   * Nạp qua index.html (directive include app-stats) — script block
+   * riêng, chung global scope với các module khác (thứ tự include quan trọng).
+   * ============================================================ */
+  // ===== Filter chips bảng Thống kê: Station + Date (client-side, single-select) =====
+  function renderStatsFilters() {
+    // Thứ tự chip theo Config (danh sách Admin khai báo); giá trị lệch xếp sau, vẫn hiển thị đủ.
+    renderStatsChipGroup('statsChipsStation', 'station', orderedByCfg_(distinctSorted_(STAFF_ROWS, 'station'), CFG_LISTS.stations));
+    renderStatsChipGroup('statsChipsDate', 'date', distinctSorted_(STAFF_ROWS, 'date', true));
+    renderStatsChipGroup('statsChipsDepartment', 'department', orderedByCfg_(distinctSorted_(STAFF_ROWS, 'department'), CFG_LISTS.departments));
+  }
+  function renderStatsChipGroup(id, col, vals) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var html = '<button type="button" class="pick' + (STATS[col] === '' ? ' on' : '') + '" data-col="' + col + '" data-val="">Tất cả</button>';
+    html += vals.map(function (v) {
+      var on = STATS[col] === v;
+      return '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="' + col + '" data-val="' + escAttr(v) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(v) + '</button>';
+    }).join('');
+    el.innerHTML = html;
+  }
+  // distinct + sort các giá trị field (client, không RPC)
+  function distinctSorted_(rows, field, desc) {
+    var seen = {}, out = [];
+    (rows || []).forEach(function (r) {
+      var v = String((r && r[field]) || '').trim();
+      if (v && !seen[v]) { seen[v] = true; out.push(v); }
+    });
+    // Ngày: sort giảm dần (gần nhất cạnh 'Tất cả', format yyyy-MM-dd ISO); field khác: tăng dần
+    out.sort(function (a, b) {
+      return desc ? (a < b ? 1 : a > b ? -1 : 0) : (a < b ? -1 : a > b ? 1 : 0);
+    });
+    return out;
+  }
+  // Bind click cho chips filter (1 lần, event delegation)
+  function initStatsChipEvents() {
+    if (_statsChipsBound) return;
+    ['statsChipsStation', 'statsChipsDate', 'statsChipsDepartment'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('click', function (e) {
+        var b = e.target && e.target.closest ? e.target.closest('.pick') : null;
+        if (!b) return;
+        var col = b.getAttribute('data-col');
+        var val = b.getAttribute('data-val');
+        if (col === 'station') STATS.station = (STATS.station === val) ? '' : val;
+        else if (col === 'date') STATS.date = (STATS.date === val) ? '' : val;
+        else if (col === 'department') STATS.department = (STATS.department === val) ? '' : val;
+        renderStatsFilters();
+        renderStaffStats();
+      });
+    });
+    _statsChipsBound = true;
+  }
+
+  function selectedStation() { return STATS.station; }
+
+  function staffFiltered() {
+    return STAFF_ROWS.filter(function (r) {
+      if (STATS.station && (r.station || '') !== STATS.station) return false;
+      if (STATS.date && (r.date || '') !== STATS.date) return false;
+      if (STATS.department && (r.department || '') !== STATS.department) return false;
+      return true;
+    });
+  }
+
+  // Config định nghĩa thứ tự hiển thị stats: giá trị có trong Config xếp theo thứ tự khai,
+  // giá trị lệch (ngoài Config) gom cuối nhóm 'Khác' (policy 2026-08-12) — không mất dữ liệu.
+  function splitByConfig_(vals, cfgList) {
+    var list = cfgList || [];
+    // Config chưa khai chiều này → giữ nguyên hành vi cũ (sort alphabet), KHÔNG gom 'Khác'.
+    if (!list.length) return { ordered: vals.slice().sort(), others: [] };
+    var cfg = list.filter(function (v) { return vals.indexOf(v) !== -1; });
+    var others = vals.filter(function (v) { return list.indexOf(v) === -1; });
+    return { ordered: cfg, others: others };
+  }
+  // Sắp theo Config trước (thứ tự khai), phần lệch giữ nguyên thứ tự cũ — dùng cho chips filter.
+  function orderedByCfg_(vals, cfgList) {
+    var s = splitByConfig_(vals, cfgList);
+    return s.ordered.concat(s.others);
+  }
+
+  function renderStaffStats() {
+    var wrap = document.getElementById('statsTableWrap');
+    if (!wrap) return;
+    var rows = staffFiltered();
+    var teams = []; var seen = {};
+    rows.forEach(function (r) { var t = (r.team || '').trim(); if (t && !seen[t]) { seen[t] = true; teams.push(t); } });
+    if (!teams.length) { wrap.innerHTML = '<div class="empty">Không có dữ liệu</div>'; return; }
+    teams.sort();
+    // Team theo thứ tự Config; team ngoài Config gom 1 block 'Khác' cuối cùng.
+    var tSplit = splitByConfig_(teams, CFG_LISTS.teams);
+    var html = '<div class="stats-grid">';
+    html += '<div class="stats-col-title">Contract Type × Ca — theo Team</div>';
+    html += '<div class="stats-col-title">Agency × Ca — theo Team</div>';
+    tSplit.ordered.forEach(function (t) { html += statsTeamBlocks(rows, [t], t); });
+    if (tSplit.others.length) html += statsTeamBlocks(rows, tSplit.others, 'Khác');
+    html += '</div>';
+    wrap.innerHTML = html;
+    // U5 (review 2026-08-11): announce ngắn gọn — KHÔNG để screen reader đọc cả grid
+    var a11y = document.getElementById('statsA11yMsg');
+    if (a11y) a11y.textContent = 'Hiển thị ' + rows.length + ' nhân viên theo bộ lọc';
+  }
+  // 2 bảng (Contract×Ca + Agency×Ca) của 1 team hoặc nhóm gộp 'Khác' (nhiều team ngoài Config).
+  function statsTeamBlocks(rows, teamList, label) {
+    var teamRows = rows.filter(function (r) { return teamList.indexOf((r.team || '').trim()) !== -1; });
+    var title = label || teamList[0];
+    var cls = label === 'Khác' ? ' stats-other-title' : '';
+    return '<div class="stats-team-block"><h4 class="stats-team-title' + cls + '">' + esc(title) + '</h4>'
+      + statsPivot(teamRows, 'slotCode', 'contractType') + '</div>'
+      + '<div class="stats-team-block"><h4 class="stats-team-title' + cls + '">' + esc(title) + '</h4>'
+      + statsPivot(teamRows, 'slotCode', 'agency') + '</div>';
+  }
+
+  // Pivot chung: dòng = rowField, cột = colField — Ca dọc khi rowField='slotCode'; số 0 → '-'
+  function statsPivot(rows, rowField, colField) {
+    var rowKeys = []; var rowSeen = {};
+    var colKeys = []; var colSeen = {};
+    rows.forEach(function (r) {
+      var a = (r[rowField] || '').trim(), b = (r[colField] || '').trim();
+      if (a && !rowSeen[a]) { rowSeen[a] = true; rowKeys.push(a); }
+      if (b && !colSeen[b]) { colSeen[b] = true; colKeys.push(b); }
+    });
+    rowKeys.sort();
+    // Ca theo thứ tự Config (slotcodes); ca ngoài Config gom 1 dòng 'Khác' cuối (policy 2026-08-12).
+    var rSplit = splitByConfig_(rowKeys, CFG_LISTS.slotcodes);
+    var orderedRows = rSplit.ordered.slice();
+    if (rSplit.others.length) orderedRows.push('Khác');
+    // Cột Agency cũng theo Config (agencies); agency ngoài Config gom 1 cột 'Khác' cuối.
+    var cSplit = (colField === 'agency') ? splitByConfig_(colKeys, CFG_LISTS.agencies) : null;
+    if (cSplit) {
+      colKeys = cSplit.ordered.slice();
+      if (cSplit.others.length) colKeys.push('Khác');
+    } else {
+      colKeys.sort();
+    }
+    var map = {};
+    rows.forEach(function (r) {
+      var a = (r[rowField] || '').trim(), b = (r[colField] || '').trim();
+      if (!(a && b)) return;
+      var aKey = rSplit.others.indexOf(a) !== -1 ? 'Khác' : a;
+      var bKey = (cSplit && cSplit.others.indexOf(b) !== -1) ? 'Khác' : b;
+      if (!map[aKey]) map[aKey] = {};
+      map[aKey][bKey] = (map[aKey][bKey] || 0) + 1;
+    });
+    var rowLabel = rowField === 'slotCode' ? 'Ca' : rowField;
+    var html = '<table class="stats-table"><thead><tr><th scope="col">' + esc(rowLabel) + '</th>';
+    colKeys.forEach(function (c) { html += '<th scope="col"' + (c === 'Khác' ? ' class="stats-other-th"' : '') + '>' + esc(c) + '</th>'; });
+    html += '<th scope="col" class="total">Tổng</th></tr></thead><tbody>';
+    orderedRows.forEach(function (a) {
+      html += '<tr' + (a === 'Khác' ? ' class="stats-other-row"' : '') + '><td scope="row" class="row-head">' + esc(a) + '</td>';
+      var rowTotal = 0;
+      colKeys.forEach(function (c) { var v = (map[a] && map[a][c]) || 0; rowTotal += v; html += '<td>' + fmtN(v) + '</td>'; });
+      html += '<td class="total">' + fmtN(rowTotal) + '</td></tr>';
+    });
+    html += '<tr><td class="total">Tổng</td>';
+    var colTotal = 0;
+    colKeys.forEach(function (c) {
+      var n = 0; orderedRows.forEach(function (a) { n += (map[a] && map[a][c]) || 0; });
+      colTotal += n; html += '<td class="total">' + fmtN(n) + '</td>';
+    });
+    html += '<td class="total">' + fmtN(colTotal) + '</td></tr></tbody></table>';
+    return html;
+  }
+
+
+</script>

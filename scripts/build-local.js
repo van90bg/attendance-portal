@@ -1,9 +1,9 @@
-﻿/**
+/**
  * scripts/build-local.js — Gộp GAS template thành 1 file HTML cho test local.
  *
  * GAS deploy: doGet dùng createTemplateFromFile('index').evaluate() — template
  *   index.html có <?!= include('styles') ?> / <?!= include('app') ?> nạp CSS/JS
- *   từ styles.html + app.html (file .html riêng — GAS không chấp nhận .css/.js).
+ *   từ styles.html + app-*.html (file .html riêng — GAS không chấp nhận .css/.js).
  * Local (file://): trình duyệt không render GAS template → build-local.js thay
  *   các directive include bằng nội dung thật → index.local.html.
  *
@@ -26,7 +26,7 @@ function readFile(rel) {
 }
 
 /**
- * Gộp index.html (<?!= include() ?>) + styles.html + app.html → index.local.html.
+ * Gộp index.html (<?!= include() ?>) + styles.html + app-*.html (7 module) → index.local.html.
  * Bảo toàn trạng thái BOM đầu file: index.html hiện KHÔNG BOM (BOM ở đầu output serve
  * qua GAS gây khoảng trống phía trên header — lesson 9982293; AGENTS.md §3 bắt buộc
  * write utf-8 KHÔNG sig).
@@ -36,9 +36,12 @@ function build() {
   let html = readFile('index.html');
   const bom = html.charCodeAt(0) === 0xfeff ? html.charAt(0) : '';
   if (bom) html = html.slice(1);
-  let out = bom + html
-    .replace("<?!= include('styles') ?>", readFile('styles.html'))
-    .replace("<?!= include('app') ?>", readFile('app.html'));
+  // P2-2 (2026-08-13): app.html tách 7 module app-*.html — resolve MỌI directive
+  // <?!= include('name') ?> bằng nội dung file name.html (styles + app-* chung 1 cơ chế).
+  // Thứ tự include trong index.html = thứ tự khối script (chung global scope).
+  let out = bom + html.replace(/<\?!= include\('([A-Za-z0-9_-]+)'\) \?>/g, function (m, name) {
+    return readFile(name + '.html');
+  });
   // Local: inject viewport meta giống GAS addMetaTag('viewport', ...) — mobile emulation chuẩn (2026-08-11)
   out = out.replace('<a href="#main-content" class="skip-link">', '<meta name="viewport" content="width=device-width, initial-scale=1">\n<a href="#main-content" class="skip-link">');
 

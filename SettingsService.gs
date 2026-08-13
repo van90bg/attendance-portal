@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SettingsService.gs — Đọc/ghi cấu hình Config sheet (nền tảng trang Config Admin).
  *
  * Model:

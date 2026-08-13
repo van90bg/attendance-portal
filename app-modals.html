@@ -1,0 +1,290 @@
+<script>
+  /* ============================================================
+   * MODULE: app-modals.html — Modal paste mã / tạo task / confirm + applyScanPermission + displayName
+   * Tách từ app.html (2026-08-13 — P2-2 tách module client).
+   * Nạp qua index.html (directive include app-modals) — script block
+   * riêng, chung global scope với các module khác (thứ tự include quan trọng).
+   * ============================================================ */
+  /* ===== Paste modal (T-2: dán danh sách mã) ===== */
+  var pasteFocusBack = null;
+  function openPasteModal() {
+    if (!CURRENT_TASK || !CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
+    var m = document.getElementById('pasteModal');
+    if (!m) return;
+    pasteFocusBack = document.activeElement;
+    m.setAttribute('aria-hidden', 'false');
+    m.classList.add('open');
+    var ta = document.getElementById('pasteTextarea');
+        if (ta) { ta.value = ''; ta.oninput = updatePasteCount; updatePasteCount(); ta.focus(); }
+        var sb = document.getElementById('btnPasteSubmit');
+        if (sb) sb.disabled = false; // reset nếu lần trước đóng giữa chừng đang xử lý
+        var preview = document.getElementById('pastePreview');
+        if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+        var prog = document.getElementById('pasteProgress');
+        if (prog) prog.style.display = 'none';
+      }
+      function updatePasteCount() {
+        var ta = document.getElementById('pasteTextarea');
+        var hint = document.getElementById('pasteCountHint');
+        if (!ta || !hint) return;
+        var n = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; }).length;
+        if (n > 0) {
+          hint.textContent = 'Đã phát hiện ' + n + ' mã NV';
+          hint.style.color = 'var(--success)';
+        } else {
+          hint.textContent = 'Nhập mã NV để đếm tự động';
+          hint.style.color = 'var(--muted)';
+        }
+      }
+      function closePasteModal() {
+        var m = document.getElementById('pasteModal');
+        if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+        var ta = document.getElementById('pasteTextarea');
+        if (ta) ta.oninput = null;
+        if (pasteFocusBack && pasteFocusBack.focus) pasteFocusBack.focus();
+        pasteFocusBack = null;
+      }
+  function submitPaste() {
+    var ta = document.getElementById('pasteTextarea');
+    if (!ta) return;
+    var submitBtn = document.getElementById('btnPasteSubmit');
+    if (submitBtn && submitBtn.disabled) return; // đang xử lý — chống double-submit
+    var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
+    if (!lines.length) { showToast('Chưa có mã nào', true); return; }
+    if (lines.length > 200) { lines = lines.slice(0, 200); showToast('Đã giới hạn 200 dòng đầu', true); }
+    // Dedup client-side — mã trùng cùng lần dán chỉ gửi 1 (server cũng chặn, tránh payload thừa)
+    var seen = {}, dup = 0;
+    var uniq = [];
+    lines.forEach(function (l) {
+      var k = l.toLowerCase();
+      if (seen[k]) { dup++; return; }
+      seen[k] = 1; uniq.push(l);
+    });
+    var preview = document.getElementById('pastePreview');
+    var prog = document.getElementById('pasteProgress');
+    var progText = document.getElementById('pasteProgressText');
+    // GIỮ modal mở: progress bar + tổng kết ngắn TRONG modal (không đóng trước —
+    // trước đây đóng modal rồi render vào preview ẩn → danh sách đã dán không thấy).
+    if (prog) prog.style.display = '';
+    if (progText) progText.textContent = dup > 0
+      ? ('Đang xử lý ' + uniq.length + ' mã (bỏ ' + dup + ' mã trùng)…')
+      : ('Đang xử lý ' + uniq.length + ' mã…');
+    if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+    if (submitBtn) submitBtn.disabled = true;
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (submitBtn) submitBtn.disabled = false;
+        if (prog) prog.style.display = 'none';
+        if (!res || !res.ok) {
+          var errMsg = (res && res.message) || 'Lỗi khi dán mã';
+          if (preview) { preview.innerHTML = '<div style="color:var(--danger);font-weight:600;">' + esc(errMsg) + '</div>'; preview.style.display = ''; }
+          showToast(errMsg, true);
+          return;
+        }
+        // Refresh counters & log từ server response, rồi (đúng yêu cầu) TỰ ĐÓNG modal
+        // khi dữ liệu NV đã load xong — tổng kết ngọn qua toast thay vì preview trong modal.
+        if (res.counters) { CURRENT_COUNTERS = res.counters; renderCounters(res.counters); }
+        if (CURRENT_TASK && CURRENT_TASK.taskId === res.taskId) {
+          // m4: silent reload — gate loadTaskDetail xử cả defer (đang quét → hoãn, queue cạn
+          // → maybeReloadPending chạy). Bỏ check scanBusy local: khỏi 2 cơ chế cho 1 vấn đề.
+          loadTaskDetail(CURRENT_TASK.taskId, true);
+        }
+        // P1-3: dán có mã thất bại → liệt kê từng mã NGAY trong modal và GIỮ modal mở
+        // để user sửa; chỉ khi 0 lỗi mới tự đóng. `res.results` (per-code) server đã trả
+        // sẵn nhưng client trước đây bỏ qua.
+        if (res.failed > 0 && Array.isArray(res.results)) {
+          var fails = res.results.filter(function (r) { return !r.ok; });
+          if (fails.length) {
+            var detail = '<div style="margin-bottom:8px;font-size:13px;font-weight:600;color:var(--amber-dark);">Chi tiết thất bại:</div>';
+            fails.forEach(function (r) {
+              detail += '<div style="font-size:13px;padding:2px 0;border-bottom:1px solid var(--border);">'
+                + '<span style="font-family:monospace;">' + esc(r.code) + '</span>'
+                + ' — ' + esc(r.message || r.status || '') + '</div>';
+            });
+            if (preview) { preview.innerHTML = detail; preview.style.display = ''; }
+            showToast('Đã dán ' + res.success + '/' + res.total + ' mã — ' + res.failed + ' thất bại', true);
+            return; // giữ modal mở — user xem mã lỗi rồi dán lại
+          }
+        }
+        var msg = 'Đã dán ' + res.success + '/' + res.total + ' mã'
+          + (res.failed > 0 ? (' — ' + res.failed + ' thất bại') : '');
+        if (dup > 0) msg += ' — bỏ ' + dup + ' mã trùng';
+        showToast(msg, res.failed > 0);
+        closePasteModal();
+      })
+      .withFailureHandler(function (err) {
+        if (submitBtn) submitBtn.disabled = false;
+        if (prog) prog.style.display = 'none';
+        var errMsg = (err && err.message) || 'unknown';
+        if (preview) { preview.innerHTML = '<div style="color:var(--danger);font-weight:600;">Lỗi server: ' + esc(errMsg) + '</div>'; preview.style.display = ''; }
+        showToast('Lỗi dán mã: ' + errMsg, true);
+      })
+      .pasteCodesApi(CURRENT_TASK.taskId, uniq);
+  }
+
+  // Commit 2026-08-08: không còn tabs — Ca 'Tự do' (magic) tự quyết FREE.
+  function isFreeSel() {
+    return SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
+  }
+  function refreshModeUI() {
+    var free = isFreeSel();
+    var desc = document.getElementById('modeDesc');
+    if (desc) {
+      desc.innerHTML = free
+        ? 'Task <b>quét tự do</b> — không danh sách chốt.'
+        : 'Task <b>đối chiếu</b> theo danh sách nhân viên đã chọn.';
+    }
+    var rowC = document.getElementById('rowContract');
+    if (rowC) rowC.style.display = free ? 'none' : '';
+    var d = document.getElementById('selDate');
+    if (d) d.disabled = free;
+    var cd = document.getElementById('chipsDate');
+    if (cd) cd.classList.toggle('disabled', free);
+  }
+
+  // n1 (audit): focus trap createModal do document-level Tab handler chung xử lý
+  // (.about-overlay.open — createModal là about-overlay) — bỏ trap riêng để khỏi 2
+  // handler cùng chạy trên 1 keydown (thừa, khó đọc).
+  function openCreateModal() {
+    var m = document.getElementById('createModal');
+    if (!m) return;
+    // P2: reset lựa chọn 4 cột mỗi lần mở — không giữ giá trị cũ (tránh tạo nhầm task)
+    resetSel();
+    renderAllSelects();
+    refreshModeUI();
+    m.setAttribute('aria-hidden', 'false');  // I10
+    m.classList.add('open');
+    var first = document.querySelector('#createModal .pick');
+    if (first && first.focus) first.focus();
+  }
+  function closeCreateModal() {
+    var m = document.getElementById('createModal');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    var btn = document.getElementById('btnCreate');
+    if (btn && btn.focus) btn.focus();
+  }
+  function anyModalOpen() {
+    return document.querySelector('.about-overlay.open') !== null;
+  }
+
+  /* ===== T-1: Apply scan permission (owner gate) ===== */
+  // Cờ khoá owner (non-owner ở phase OPEN) — các hàm UI khác (updateFinishBtnState,
+  // updateQueueFullState) phải tôn trọng để không vô tình bật lại input/nút.
+  var scanOwnerLocked = false;
+  function applyScanPermission() {
+    if (!CURRENT_TASK || !CURRENT_TASK.permission) return;
+    var perm = CURRENT_TASK.permission;
+    var scanInput = document.getElementById('scanInput');
+    var btnToAttend = document.getElementById('btnToAttend');
+    var pasteBtn = document.getElementById('btnPaste'); // may not exist yet, guard
+    var banner = document.getElementById('scanPermissionBanner');
+    var canScan = perm.canScanOpen;
+    var isOpenPhase = CURRENT_TASK.phase === TASK_STATUS_C.OPEN || CURRENT_TASK.status === TASK_STATUS_C.OPEN;
+
+    // Chỉ khoá khi non-owner ở phase OPEN — ATTEND (Điểm danh) mọi người quét được
+    // (kể cả khi permission stale sau transition/reopen).
+    scanOwnerLocked = isOpenPhase && !canScan;
+
+    // Disable/enable scan input
+    if (scanInput) {
+      var taskDone = CURRENT_TASK.phase === TASK_STATUS_C.DONE || CURRENT_TASK.status === TASK_STATUS_C.DONE;
+      var queueFull = SCAN_QUEUE.length >= SCAN_QUEUE_MAX;
+      scanInput.disabled = taskDone || queueFull || scanOwnerLocked;
+      if (scanOwnerLocked) {
+        scanInput.placeholder = 'Chỉ owner mới quét được ở phase Mở (task này)';
+      } else if (canScan) {
+        scanInput.placeholder = 'Quét mã nhân viên…';
+      }
+    }
+
+    // Show/hide banner
+    if (!canScan && isOpenPhase) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'scanPermissionBanner';
+        banner.style.cssText = 'background:#fff3e0;border:1px solid var(--warning);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--amber-dark);font-weight:600;';
+        banner.textContent = 'Chỉ owner mới quét được ở phase Mở (task này)';
+        var card = document.querySelector('.scan-col-left .card');
+        if (card && card.parentNode) card.parentNode.insertBefore(banner, card);
+      }
+    } else {
+      if (banner) { banner.remove(); }
+    }
+
+    // Ẩn "Chuyển điểm danh" khi non-owner bị khoá phase Mở — CHỈ ẩn, KHÔNG re-show:
+    // khi không khoá, hiển thị theo phase do updateFinishBtnState quyết định
+    // (chỉ phase OPEN mới hiện nút này — tránh hiện nhầm ở Điểm danh/Xong).
+    if (btnToAttend && scanOwnerLocked) {
+      btnToAttend.style.display = 'none';
+    }
+
+    // Nút Dán (topbar): CHỈ ẩn khi khoá — hiện/ẩn theo FREE+OPEN do renderScanView quyết.
+    if (pasteBtn && scanOwnerLocked) {
+      pasteBtn.style.display = 'none';
+    }
+  }
+
+  // Modal confirm dùng chung — thay alert/confirm trình duyệt.
+  // showConfirm(title, message, onConfirm): mở modal, bấm "Đồng ý" → chạy onConfirm.
+  var confirmOnOk = null;
+  var confirmOpener = null;  // P2: nút mở modal confirm (để restore focus)
+  function showConfirm(title, message, onConfirm) {
+    confirmOnOk = onConfirm || null;
+    confirmOpener = document.activeElement;   // P2: lưu nút mở để restore focus khi đóng
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalMsg').textContent = message;
+    document.getElementById('confirmOkBtn').onclick = function () {
+      var cb = confirmOnOk;   // lưu TRƯỚC khi close (close reset confirmOnOk)
+      closeConfirmModal();
+      if (cb) cb();
+    };
+    document.getElementById('confirmModal').classList.add('open');
+    document.getElementById('confirmModal').setAttribute('aria-hidden', 'false');  // I10
+    document.getElementById('confirmOkBtn').focus();
+  }
+  function closeConfirmModal() {
+    var m = document.getElementById('confirmModal');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    confirmOnOk = null;
+    // P2-3c: trả focus về nút mở modal (nếu còn tồn tại)
+    if (confirmOpener && document.contains(confirmOpener)) confirmOpener.focus();
+    confirmOpener = null;
+  }
+  document.addEventListener('keydown', function (e) {
+    // P3: Escape đóng modal (focus trap cơ bản)
+    if (e.key === 'Escape') {
+      var m = document.getElementById('createModal');
+      if (m && m.classList.contains('open')) { closeCreateModal(); return; }
+      m = document.getElementById('confirmModal');
+      if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
+      m = document.getElementById('pasteModal');
+      if (m && m.classList.contains('open')) { closePasteModal(); return; }
+      // viewAbout is now a section, not a modal - go back to previous view
+      var aboutV = document.getElementById('viewAbout');
+      if (aboutV && !aboutV.classList.contains('hidden')) {
+        showSection(lastViewBeforeAbout || 'viewTasks');
+        return;
+      }
+      // U4 (review 2026-08-11): Escape đóng funnel panel (không nằm trong .about-overlay modals)
+      var fpanel = document.getElementById('staffFilterPanel');
+      if (fpanel && fpanel.style.display !== 'none') { closeFunnel(); return; }
+    }
+    // Tab giữ trong dialog khi mở
+    if (e.key === 'Tab') {
+      var m = document.querySelector('.about-overlay.open');
+      if (!m) return;
+      var focusables = m.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusables.length) return;
+      var first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+
+  // Tên hiển thị từ email (v1): cắt trước @, title-case nhẹ. VD van.thanhnguyen@spxexpress.com → Van.thanhnguyen
+  function displayName(email) {
+    if (!email) return '—';
+    var name = String(email).split('@')[0];
+    return name || email;
+  }
+</script>

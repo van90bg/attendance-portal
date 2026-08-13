@@ -1,4 +1,11 @@
 # styles.html bi git detect -text (binary heuristic) -> autocrlf khong ap dung -> churn full-file moi edit.
 # text+eol=crlf: index = LF (khop HEAD), worktree = CRLF. File template moi gap van de nay
 # thi them dong rieng (KHONG dung *.html chung - se churn index/app.html).
+# GAS source + web templates: index luu LF, worktree = CRLF (bat buoc — AGENTS.md rule 1).
+# eol=crlf ap dung tren MOI platform (khong phu thuoc core.autocrlf) — checkout luon ra CRLF,
+# git add luon luu LF vao index. Bo BOM la bat buoc (BOM dau index.html = khoang trang tren
+# header khi serve qua GAS — lesson 9982293).
+*.gs text eol=crlf
+index.html text eol=crlf
 styles.html text eol=crlf
+app.html text eol=crlf

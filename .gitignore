@@ -2,3 +2,9 @@
 .freebuff/
 # build local (scripts/build-local.js) — temp, không commit
 index.local.html
+
+# ===== Config / secrets (AGENTS.md rule 4 — không commit) =====
+.clasp.json
+.clasprc.json
+*.clasprc.json
+.env

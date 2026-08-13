@@ -11,13 +11,13 @@
  *      - Const top-level: `^const NAME =` (Config.gs SHEETS/STATUS..., CsvUtil.gs SLOT_FREE_MAGIC...)
  *   2. Gom nguồn dùng (đếm số lần xuất hiện của tên với word boundary):
  *      - Toàn bộ *.gs (gọi nội bộ lẫn nhau)
- *      - index.html (template `<?!= include('app') ?>`) + app.html (client google.script.run .XxxApi())
+ *      - index.html (template `<?!= include('app-*') ?>`) + app-*.html (client google.script.run .XxxApi())
  *      - mock/mock-google.js (handlers map — khớp API server)
  *      - tests/*.js + scripts/*.js
  *   3. Phân loại:
  *      - ENTRY (runtime/template GAS, không xuất hiện trong code): doGet · doPost · include
  *      - DEAD: hàm/const chỉ xuất hiện ĐÚNG 1 lần (dòng khai báo) — không ai gọi
- *      - API TREO: hàm *Api có trong server nhưng KHÔNG xuất hiện trong app.html (client không gọi)
+ *      - API TREO: hàm *Api có trong server nhưng KHÔNG xuất hiện trong app-*.html (client không gọi)
  *        → drift mock↔server↔client (vd previewStaffApi từng bị xóa vì client không gọi)
  *
  * Exit code: 0 = sạch · 1 = có DEAD hoặc API treo (dùng được trong CI/script).
@@ -34,10 +34,18 @@ const GS_FILES = fs.readdirSync(ROOT).filter((f) => f.endsWith('.gs')).sort();
 function read(p) {
   try { return fs.readFileSync(path.join(ROOT, p), 'utf8'); } catch { return ''; }
 }
+/** Đọc toàn bộ module client app-*.html (app.html tách module — P2-2 2026-08-13). */
+function readAppParts() {
+  return fs.readdirSync(ROOT)
+    .filter((f) => /^app-.*\.html$/.test(f))
+    .sort()
+    .map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8'))
+    .join('\n');
+}
 const sources = {
   gs: GS_FILES.map((f) => read(f)).join('\n'),
   index: read('index.html'),
-  app: read('app.html'),
+  app: readAppParts(), // app.html tách module app-*.html (P2-2 2026-08-13)
   mock: read('mock/mock-google.js'),
   tests: read('tests'),
   scripts: read('scripts'),
@@ -87,7 +95,7 @@ Object.keys(consts).forEach((name) => {
   if (countOccur(name) <= 1) deadConsts.push(name);
 });
 
-// API treo: *Api trong server nhưng client (app.html) không gọi
+// API treo: *Api trong server nhưng client (app-*.html) không gọi
 const serverApis = Object.keys(funcs).filter((n) => n.endsWith('Api'));
 const treoApis = serverApis.filter((n) => {
   const re = new RegExp('\\b' + n + '\\b', 'g');
@@ -111,7 +119,7 @@ if (deadConsts.length) {
   deadConsts.forEach((n) => console.log(fmt(n, consts[n])));
 }
 if (treoApis.length) {
-  console.log('\n--- API TREO (server có nhưng client app.html KHÔNG gọi — drift mock↔server↔client) ---');
+  console.log('\n--- API TREO (server có nhưng client app-*.html KHÔNG gọi — drift mock↔server↔client) ---');
   treoApis.forEach((n) => console.log(fmt(n, funcs[n])));
 }
 if (!deadFuncs.length && !deadConsts.length && !treoApis.length) {

@@ -1,0 +1,748 @@
+<script>
+  /* MODULE MAP (2026-08-13 — app.html tách module, P2-2):
+   *   app-core.html   — state + utils + boot + staff data + sound + nav + clock
+   *   app-stats.html  — viewStats
+   *   app-staff.html  — viewStaff (bảng + funnel)
+   *   app-modals.html — paste/create/confirm modals
+   *   app-config.html — viewConfig admin
+   *   app-tasks.html  — task list + search + create
+   *   app-scan.html   — scan view + queue + actions + toast
+   *   Thứ tự include trong index.html = thứ tự khối script — chung global scope.
+   */
+  /* ============================================================
+   * TOC — bản đồ vùng script (thứ tự xuất hiện từ đây xuống cuối)
+   *  [0] Mock local (file://)  — nạp mock-google.js khi không qua GAS
+   *  [1] State & Constants     — META, CURRENT_TASK, STATUS_C, TASK_TYPE_C, headers
+   *  [2] UTILITIES             — safeArr, fmtN, esc, escAttr, fmtClockHMS, fmtDate, setBtnBusy_, restoreBtnLabel_
+   *  [3] Pagination            — renderPaginator_, goListPage, goScanPage
+   *  [4] View infra            — repairViewParents, syncHeaderH (sớm)
+   *  [5] Scan UI infra         — filters, stuck bars, auto-focus loop
+   *  [6] Header command center — net status, bg indicator, overlay/spinner
+   *  [7] Staff & Stats         — ensureStaffData, renderStaffStats, renderStaffDataTable
+   *  [8] Sound                 — toggleSound, playBeep
+   *  [9] View management       — showSection, selectPage, sidebar (2 khối: [4]+đây)
+   * [10] Home clock            — tickHomeClock, renderHomeClock
+   * [11] Modals                — paste, create/sel, confirm
+   * [12] Task list & search    — loadTaskList, runListSearch, createTask
+   * [13] Scan flow             — openScan, renderScanView, submitScan, queue
+   * [14] Task actions          — reopen, transitionToAttend, finishTask
+   * [15] Toast & feedback      — showToast, scanCard
+   * ============================================================ */
+  // Mock local: khi mở file:// trực tiếp (không qua GAS), nạp mock-google.js.
+  // Deploy GAS: google.script luôn tồn tại → nhánh này không chạy → app thật.
+  if (typeof google === 'undefined' || !google.script) {
+    document.write('<script src="mock/mock-google.js?v=' + Date.now() + '"><\/script>');
+  }
+
+  var META = null;
+  // #10: rank role client-side (khớp server getRole_/requireRole_) — placeholder + gate tìm NV theo role
+  var ROLE_RANK = { viewer: 0, operator: 1, manager: 2, admin: 3 };
+  var CURRENT_TASK = null;
+  var CURRENT_LOG = [];
+  // Cache tên NV client-side (từ server response) → quét lại cùng mã hiện tên tức thì.
+  var CLIENT_STAFF_INDEX = {};
+  var CURRENT_COUNTERS = null;  // state counters để optimistic cập nhật ngay
+  var BUSY = false;
+  var AUTO_FOCUS_TIMER = null;
+
+  // P3: hằng số status — KHÔNG hardcode chuỗi tiếng Việt trong logic (đổi label = vỡ logic).
+  // Khớp STATUS trong Config.gs; label hiển thị badge dùng đúng chuỗi này.
+  var STATUS_C = { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' };
+  // Task status — khớp TASK_STATUS trong Config.gs (3 trạng thái 2-phase)
+  var TASK_STATUS_C = { OPEN: 'open', ATTEND: 'attend', DONE: 'done' };
+  // Task type — khớp TASK_TYPE trong Config.gs (phân biệt quét tự do / đối chiếu)
+  var TASK_TYPE_C = { RECONCILE: 'reconcile', FREE: 'free' };
+  // Label task type (scan task meta) — 1 nguồn chung; trước đây khai trùng 2 nơi
+  // (openTask + transition handler) → dễ lệch. FIX(2026-08-11).
+  var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
+  // Magic Ca 'Tự do' — KHỚP SLOT_FREE_MAGIC (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
+  var SLOT_FREE_MAGIC = 'Tự do';
+  // Regex mã barcode NV — KHỚP BARCODE_ID_RE (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
+  var BARCODE_ID_RE = /^OPS\d+$/i;
+  // Phase label tiếng Việt cho task status
+  var TASK_PHASE_LABEL = {
+    open: 'Mở', attend: 'Điểm danh', done: 'Xong',
+  };
+  // F-search: chế độ danh sách task — 'all' (danh sách task bình thường) vs 'search' (kết quả tìm NV).
+  // Khi search, taskListTable dùng SEARCH_HEAD + renderSearchResults_ (thêm cột Mã NV/Tên NV).
+  var LIST_MODE = 'all';
+  // Header HTML cho 2 chế độ taskListTable (reuse cùng element #taskListTable).
+  // Thead danh sách task — động (funnel phễu 4 cột: Loại/Station/Team/Trạng thái + state .on)
+  // Thead danh sách task — PHẢI khớp thứ tự body render: STT, Mã task, Loại, Station, Team,
+  // Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác (fix 2026-08-11:
+  // trước đây gom 4 funnel liên tiếp → 'Trạng thái' lệch sang cột 6, header/body lệch từ Ca).
+  function funnelTh_(lbl, field) {
+    var on = hasFunnel_(TASK_FILTERS, field);
+    return '<th scope="col" class="th-filter" data-col="' + field + '"><span class="th-label">' + lbl + '</span>' +
+      '<button type="button" class="th-funnel' + (on ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'task\')" aria-label="Lọc ' + lbl + '" title="Lọc ' + lbl + '">' + FUNNEL_SVG + '</button></th>';
+  }
+  function taskHeadHtml_() {
+    return '<tr>' +
+      '<th scope="col">STT</th><th scope="col">Mã task</th>' +
+      funnelTh_('Loại', 'taskType') +
+      funnelTh_('Station', 'station') +
+      funnelTh_('Team', 'team') +
+      '<th scope="col">Ca</th><th scope="col">Tổng NV</th><th scope="col">Đã quét</th><th scope="col">Dư</th>' +
+      funnelTh_('Trạng thái', 'status') +
+      '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
+  }
+  var SEARCH_HEAD = '<tr>' +
+        '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
+        '<th scope="col">Điểm danh</th><th scope="col">Loại</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
+        '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
+
+  // ===================== UTILITIES (dùng chung toàn app — gom 2026-08-11) =====================
+  // I4: guard array từ server — nếu API trả object/string (bug tương lai) thì .forEach crash white screen
+  function safeArr(x) { return Array.isArray(x) ? x : []; }
+
+  // Escape HTML (text node) — luôn dùng khi nhúng dữ liệu server vào innerHTML.
+  function esc(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
+  }
+  // Escape HTML (attribute) — thêm quote đơn; dùng cho value="..." trong HTML string.
+  function escAttr(s) {
+    return esc(s).replace(/'/g, '&#39;');
+  }
+  // Số 0 → '-' (bảng thống kê)
+  function fmtN(n) { return n ? String(n) : '-'; }
+
+  // Format Clock In/Out Time theo sheet: 'H:mm:ss' (vd 7:05:30) — chấp nhận 3 dạng: Date, 'HH:mm', 'HH:mm:ss'.
+  function fmtClockHMS(v) {
+    if (v === null || v === undefined) return '';
+    if (v instanceof Date && !isNaN(v)) {
+      return ('0' + v.getHours()).slice(-2) + ':' + String(v.getMinutes()).padStart(2, '0') + ':' + String(v.getSeconds()).padStart(2, '0');
+    }
+    var s = String(v).trim();
+    if (!s) return '';
+    var m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (m) return ('0' + Number(m[1])).slice(-2) + ':' + m[2] + ':' + (m[3] || '00');
+    return s;
+  }
+
+  // P2: format theo TZ Asia/Ho_Chi_Minh (khớp server Session.getScriptTimeZone)
+  // — không dùng local TZ của máy kiosk (có thể lệch nếu đổi vùng).
+  var _fmtTZ = (function () {
+    try {
+      return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
+    } catch (e) { return null; }
+  })();
+  function fmtDate(d) {
+    if (!d) return '';
+    var dt = new Date(d);
+    if (isNaN(dt.getTime())) return String(d);
+    if (_fmtTZ) {
+      var parts = _fmtTZ.formatToParts(dt);
+      var h = '0', m = '0', s = '0';
+      parts.forEach(function (p) {
+        if (p.type === 'hour') h = p.value;
+        else if (p.type === 'minute') m = p.value;
+        else if (p.type === 'second') s = p.value;
+      });
+      return h + ':' + m + ':' + s;
+    }
+    return ('0' + dt.getHours()).slice(-2) + ':' + ('0' + dt.getMinutes()).slice(-2) + ':' + ('0' + dt.getSeconds()).slice(-2);
+  }
+
+  // Trạng thái nút tải/lưu — dùng chung loadStaffView/loadConfigView/saveConfig (gom 2026-08-11).
+  // busyLabel: text khi đang xử lý (lưu label gốc vào dataset để restore đúng).
+  function setBtnBusy_(btn, busyLabel) {
+    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = busyLabel; }
+  }
+  function restoreBtnLabel_(btn, fallback) {
+    if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || fallback; }
+  }
+
+    // ===== Pagination (tham khảo v1 scan.html — 50 dòng/trang) =====
+    var SCAN_PAGE_SIZE = 50;  // bảng quét scanTable: 50 NV/trang
+    var LIST_PAGE_SIZE = 100;  // viewTasks: 100 task/trang (đồng bộ viewStaff 2026-08-11)
+    var LIST_PAGE = 1; // trang hiện tại: task list / kết quả tìm
+    var SCAN_PAGE = 1; // trang hiện tại: bảng quét scanTable
+
+    // Render phân trang vào container (v1: _renderPagination). Dùng inline onclick
+    // (nhất quán với các button khác trong v2 — không cần delegation listener).
+    // total = số dòng tổng (trước slice); current = trang đang xem; goFn = tên hàm
+    // global nhận page, ví dụ goListPage / goScanPage.
+    function renderPaginator_(containerId, total, current, goFn, pageSize) {
+      var el = document.getElementById(containerId);
+      if (!el) return;
+      var ps = pageSize || SCAN_PAGE_SIZE;  // scan mặc định 50; staff/tasks truyền pageSize riêng
+      if (!total || total <= ps) {
+        el.innerHTML = '';
+        el.style.display = 'none';
+        return;
+      }
+      var totalPages = Math.max(1, Math.ceil(total / ps));
+      var page = Math.min(current, totalPages);
+      var start = (page - 1) * ps + 1;
+      var end = Math.min(page * ps, total);
+
+      var html = '<div class="pag-bar">';
+      html += '<span class="pag-info">' + start + '–' + end + ' / ' + total + '</span>';
+      html += '<div class="pag-buttons">';
+      // Đầu + Trước
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(1)"' + (page <= 1 ? ' disabled' : '') + ' aria-label="Trang đầu">«</button>';
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(' + (page - 1) + ')"' + (page <= 1 ? ' disabled' : '') + ' aria-label="Trang trước">‹</button>';
+      // Số trang có ellipsis
+      var pageRange = [];
+      for (var p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+          pageRange.push(p);
+        } else if (pageRange[pageRange.length - 1] !== '...') {
+          pageRange.push('...');
+        }
+      }
+      for (var pi = 0; pi < pageRange.length; pi++) {
+        if (pageRange[pi] === '...') {
+          html += '<span class="pag-ellipsis">…</span>';
+        } else {
+          html += '<button type="button" class="pag-btn' + (pageRange[pi] === page ? ' active' : '') + '" onclick="' + goFn + '(' + pageRange[pi] + ')" aria-label="Trang ' + pageRange[pi] + '">' + pageRange[pi] + '</button>';
+        }
+      }
+      // Sau + Cuối
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(' + (page + 1) + ')"' + (page >= totalPages ? ' disabled' : '') + ' aria-label="Trang sau">›</button>';
+      html += '<button type="button" class="pag-btn" onclick="' + goFn + '(' + totalPages + ')"' + (page >= totalPages ? ' disabled' : '') + ' aria-label="Trang cuối">»</button>';
+      html += '</div></div>';
+      el.innerHTML = html;
+      el.style.display = '';
+    }
+
+    // Phân trang task list: set trang + render lại (slice theo trang).
+    function goListPage(page) {
+      var p = Math.max(1, parseInt(page, 10) || 1);
+      if (p === LIST_PAGE) return;
+      LIST_PAGE = p;
+      if (LIST_MODE === 'search') {
+        renderSearchResults_(LAST_SEARCH_ROWS || []);
+      } else if (LIST_MODE === 'task') {
+        renderTaskList_(LAST_TASK_SEARCH || []);
+      } else {
+        renderTaskList_(LAST_TASK_LIST.tasks || []);
+      }
+    }
+
+    // Phân trang StaffData: set trang + render lại (100 NV/trang).
+    function goStaffPage(page) {
+      var p = Math.max(1, parseInt(page, 10) || 1);
+      if (p === STAFF_PAGE) return;
+      STAFF_PAGE = p;
+      renderStaffDataTable();
+    }
+
+    // Phân trang bảng scan: set trang + render lại scanTable (đã slice).
+    function goScanPage(page) {
+      var p = Math.max(1, parseInt(page, 10) || 1);
+      if (p === SCAN_PAGE) return;
+      SCAN_PAGE = p;
+      renderScanTable(CURRENT_LOG);
+    }
+
+
+  // Repair: ép các view section vào đúng #main-content (phòng parser tách thẻ sau edit HTML).
+  function repairViewParents() {
+    var main = document.getElementById('main-content');
+    if (!main) return;
+    ['viewHome', 'viewStats', 'viewStaff', 'viewAbout', 'viewScan', 'viewTasks', 'viewConfig', 'viewReports'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.parentElement !== main) {
+        main.appendChild(el);  // di chuyển (appendChild tự gỡ khỏi cha cũ + xếp cuối main)
+      }
+    });
+  }
+
+  // FIX(2026-08-09): đồng bộ --header-h = chiều cao header THẬT — token tĩnh 59px lệch khi
+  // header wrap (font/zoom/màn hẹp) → doc cao hơn viewport → scroll dọc vĩnh viễn +
+  // sidebar/view-topbar sticky bị ẩn sau header. Chạy khi DOM sẵn sàng + load + resize.
+  function syncHeaderH() {
+    var hEl = document.querySelector('header');
+    if (!hEl) return;
+    var px = Math.round(hEl.getBoundingClientRect().height) + 'px';
+    var cur = getComputedStyle(document.documentElement).getPropertyValue('--header-h').trim();
+    if (cur !== px) document.documentElement.style.setProperty('--header-h', px);
+  }
+  window.addEventListener('load', syncHeaderH);
+  window.addEventListener('resize', syncHeaderH);
+  // R2 (audit 2026-08-11): resize KHÔNG fire khi xoay màn hình / pinch-zoom trên mobile —
+  // sync thêm orientationchange (delay 100ms vì DOM chưa relayout) + visualViewport.resize
+  // → --header-h không lệch, view không bị dồn dưới header.
+  window.addEventListener('orientationchange', function () { setTimeout(syncHeaderH, 100); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', syncHeaderH);
+
+  document.addEventListener('DOMContentLoaded', function () {
+    startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
+    syncHeaderH();  // FIX(2026-08-09): đo chiều cao header THẬT sau khi DOM sẵn sàng
+    repairViewParents();
+    loadMetaAndOptions();
+    document.getElementById('scanInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitScan();
+      }
+    });
+    // F2: cho phép dán danh sách mã trực tiếp vào scanInput (thay thế nút "Dán danh sách mã").
+    // Barcode scanner = keyboard emulation → không bao giờ trigger paste event; chỉ clipboard (Ctrl+V) mới đến.
+    document.getElementById('scanInput').addEventListener('paste', onScanInputPaste);
+    // F-search: Enter trên ô tìm (viewTasks) → chay tim; Escape → clear (xử lý trong onListSearchKeydown).
+    var _ls = document.getElementById('listSearch');
+    if (_ls) _ls.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); runListSearch(); }
+      else if (e.key === 'Escape') { onListSearchKeydown(e); }
+    });
+    initNetworkStatus();
+    initBgIndicator();   // indicator tác vụ nền (header) — ẩn ban đầu, hiện khi có scan/RPC/silent
+    initSelEvents();
+    startAutoFocusLoop();
+    initScanTopbarStuck();
+    initScanFilters();
+    initSidebar();
+    selectPage('home');  // Trang chủ mặc định — logo + tên + đồng hồ
+  });
+
+  /* C3: tìm kiếm + lọc trạng thái + sort cột bảng scan */
+  function initScanFilters() {
+    var searchEl = document.getElementById('scanSearch');
+    var statusEl = document.getElementById('scanStatusFilter');
+    var clearEl = document.getElementById('scanClearFilter');
+    var scanTbl = document.getElementById('scanTable');
+    // C1: populate filter options từ STATUS_C — 1 nguồn sự thật, đổi label không vỡ filter.
+    if (statusEl && statusEl.options.length === 1) {
+      var FILTER_LABELS = {};
+      FILTER_LABELS[STATUS_C.PENDING] = 'Chưa điểm danh';
+      FILTER_LABELS[STATUS_C.PRESENT] = STATUS_C.PRESENT;
+      FILTER_LABELS[STATUS_C.ABSENT] = STATUS_C.ABSENT;
+      FILTER_LABELS[STATUS_C.EXTRA] = STATUS_C.EXTRA;
+      [STATUS_C.PENDING, STATUS_C.PRESENT, STATUS_C.ABSENT, STATUS_C.EXTRA].forEach(function (v) {
+        var o = document.createElement('option');
+        o.value = v;
+        o.textContent = FILTER_LABELS[v];
+        statusEl.appendChild(o);
+      });
+    }
+    if (searchEl) searchEl.addEventListener('input', function () {
+      SCAN_FILTER.q = searchEl.value;
+      SCAN_PAGE = 1; // bộ lọc lởi → về trang đầu
+      renderScanTable(CURRENT_LOG);
+    });
+    if (statusEl) statusEl.addEventListener('change', function () {
+      SCAN_FILTER.status = statusEl.value;
+      SCAN_PAGE = 1; // bộ lọc đổi → về trang đầu
+      renderScanTable(CURRENT_LOG);
+    });
+    if (clearEl) clearEl.addEventListener('click', function () {
+      SCAN_FILTER.q = '';
+      SCAN_FILTER.status = '';
+      if (searchEl) searchEl.value = '';
+      if (statusEl) statusEl.value = '';
+      SCAN_PAGE = 1; // xoá lọc → về trang đầu
+      renderScanTable(CURRENT_LOG);
+    });
+    if (scanTbl) scanTbl.addEventListener('click', function (e) {
+      var th = e.target && e.target.closest ? e.target.closest('th.sortable') : null;
+      if (!th) return;
+      var col = parseInt(th.dataset.sort, 10);
+      if (SCAN_SORT.col === col) SCAN_SORT.asc = !SCAN_SORT.asc;
+      else { SCAN_SORT.col = col; SCAN_SORT.asc = true; }
+      SCAN_SORT.userSet = true;  // F: user tự chọn cột → bỏ ép-theo-phase
+      SCAN_PAGE = 1; // sort đổi thứ tự → về trang đầu
+      updateSortIndicators();
+      renderScanTable(CURRENT_LOG);
+    });
+    updateSortIndicators();
+  }
+
+  /* ===== Topbar sticky (.view-topbar chung) — thêm viền/bóng khi dính ===== */
+  function updateStuckBars() {
+    var bars = document.querySelectorAll('.view-topbar');
+    if (!bars.length) return;
+    // FIX(2026-08-09): đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
+    var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
+    bars.forEach(function (bar) {
+      // bỏ qua topbar của view đang ẩn (rect = 0 → không đánh dấu stuck sai)
+      if (!bar.offsetParent) { bar.classList.remove('stuck'); return; }
+      var rect = bar.getBoundingClientRect();
+      bar.classList.toggle('stuck', rect.top <= hh);
+    });
+  }
+  function initScanTopbarStuck() {
+    window.addEventListener('scroll', updateStuckBars, { passive: true });
+    updateStuckBars();
+  }
+
+  /* Mobile/tablet (pointer: coarse): KHÔNG tự focus scan input — bàn phím ảo tự bật đè nửa
+     màn hình khi mở task quét. Kiosk desktop (chuột/barcode scanner) vẫn auto-focus như cũ. (2026-08-11) */
+  // R3 (audit 2026-08-11): pointer:coarse có thể đổi runtime (hybrid — gắn/tháo bàn phím rời)
+  // → theo dõi change thay vì đóng băng lúc startup, tránh auto-focus bật bàn phím ảo sai.
+  // Cache MQ 1 lần (media query là singleton per document — không gọi matchMedia 2 lần).
+  var MQ_COARSE = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+  var COARSE_POINTER = !!(MQ_COARSE && MQ_COARSE.matches);
+  if (MQ_COARSE && MQ_COARSE.addEventListener) MQ_COARSE.addEventListener('change', function (e) { COARSE_POINTER = e.matches; });
+  /* ===== Auto-focus loop (tham khảo v1): giữ focus vào scan input trên kiosk touch ===== */
+  function startAutoFocusLoop() {
+    if (COARSE_POINTER) return;  // mobile/tablet: không auto-focus — bàn phím không tự bật
+    if (AUTO_FOCUS_TIMER) return;
+    AUTO_FOCUS_TIMER = setInterval(function () {
+      // Mobile/tablet: nếu pointer thành coarse (hybrid device) → dừng hẳn, không focus
+      if (COARSE_POINTER) { stopAutoFocusLoop(); return; }
+      // S10: modal đang mở → không giật focus về scan input
+      if (anyModalOpen()) return;
+      var scanView = document.getElementById('viewScan');
+      var input = document.getElementById('scanInput');
+      // P2 (audit): viewScan hidden → không cần giữ focus (đang ở danh sách task);
+      // dừng luôn interval để không chạy vô ích mỗi 3s trên kiosk bật lâu.
+      if (!scanView || scanView.classList.contains('hidden')) { stopAutoFocusLoop(); return; }
+      if (input && !input.disabled) {
+        var active = document.activeElement;
+        if (active !== input && active && active.tagName !== 'SELECT' && active.tagName !== 'INPUT') {
+          input.focus();
+        }
+      }
+    }, 3000);
+  }
+  function stopAutoFocusLoop() {
+    if (AUTO_FOCUS_TIMER) { clearInterval(AUTO_FOCUS_TIMER); AUTO_FOCUS_TIMER = null; }
+  }
+
+  /* ===== Trạng thái mạng (header command center) ===== */
+  // P2: netDot phản ánh BOTH network interface (navigator.onLine) VÀ server GAS còn
+  // sống. navigator.onLine chỉ báo mạng — deploy fail/timeout/quota GAS không đổi nó,
+  // operator dễ bị đánh lừa thấy "Online" xanh trong khi app chết. Bất kỳ RPC fail
+  // (google.script.run → withFailureHandler) đều là server unreachable thật: business
+  // lỗi đã được server tự catch và trả về {ok:false} qua success handler.
+  var SERVER_OK = true;
+  function updateNetStatus(online) {
+    var dot = document.getElementById('netDot');
+    var txt = document.getElementById('netText');
+    if (!dot || !txt) return;
+    if (online === undefined) online = navigator.onLine;
+    var ok = SERVER_OK && online;
+    dot.className = 'net-dot' + (ok ? '' : ' offline');
+    txt.textContent = SERVER_OK ? (online ? 'Online' : 'Offline') : 'Server lỗi';
+  }
+  function markServerFail() {
+    if (!SERVER_OK) return;
+    SERVER_OK = false;
+    updateNetStatus();
+  }
+  function markServerOk() {
+    if (SERVER_OK) return;
+    SERVER_OK = true;
+    updateNetStatus();
+  }
+  function initNetworkStatus() {
+    updateNetStatus();
+    window.addEventListener('online', function () { updateNetStatus(true); });
+    window.addEventListener('offline', function () { updateNetStatus(false); });
+  }
+
+  /* ===== Background task indicator (header) — 2026-08-09 ===== */
+  // Bộ đếm tác vụ nền: scan queue + RPC scan pending + silent reload chờ.
+  // Hiển thị spinner + count ở header khi hệ thống đang xử lý nền — kiosk biết không nên
+  // tắt/refesh giữa chừng. Count = tổng tác vụ đang chạy (0 → ẩn indicator).
+  var BG_TASKS = { scan: 0, rpc: 0, silent: 0 };  // { scan: queue+processing, rpc: RPC nền, silent: silent reload }
+  function bgTasksTotal() {
+    return (BG_TASKS.scan + BG_TASKS.rpc + BG_TASKS.silent) || 0;
+  }
+  function updateBgIndicator() {
+    var el = document.getElementById('bgTaskIndicator');
+    if (!el) return;
+    var n = bgTasksTotal();
+    var cnt = document.getElementById('bgTaskCount');
+    if (cnt) cnt.textContent = n;
+    el.style.display = (n > 0) ? 'inline-flex' : 'none';
+  }
+  function initBgIndicator() {
+    updateBgIndicator();
+  }
+
+  /* ===== Spin loading overlay ===== */
+  function hideLoadingOverlay() {
+    var o = document.getElementById('loadingOverlay');
+    if (o) o.classList.add('hide');
+    hideModalSpin(); // F6: mọi success/fail path gọi hideLoadingOverlay → đóng modal spin luôn
+  }
+  function showLoadingOverlay() {
+    var o = document.getElementById('loadingOverlay');
+    if (!o) return;
+    o.classList.remove('hide');
+  }
+
+  // F6: modal spin cho nút chuyển trạng thái (Kết thúc / Chuyển điểm danh / Mở lại) —
+  // thay loadingOverlay toàn màn để thấy rõ đang xử lý ở ngay tâm màn, hết khi nhận phản hồi.
+  function showModalSpin(msg) {
+    var ov = document.getElementById('loadingOverlay');
+    if (ov && !ov.classList.contains('hide')) return;  // overlay toàn màn đang hiện — tránh 2 spinner đè nhau
+    var m = document.getElementById('spinModal');
+    var l = document.getElementById('spinModalMsg');
+    if (!m) return;
+    if (l) l.textContent = msg || 'Đang xử lý…';
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+  }
+  function hideModalSpin() {
+    var m = document.getElementById('spinModal');
+    if (!m) return;
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+  }
+
+  /* P2: watchdog an toàn — nếu RPC khởi động treo (cold start GAS / mạng chậm / offline),
+     vẫn ẩn overlay sau 8s + báo lỗi thay vì để app "chết" màn chờ. Chỉ arm 1 lần. */
+  var _startupOverlayTimer = null;
+  function startupOverlayWatchdog() {
+    if (_startupOverlayTimer) return;
+    _startupOverlayTimer = setTimeout(function () {
+      var o = document.getElementById('loadingOverlay');
+      if (o && !o.classList.contains('hide')) {
+        hideLoadingOverlay();
+        showToast('Tải dữ liệu chậm — đã bỏ qua màn chờ. Thử làm mới (⟳).', true);
+      }
+    }, 8000);
+  }
+
+  /* ===== VIEW STAFFDATA — danh sách 20 cột (thống kê đã tách viewStats riêng, 2026-08-11) ===== */
+  var STAFF_ROWS = [];          // toàn bộ StaffData (full 20 field) — cache client
+  var STAFF_LOADED_AT = 0;
+  var STAFF_MAX_AGE_MS = 60 * 60 * 1000; /* 1h — StaffData ít đổi (theo khung giờ), không fetch mỗi lần mở view */
+  var STATS = { station: '', date: '', department: '' };
+  var _statsChipsBound = false;       // đã bind event chips filter (1 lần)
+  var STAFF_TABLE_HEAD = ['No.','Date','Staff ID','Staff Name','Staff Email','Agency','Contract Type','Event ID','Matching Type','Gender','Department','Clock In Time','Clock Out Time','Actual Hours','Clock In Remark','Clock Out Remark','Slot Code','Workstation','Team','Station'];
+  var STAFF_PAGE_SIZE = 100;  // phân trang StaffData: 100 NV/trang (viewTasks dùng LIST_PAGE_SIZE=100 — 2026-08-11)
+  var STAFF_PAGE = 1;
+  var STAFF_FILTERS = {};  // filter phễu Excel viewStaff: field -> mảng giá trị đang chọn ([] = tất cả)
+  var TASK_FILTERS = {};   // filter phễu Excel viewTasks: field -> mảng giá trị đang chọn ([] = tất cả)
+  var _funnel = { col: null, ctx: null };  // dropdown phễu đang mở: col (field) + ctx ('staff'|'task')
+  // Cột filter được (tên header -> field trong row) — các cột còn lại không lọc (No/ID/Name/Email/giờ/remark)
+  var STAFF_FILTERABLE = {
+    'Agency': 'agency', 'Contract Type': 'contractType', 'Event ID': 'eventId', 'Matching Type': 'matchingType',
+    'Gender': 'gender', 'Department': 'department', 'Slot Code': 'slotCode', 'Workstation': 'workstation',
+    'Team': 'team', 'Station': 'station', 'Date': 'date'
+  };
+  // Cột filter được ở viewTasks (tên header -> field trong task) — Loại/Station/Team/Trạng thái
+  var TASK_FILTERABLE = {
+    'Loại': 'taskType', 'Station': 'station', 'Team': 'team', 'Trạng thái': 'status'
+  };
+  var FUNNEL_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>';
+
+
+  function loadStaffView(btn, silent, fromRefresh) {
+    var skel = document.getElementById('staffSkeleton');
+    var tbl = document.getElementById('staffTable');
+    var empty = document.getElementById('staffEmpty');
+    if (skel) skel.style.display = '';
+    if (tbl) tbl.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+    document.getElementById('staffMeta').textContent = 'Đang tải…';
+    setBtnBusy_(btn, '⟳ Đang tải…');
+    function restore() { restoreBtnLabel_(btn, '⟳ Làm mới'); }
+    google.script.run
+      .withSuccessHandler(function (res) {
+        restore();
+        if (fromRefresh) _releaseRefreshLock();  // Finding#1: RPC refresh (stats/data) kết thúc → nhả lock (no-op khi gọi độc lập)
+        if (!res || !res.ok) {
+          if (!silent) showToast((res && res.message) || 'Lỗi tải StaffData', true);
+          return;
+        }
+        STAFF_ROWS = safeArr(res.staff);
+        var now = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        var metaEl = document.getElementById('staffMeta');
+        if (metaEl) metaEl.textContent = STAFF_ROWS.length + ' NV · tải ' + now;
+        initStatsChipEvents();
+        renderStatsFilters();
+        renderStaffStats();
+        renderStaffDataTable();
+        STAFF_LOADED_AT = Date.now();
+        if (!silent) showToast('Đã cập nhật ' + STAFF_ROWS.length + ' NV · ' + now, false);
+        markServerOk();
+      })
+      .withFailureHandler(function (err) {
+        restore();
+        if (fromRefresh) _releaseRefreshLock();  // Finding#1: RPC refresh fail → nhả lock
+        markServerFail();
+        if (!silent) showToast('Lỗi tải StaffData: ' + err.message, true);
+        if (skel) skel.style.display = 'none';
+      })
+      .getStaffStatsApi();
+  }
+
+  // Mở Thống kê/Dữ liệu: chỉ fetch nếu CHƯA có data hoặc data đã cũ (theo khung giờ).
+  // StaffData ít đổi → không gọi server mỗi lần mở view (tránh flash + RPC thừa).
+  function ensureStaffData(force, silent) {
+    if (!force && STAFF_ROWS.length && (Date.now() - STAFF_LOADED_AT) < STAFF_MAX_AGE_MS) {
+      initStatsChipEvents();
+      renderStatsFilters();
+      renderStaffStats();
+      renderStaffDataTable();
+      return;
+    }
+    loadStaffView(null, silent);
+  }
+
+  /* ===== Âm thanh toggle (tham khảo v1) ===== */
+  var SOUND_ON = true;
+  try { SOUND_ON = localStorage.getItem('rc2_sound') !== '0'; } catch (e) {}
+  syncSoundIcon_();
+  // m5 (audit 2026-08-11): icon SVG đơn sắc currentColor thay emoji 🔊/🔇 — đổi hiển thị
+  // 2 SVG (on/off) thay vì textContent (khớp design language sidebar: SVG monochrome).
+  function syncSoundIcon_() {
+    var b = document.getElementById('btnSound');
+    if (!b) return;
+    var on = document.getElementById('icoSoundOn');
+    var off = document.getElementById('icoSoundOff');
+    if (on) on.classList.toggle('hidden', !SOUND_ON);
+    if (off) off.classList.toggle('hidden', SOUND_ON);
+    b.classList.toggle('muted', !SOUND_ON);
+    b.setAttribute('aria-pressed', SOUND_ON ? 'true' : 'false');
+    b.title = SOUND_ON ? 'Tắt âm thanh' : 'Bật âm thanh';
+  }
+  function toggleSound() {
+    SOUND_ON = !SOUND_ON;
+    try { localStorage.setItem('rc2_sound', SOUND_ON ? '1' : '0'); } catch (e) {}
+    syncSoundIcon_();
+    // (bỏ toast chuyển âm thanh — hiệu ứng nút đã đủ phản hồi)
+  }
+
+  /* ===== Âm thanh phản hồi quét (C1) — Web Audio API, không cần file =====
+     error: buzz thấp 200Hz · scan: beep cao 880Hz — gate bởi SOUND_ON */
+  var _audioCtx = null;
+  function playBeep(type) {
+    if (!SOUND_ON) return;
+    try {
+      if (!_audioCtx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        _audioCtx = new AC();
+      }
+      var ctx = _audioCtx;
+      if (ctx.state === 'suspended') ctx.resume();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'error') {
+        osc.type = 'square';
+        osc.frequency.value = 200;
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      }
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (e) { /* kiosk không hỗ trợ audio — bỏ qua */ }
+  }
+
+  /* ===== T-3: View management (7 view: home/stats/tasks/scan/staff/config/reports/about) ===== */
+  var lastViewBeforeAbout = 'viewTasks'; // remember where we came from
+  function showSection(sectionName) {
+    // Track last non-about view for back navigation
+    if (sectionName === 'viewAbout') {
+      var currentView = document.getElementById('viewScan');
+      if (currentView && !currentView.classList.contains('hidden')) {
+        lastViewBeforeAbout = 'viewScan';
+      } else {
+        lastViewBeforeAbout = 'viewTasks';
+      }
+    }
+    // Hide all views
+    document.getElementById('viewHome').classList.add('hidden');
+    document.getElementById('viewStats').classList.add('hidden');
+    document.getElementById('viewTasks').classList.add('hidden');
+    document.getElementById('viewScan').classList.add('hidden');
+    document.getElementById('viewStaff').classList.add('hidden');
+    document.getElementById('viewAbout').classList.add('hidden');
+    document.getElementById('viewConfig').classList.add('hidden');
+    document.getElementById('viewReports').classList.add('hidden');
+    // Stop auto-focus loop when leaving scan view
+    stopAutoFocusLoop();
+    // m3 (audit 2026-08-11): rời trang chủ → dừng đồng hồ 1Hz (đối xứng stopAutoFocusLoop).
+    // renderHomeClock tự restart khi vào lại viewHome (selectPage). Tránh interval + Intl 2 lần/s
+    // sống vĩnh viễn trên kiosk chạy 24/7.
+    if (sectionName !== 'viewHome' && CLOCK_TIMER) { clearInterval(CLOCK_TIMER); CLOCK_TIMER = null; }
+    // Show target view
+    var target = document.getElementById(sectionName);
+    if (target) {
+      target.classList.remove('hidden');
+      if (sectionName === 'viewScan') {
+        startAutoFocusLoop();
+      }
+      updateStuckBars();
+    }
+  }
+
+  /* ===== Attendance Portal — Sidebar & Page routing ===== */
+  var SIDEBAR_COMPACT = false;
+  try { SIDEBAR_COMPACT = localStorage.getItem('ap2_sidebar_compact') === '1'; } catch (e) {}
+
+  // Ánh xạ page → section id hiển thị
+  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', reports: 'viewReports', about: 'viewAbout' };
+  var ACTIVE_PAGE = 'home';
+
+  /* Đồng bộ active cho cả sidebar lẫn bottom nav mobile (2026-08-11) */
+  function setActiveNav_(page) {
+    var items = document.querySelectorAll('.side-item, .bottom-nav .nav-item');
+    for (var i = 0; i < items.length; i++) {
+      var on = items[i].getAttribute('data-page') === page;
+      items[i].classList.toggle('active', on);
+      items[i].setAttribute('aria-current', on ? 'page' : 'false');
+    }
+  }
+
+  function selectPage(page) {
+    var target = PAGE_VIEWS[page];
+    if (!target || !document.getElementById(target)) return;
+    // Guard (2026-08-13): rời trang Cấu hình khi còn thay đổi chưa lưu → confirm
+    if (page !== 'config' && ACTIVE_PAGE === 'config' && CFG_DIRTY) {
+      showConfirm('Chưa lưu cấu hình', 'Có thay đổi cấu hình chưa lưu — rời trang sẽ mất thay đổi này. Tiếp tục?', function () {
+        CFG_DIRTY = false;
+        syncCfgSaveBtn_();
+        selectPage(page);
+      });
+      return;
+    }
+    // Cập nhật active menu — sidebar + bottom nav mobile
+    setActiveNav_(page);
+    ACTIVE_PAGE = page;
+    showSection(target);
+    // Lazy-load theo page
+    if (page === 'home' && typeof renderHomeClock === 'function') { renderHomeClock(); }
+    if ((page === 'stats' || page === 'data') && typeof ensureStaffData === 'function') { ensureStaffData(false); }
+    if (page === 'config' && typeof loadConfigView === 'function' && !CFG_LOADED) { loadConfigView(); }
+  }
+
+  function toggleSidebarCompact() {
+    SIDEBAR_COMPACT = !SIDEBAR_COMPACT;
+    document.body.classList.toggle('side-collapsed', SIDEBAR_COMPACT);
+    try { localStorage.setItem('ap2_sidebar_compact', SIDEBAR_COMPACT ? '1' : '0'); } catch (e) {}
+  }
+
+  function initSidebar() {
+    document.body.classList.toggle('side-collapsed', SIDEBAR_COMPACT);
+  }
+
+  /* Đồng hồ + ngày trang chủ — realtime Asia/Ho_Chi_Minh (khớp fmtDate) */
+  var CLOCK_TIMER = null;
+  // Finding#2 (2026-08-12): hoist formatter — trước đây tạo 2 Intl.DateTimeFormat MỖI tick 1s
+  // (kiosk ở home 24/7 = ~172k allocation/ngày). Giờ format TÁI DÙNG _fmtTZ (đã hoisted ở UTILITIES);
+  // chỉ thêm 1 formatter ngày — cùng pattern _fmtTZ (IIFE + try/catch).
+  var _clockFmtD = (function () {
+    try { return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }); }
+    catch (e) { return null; }
+  })();
+  function tickHomeClock() {
+    var el = document.getElementById('homeClock');
+    var de = document.getElementById('homeDate');
+    if (!el || !de) return;
+    var now = new Date();
+    // Format giờ theo TZ HCM — tái dùng _fmtTZ (như fmtDate), mỗi tick chỉ gọi .format()
+    el.textContent = _fmtTZ ? _fmtTZ.format(now) : now.toLocaleTimeString('vi-VN');
+    de.textContent = _clockFmtD ? _clockFmtD.format(now) : now.toLocaleDateString('vi-VN');
+  }
+  function renderHomeClock() {
+    tickHomeClock();
+    if (CLOCK_TIMER) clearInterval(CLOCK_TIMER);
+    CLOCK_TIMER = setInterval(tickHomeClock, 1000);
+  }
+
+</script>

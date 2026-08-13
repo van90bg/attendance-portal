@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TaskService.gs — Nghiệp vụ task (tạo/đóng/chuyển phase) + pre-fill log.
  *
  * 2-phase attendance: tạo task → phase1 (Mở, quét Giờ có mặt) → phase2 (Điểm danh,
@@ -55,7 +55,7 @@ function createReconcileTask(input) {
   const filterContractTypes = Array.isArray(input && input.contractType) ? input.contractType : (contractType ? [contractType] : []);
   const date = String((input && input.date) || '').trim();  // ngày vào làm (optional — lọc theo StaffData Date)
   // P2-8: createdBy PHẢI từ server session — KHÔNG tin input.client (tránh giả mạo người tạo).
-  // Deploy "Anyone within @spxexpress.com" → getActiveUser() trả email người đăng nhập thật.
+  // Deploy executeAs USER_DEPLOYING + access DOMAIN → getActiveUser() trả email người truy cập thật.
   const createdBy = getActiveEmail_() || 'web';
 
   // 2026-08-07: CẢ 2 luồng (reconcile + FREE) đều cần station.

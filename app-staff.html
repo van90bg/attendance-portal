@@ -1,0 +1,244 @@
+<script>
+  /* ============================================================
+   * MODULE: app-staff.html — viewStaff (Dữ liệu chấm công) — bảng StaffData 20 cột + filter phễu Excel
+   * Tách từ app.html (2026-08-13 — P2-2 tách module client).
+   * Nạp qua index.html (directive include app-staff) — script block
+   * riêng, chung global scope với các module khác (thứ tự include quan trọng).
+   * ============================================================ */
+  // ==== Bảng danh sách StaffData (phải) ====
+  function renderStaffDataTable() {
+    var q = (document.getElementById('staffSearch') || {}).value || '';
+    var ql = q.trim().toLowerCase();
+    var rows = STAFF_ROWS.filter(function (r) {
+      if (!funnelMatches_(STAFF_FILTERS, r)) return false;
+      if (!ql) return true;
+      var hay = (String(r.staffId||'') + ' ' + String(r.staffName||'') + ' ' + String(r.agency||'') + ' ' + String(r.team||'')).toLowerCase();
+      return hay.indexOf(ql) !== -1;
+    });
+    var cnt = document.getElementById('staffCount');
+    if (cnt) cnt.textContent = rows.length + ' NV';
+    var skel = document.getElementById('staffSkeleton');
+    var tbl = document.getElementById('staffTable');
+    var empty = document.getElementById('staffEmpty');
+    var head = document.getElementById('staffTableHead');
+    var body = document.getElementById('staffTableBody');
+    if (!tbl || !body) return;
+    if (!rows.length) {
+      body.innerHTML = '';
+      if (tbl) tbl.style.display = 'none';
+      if (empty) empty.style.display = '';
+      if (skel) skel.style.display = 'none';
+      // 0 kết quả → ẩn luôn thanh phân trang cũ (không để dính '101–158 / 158' trên bảng trống)
+      var pagEl = document.getElementById('staffPagination');
+      if (pagEl) { pagEl.innerHTML = ''; pagEl.style.display = 'none'; }
+      return;
+    }
+    if (head) {
+      var headHtml = '<tr>';
+      for (var hi = 0; hi < STAFF_TABLE_HEAD.length; hi++) {
+        var h = STAFF_TABLE_HEAD[hi];
+        var field = STAFF_FILTERABLE[h];
+        if (field) {
+          var hasF = hasFunnel_(STAFF_FILTERS, field);
+          headHtml += '<th scope="col" class="th-filter" data-col="' + field + '"><span class="th-label">' + esc(h) + '</span><button type="button" class="th-funnel' + (hasF ? ' on' : '') + '" onclick="toggleFunnel(\'' + field + '\', event, \'staff\')" aria-label="Lọc ' + esc(h) + '" title="Lọc ' + esc(h) + '">' + FUNNEL_SVG + '</button></th>';
+        } else {
+          headHtml += '<th scope="col">' + esc(h) + '</th>';
+        }
+      }
+      headHtml += '</tr>';
+      head.innerHTML = headHtml;
+    }
+    // P1-fix 2026-08-09: trước đây dùng `staff.map` — biến KHÔNG tồn tại (ReferenceError)
+    // → renderStaffDataTable luôn throw → bảng NV không bao giờ hiện. Phải lọc theo `rows`
+    // (đã filter theo ô tìm kiếm) chứ không phải STAFF_ROWS.
+    // Phân trang: slice theo STAFF_PAGE (100 NV/trang)
+    var total = rows.length;
+    var totalPages = Math.max(1, Math.ceil(total / STAFF_PAGE_SIZE));
+    if (STAFF_PAGE > totalPages) STAFF_PAGE = totalPages;
+    if (STAFF_PAGE < 1) STAFF_PAGE = 1;
+    var startIdx = (STAFF_PAGE - 1) * STAFF_PAGE_SIZE;
+    var pageRows = rows.slice(startIdx, startIdx + STAFF_PAGE_SIZE);
+    var trs = pageRows.map(function (r, i) {
+      return '<tr>' +
+        '<td>' + esc(r.no || (startIdx + i + 1)) + '</td>' +
+        '<td>' + esc(r.date) + '</td>' +
+        '<td><b>' + esc(r.staffId) + '</b></td>' +
+        '<td>' + esc(r.staffName) + '</td>' +
+        '<td>' + esc(r.staffEmail) + '</td>' +
+        '<td>' + esc(r.agency) + '</td>' +
+        '<td>' + esc(r.contractType) + '</td>' +
+        '<td>' + esc(r.eventId) + '</td>' +
+        '<td>' + esc(r.matchingType) + '</td>' +
+        '<td>' + esc(r.gender) + '</td>' +
+        '<td>' + esc(r.department) + '</td>' +
+        '<td>' + fmtClockHMS(r.cardIn) + '</td>' +
+        '<td>' + fmtClockHMS(r.cardOut) + '</td>' +
+        '<td>' + esc(r.actualHours) + '</td>' +
+        '<td>' + esc(r.cardInRemark) + '</td>' +
+        '<td>' + esc(r.cardOutRemark) + '</td>' +
+        '<td>' + esc(r.slotCode) + '</td>' +
+        '<td>' + esc(r.workstation) + '</td>' +
+        '<td>' + esc(r.team) + '</td>' +
+        '<td>' + esc(r.station) + '</td>' +
+        '</tr>';
+    }).join('');
+    body.innerHTML = trs;
+    if (tbl) tbl.style.display = '';
+    if (empty) empty.style.display = 'none';
+    if (skel) skel.style.display = 'none';
+    renderPaginator_('staffPagination', total, STAFF_PAGE, 'goStaffPage', STAFF_PAGE_SIZE);
+  }
+
+  /* ===== Filter phễu Excel dùng chung (viewStaff + viewTasks, 2026-08-11): funnel header + dropdown checkbox ===== */
+  // Mỗi bảng 1 context: nguồn rows (options), filter map, render lại, selector thead
+  var STAFF_FILTER_CTX = {
+    key: 'staff', filters: STAFF_FILTERS,
+    rows: function () { return STAFF_ROWS; },
+    render: function () { STAFF_PAGE = 1; renderStaffDataTable(); },
+    headSel: '#staffTableHead'
+  };
+  var TASK_FILTER_CTX = {
+    key: 'task', filters: TASK_FILTERS,
+    // rows theo mode: search task → LAST_TASK_SEARCH (badge/options khớp dataset đang hiển thị)
+    rows: function () {
+      return LIST_MODE === 'task' ? safeArr(LAST_TASK_SEARCH) : safeArr(LAST_TASK_LIST.tasks);
+    },
+    render: function () {
+      LIST_PAGE = 1;
+      if (LIST_MODE === 'task') renderTaskList_(safeArr(LAST_TASK_SEARCH));
+      else renderTaskList_(safeArr(LAST_TASK_LIST.tasks));
+    },
+    headSel: '#taskListHead'
+  };
+  function funnelCtx_(key) { return key === 'task' ? TASK_FILTER_CTX : STAFF_FILTER_CTX; }
+  function hasFunnel_(filters, f) { return filters[f] && filters[f].length > 0; }
+  function funnelMatches_(filters, r) {
+    for (var f in filters) {
+      var sel = filters[f];
+      if (!sel || !sel.length) continue;
+      if (sel.indexOf(String((r && r[f]) || '')) === -1) return false;
+    }
+    return true;
+  }
+  function funnelOptions_(rows, f) {
+    var seen = {}; var out = [];
+    (rows || []).forEach(function (r) {
+      var v = String((r && r[f]) || '').trim();
+      if (v && !seen[v]) { seen[v] = true; out.push(v); }
+    });
+    return out.sort();
+  }
+  // Badge count mỗi option (2026-08-11): số row khớp các filter ĐANG ÁP Ở CỘT KHÁC
+  // (không tính cột đang mở — user đang chọn trong cột đó). Giống Excel: count theo
+  // context lọc hiện tại → user biết chọn option sẽ còn bao nhiêu kết quả.
+  function funnelOptionCounts_(rows, field, filters) {
+    var others = {};
+    var hasOther = false;
+    for (var f in filters) {
+      if (f === field) continue;                 // bỏ cột đang mở
+      if (filters[f] && filters[f].length) { others[f] = filters[f]; hasOther = true; }
+    }
+    var counts = {};
+    (rows || []).forEach(function (r) {
+      if (hasOther && !funnelMatches_(others, r)) return;
+      var v = String((r && r[field]) || '').trim();
+      if (!v) return;
+      counts[v] = (counts[v] || 0) + 1;
+    });
+    return counts;
+  }
+  function toggleFunnel(field, ev, key) {
+    if (ev && ev.stopPropagation) ev.stopPropagation();
+    var panel = document.getElementById('staffFilterPanel');
+    var th = ev && ev.target ? ev.target.closest('th') : null;
+    if (!panel || !th) return;
+    var ctx = funnelCtx_(key);
+    if (_funnel.col === field && _funnel.ctx === ctx && panel.style.display !== 'none') { closeFunnel(); return; }
+    _funnel.col = field; _funnel.ctx = ctx;
+    var r = th.getBoundingClientRect();
+    var lbl = th.querySelector('.th-label');
+    document.getElementById('sfpTitle').textContent = 'Lọc: ' + (lbl ? lbl.textContent : field);
+    var sel = ctx.filters[field] || [];
+    renderFunnelOptions_(field, sel);
+    panel.style.display = '';
+    panel.style.left = Math.max(8, Math.min(r.left, window.innerWidth - Math.min(panel.offsetWidth || 240, 260))) + 'px';
+    // chong tran day viewport: th o cuoi bang (thead sticky) -> mo len tren
+    var top = r.bottom + 4;
+    var ph = panel.offsetHeight || 260;
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 4);
+    panel.style.top = top + 'px';
+    // nút Xoá lọc hiện khi có filter đang áp
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = hasFunnel_(ctx.filters, field) ? 'visible' : 'hidden';
+    // U4 (review 2026-08-11): focus vào checkbox đầu — bàn phím không phải tab qua cả bảng
+    var firstOpt = document.querySelector('#sfpBody input[type="checkbox"]');
+    if (firstOpt) firstOpt.focus();
+  }
+  function renderFunnelOptions_(field, sel) {
+    var ctx = _funnel.ctx;
+    var rows = ctx.rows();
+    var opts = funnelOptions_(rows, field);
+    var counts = funnelOptionCounts_(rows, field, ctx.filters);
+    var html = opts.map(function (v) {
+      var checked = sel.indexOf(v) !== -1;
+      var zero = !counts[v] ? ' zero' : '';
+      return '<label class="sfp-opt' + zero + '"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onFunnelCheck(\'' + field + '\', this, \'' + ctx.key + '\')">' +
+        '<span class="sfp-label">' + esc(v) + '</span>' +
+        '<span class="sfp-count">' + (counts[v] || 0) + '</span></label>';
+    }).join('') || '<div class="sfp-empty">(không có giá trị)</div>';
+    document.getElementById('sfpBody').innerHTML = html;
+  }
+  function onFunnelCheck(field, cb, key) {
+    var ctx = funnelCtx_(key);
+    var sel = (ctx.filters[field] || []).slice();
+    var v = cb.getAttribute('data-val');
+    if (cb.checked) { if (sel.indexOf(v) === -1) sel.push(v); }
+    else { sel = sel.filter(function (x) { return x !== v; }); }
+    ctx.filters[field] = sel;
+    ctx.render();
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = hasFunnel_(ctx.filters, field) ? 'visible' : 'hidden';
+    // cập nhật trạng thái funnel icon
+    var th = document.querySelector(ctx.headSel + ' th[data-col="' + field + '"]');
+    if (th) { var fb = th.querySelector('.th-funnel'); if (fb) fb.classList.toggle('on', hasFunnel_(ctx.filters, field)); }
+  }
+  function setFunnelAll(field, on, key) {
+    var ctx = funnelCtx_(key);
+    ctx.filters[field] = on ? funnelOptions_(ctx.rows(), field) : [];
+    ctx.render();
+    renderFunnelOptions_(field, ctx.filters[field]);
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = on ? 'visible' : 'hidden';
+  }
+  function clearFunnel() {
+    if (!_funnel.col || !_funnel.ctx) return;
+    var ctx = _funnel.ctx;
+    ctx.filters[_funnel.col] = [];
+    ctx.render();
+    renderFunnelOptions_(_funnel.col, []);
+    var clearBtn = document.getElementById('sfpClear');
+    if (clearBtn) clearBtn.style.visibility = 'hidden';
+  }
+  function closeFunnel() {
+    var panel = document.getElementById('staffFilterPanel');
+    if (panel) panel.style.display = 'none';
+    _funnel.col = null; _funnel.ctx = null;
+  }
+  document.addEventListener('click', function (e) {
+    var panel = document.getElementById('staffFilterPanel');
+    if (!panel || panel.style.display === 'none') return;
+    if (panel.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.th-funnel')) return;
+    closeFunnel();
+  });
+  // đóng filter khi cuộn bảng (thead sticky — panel fixed không bám theo).
+  // Ngoại lệ: scroll TRONG panel (.sfp-body cuộn danh sách option) — KHÔNG đóng.
+  // Trước đây capture-phase bắt mọi scroll → cuộn danh sách là panel tự đóng, không thao tác được (2026-08-11)
+  document.addEventListener('scroll', function (e) {
+    if (!_funnel.col) return;
+    var t = e.target;
+    if (t && t.nodeType === 1 && t.closest && t.closest('.staff-filter-panel')) return;
+    closeFunnel();
+  }, true);
+
+</script>

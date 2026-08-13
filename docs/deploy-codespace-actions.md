@@ -1,7 +1,7 @@
 # Deploy RollCall v2 bằng Codespace + clasp
 
-> Branch `main` → script: `1HmmGcLI8JBUU53JtyDY8qogYDIUpJMXa7PD3dW_XemBe_pTUMzhPTVED`
-> Sheet: `1NQQnLnVDITrUIII59ibk6vVfuDnMHKqsDtfGmHgjNYo` (HR tự đồng bộ vào StaffData)
+> Branch `main` → script: `<SCRIPT_ID>` (Script Properties `GAS_SCRIPT_ID` — KHÔNG commit ID production vào repo)
+> Sheet: `<SPREADSHEET_ID>` — set Script Property `SPREADSHEET_ID` (HR tự đồng bộ vào StaffData)
 > ⚠️ Branch `lobe` đã gộp vào `main` và xoá (2026-08-03) — `main` là nguồn duy nhất.
 
 ## Cách 1: Deploy thủ công bằng clasp (Codespace)

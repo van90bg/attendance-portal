@@ -7,7 +7,7 @@
  *
  * Cách hoạt động:
  *   1. Trích mọi class token từ selector trong styles.html (bỏ @keyframes, data-URI SVG).
- *   2. Gom nguồn dùng: index.html + app.html với các pattern:
+ *   2. Gom nguồn dùng: index.html + app-*.html (7 module client) với các pattern:
  *      - class="..." (HTML tĩnh + chuỗi JS literal)
  *      - classList.add/remove/toggle/contains/replace('x')
  *      - className = 'x' / 'a b' (literal)
@@ -26,9 +26,17 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
+/** Đọc toàn bộ module client app-*.html (app.html tách module — P2-2 2026-08-13). */
+function readAppParts() {
+  return fs.readdirSync(ROOT)
+    .filter((f) => /^app-.*\.html$/.test(f))
+    .sort()
+    .map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8'))
+    .join('\n');
+}
 const css = fs.readFileSync(path.join(ROOT, 'styles.html'), 'utf8');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const js = fs.readFileSync(path.join(ROOT, 'app.html'), 'utf8');
+const js = readAppParts(); // app.html tách module app-*.html (P2-2 2026-08-13)
 
 // ---- 1. Class token từ CSS selector ----
 // Bỏ comment + data-URI (url("data:...svg...")) để không bắt xmlns/w3.org làm class

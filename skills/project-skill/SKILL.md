@@ -14,8 +14,8 @@ description: Attendance Portal (RollCall v2) — project skill. Use for ANY edit
 
 - Local: `C:\Users\Van90BG\Documents\AppScript\RollCall_2_deploy` · Remote `main` (CI self-clasp).
 - **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug (`gh run list --limit 5`, đối chiếu `.head_sha`).
-- Test: `npm run test` = 114 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
-- Frontend (tách 3 file 2026-08-11): `index.html` (HTML + `<?!= include() ?>` GAS template) + `styles.html` (CSS) + `app.html` (JS) — cả 3 CRLF. Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService `.gs`. Test local: `node scripts/build-local.js` → `index.local.html` (trình duyệt không render template).
+- Test: `npm run test` = 124 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
+- Frontend (tách module 2026-08-13): `index.html` (HTML + `<?!= include() ?>` GAS template) + `styles.html` (CSS) + 7 module JS `app-*.html` (core/stats/staff/modals/config/tasks/scan — thay app.html 3665 dòng) — cả nguồn GAS CRLF. Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService `.gs`. Test local: `node scripts/build-local.js` → `index.local.html` (trình duyệt không render template).
 
 ## 2. Shell: Attendance Portal (2026-08-09)
 
@@ -125,22 +125,22 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 ## 10. GAS HtmlService — KHÔNG viết wrapper HTML trong index.html (2026-08-10)
 
 - **Root cause khoảng trống trên header (đã fix commit `89462c0`)**: `Code.gs` dùng `HtmlService.createHtmlOutputFromFile('index')` + `setTitle(WEB_APP.PAGE_TITLE)` + `addMetaTag(...)` — GAS TỰ dựng head/body riêng rồi nhét toàn bộ nội dung file index.html (kể cả `<!DOCTYPE>`, `<html>`, `<head>`, `<body>` tự viết) làm text thô vào body GAS tạo. Parser HTML5 gặp `<head>` thứ 2 trong body → bỏ qua thẻ head nhưng meta/base/title/style con vẫn chèn thẳng vào body trước `<header>` thật → cấu trúc lệch, khoảng trống phía trên header. Mở local thì parse chuẩn nên KHÔNG thấy lỗi — bug chỉ xuất hiện trên GAS.
-- **Chuẩn**: index.html chỉ chứa `<?!= include('styles') ?>` + nội dung, KHÔNG có `<!DOCTYPE>/<html>/<head>/<body>/<base>/<title>/<meta>`; CSS/JS nằm ở `styles.html`/`app.html`. Title/meta phải khai qua Code.gs: `.setTitle(...)` + `.addMetaTag(...)`.
+- **Chuẩn**: index.html chỉ chứa `<?!= include('styles') ?>` + các `<?!= include('app-xxx') ?>` + nội dung, KHÔNG có `<!DOCTYPE>/<html>/<head>/<body>/<base>/<title>/<meta>`; CSS/JS nằm ở `styles.html`/`app-*.html`. Title/meta phải khai qua Code.gs: `.setTitle(...)` + `.addMetaTag(...)`.
 - **BOM regression 2026-08-11**: BOM tái xuất hiện ở `673d01a` (script write `utf-8-sig`) → khoảng trống header trên GAS; đã xóa + thêm test guard '3 file template không BOM' (index-html-parse). Mọi batch sau BẮT BUỘC write `utf-8` (KHÔNG sig — AGENTS.md §3).
 - **GAS addMetaTag whitelist (fix commit `a2fbaa0`)**: chỉ chấp nhận một số meta nhất định — `viewport` OK; `color-scheme`/`theme-color` bị từ chối (lỗi runtime `The meta tag you specified is not allowed in this context`). Thay thế: `color-scheme` → CSS `:root { color-scheme: light }` (tương đương, không cần API); `theme-color` bỏ (cosmetic).
 - Khi thêm meta/title mới: khai qua Code.gs hoặc CSS, KHÔNG viết trong index.html.
 
-## 11. Line endings — 3 file template CRLF 100% + no-BOM (từ 2026-08-10; tách 3 file b6992b3)
+## 11. Line endings — mọi nguồn GAS CRLF 100% + no-BOM (từ 2026-08-10; chuẩn hóa toàn repo 2026-08-13)
 
-- Working tree (git `core.autocrlf=true`): MỌI file — kể cả `.gs` — là **CRLF trên disk** (git lưu LF trong repo, checkout tự chuyển CRLF). Đo thật 2026-08-11: Code.gs CRLF=334/LF-only=0; 3 file template — index.html CRLF=449, styles.html CRLF=1020, app.html CRLF=2855 (index.html nguyên khối cũ 4046 dòng đã tách).
-- Cả 3 file template = **CRLF 100% + no-BOM** (BOM → khoảng trống header khi GAS serve; guard test `index-html-parse` kiểm mọi file). `.gitattributes` pin `styles.html text eol=crlf`.
-- Edit 3 file template: Python pattern mục 8 bắt buộc (anchor có `\r\n`), write với `newline=''` — KHÔNG dùng edit tool trực tiếp nếu làm mất CRLF.
-- Verify sau edit: `data.count(b'\r\n')` giữ nguyên (449/1020/2855); nếu LF-only > 0 → normalize `data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')`.
+- Working tree: MỌI file nguồn GAS — kể cả `.gs` — là **CRLF trên disk**. `.gitattributes` pin `*.gs` + `index.html`/`styles.html`/`app-*.html` với `text eol=crlf` → index lưu LF, checkout ra CRLF trên mọi platform (không phụ thuộc `core.autocrlf`).
+- Mọi file nguồn = **CRLF 100% + no-BOM** (BOM → khoảng trống header khi GAS serve — lesson 9982293; guard test `tests/eol-bom.test.js` + `index-html-parse` kiểm toàn bộ `.gs` + template). 2026-08-13 đã xóa BOM khỏi Code.gs/TaskService.gs/SettingsService.gs + README/AGENTS.
+- Edit file nguồn: Python pattern mục 8 bắt buộc (anchor có `\r\n`), write với `newline=''` — KHÔNG dùng edit tool trực tiếp nếu làm mất CRLF.
+- Verify sau edit: guard test nói trên (nếu LF-only > 0 → normalize `data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')`).
 - `.gs` files: KHÔNG normalize sang LF — giữ CRLF như checkout (nếu LF-only > 0 → normalize về CRLF; tránh diff khổng lồ).
 
 ## Verify workflow
 
-- Logic changes → `npm run test` (114/114 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (124/124 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
 - **Checklist 3 audit (2026-08-11) — chạy sau MỌI batch**:
   - `npm run test:css` — dead CSS class (styles.html vs index/app + JS render động); exit 1 nếu có dead.
   - `npm run test:gs` — hàm/const/API dead trong 14 file .gs (đối chiếu gs + index/app + mock + tests + scripts); exit 1 nếu dead/treo.
