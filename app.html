@@ -1429,7 +1429,7 @@
   function loadConfigView(btn) {
     // Guard (2026-08-13): bấm 'Làm mới' khi còn thay đổi chưa lưu → confirm
     if (CFG_DIRTY && btn) {
-      showConfirm('Chưa lưu cấu hình', 'Làm mới sẽ mất thay đổi cấu hình chưa lưu. Tiếp tục?', function () {
+      showConfirm('Chưa lưu cấu hình', 'Hủy bỏ thay đổi sẽ mất toàn bộ thay đổi cấu hình chưa lưu. Tiếp tục?', function () {
         CFG_DIRTY = false;
         syncCfgSaveBtn_();
         loadConfigView(null);
@@ -1447,7 +1447,7 @@
     if (roleWrap) roleWrap.style.display = 'none';
     if (saveBtn) saveBtn.style.display = 'none';
     setBtnBusy_(btn, '⟳ Đang tải…');
-    function restore() { restoreBtnLabel_(btn, '⟳ Làm mới'); }
+    function restore() { restoreBtnLabel_(btn, CFG_DIRTY ? '✕ Hủy thay đổi' : '⟳ Làm mới'); syncCfgSaveBtn_(); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
@@ -1498,6 +1498,9 @@
   function deepCopyCfg_() { return JSON.parse(JSON.stringify(CFG_STATE)); }
 
   function renderConfigForm(s) {
+    // Hủy bỏ edit dở (group input + role) khi reload — không commit vào state mới (2026-08-13)
+    if (CFG_EDIT_TIMER) { clearTimeout(CFG_EDIT_TIMER); CFG_EDIT_TIMER = null; }
+    if (ROLE_EDIT_TIMER) { clearTimeout(ROLE_EDIT_TIMER); ROLE_EDIT_TIMER = null; }
     CFG_STATE = s || {};
     CFG_SNAPSHOT = deepCopyCfg_();
     CFG_DIRTY = false;
@@ -1516,7 +1519,16 @@
   }
   function syncCfgSaveBtn_() {
     var b = document.getElementById('cfgSaveBtn');
-    if (b) b.classList.toggle('cfg-save-dirty', !!CFG_DIRTY);
+    if (b) {
+      b.classList.toggle('cfg-save-dirty', !!CFG_DIRTY);
+      b.disabled = !CFG_DIRTY;  // B3 (2026-08-13): nút Lưu tắt khi không có thay đổi chưa lưu
+    }
+    var r = document.getElementById('cfgRefreshBtn');
+    if (r) {
+      // B6 (2026-08-13): đổi nhãn Làm mới → Hủy thay đổi khi còn chưa lưu — rõ hơn confirm
+      r.textContent = CFG_DIRTY ? '✕ Hủy thay đổi' : '⟳ Làm mới';
+      r.classList.toggle('cfg-refresh-dirty', !!CFG_DIRTY);
+    }
   }
 
   function renderCfgList() {
@@ -1565,6 +1577,7 @@
   }
   // Mặc định (default) inline — thay select riêng (2026-08-12): mỗi item có nút ◉/◎ + badge
   function toggleCfgDefault(group, val) {
+    flushGroupEdit_();  // B1: chốt edit dở trước khi render lại
     var dk = CFG_DEFAULT_KEY[group];
     if (!dk) return;
     CFG_STATE[dk] = (CFG_STATE[dk] === val) ? '' : val;
@@ -1596,6 +1609,7 @@
     if (!src || src.group !== group) return;
     if (to === -1) to = safeArr(CFG_STATE[group]).length;  // thả cuối group
     if (src.from === to) return;
+    flushGroupEdit_();  // B1: chốt edit dở trước khi render lại (drop khi đang sửa item khác)
     var list = safeArr(CFG_STATE[group]).slice();
     var v = list.splice(src.from, 1)[0];
     list.splice(to, 0, v);
@@ -1616,6 +1630,7 @@
   // Sửa item group: thay item idx bằng input + Huỷ — commit khi blur/Enter (2026-08-13:
   // bỏ nút Lưu inline; thay đổi chỉ vào state cục bộ, chờ 'Lưu cấu hình' để ghi server).
   function editCfgGroupItem(group, idx) {
+    flushGroupEdit_();  // B1: chốt edit group đang dở trước khi mở cái khác / thêm mới
     var box = document.getElementById('cfgList');
     if (!box) return;
     var list = safeArr(CFG_STATE[group]);
@@ -1631,7 +1646,10 @@
     if (inp) {
       inp.focus(); inp.select();
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') commitCfgGroupItem(group, idx); });
-      inp.addEventListener('blur', function () { CFG_EDIT_TIMER = setTimeout(function () { commitCfgGroupItem(group, idx); }, 180); });
+      inp.addEventListener('blur', function () {
+        if (!document.contains(inp)) return;  // input đã bị gỡ (flush/render lại) → không commit nhầm (2026-08-13)
+        CFG_EDIT_TIMER = setTimeout(function () { commitCfgGroupItem(group, idx); }, 180);
+      });
     }
   }
 
@@ -1654,14 +1672,40 @@
     list[idx] = v;
     CFG_STATE[group] = list;
     renderCfgList();
+    var firstDirty = !CFG_DIRTY;
+    markCfgDirty_();
+    if (firstDirty) showToast('Đã chốt — chưa lưu. Bấm “Lưu cấu hình” khi xong', false);  // B5 (2026-08-13)
+  }
+
+  // B1 (2026-08-13): chốt ngay edit group đang mở (không chờ blur 180ms) — gọi trước mọi thao
+  // tác sẽ render lại danh sách (Sửa/Thêm/Default/Drop/Role/Save) để không mất input đang gõ.
+  function flushGroupEdit_() {
+    if (CFG_EDIT_TIMER) { clearTimeout(CFG_EDIT_TIMER); CFG_EDIT_TIMER = null; }
+    var inp = document.getElementById('cfgGroupEditInput');
+    if (!inp) return;
+    var item = inp.closest('.cfg-item-group');
+    if (!item) return;
+    var group = item.getAttribute('data-group');
+    var idx = parseInt(item.getAttribute('data-idx'), 10);
+    if (!group || isNaN(idx)) return;
+    var list = safeArr(CFG_STATE[group]).slice();
+    list[idx] = inp.value.trim();
+    CFG_STATE[group] = list;
+    renderCfgList();
     markCfgDirty_();
   }
 
+  // B4 (2026-08-13): xoá mục đang là Mặc định → cảnh báo trong confirm + xoá luôn default theo.
   function deleteCfgGroupItem(group, idx) {
-    showConfirm('Xoá mục', 'Xoá "' + String(safeArr(CFG_STATE[group])[idx]) + '" khỏi ' + groupLabel_(group) + '?', function () {
-      var list = safeArr(CFG_STATE[group]).slice();
-      list.splice(idx, 1);
-      CFG_STATE[group] = list;
+    flushGroupEdit_();  // B1: chốt edit dở trước khi hỏi xoá
+    var list = safeArr(CFG_STATE[group]);
+    var val = String(list[idx] === undefined ? '' : list[idx]);
+    var isDef = isDefault_(group, val);
+    showConfirm('Xoá mục', 'Xoá "' + val + '" khỏi ' + groupLabel_(group) + (isDef ? ' — mục này đang là Mặc định, sẽ bỏ mặc định theo.' : '?'), function () {
+      var list2 = safeArr(CFG_STATE[group]).slice();
+      list2.splice(idx, 1);
+      CFG_STATE[group] = list2;
+      if (isDef && CFG_DEFAULT_KEY[group]) CFG_STATE[CFG_DEFAULT_KEY[group]] = '';
       renderCfgList();
       markCfgDirty_();
     });
@@ -1767,6 +1811,7 @@
       if (e.key === 'Enter') { e.preventDefault(); commitRoleEdit(); }
     });
     em.addEventListener('blur', function () {
+      if (!document.contains(em)) return;  // input đã bị gỡ (flush/render lại) → không commit nhầm (2026-08-13)
       ROLE_EDIT_TIMER = setTimeout(commitRoleEdit, 180);
     });
     setTimeout(function () { em.focus(); if (em.value) em.select(); }, 0);
@@ -1775,11 +1820,13 @@
 
   function startRoleEdit(email) {
     if (ROLE_EDIT) flushRoleEdit_();  // chốt edit đang dở trước khi chuyển
+    flushGroupEdit_();  // B1: chốt edit group đang dở
     ROLE_EDIT = { email: email, isNew: false };
     renderRoleRows();
   }
   function addRoleRow() {
     if (ROLE_EDIT) flushRoleEdit_();
+    flushGroupEdit_();  // B1: chốt edit group đang dở
     ROLE_EDIT = { email: '', isNew: true };
     renderRoleRows();
   }
@@ -1804,7 +1851,9 @@
     CFG_STATE.roleMap = map;
     ROLE_EDIT = null;
     renderRoleRows();
+    var firstDirty = !CFG_DIRTY;
     markCfgDirty_();
+    if (firstDirty) showToast('Đã chốt — chưa lưu. Bấm “Lưu cấu hình” khi xong', false);  // B5 (2026-08-13)
   }
   function flushRoleEdit_() {
     // Commit edit đang dở (user bấm Sửa/Thêm role khác đúng lúc đang gõ — không qua blur)
@@ -1827,6 +1876,8 @@
   // Lưu toàn bộ cấu hình: diff CFG_STATE vs CFG_SNAPSHOT → 1 patch duy nhất (2026-08-13).
   // Không reload — giữ scroll; success → cập nhật snapshot + tắt dirty (nút Lưu hết sáng).
   function saveConfig(btn) {
+    flushGroupEdit_();  // B2 (2026-08-13): chốt mọi edit dở (group + role) TRƯỚC khi diff
+    flushRoleEdit_();   // — không bỏ sót thay đổi đang gõ dở
     var patch = cfgDiff_();
     if (!patch || !Object.keys(patch).length) { showToast('Không có thay đổi để lưu', false); return; }
     setBtnBusy_(btn, 'Đang lưu…');

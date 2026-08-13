@@ -372,14 +372,15 @@
     .cfg-cols { display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; }  /* <1280: 2 card dọc; >=1280: 2 card song song */
     #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy như mọi view — nội dung cuộn trong từng card */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
-    .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+    .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }  /* A3 (2026-08-13): nút + Thêm role nằm trong title — không khuất khi cuộn */
+    .cfg-section-add { margin-left: auto; flex-shrink: 0; }  /* A3: ép phải đầu card */
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
     .cfg-role-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 8px; }  /* 2 cột khi đủ rộng */
     .cfg-role-row { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); flex-wrap: wrap; }  /* đồng bộ .cfg-item + actions */
     .cfg-role-email { flex: 1 1 240px; min-width: 0; font-size: 14px; }  /* rộng hơn trên desktop */
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 200px; min-width: 120px; }
-    .cfg-role-email { flex: 1 1 280px; min-width: 0; }
+    .cfg-role-email { flex: 1 1 280px; min-width: 0; word-break: break-word; }  /* A1 (2026-08-13): email dài wrap — không tràn ngang */
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
     .cfg-role-card .cfg-role-email { font-weight: 600; color: var(--text); }
     .cfg-role-badge { flex: 0 0 auto; padding: 3px 10px; border-radius: 999px; background: var(--primary-bg); color: var(--primary-dark); font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -394,10 +395,11 @@
     .cfg-item-label { flex: 0 0 190px; font-size: 13px; font-weight: 600; color: var(--text); }
     .cfg-item-value { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
-    .cfg-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .cfg-item-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }  /* A4 (2026-08-13): khi item wrap (mobile) actions nhảy phải — thẳng hàng */
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
     .cfg-default-btn { min-height: 36px; padding: 6px 8px; font-size: 12px; line-height: 1; }
     .cfg-save-dirty { background: var(--amber); border-color: var(--amber); animation: cfgSavePulse 1.4s ease-in-out infinite; }
+    .cfg-refresh-dirty { border-color: var(--danger); color: var(--danger); }  /* B6 (2026-08-13): nhãn Hủy thay đổi nổi bật */
     @keyframes cfgSavePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, .30); } 50% { box-shadow: 0 0 0 6px rgba(232, 93, 4, 0); } }
     .cfg-default-btn.cfg-default-on { background: var(--amber); color: #fff; border-color: var(--amber); }
     .cfg-default-badge { font-size: 10px; font-weight: 600; margin-left: 4px; opacity: .85; }
@@ -410,8 +412,8 @@
     .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }
     .cfg-group-add { margin-top: 6px; }
     .cfg-group-empty { padding: 6px 2px; }
-    .cfg-roles-card { min-height: 0; }  /* grid item trong .cfg-cols — flex:0 1 auto + max-height:45vh bỏ vì grid 2 cột; card giãn full-height và đồng bộ cột config */
-    .cfg-role-list { overflow-y: auto; max-height: calc(100vh - var(--header-h) - 56px - 72px); }
+    .cfg-roles-card { min-height: 0; display: flex; flex-direction: column; }  /* A2 (2026-08-13): fill chiều cao cột trái + role list giãn đầy */
+    .cfg-role-list { overflow-y: auto; flex: 1 1 auto; min-height: 0; }  /* A2 (2026-08-13): giãn theo card (grid stretch đồng bộ 2 cột), cuộn trong */
     .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; }
     .cfg-item[draggable="true"] { cursor: grab; }
     .cfg-item.cfg-dragging { opacity: .45; }
@@ -1138,6 +1140,7 @@
       .cfg-cols { grid-template-columns: 1fr; }  /* <1280: 2 card xếp dọc full-width — content = viewport-272 (sidebar 240+padding), 1024→card chỉ 369px label 190+nút vỡ (CDP); ≥1280 (desktop 1384→card 549) giữ 2 cột */
     }
     @media (max-width: 700px) {
+      .cfg-cols { align-items: start; }  /* A2: 1 cột dọc — card phải không bị stretch kéo dài theo card trái */
       .cfg-groups { grid-template-columns: 1fr; }  /* mobile: 4 group xếp dọc 1 cột */
       .cfg-role-list { grid-template-columns: 1fr; }  /* role: track minmax(360px) > container mobile → tràn ngang (probe 2026-08-13: 390→28px, 375→43px, 320→98px) */
       .cfg-item { flex-wrap: wrap; }
@@ -1145,7 +1148,7 @@
       .cfg-role-row { flex-wrap: wrap; }
       .cfg-role-email { flex: 1 1 100%; }
       .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
-      .cfg-role-list { max-height: 40vh; }
+      .cfg-role-list { flex: none; max-height: 40vh; }  /* A2: mobile — cao theo nội dung, không giãn */
     }
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;

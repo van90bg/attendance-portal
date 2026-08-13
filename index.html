@@ -278,7 +278,7 @@
         <div class="task-meta" id="configMeta">Đang tải…</div>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-outline" onclick="loadConfigView(this)" aria-label="Làm mới cấu hình" title="Làm mới">⟳ Làm mới</button>
+        <button class="btn btn-outline" id="cfgRefreshBtn" onclick="loadConfigView(this)" aria-label="Làm mới cấu hình" title="Làm mới">⟳ Làm mới</button>
         <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)" style="display:none;" title="Gửi 1 patch duy nhất cho mọi thay đổi">Lưu cấu hình</button>
       </div>
     </div>
@@ -289,9 +289,10 @@
         <div id="cfgList" class="cfg-list"></div>
       </form>
       <div class="card cfg-card cfg-roles-card" id="roleWrap" style="display:none;">
-        <div class="cfg-section-title">Phân quyền (roleMap) <span class="cfg-hint">email → role; mỗi role 1 thẻ Sửa/Xoá</span></div>
+        <div class="cfg-section-title">Phân quyền (roleMap) <span class="cfg-hint">email → role; mỗi role 1 thẻ Sửa/Xoá</span>
+          <button type="button" class="btn btn-outline btn-sm cfg-section-add" onclick="addRoleRow()">+ Thêm role</button>
+        </div>
         <div id="cfgRoleRows" class="cfg-role-list"></div>
-        <button type="button" class="btn btn-outline btn-sm" onclick="addRoleRow()">+ Thêm role</button>
       </div>
     </div>
     <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ editor (DEPLOYER_EMAIL)</div>
