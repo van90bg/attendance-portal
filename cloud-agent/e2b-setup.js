@@ -120,8 +120,8 @@ async function main() {
     const timeoutMs = Number(env.E2B_TIMEOUT_MS)
     const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 3600000
 
-    console.log('Creating E2B sandbox...')
-    sandbox = await Sandbox.create({ apiKey: env.E2B_API_KEY, envs, timeoutMs: timeout })
+    console.log('Creating E2B sandbox (template opencode)...')
+    sandbox = await Sandbox.create('opencode', { apiKey: env.E2B_API_KEY, envs, timeoutMs: timeout, lifecycle: { onTimeout: 'pause' } })
     console.log(`Sandbox: ${sandbox.sandboxId} (timeout ${Math.round(timeout / 60000)} min, base plan ~60 min)`)
 
     process.once('SIGINT', async () => {
@@ -141,15 +141,14 @@ async function main() {
       }
     })
 
-    console.log('Installing OpenCode...')
-    const verRes = await sandbox.commands.run('node --version')
+    console.log('Checking OpenCode (template opencode pre-built)...')
+    const verRes = await sandbox.commands.run('opencode --version')
     if (verRes.stdout.trim()) {
-      console.log('Node present: ' + verRes.stdout.trim())
+      console.log('OpenCode: ' + verRes.stdout.trim())
     } else {
-      console.log('Node missing - installing...')
-      await sandbox.commands.run('apt-get update -y && apt-get install -y nodejs npm', { timeout: 300000 })
+      console.log('OpenCode missing - falling back to npm install...')
+      await sandbox.commands.run('npm i -g opencode-ai', { timeout: 300000 })
     }
-    await sandbox.commands.run('npm i -g opencode-ai', { timeout: 300000 })
 
     const homeRes = await sandbox.commands.run('echo $HOME')
     const home = String(homeRes.stdout || '').trim() || '/root'
@@ -172,7 +171,7 @@ async function main() {
       console.log('No repo detected - skipping clone (set GITHUB_REPO or add a git remote to your project).')
     }
 
-    const previewUrlPattern = `https://${OPENCODE_PORT}-${sandbox.sandboxId}.e2b.dev`
+    const previewUrlPattern = `https://${await sandbox.getHost(OPENCODE_PORT)}`
 
     const systemPrompt = [
       'You are running in an E2B sandbox.',
@@ -226,8 +225,9 @@ async function main() {
       console.warn(logRes.stdout || logRes.stderr)
     }
 
-    const preview = await sandbox.getPreviewUrl(OPENCODE_PORT)
-    console.log(`\nOpenCode Web UI: ${preview.url}`)
+    const host = await sandbox.getHost(OPENCODE_PORT)
+    const previewUrl = `https://${host}`
+    console.log(`\nOpenCode Web UI: ${previewUrl}`)
     console.log(`Sandbox: ${sandbox.sandboxId}`)
     if (KILL) {
       console.log('Press Ctrl+C to stop (kills the sandbox).')
