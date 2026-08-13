@@ -951,14 +951,33 @@
       font-weight: 700; font-size: 12px; position: sticky; top: 0;
     }
     .stats-table th:first-child, .stats-table td.row-head { width: 110px; }
-    /* Mobile cards (≤640px): danh sách task thành thẻ dọc, ẩn thead, STT ẩn, nút Thao tác phải */
+    /* Mobile cards (≤640px, 2026-08-13): danh sách task thành thẻ gọn 3-4 dòng — ẩn Loại/Tạo lúc/Người tạo/Dư,
+       mỗi dòng nhiều thông tin (grid 3 cột): dòng 1 = Mã task + nút Quét/Xem · dòng 2 = Station/Team/Ca ·
+       dòng 3 = Trạng thái + Tổng NV + Đã quét */
     @media (max-width: 640px) {
       #taskListTable thead { display: none; }
-      #taskListTable tbody tr { display: block; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: var(--card); }
-      #taskListTable tbody td { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--surface-muted); white-space: normal; font-size: 13px; }
-      #taskListTable tbody td:first-child { display: none; }  /* ẩn STT */
-      #taskListTable tbody td[data-label]::before { content: attr(data-label); font-weight: 600; color: var(--muted); flex: 0 0 110px; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
-      #taskListTable tbody td .action-cell { margin-left: auto; text-align: right; }
+      #taskListTable tbody tr { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; background: var(--card); }
+      #taskListTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 0; font-size: 13px; line-height: 1.35; }
+      #taskListTable tbody td[data-label]::before { content: attr(data-label); font-weight: 600; color: var(--muted); font-size: 11px; margin-right: 4px; text-transform: uppercase; letter-spacing: .3px; }
+      /* Ẩn trên mobile: STT + Loại + Tạo lúc + Người tạo + Dư (xem nhanh không cần — chi tiết có ở màn quét) */
+      #taskListTable tbody td[data-label="STT"],
+      #taskListTable tbody td[data-label="Loại"],
+      #taskListTable tbody td[data-label="Tạo lúc"],
+      #taskListTable tbody td[data-label="Người tạo"],
+      #taskListTable tbody td[data-label="Dư"] { display: none; }
+      /* Danh sách task: dòng 1 Mã task + nút · dòng 2 Station/Team/Ca · dòng 3 Trạng thái + Tổng NV + Đã quét */
+      #taskListTable tbody td[data-label="Mã task"] { grid-column: 1 / span 2; grid-row: 1; font-weight: 700; color: var(--primary-dark); }
+      #taskListTable tbody td[data-label="Thao tác"] { grid-column: 3; grid-row: 1; justify-self: end; }
+      #taskListTable tbody td[data-label="Station"] { grid-column: 1; grid-row: 2; }
+      #taskListTable tbody td[data-label="Team"] { grid-column: 2; grid-row: 2; }
+      #taskListTable tbody td[data-label="Ca"] { grid-column: 3; grid-row: 2; }
+      #taskListTable tbody td[data-label="Trạng thái"] { grid-column: 1; grid-row: 3; }
+      #taskListTable tbody td[data-label="Tổng NV"] { grid-column: 2; grid-row: 3; }
+      #taskListTable tbody td[data-label="Đã quét"] { grid-column: 3; grid-row: 3; }
+      /* F-search: cột khác — Mã NV + Tên NV chung dòng 3, Điểm danh dòng 4 full-width */
+      #taskListTable tbody td[data-label="Mã NV"] { grid-column: 1; grid-row: 3; }
+      #taskListTable tbody td[data-label="Tên NV"] { grid-column: 2 / span 2; grid-row: 3; }
+      #taskListTable tbody td[data-label="Điểm danh"] { grid-column: 1 / span 3; grid-row: 4; }
     }
     .stats-table th.total, .stats-table td.total { width: 70px; }
     .stats-table td.row-head {
