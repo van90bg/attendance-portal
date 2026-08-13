@@ -126,8 +126,8 @@
   function renderCfgList() {
     var box = document.getElementById('cfgList');
     if (!box) return;
-    var card = box.closest('.card');
-    var st = card ? card.scrollTop : 0;  // Giữ vị trí cuộn card khi render lại (2026-08-12)
+    var wrap = box.querySelector('.cfg-table-wrap');
+    var st = wrap ? wrap.scrollTop : 0;  // Giữ vị trí cuộn bảng khi render lại (2026-08-13: card hết cuộn toàn phần — wrap cuộn trong)
     var html = '<div class="cfg-table-wrap"><table class="cfg-table">'
       + '<thead><tr>'
         + '<th class="cfg-col-group">Nhóm</th>'
@@ -138,7 +138,7 @@
       + CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g); }).join('')
       + '</table></div>';
     box.innerHTML = html;
-    if (card) card.scrollTop = st;
+    if (wrap) wrap.scrollTop = st;
   }
 
   // Render 1 group section: title + Mặc định (nếu có) + item list (kéo thả Sửa/Xoá) + nút Thêm
