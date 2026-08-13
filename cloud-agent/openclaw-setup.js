@@ -22,6 +22,10 @@
  *                          thi restart (khong tao moi).
  *   --kill     giet sandbox khi Ctrl+C (mac dinh: de song, tu dong pause)
  *   --env FILE doc cau hinh tu file khac (mac dinh .env)
+ *   --clone <git-url>  clone repo vao sandbox ~/repos/<name> (idempotent:
+ *                      da co thi bo qua). Dung GITHUB_TOKEN (.env) de
+ *                      clone repo private + push duoc. Goi lai nhieu lan
+ *                      voi repo khac nhau, workspace chon trong UI gateway.
  *
  * .env:
  *   E2B_API_KEY            bat buoc (dashboard.e2b.dev)
@@ -44,6 +48,7 @@ const args = process.argv.slice(2)
 const KILL = args.includes('--kill')
 const ENV_FILE = args.includes('--env') ? args[args.indexOf('--env') + 1] : '.env'
 const CONNECT_ID = args.includes('--connect') ? args[args.indexOf('--connect') + 1] : null
+const CLONE_URL = args.includes('--clone') ? args[args.indexOf('--clone') + 1] : null
 
 function parseEnvFile(file) {
   const out = {}
@@ -126,6 +131,36 @@ async function stopGateway(sandbox, port) {
     await sandbox.commands.run(`bash -lc 'pkill -9 -f "[o]penclaw gateway" 2>/dev/null || true'`)
     await new Promise((r) => setTimeout(r, 1000))
   }
+}
+
+function repoNameFromUrl(url) {
+  const m = url.match(/([^/]+?)(?:\.git)?$/i)
+  return m ? m[1].replace(/\.git$/i, '') : 'repo'
+}
+
+async function cloneRepo(sandbox, env, url) {
+  const name = repoNameFromUrl(url)
+  const dir = `~/repos/${name}`
+  const exists = await sandbox.commands.run(`bash -lc '[ -d ${dir}/.git ] && echo yes || echo no'`)
+  if (exists.stdout.trim() === 'yes') {
+    console.log(`Repo ${name} already cloned - skipping.`)
+    return
+  }
+  await sandbox.commands.run(`bash -lc 'mkdir -p ~/repos'`)
+  if (env.GITHUB_TOKEN) {
+    console.log('Configuring git credential helper (GITHUB_TOKEN)...')
+    await sandbox.commands.run("bash -lc 'git config --global credential.helper store' ")
+    const cred = `https://x-access-token:${env.GITHUB_TOKEN}@github.com`
+    await sandbox.files.write('/home/user/.git-credentials', cred + '\n')
+    await sandbox.commands.run("bash -lc 'chmod 600 ~/.git-credentials' ")
+  }
+  console.log(`Cloning ${url} -> ~/repos/${name} ...`)
+  const res = await sandbox.commands.run(`git clone ${url} ${dir}`)
+  if (res.exitCode !== 0) {
+    console.error('Clone failed:', res.stderr || res.stdout)
+    process.exit(1)
+  }
+  console.log('Done. Trong UI gateway: them workspace tro toi ~/repos/' + name)
 }
 
 async function prepareSandbox(sandbox, env) {
@@ -231,6 +266,8 @@ async function main() {
         process.exit(0)
       }
     })
+
+    if (CLONE_URL) await cloneRepo(sandbox, env, CLONE_URL)
 
     const { port, token } = await prepareSandbox(sandbox, env)
     await printLink(sandbox, port, token)
