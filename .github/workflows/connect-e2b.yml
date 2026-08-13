@@ -22,6 +22,7 @@ jobs:
       - name: Connect + start OpenCode web
         env:
           E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.E2B_GITHUB_TOKEN }}
         run: |
           cd cloud-agent
           node e2b-setup.js --connect "${{ inputs.sandbox_id }}" > /tmp/e2b.log 2>&1 &
