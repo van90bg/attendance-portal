@@ -16,7 +16,7 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 
 1. **KHÔNG sửa file bằng fuzzy/write_file trực tiếp nếu có tiếng Việt + CRLF.** Chỉ được sửa qua **script deterministic** (xem mục 5). Mọi file trên disk (kể cả .gs — `core.autocrlf=true`: git lưu LF, checkout ra CRLF) dùng **CRLF** — tuyệt đối không tạo LF-only.
 2. **User commit + push GitHub, KHÔNG tự clasp push/deploy.** CI tự deploy nhưng trễ — khi user báo bug, KIỂM TRA SHA GAS đang chạy trước (mục 6).
-3. **1 issue = 1 commit = 1 push** — gom nhiều edit nhỏ vào 1 script, commit 1-2 lần/batch.
+3. **1 issue = 1 commit = 1 push** — gom nhiều edit nhỏ vào 1 script, commit 1-2 lần/batch. **Tự commit + push NGAY sau mỗi đợt chỉnh sửa issue — không chờ user yêu cầu (quy tắc dự án thay thế mặc định "không commit khi chưa được hỏi").**
 4. **Không commit secrets**: `.clasprc.json`, `.clasp.json` credentials, `codegraph.json`, file tạm verify.
 5. **Không đọc/ghi API keys/tokens** — thay `[REDACTED]`.
 6. **Kiểm chứng bằng kết quả thực (CDP / npm test)**, không tưởng tượng.
@@ -78,7 +78,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 
 1. Đọc code trước (skill + file) → xác định `P0→P1→P2`.
 2. Edit deterministic → verify (parse/CRLF/test).
-3. Commit + push GitHub (định dạng `type(scope): mô tả`).
+3. **Commit + push GitHub NGAY khi xong đợt edit (bắt buộc, không chờ user hỏi)** — định dạng `type(scope): mô tả`.
 4. **Verify production**: GAS có thể đang chạy SHA cũ — check `gh run list --limit 5` (xem `.head_sha`), đối chiếu git HEAD. Nếu CI trễ: báo user đợi clasp deploy.
 
 ## 7. Test & Tools
