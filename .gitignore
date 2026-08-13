@@ -12,3 +12,5 @@ index.local.html
 # ===== cloud-agent (local + runtime deps) =====
 cloud-agent/.env
 cloud-agent/node_modules/
+
+cloud-agent/.e2b-runner/
