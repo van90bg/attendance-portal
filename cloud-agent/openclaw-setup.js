@@ -49,6 +49,7 @@ const KILL = args.includes('--kill')
 const ENV_FILE = args.includes('--env') ? args[args.indexOf('--env') + 1] : '.env'
 const CONNECT_ID = args.includes('--connect') ? args[args.indexOf('--connect') + 1] : null
 const CLONE_URL = args.includes('--clone') ? args[args.indexOf('--clone') + 1] : null
+const TOKEN_FILE = '.openclaw-token'
 
 function parseEnvFile(file) {
   const out = {}
@@ -76,6 +77,7 @@ function ensureGitignore() {
   const add = []
   if (!txt.includes('.e2b-runner')) add.push('.e2b-runner/')
   if (!txt.split(/\r?\n/).some((l) => l.trim() === '.env')) add.push('.env')
+  if (!txt.includes('.openclaw-token')) add.push('.openclaw-token')
   if (add.length && !txt.endsWith('\n')) txt += '\n'
   fs.writeFileSync('.gitignore', txt + add.join('\n') + '\n')
 }
@@ -163,6 +165,18 @@ async function cloneRepo(sandbox, env, url) {
   console.log('Done. Trong UI gateway: them workspace tro toi ~/repos/' + name)
 }
 
+function loadToken(env) {
+  if (env.OPENCLAW_APP_TOKEN) return env.OPENCLAW_APP_TOKEN
+  if (fs.existsSync(TOKEN_FILE)) {
+    const t = fs.readFileSync(TOKEN_FILE, 'utf8').trim()
+    if (t) return t
+  }
+  const tok = crypto.randomBytes(16).toString('hex')
+  fs.writeFileSync(TOKEN_FILE, tok)
+  console.log(`Token saved to ${TOKEN_FILE} - link stable across reconnects`)
+  return tok
+}
+
 async function prepareSandbox(sandbox, env) {
   console.log('Checking OpenClaw (template openclaw pre-built)...')
   const verRes = await sandbox.commands.run('openclaw --version')
@@ -173,7 +187,7 @@ async function prepareSandbox(sandbox, env) {
   }
 
   const port = Number(env.OPENCLAW_PORT) || 18789
-  const token = env.OPENCLAW_APP_TOKEN || crypto.randomBytes(16).toString('hex')
+  const token = loadToken(env)
 
   await stopGateway(sandbox, port)
   await startGateway(sandbox, env, port, token)
@@ -185,6 +199,7 @@ async function printLink(sandbox, port, token) {
   const url = `https://${host}/?token=${token}`
   console.log(`\nOpenClaw Gateway: ${url}`)
   console.log(`Sandbox: ${sandbox.sandboxId}`)
+  console.log('Token is stable - same link works after every reconnect.')
   if (KILL) {
     console.log('Press Ctrl+C to stop (kills the sandbox).')
   } else {
