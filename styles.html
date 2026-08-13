@@ -418,7 +418,7 @@
 
     /* viewConfig bảng gộp (2026-08-13 — mẫu bảng sketch 009): 1 <table> thead sticky + mỗi group 1 <tbody> + item <tr>.
        Trong <td> dùng inline/inline-block — KHÔNG flex-on-cell (giữ table-column alignment với thead) */
-    .cfg-table-wrap { overflow: auto; flex: 1 1 auto; min-height: 0; }
+    .cfg-table-wrap { flex: 1 1 auto; min-height: 0; }  /* bo overflow:auto: card la scroller -> thead sticky hoat dong (overflow:auto o day tao scroll container chet, pha sticky) */
     .cfg-table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; min-width: 520px; }  /* fixed: cột cố định — edit không làm cột nhảy (cột Mặc định rỗng khi edit không sụp 0px); min-width: mobile cuộn ngang */
     .cfg-table thead th { background: var(--surface-muted); color: var(--muted); font-weight: 700; font-size: 13px; text-align: left; padding: 8px 10px; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
     .cfg-table thead th:nth-child(3) { width: 110px; }  /* Mặc định */
