@@ -353,16 +353,19 @@
     return r || '?';
   }
 
-  // renderRoleRows: bảng (cfg-role-table) — mẫu D (sketch 009, 2026-08-13). HTML-string + inline
-  // onclick → startRoleEdit/deleteRoleRow/cancelRoleEdit; Enter/blur wire sau khi set innerHTML.
+  // renderRoleRows: roleMap thành group kiểu cfg-table (2026-08-13) — group-sep mang title + count +
+  // nút + Thêm role, mỗi role 1 dòng (email | badge role | Sửa/Xoá) — bỏ thead riêng (ngôn ngữ 1 bảng).
+  // HTML-string + inline onclick → startRoleEdit/deleteRoleRow/cancelRoleEdit; Enter/blur wire sau khi set innerHTML.
   function renderRoleRows() {
     var box = document.getElementById('cfgRoleRows');
     if (!box) return;
     var map = (CFG_STATE.roleMap && typeof CFG_STATE.roleMap === 'object') ? CFG_STATE.roleMap : {};
     var keys = Object.keys(map);
-    var html = '<table class="cfg-role-table">'
-      + '<thead><tr><th>Email</th><th>Role</th><th></th></tr></thead>'
-      + '<tbody>';
+    var html = '<table class="cfg-role-table"><tbody class="cfg-group" data-group="roleMap">'
+      + '<tr class="cfg-group-sep"><td colspan="3">'
+        + '<span class="cfg-group-title">Phân quyền (roleMap) <span class="cfg-hint">' + keys.length + ' role</span></span>'
+        + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addRoleRow()">+ Thêm role</button>'
+      + '</td></tr>';
     var any = false;
     keys.forEach(function (em) {
       if (ROLE_EDIT && ROLE_EDIT.email === em && !ROLE_EDIT.isNew) { html += roleRowEditHtml_(em, map[em]); any = true; }

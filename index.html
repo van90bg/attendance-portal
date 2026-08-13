@@ -283,18 +283,17 @@
       </div>
     </div>
 
-    <div class="cfg-cols" id="configWrap" style="display:none;">
-      <form id="configForm" onsubmit="return false;" class="card cfg-card">
-        <div class="cfg-section-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></div>
-        <div id="cfgList" class="cfg-list"></div>
-        <div id="roleWrap" style="display:none;">
-          <div class="cfg-section-title cfg-section-title-role">Phân quyền (roleMap) <span class="cfg-hint">email → role; mỗi role 1 thẻ Sửa/Xoá</span>
-            <button type="button" class="btn btn-outline btn-sm cfg-section-add" onclick="addRoleRow()">+ Thêm role</button>
-          </div>
+    <form id="configForm" onsubmit="return false;" class="card cfg-card">
+      <div class="cfg-cols" id="configWrap" style="display:none;">
+        <div class="cfg-col">
+          <div class="cfg-section-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></div>
+          <div id="cfgList" class="cfg-list"></div>
+        </div>
+        <div id="roleWrap" class="cfg-col" style="display:none;">
           <div id="cfgRoleRows" class="cfg-role-list"></div>
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
     <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ editor (DEPLOYER_EMAIL)</div>
   </section>
 </main>

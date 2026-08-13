@@ -369,17 +369,19 @@
 
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
-    .cfg-cols { display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; }  /* <1280: 2 card dọc; >=1280: 2 card song song */
-    #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy như mọi view — nội dung cuộn trong từng card */
+    .cfg-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: minmax(0, 1fr); }  /* 2026-08-13: 2 cột TRONG 1 card (vận hành 60% / role 40%); ≤1279px về 1 cột */
+    #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy — mỗi cột cuộn riêng */
+    .cfg-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }  /* min-width:0: grid item không phình theo min-content bảng (mobile role 718px bug 2026-08-13) */
+    .cfg-col + .cfg-col { border-left: 1px solid var(--border); padding-left: 16px; }  /* divider giữa 2 cột trong 1 card (2026-08-13) */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
     .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }  /* A3 (2026-08-13): nút + Thêm role nằm trong title — không khuất khi cuộn */
-    .cfg-section-add { margin-left: auto; flex-shrink: 0; }  /* A3: ép phải đầu card */
+    /* 2026-08-13: nút + Thêm role chuyển vào group-sep (cfg-group-add) — bỏ cfg-section-add */
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
     .cfg-role-list { display: block; }  /* container giờ chứa 1 <table> — bỏ grid (mẫu D 2026-08-13) */
     /* viewConfig bảng role (mẫu D sketch 009 — 2026-08-13) */
     .cfg-role-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .cfg-role-table thead th { background: var(--surface-muted); color: var(--muted); font-weight: 700; font-size: 13px; text-align: left; padding: 8px 10px; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+    .cfg-role-table { font-size: 14px; }  /* 2026-08-13: đồng bộ cfg-table (bỏ thead — roleMap thành group-sep) */
     .cfg-role-table tr.cfg-role-row { display: table-row; }  /* neutralize base .cfg-role-row/display:flex — <tr> phải là table-row, không vỡ cột (2026-08-13) */
     .cfg-role-table tr.cfg-role-row > td { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
     .cfg-role-table tr.cfg-role-row:hover > td { background: var(--row-hover); }
@@ -415,7 +417,7 @@
     .cfg-table thead th { background: var(--surface-muted); color: var(--muted); font-weight: 700; font-size: 13px; text-align: left; padding: 8px 10px; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
     .cfg-table .cfg-col-group { width: 80px; }
     .cfg-table tr.cfg-item, .cfg-table tr.cfg-item-group { display: table-row; }  /* neutralize base display:flex — <tr> phải là table-row (2026-08-13) */
-    .cfg-table tr.cfg-group-sep > td { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 4px; border-top: 2px solid var(--primary); background: var(--card); }  /* colspan=4: td hợp lệ làm flex — chỉ dòng separator, không cột */
+    .cfg-table tr.cfg-group-sep > td, .cfg-role-table tr.cfg-group-sep > td { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 4px; border-top: 1px solid var(--border); background: var(--card); }  /* 2026-08-13: separator nhẹ (2px primary → 1px border) + dùng chung role table; colspan td hợp lệ làm flex — chỉ dòng separator */
     .cfg-table .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--primary); }
     .cfg-table tr.cfg-item-group > td { padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
     .cfg-table tr.cfg-item-group:hover > td { background: var(--row-hover); }
@@ -1194,8 +1196,15 @@
     #viewStats .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; }  /* -120: trừ cả topbar + main padding để trang không cuộn khi wrap max */
     #viewStats .stats-table-wrap { max-height: none; }  /* tablet: wrap giãn đầy card (trước bị chặn 60vh → cuộn nhiều + trống dưới card, CDP 1024: card 594 wrap 460 nội dung 613) */
     #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }  /* 2026-08-13 gộp card: bảng vận hành + role mỗi vùng cuộn riêng (thead sticky) */
-    #viewConfig #roleWrap { flex: 0 1 auto; min-height: 0; max-height: 45%; display: flex; flex-direction: column; overflow-y: auto; }  /* role dưới bảng, cao theo nội dung nhưng tối đa 45% — cuộn riêng */
-    .cfg-section-title-role { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }  /* ngăn cách 2 khu vực trong 1 card */
+    #viewConfig #roleWrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }  /* cột role đồng hàng cột vận hành — cuộn riêng trong card */
+    /* 2026-08-13: title Phân quyền nằm trong group-sep bảng role — bỏ cfg-section-title-role */
+    /* <1280px: 2 cột xếp dọc — card cuộn toàn phần (bỏ cuộn cột riêng), divider bỏ (2026-08-13) */
+    @media (max-width: 1279px) {
+      .cfg-cols { grid-template-columns: 1fr; }
+      .cfg-col + .cfg-col { border-left: 0; padding-left: 0; margin-top: 14px; }
+      #viewConfig .card { overflow-y: auto; }
+      #viewConfig #cfgList, #viewConfig #roleWrap { flex: none; overflow: visible; }
+    }
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
     @media (max-width: 700px) {
