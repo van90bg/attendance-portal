@@ -340,18 +340,27 @@
     <div class="about-body">
 
       <h3 class="about-h3">1. SPX Điểm Danh là gì?</h3>
-      <p><b>SPX Điểm Danh</b> là công cụ điểm danh & theo dõi chấm công cho kho SPX Express: tạo task theo Station / Ca / Team, quét mã nhân viên, và kết thúc ngày với kết quả rõ ràng ai có mặt, ai vắng.</p>
-      <p>Dùng được trên <b>máy tính</b>, <b>máy tính bảng</b> và <b>điện thoại</b> — giao diện tự thích ứng (bảng đầy đủ trên màn hình rộng, thẻ gọn trên màn hình nhỏ), không cần thiết bị chuyên dụng.</p>
+      <p><b>SPX Điểm Danh</b> là công cụ điểm danh và theo dõi chấm công dành cho kho SPX Express. Hệ thống giúp bạn tạo task theo <b>Station / Ca / Team</b>, quét mã nhân viên bằng mã vạch, và chốt ca với báo cáo rõ ràng: ai có mặt, ai vắng, ai dư.</p>
+      <p>Ứng dụng chạy trên nền tảng <b>Google Apps Script</b> kết hợp <b>Google Sheets</b>, hoạt động mượt mà trên <b>máy tính</b>, <b>máy tính bảng</b> và <b>điện thoại</b> — giao diện tự thích ứng, không cần thiết bị chuyên dụng.</p>
 
       <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
-        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Task mới</b>.</li>
-        <li><b>Quét Giờ có mặt:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách chuyển sang Chưa điểm danh; người lạ tính là Dư.</li>
+        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Tạo task</b>.</li>
+        <li><b>Quét Giờ có mặt:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách chuyển sang <i>Chưa điểm danh</i>; người lạ tính là <i>Dư</i>.</li>
         <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (Có mặt).</li>
         <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
       </ol>
 
-      <h3 class="about-h3">3. Trạng thái sau điểm danh</h3>
+      <h3 class="about-h3">3. Tính năng chính</h3>
+      <ul class="about-list">
+        <li><b>Quy trình 2 pha:</b> ghi Giờ có mặt rồi mới ghi Giờ quét — tách rõ 2 mốc điểm danh.</li>
+        <li><b>Quét tự do (FREE):</b> không cần danh sách sẵn, xây danh sách ngay khi quét.</li>
+        <li><b>Phân quyền:</b> viewer / operator / manager / admin với từng mức truy cập riêng.</li>
+        <li><b>Đa thiết bị:</b> tự thích ứng máy tính, tablet và điện thoại.</li>
+        <li><b>Dán mã hàng loạt:</b> dán cả danh sách mã NV một lần thay vì quét từng người.</li>
+      </ul>
+
+      <h3 class="about-h3">4. Trạng thái sau điểm danh</h3>
       <table class="about-table">
         <thead>
           <tr class="about-thead">
@@ -367,37 +376,17 @@
         </tbody>
       </table>
 
-      <h3 class="about-h3">4. Mẹo nhỏ</h3>
+      <h3 class="about-h3">5. Mẹo nhỏ</h3>
       <ul class="about-list">
-        <li><b>Dán danh sách mã:</b> ở task quét tự do, dán cả danh sách mã NV 1 lần thay vì quét từng người.</li>
-        <li><b>Quét liên tục:</b> ô quét tự xóa sau mỗi lần — quét người tiếp theo ngay, không cần click lại.</li>
+        <li><b>Quét liên tục:</b> ô quét tự xóa sau mỗi lần — quét người tiếp theo ngay, không cần bấm lại.</li>
         <li><b>Âm thanh:</b> bật/tắt tiếng bíp bằng nút loa trên header.</li>
         <li><b>Làm mới:</b> nhấn nút ⟳ trên header để cập nhật dữ liệu mới nhất.</li>
       </ul>
+
+      <p class="muted">SPX Điểm Danh · RollCall v2 · Chạy trên Google Apps Script + Google Sheets</p>
     </div>
   </div>
 </section>
-
-<div id="pasteModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pasteModalTitle" onclick="if(event.target===this)closePasteModal()">
-  <div class="about-dialog paste-dialog">
-    <h2 id="pasteModalTitle" class="paste-title">Dán danh sách mã</h2>
-    <p class="muted paste-hint">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần.</p>
-    <textarea id="pasteTextarea" class="paste-textarea" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
-        <div id="pasteCountHint" class="paste-count-hint">Nhập mã NV để đếm tự động</div>
-        <div id="pasteProgress" style="display:none;margin-top:8px;">
-          <div class="paste-track">
-            <div id="pasteProgressFill" class="paste-fill"></div>
-          </div>
-          <div id="pasteProgressText" class="paste-progress-text">Đang xử lý…</div>
-        </div>
-        <div id="pastePreview" style="margin-top:10px;overflow:auto;display:none;"></div>
-    <div class="paste-footer">
-      <button class="btn btn-ghost" onclick="closePasteModal()">Huỷ</button>
-      <button class="btn" id="btnPasteSubmit" onclick="submitPaste()">Dán</button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal tạo task (cây nhóm Station → Ca → Team, checkbox) -->
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">

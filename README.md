@@ -1,49 +1,74 @@
-# SPX Điểm Danh (RollCall v2) — Quản lý chấm công & điểm danh
+# SPX Điểm Danh (RollCall v2)
 
-> Hệ thống quản lý thông tin chấm công + điểm danh nhân viên kho (warehouse) bằng barcode, chạy trên **Google Apps Script WebApp** + **Google Sheets**.
-> Repo: `van90bg/attendance-portal` · Spec chi tiết: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
+> Hệ thống quản lý chấm công và điểm danh cho kho SPX Express — chạy trên **Google Apps Script WebApp** + **Google Sheets**.
+
+**SPX Điểm Danh** là cổng làm việc tập trung thay thế màn hình điểm danh đơn lẻ: một sidebar 7 trang, dữ liệu nhân sự lấy từ sheet **StaffData** (20 cột chuẩn Att.csv), lịch sử chấm công lưu tại **AttendanceTask** / **AttendanceLog**.
+
+---
+
+## Mục lục
+
+- [Tổng quan](#tổng-quan)
+- [Thiết bị hỗ trợ](#thiết-bị-hỗ-trợ)
+- [Điều hướng](#điều-hướng)
+- [Tính năng](#tính-năng)
+- [Kiến trúc & cấu trúc dự án](#kiến-trúc--cấu-trúc-dự-án)
+- [Chạy & kiểm thử](#chạy--kiểm-thử)
+- [Triển khai (deploy)](#triển-khai-deploy)
+- [Quy ước viết code](#quy-ước-viết-code)
+- [Trạng thái phát triển](#trạng-thái-phát-triển)
+
+---
 
 ## Tổng quan
 
-**SPX Điểm Danh** là cổng làm việc tập trung thay thế màn hình điểm danh đơn lẻ: sidebar điều hướng 7 trang, dữ liệu nhân sự lấy từ sheet **StaffData** (20 cột chuẩn Att.csv), dữ liệu chấm công lưu tại **AttendanceTask** / **AttendanceLog**.
+Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình điểm danh trong ngày:
 
-## Môi trường hoạt động
+1. **Tạo task** theo Station / Ca / Team (hoặc quét tự do không cần danh sách).
+2. **Quét Giờ có mặt** (pha Mở) — ghi nhận nhân viên vào ca.
+3. **Chuyển điểm danh** (pha Điểm danh) — quét lần 2 ghi Giờ quét.
+4. **Kết thúc** — nhân viên chưa quét lần 2 tự tính là Vắng; có thể Mở lại để quét bổ sung.
+
+Mọi luồng thao tác được trên máy tính, máy tính bảng và điện thoại — không cần thiết bị chuyên dụng.
+
+## Thiết bị hỗ trợ
 
 | Thiết bị | Trải nghiệm |
 | :------- | :---------- |
 | **Máy tính** | Bảng đầy đủ 13–20 cột; quét bằng barcode scanner (Enter) hoặc nhập tay |
-| **Máy tính bảng** | Layout co lại, touch target ≥44px, nút Quét hiển thị |
+| **Máy tính bảng** | Layout co lại, touch target ≥ 44px, nút Quét hiển thị |
 | **Điện thoại** | Thẻ gọn 3 dòng cho task/NV, bottom nav, toggle mở rộng danh sách NV |
 
-Không cần thiết bị chuyên dụng riêng — mọi luồng (tạo task, quét, điểm danh, kết thúc) thao tác được trên cả 3 loại thiết bị.
+## Điều hướng
 
-## Điều hướng (sidebar trái, collapsible 240px ↔ 48px)
+Sidebar trái thu gọn được (240px ↔ 48px), gồm 7 trang:
 
 | Mục | Chức năng |
 | :--- | :-------- |
 | **Trang chủ** | Logo + tên app + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chiếu/điểm danh |
 | **Thống kê** | Pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), tab lọc BPO / OS — fullscreen |
 | **Điểm danh** | Danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc |
-| **Báo cáo** | Báo cáo chấm công theo tháng cho từng NV theo email đăng nhập — placeholder (đang xây) |
-| **Dữ liệu chấm công** | Toàn bộ StaffData — 20 cột khớp tên sheet, Clock In/Out format `H:mm:ss`, tìm mã/tên/agency |
+| **Báo cáo** | Báo cáo chấm công theo tháng cho từng NV theo email đăng nhập — đang xây dựng |
+| **Dữ liệu chấm công** | Toàn bộ StaffData — 20 cột khớp tên sheet, Clock In/Out định dạng `H:mm:ss`, tìm mã/tên/agency |
 | **Cấu hình** | Trang Config Admin (chỉ editor) — đọc/ghi settings qua SettingsService: Station/Ca/Team/Department mặc định + roleMap phân quyền |
 | **Giới thiệu** | Hướng dẫn sử dụng và thông tin kỹ thuật |
 
 ## Tính năng
 
-- **Tạo task 2 chế độ** — modal dropdown Station · Ca · Team · Ngày; badge số NV; **Quét tự do (FREE)** không cần danh sách
-- **2-phase quét** — phase **Mở** ghi Giờ có mặt, phase **Điểm danh** ghi Giờ quét:
-  - Task Đối chiếu: pre-fill Giờ có mặt, quét = Có mặt / Đã điểm danh / Dư
-  - Task FREE: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư
-- **Role gate (phase Mở)** — task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open
-- **Role gate (quản trị)** — F-search NV (`searchLogsByStaffApi`, lịch sử chấm công cá nhân) chỉ manager+; `getStaffStatsApi` operator+; settings editor-only
-- **Sidebar 7 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo meta.isEditor; đã bỏ nút 📋/ⓘ khỏi header
-- **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 1000, báo mã lỗi
-- **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh
-- **Counters tức thì** — Đã quét / Chưa / Dư, queue nền + optimistic
-- **A11y** — skip-link, focus trap, `prefers-contrast`, phản hồi không dùng `alert()`
+- **Tạo task 2 chế độ** — modal dropdown Station · Ca · Team · Ngày; badge số NV; **Quét tự do (FREE)** không cần danh sách sẵn.
+- **Quy trình 2 pha** — pha **Mở** ghi Giờ có mặt, pha **Điểm danh** ghi Giờ quét:
+  - Task Đối chiếu: pre-fill Giờ có mặt, quét = Có mặt / Đã điểm danh / Dư.
+  - Task FREE: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư.
+- **Phân quyền (role gate)** — viewer < operator < manager < admin:
+  - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
+  - `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getStaffStatsApi` operator+; settings editor-only.
+- **Sidebar 7 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
+- **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 1000, báo mã lỗi.
+- **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.
+- **Counters tức thì** — Đã quét / Chưa / Dư, queue nền + optimistic.
+- **A11y** — skip-link, focus trap, `prefers-contrast`, phản hồi không dùng `alert()`.
 
-## Cấu trúc dự án
+## Kiến trúc & cấu trúc dự án
 
 ```
 RollCall_2/
@@ -74,38 +99,33 @@ RollCall_2/
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
 ├── tests/                 # 124 unit tests node --test
-├── scripts/
-│   ├── build-local.js     # gộp template 3 file → index.local.html (test local)
-│   ├── cdp-helper.js      # CDP verify UI (geometry là truth)
-│   ├── test-local-mock.js # tự động test UI local mock qua CDP (11/11)
-│   ├── audit-css.js       # rà dead CSS 3 file template (exit 1 nếu có dead; --full xem dynamic)
-│   ├── audit-gs.js        # rà hàm/const/API dead trong 14 file .gs (exit 1 nếu có dead/treo)
-│   ├── audit-style.js     # rà computed style class chung qua CDP (--strict exit 1 nếu lệch)
-│   └── audit-ui.js         # audit CDP 7 view x 4 viewport — layout/scroll/nav/card (exit 1 nếu FAIL; --quick)
-├── skills/               # skill chuẩn SKILL.md (Agent Skills format — tái sử dụng đa công cụ AI)
-└── docs/                  # deploy-codespace-actions.md (how-to deploy)
+├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
+├── skills/                # skill chuẩn SKILL.md (Agent Skills format)
+└── docs/                  # deploy-codespace-actions.md
 ```
 
-## Cách chạy
+**Luồng dữ liệu:** Client (`app-*.html`) gọi `google.script.run` → Server (`Code.gs` + các `*Service`/`*Repo`) đọc/ghi 4 sheet qua `Spreadsheet.gs` + cache versioned.
+
+## Chạy & kiểm thử
 
 ```bash
-npm test                        # 124/124 pass
+npm test                        # 124/124 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
-Mock local (trình duyệt không render GAS template → gộp trước):
+Trình duyệt không render GAS template → gộp trước rồi mở local:
 
 ```bash
 node scripts/build-local.js     # → index.local.html
-node scripts/audit-css.js         # rà dead CSS (217 class — 0 dead hiện tại; --full xem class nối chuỗi)
-node scripts/audit-gs.js          # rà dead .gs (109 hàm — 0 dead hiện tại)
-node scripts/audit-style.js --strict # rà style class chung (33 class — 0 lệch thật hiện tại; cần Chrome)
-node scripts/audit-ui.js            # audit CDP toàn diện (110 check — 0 FAIL hiện tại; --quick chỉ desktop)
+node scripts/audit-css.js       # rà dead CSS (exit 1 nếu có dead; --full xem dynamic)
+node scripts/audit-gs.js        # rà dead .gs / API treo (exit 1 nếu có dead/treo)
+node scripts/audit-style.js --strict # rà computed style class chung (cần Chrome)
+node scripts/audit-ui.js        # audit CDP 7 view × 4 viewport (exit 1 nếu FAIL; --quick)
 ```
 
-Rồi mở `index.local.html` bằng browser (mock tự nạp khi không có `google.script.run`).
+Mở `index.local.html` bằng browser — mock tự nạp khi không có `google.script.run`.
 
-Deploy (chi tiết: `docs/deploy-codespace-actions.md`):
+## Triển khai (deploy)
 
 ```bash
 clasp login
@@ -113,24 +133,24 @@ clasp push -f
 clasp deploy
 ```
 
-> **⚠️ Học hỏi deploy:** `PUT /deployments/{id}` đứt `entryPoints` → `/exec` 404. Chỉ dùng `clasp deploy`; sau đó verify URL `/exec` bằng curl.
+> **⚠️ Lưu ý:** `PUT /deployments/{id}` đứt `entryPoints` → `/exec` 404. Chỉ dùng `clasp deploy`; sau đó verify URL `/exec` bằng curl. CI tự động deploy qua GitHub Actions nhưng có độ trễ — khi báo bug, kiểm tra SHA GAS đang chạy (`gh run list`) đối chiếu git HEAD.
 
-## Quy ước
+## Quy ước viết code
 
-- Cột sheet: tiếng Anh · UI: tiếng Việt · Constants gom ở `Config.gs`
-- Cache versioned (`rc2_*_vN`) — thay đổi có invalidate
-- Mọi ghi log/đổi status → `invalidateTaskDetailCache_(taskId)`
-- Frontend GAS template: `index.html` + `styles.html` (CSS) + **7 module JS `app-*.html`** (tách từ app.html 2026-08-13 — index.html include tuần tự, chung global scope) — GAS chỉ nhận `.gs`/`.html`; doGet dùng `createTemplateFromFile` + `include()`
-- `index.html` KHÔNG BOM — BOM đầu output GAS sinh khoảng trống phía trên header (lesson 9982293); deterministic write dùng `utf-8` (KHÔNG `sig`)
+- **Cột sheet:** tiếng Anh · **UI:** tiếng Việt · **Constants:** gom ở `Config.gs`.
+- **Cache:** versioned (`rc2_*_vN`) — thay đổi có invalidate; mọi ghi log/đổi status → `invalidateTaskDetailCache_(taskId)`.
+- **Frontend GAS template:** `index.html` + `styles.html` + **7 module JS `app-*.html`** (include tuần tự, chung global scope). `doGet` dùng `createTemplateFromFile` + `include()`.
+- **Line ending:** mọi file trên disk dùng **CRLF**; `index.html` **KHÔNG BOM** (BOM sinh khoảng trống phía trên header trên GAS). Sửa file có tiếng Việt + CRLF chỉ qua script deterministic (đọc `utf-8-sig`, ghi `utf-8`, không sig).
+- **Commit:** `type(scope): mô tả` — 1 issue = 1 commit = 1 push; không commit secrets (`.clasp.json`, `.clasprc.json`).
 
-## Trạng thái (2026-08-11)
+## Trạng thái phát triển
 
-- ✅ Portal shell: sidebar 7 trang; trang chủ logo + đồng hồ; viewReports placeholder
-- ✅ Tách frontend 3 file GAS template (index/styles/app) + `build-local.js` cho test local
-- ✅ Fix BOM regression — khoảng trống phía trên header trên GAS + guard test 3 file không BOM
-- ✅ Cấu hình Admin (SettingsService) + role gate (manager/operator/editor) + pre-select mặc định
-- ✅ Dọn rác repo (sketches/mockup cũ/docs planning) — `docs/` còn deploy guide
-- ✅ 124/124 test + 11/11 CDP local mock; ⏳ viewReports (báo cáo chấm công tháng) đang xây
-- ✅ Vệ sinh (2026-08-13): bỏ BOM 3 file .gs + README/AGENTS (guard mới `tests/eol-bom.test.js`), chuẩn hóa CRLF qua `.gitattributes` (`*.gs` + 3 template `text eol=crlf`), untrack `.clasp.json`, xóa ID production khỏi docs/Spec
-- ✅ Tách module client (2026-08-13): `app.html` 3665 dòng → 7 module `app-*.html` (core/stats/staff/modals/config/tasks/scan)
-- ✅ Đổi tên (2026-08-14): app **Attendance Portal** → **SPX Điểm Danh**; repo `rollcall-kiosk-v2x` → `attendance-portal`; bỏ toàn bộ khái niệm "kiosk" (chỉ dùng máy tính / máy tính bảng / điện thoại)
+- ✅ Portal shell: sidebar 7 trang; trang chủ logo + đồng hồ; viewReports placeholder.
+- ✅ Tách frontend (index/styles + 7 module `app-*.html`) + `build-local.js` cho test local.
+- ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
+- ✅ 124/124 unit tests + 11/11 CDP local mock.
+- ⏳ viewReports (báo cáo chấm công tháng) đang xây dựng.
+
+---
+
+**Spec chi tiết:** [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md) · **Repo:** `van90bg/attendance-portal` · **Deploy guide:** [docs/deploy-codespace-actions.md](docs/deploy-codespace-actions.md)
