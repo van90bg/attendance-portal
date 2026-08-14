@@ -377,10 +377,10 @@
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
     #cfgRefreshBtn { min-width: 150px; }  /* nhãn ⋆ Làm mới ↔ ✕ Hủy thay đổi đổi chữ không đổi rộng — nút Lưu không nhảy (2026-08-13) */
-    .cfg-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); max-width: 1180px; margin: 0 auto; width: 100%; }  /* 2026-08-14: 2 cột đều 50/50 (vận hành / role); nội dung cap 1180px căn giữa trong card full-width — hết giãn rỗng cột Giá trị trên màn rộng (1920px: 544 → 250px); <1380px về 1 cột */
-    #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy — mỗi cột cuộn riêng */
+    .cfg-cols { display: grid; grid-template-columns: 1fr; }  /* 2026-08-14: tách nhóm → các group section xếp dọc (bỏ 2 cột) */
+    #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* 2026-08-14: giãn đầy card — card là scroll container */
     .cfg-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }  /* min-width:0: grid item không phình theo min-content bảng (mobile role 718px bug 2026-08-13) */
-    .cfg-col + .cfg-col { border-left: 1px solid var(--border); padding-left: 16px; }  /* divider giữa 2 cột trong 1 card (2026-08-13) */
+    .cfg-col + .cfg-col { border-left: 0; padding-left: 0; margin-top: 14px; }  /* 2026-08-14: bỏ divider — sections xếp dọc */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
     .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }  /* A3 (2026-08-13): nút + Thêm role nằm trong title — không khuất khi cuộn */
     /* 2026-08-13: nút + Thêm role chuyển vào group-sep (cfg-group-add) — bỏ cfg-section-add */
@@ -388,7 +388,7 @@
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
     .cfg-role-list { display: block; }  /* container giờ chứa 1 <table> — bỏ grid (mẫu D 2026-08-13) */
     /* viewConfig bảng role (mẫu D sketch 009 — 2026-08-13) */
-    .cfg-role-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .cfg-role-table { width: 100%; max-width: 760px; border-collapse: collapse; font-size: 14px; }  /* 2026-08-14: cap bảng role — hết giãn rỗng */
     .cfg-role-table { table-layout: fixed; }  /* 2026-08-13: cột cố định (badge 190 / actions 110) — edit không làm cột nhảy; đồng bộ cfg-table (bỏ thead — roleMap thành group-sep) */
     .cfg-role-table tr.cfg-role-row { display: table-row; }  /* neutralize base .cfg-role-row/display:flex — <tr> phải là table-row, không vỡ cột (2026-08-13) */
     .cfg-role-table tr.cfg-role-row > td { padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
@@ -408,7 +408,6 @@
     .cfg-role-editing .cfg-role-email { flex: 1 1 240px; min-width: 0; white-space: normal; text-overflow: clip; }  /* input edit: không ellipsis — tự cuộn */
     /* Role mobile thẻ gọn (≤640px, 2026-08-13): 2 dòng — email + role chung dòng 1, nút Sửa/Xoá dòng 2 phải; ẩn thead */
     @media (max-width: 640px) {
-      .cfg-role-table thead { display: none; }
       .cfg-role-table tr.cfg-role-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; background: var(--card); }
       .cfg-role-table tr.cfg-role-row > td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 2px 0; font-size: 13px; line-height: 1.35; }
       .cfg-role-table tr.cfg-role-row > td:nth-child(1) { grid-column: 1; grid-row: 1; }
@@ -419,21 +418,20 @@
     }
     .cfg-role-editing .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
-    .cfg-list { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }  /* 2026-08-13: gộp card — cfg-table-wrap giãn đầy, role phía dưới */
+    .cfg-list { display: flex; flex-direction: column; gap: 18px; }  /* 2026-08-14: sections xếp dọc, tự cao — card cuộn */
 
     /* viewConfig bảng gộp (2026-08-13 — mẫu bảng sketch 009): 1 <table> thead sticky + mỗi group 1 <tbody> + item <tr>.
        Trong <td> dùng inline/inline-block — KHÔNG flex-on-cell (giữ table-column alignment với thead) */
-    .cfg-table-wrap { flex: 1 1 auto; min-height: 0; }  /* bo overflow:auto: card la scroller -> thead sticky hoat dong (overflow:auto o day tao scroll container chet, pha sticky) */
-    .cfg-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; min-width: 520px; }  /* FIX(2026-08-14): collapse giết position:sticky trên thead th trong Chrome → separate + spacing 0 (td đã có border-bottom riêng, giao diện giữ nguyên); fixed: cột cố định — edit không làm cột nhảy; min-width: mobile cuộn ngang */
-    .cfg-table thead th { background: var(--surface-muted); color: var(--muted); font-weight: 700; font-size: 13px; text-align: left; padding: 8px 10px; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
-    .cfg-table thead th:nth-child(3) { width: 110px; }  /* Mặc định */
-    .cfg-table thead th:nth-child(4) { width: 150px; }  /* Thao tác */
-    .cfg-table .cfg-col-group { width: 80px; }
+    .cfg-table-wrap { overflow-x: auto; }  /* 2026-08-14: mỗi group 1 bảng con — chỉ cuộn ngang khi cần */
+    .cfg-table { width: 100%; max-width: 760px; border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; }  /* 2026-08-14: bỏ thead sticky + min-width 520 — mỗi group 1 bảng gọn ≤760px, hết giãn rỗng; fixed: cột cố định — edit không làm cột nhảy */
     .cfg-table tr.cfg-item, .cfg-table tr.cfg-item-group { display: table-row; }  /* neutralize base display:flex — <tr> phải là table-row (2026-08-13) */
-    .cfg-table tr.cfg-group-sep > td, .cfg-role-table tr.cfg-group-sep > td { padding: 8px 12px 4px; border-top: 1px solid var(--border); background: var(--card); vertical-align: middle; }  /* FIX(2026-08-14): td display:flex phá vỡ table column sizing — cột Nhóm phình 293px → bảng 637px tràn card desktop 129px + mobile 347px; giữ table-cell, children inline (title inline-block + nút Thêm float phải) */
-    .cfg-table tr.cfg-group-sep .cfg-group-title, .cfg-role-table tr.cfg-group-sep .cfg-group-title { display: inline-block; padding-top: 4px; }  /* FIX: td không flex — title inline-block giữa */
-    .cfg-table tr.cfg-group-sep .cfg-group-add, .cfg-role-table tr.cfg-group-sep .cfg-group-add { float: right; margin-top: 2px; }  /* FIX: nút + Thêm ép phải bằng float (không flex space-between) */
     .cfg-table .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--primary); }
+    /* 2026-08-14: group section (tách nhóm — layout mới): head = title + count + nút + Thêm, bảng con bên dưới */
+    .cfg-group-section { margin-bottom: 20px; }
+    .cfg-group-section:last-child { margin-bottom: 0; }
+    .cfg-section-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .cfg-section-head .cfg-group-title { font-size: 14px; font-weight: 700; color: var(--primary); }
+    .cfg-section-head .cfg-group-add { margin-left: auto; margin-top: 0; }  /* nút + Thêm ép phải */
     .cfg-table tr.cfg-item-group > td { padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
     .cfg-table tr.cfg-item-group:hover > td { background: var(--row-hover); }
     .cfg-table tr.cfg-item-group.is-default > td { background: #fff8f0; }  /* viền amber khi là mặc định — td mới paint, <tr> không paint (2026-08-13) */
@@ -469,8 +467,7 @@
     .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }
     .cfg-group-add { margin-top: 6px; }
     .cfg-group-empty { padding: 6px 2px; }
-    /* 2026-08-13: gộp 2 card (vận hành + role) thành 1 — roleWrap là div con trong form card */
-    .cfg-role-list { flex: 1 1 auto; min-height: 0; }  /* roleWrap lo cuộn (2026-08-13: gộp 2 card thành 1) */
+    /* 2026-08-14: bỏ .cfg-role-list flex — sections xếp dọc, tự cao */
     .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; }
     .cfg-item[draggable="true"] { cursor: grab; }
     .cfg-item.cfg-dragging { opacity: .45; }
@@ -1306,15 +1303,7 @@
     #viewStats .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; }  /* -120: trừ cả topbar + main padding để trang không cuộn khi wrap max */
     #viewStats .stats-table-wrap { max-height: none; }  /* tablet: wrap giãn đầy card (trước bị chặn 60vh → cuộn nhiều + trống dưới card, CDP 1024: card 594 wrap 460 nội dung 613) */
     #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }  /* FIX(2026-08-14): overflow:hidden đặt card là scroll container chết — cột vận hành dài bị cắt đuôi bảng (agencies 38px) không cuộn được; chuyển card cuộn toàn phần + thead sticky sống */
-    #viewConfig #roleWrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }  /* FIX(2026-08-14): bỏ overflow-y:auto — card đã cuộn toàn phần (2 cột cuộn đồng bộ, tránh 2 scroll lồng lệch nhau) */
-    /* 2026-08-13: title Phân quyền nằm trong group-sep bảng role — bỏ cfg-section-title-role */
-    /* <1380px: 2 cột xếp dọc — card cuộn toàn phần (bỏ cuộn cột riêng), divider bỏ; card giới hạn 960px căn giữa (2026-08-13) */
-    @media (max-width: 1379px) {
-      .cfg-cols { grid-template-columns: 1fr; }
-      .cfg-col + .cfg-col { border-left: 0; padding-left: 0; margin-top: 14px; }
-      #viewConfig .card { overflow-y: auto; }
-      #viewConfig #cfgList, #viewConfig #roleWrap { flex: none; overflow: visible; }
-    }
+    #viewConfig #roleWrap { display: block; }  /* 2026-08-14: sections xếp dọc — tự cao, card cuộn */
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
     @media (max-width: 700px) {
@@ -1323,10 +1312,6 @@
       .cfg-role-email { flex: 1 1 100%; }  /* C1: email dòng riêng mobile (ellipsis) — badge + actions dòng 2 */
       .cfg-role-badge { max-width: 60%; overflow: hidden; text-overflow: ellipsis; }  /* C1 (2026-08-13): badge dài "Manager — quản lý vận hành" (170px) + actions (124px) > content 320px → 3 dòng; cap 60% giữ 2 dòng */
       .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
-      .cfg-role-list { flex: none; }  /* 2026-08-13: roleWrap cuộn riêng — không giới hạn 40vh (nội dung cao bị cắt, không có scroll) */
-      .cfg-table { min-width: 0; }  /* FIX(2026-08-14): bỏ min-width 520px — bảng ép 520px tràn wrap mobile 188px */
-      .cfg-table thead th:nth-child(3), .cfg-table thead th:nth-child(4) { width: auto; }  /* FIX: cột Mặc định/Thao tác co theo nội dung */
-      .cfg-table .cfg-col-group { width: 56px; }  /* FIX: cột Nhóm gọn mobile (desktop 80px) */
       .cfg-table .cfg-value-cell { white-space: normal; }  /* FIX(2026-08-14): mobile value wrap — hết scroll ngang (trước 347px) */
       .cfg-table .cfg-item-value { word-break: break-word; }  /* value dài tự xuống dòng */
       .cfg-table .cfg-drag-handle, .cfg-table .cfg-item-idx { white-space: nowrap; }  /* handle + #idx không wrap */
