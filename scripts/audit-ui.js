@@ -190,9 +190,9 @@ async function runViewport(ws, vp) {
     check(`${n}: trang không cuộn`, v.pageScrollable === false);
     if (v.navTop != null) check(`${n}: nav không che view`, !v.coveredByNav, `secBottom=${v.secBottom} navTop=${v.navTop}`);
     if (v.cardBottomGap != null) {
-      // viewScan mobile: card cao hơn section (cuộn trong) — gap âm là ĐÚNG thiết kế
+      // viewScan mobile: nội dung cao → cuộn trong section (gap âm); ngắn → card vừa màn hình (gap dương ≤100) — FIX(2026-08-14)
       if (v.id === 'viewScan' && mobile) {
-        check(`${n}: card nội dung cuộn trong section`, v.cardBottomGap < 0, `gap=${v.cardBottomGap}`);
+        check(`${n}: card cuộn trong section hoặc vừa màn hình`, v.cardBottomGap < 0 || v.cardBottomGap <= 100, `gap=${v.cardBottomGap}`);
       } else {
         const ok = v.cardBottomGap >= 0 && v.cardBottomGap <= (mobile ? 100 : 40);
         check(`${n}: card vừa màn hình`, ok, `gap=${v.cardBottomGap} card=${v.cardRef}`);
