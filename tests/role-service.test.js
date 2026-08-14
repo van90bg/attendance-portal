@@ -1,7 +1,7 @@
 /**
  * tests/role-service.test.js — Role / phân quyền (Auth.gs + roleMap Config sheet).
  *
- * Cover: anonymous → operator (kiosk giữ hành vi); roleMap theo email (lowercase);
+ * Cover: anonymous → operator (giữ hành vi quét); roleMap theo email (lowercase);
  * admin override; requireRole_ theo bậc + fail-closed role lạ; getCurrentUser trả
  * { email, role, isAdmin }; gate getStaffStatsApi (viewer bị chặn — role mới P1,
  * operator+ hiện tại không đổi hành vi).
@@ -12,7 +12,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { makeSandbox, loadAll } = require('./gas-sandbox');
 
-test('getRole_: anonymous (email rỗng) → operator (kiosk giữ hành vi)', () => {
+test('getRole_: anonymous (email rỗng) → operator (giữ hành vi quét)', () => {
   const { ctx } = makeSandbox({ activeEmail: '' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
@@ -86,7 +86,7 @@ test('getStaffStatsApi gate: operator OK, viewer (role P1) bị chặn', () => {
   assert.equal(svc2.getStaffStatsApi().ok, true);
 });
 
-test('getCurrentUser anonymous: role operator, isAdmin false (kiosk)', () => {
+test('getCurrentUser anonymous: role operator, isAdmin false (anonymous)', () => {
   const { ctx } = makeSandbox({ activeEmail: '' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();

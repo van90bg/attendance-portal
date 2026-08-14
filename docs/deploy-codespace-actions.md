@@ -8,7 +8,7 @@
 
 ### 1. Mở Codespace
 
-GitHub → repo `rollcall-kiosk-v2` → **Code → Codespaces → Create codespace on `main`**
+GitHub → repo `attendance-portal` → **Code → Codespaces → Create codespace on `main`**
 (máy ảo cloud của GitHub — có sẵn Node, terminal, VS Code trong browser).
 
 ### 2. Cài clasp

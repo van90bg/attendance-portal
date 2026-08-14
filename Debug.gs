@@ -2,7 +2,7 @@
  * Debug.gs — Nhánh debug URL (?debug=1 / ?debug=createTask) + debugState_.
  * Tách khỏi Code.gs 2026-08-11 — doGet giữ production entry sạch.
  *
- * TẤT CẢ nhánh này editor-gated (isEditor_) — kiosk anonymous không gọi được.
+ * TẤT CẢ nhánh này editor-gated (isEditor_) — anonymous không gọi được.
  * ?debug=1          → JSON cấu trúc toàn bộ sheet (QA/verify).
  * ?debug=createTask → tạo task thật + trả detail (QA end-to-end không qua UI).
  */
@@ -15,7 +15,7 @@
  */
 function handleDebugRequest_(e) {
   // Debug: URL?debug=1 → trả JSON cấu trúc sheet (QA/verify — KHÔNG dùng production).
-  // P2: gate editor-only — kiosk anonymous, ai cũng gọi URL này → leak cấu trúc
+  // P2: gate editor-only — anonymous, ai cũng gọi URL này → leak cấu trúc
   // sheet + taskId + mẫu log. Session.getActiveUser() rỗng khi anonymous truy cập.
   if (e && e.parameter && e.parameter.debug === '1') {
     if (!isEditor_()) {
@@ -28,7 +28,7 @@ function handleDebugRequest_(e) {
   }
   // Debug: URL?debug=createTask&station=..&slotCode=..&team=.. → tạo task thật + trả detail
   // (CHỈ dùng QA — mở khóa khi cần test luồng end-to-end không qua UI)
-  // P1: gate editor-only — kiosk anonymous, ai cũng gọi URL này → tạo task rác.
+  // P1: gate editor-only — anonymous, ai cũng gọi URL này → tạo task rác.
   // Session.getActiveUser() rỗng khi anonymous truy cập webapp.
   if (e && e.parameter && e.parameter.debug === 'createTask') {
     if (!isEditor_()) {

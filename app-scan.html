@@ -85,7 +85,7 @@
         // nút Chuyển điểm danh/nút paste (không bị logic phase ở trên ghi đè).
         applyScanPermission();
         // Mobile/tablet (pointer:coarse): KHÔNG focus ngay — bàn phím ảo tự bật đè màn hình
-        // khi mở task quét (2026-08-11). Kiosk desktop giữ auto-focus như cũ.
+        // khi mở task quét (2026-08-11). Máy tính (chuột/barcode scanner) giữ auto-focus như cũ.
         if (canScan && !scanOwnerLocked && !COARSE_POINTER) {
           scanInput.focus();
         }
@@ -928,7 +928,7 @@
   }
   // m4 (audit 2026-08-11): live region RIÊNG cho SR — trước đây aria-live trên cả #scanCard
   // (render lại mỗi lượt quét) → screen reader đọc lại cả khối tên+trạng thái liên tục
-  // (announce-spam ở nhịp kiosk). Giờ chỉ 1 dòng status ngắn trong #scanLiveMsg.
+  // (announce-spam ở nhịp quét). Giờ chỉ 1 dòng status ngắn trong #scanLiveMsg.
   function setScanLiveMsg_(status, target, mode) {
     var live = document.getElementById('scanLiveMsg');
     if (!live) return;

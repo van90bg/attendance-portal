@@ -1,4 +1,4 @@
-﻿/**
+/**
  * mock-google.js — Mock google.script.run cho test UI local (mở index.html trực tiếp).
  *
  * KHÔNG push lên GAS production (đã .claspignore). Chỉ dùng khi chạy file://
@@ -13,7 +13,7 @@
   var MOCK_DATA = {
     meta: {
       ok: true,
-      appTitle: 'Attendance Portal [LOCAL MOCK]',
+      appTitle: 'SPX Điểm Danh [LOCAL MOCK]',
       // Khớp server getMetaApi: { ok, appTitle, userEmail } — KHÔNG labels/tableHeaders
       // (client không dùng, server không trả — drift đã xóa 2026-08-11).
     },

@@ -69,7 +69,7 @@ function getFilterOptionsApi() {
     // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
     stationGroups: buildStationGroups(staffList),
     // defaults (Config sheet qua SettingsService) — pre-select modal tạo task cho MỌI user
-    // (kiosk operator không phải editor vẫn được pre-select; getSettings_ không gate).
+    // (operator không phải editor vẫn được pre-select; getSettings_ không gate).
     defaults: {
       station: getSetting_('defaultStation'),
       slotCode: getSetting_('defaultSlotCode'),
@@ -77,7 +77,7 @@ function getFilterOptionsApi() {
     },
     // lists (Config sheet qua SettingsService) — danh sách lựa chọn Admin khai báo.
     // Client MERGE với distinct StaffData (union, dedup) để không mất giá trị thực
-    // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → kiosk OK.
+    // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → operator OK.
     lists: {
       stations: settingsList_('stations'),
       teams: settingsList_('teams'),
@@ -163,13 +163,13 @@ function getTaskDetailApi(taskId) {
   return getTaskDetail(taskId);
 }
 
-/** Quét NV. Mở cho kiosk — KHÔNG cần editor (luồng vận hành hàng ngày). */
+/** Quét NV. Mở cho operator — KHÔNG cần editor (luồng vận hành hàng ngày). */
 function scanStaffApi(taskId, staffId) {
   return scanStaff(taskId, staffId);
 }
 
 /** Kết thúc task. Gate requireRole_('operator') — mọi user hiện tại là operator+ (DEFAULT)
- *  nên không đổi hành vi kiosk; bịt lỗ fail-open: trước đây ai cũng gọi transition→ATTEND
+ *  nên không đổi hành vi quét; bịt lỗ fail-open: trước đây ai cũng gọi transition→ATTEND
  *  để vô hiệu owner-gate phase OPEN (canScanOpen_) rồi thao tác task người khác. */
 function completeTaskApi(taskId) {
   // Gate quyền THẬT nằm TRONG completeTask (TaskService) — google.script.run gọi được hàm global
@@ -208,7 +208,7 @@ function reopenTaskApi(taskId) {
   }
 }
 
-/** T-2: Dán danh sách mã (batch paste). Gate requireRole_('operator') — kiosk vẫn dùng
+/** T-2: Dán danh sách mã (batch paste). Gate requireRole_('operator') — operator vẫn dùng
  *  (DEFAULT=operator); paste vẫn giữ owner-gate canScanOpen_ ở phase OPEN bên trong. */
 function pasteCodesApi(taskId, lines) {
   // Gate quyền THẬT nằm TRONG pasteCodes (ScanService) — google.script.run gọi được hàm global
@@ -237,7 +237,7 @@ function searchLogsByStaffApi(rawStaffId) {
   }
 }
 
-/** F-search mở rộng: tìm task theo mã (prefix/contains). Mở cho kiosk — chỉ đọc
+/** F-search mở rộng: tìm task theo mã (prefix/contains). Mở cho operator — chỉ đọc
  *  (dùng readTaskList_ cache + counters, không đọc sheet riêng). */
 function searchTasksByQueryApi(rawQ) {
   return searchTasksByQuery(rawQ);
@@ -245,7 +245,7 @@ function searchTasksByQueryApi(rawQ) {
 
 /** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ
  *  hiện NGAY khi quét đầu thay vì về sau mới có (do StaffData index bị lazy + cache 5p).
- *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn kiosk. */
+ *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn cho mọi vai trò. */
 function warmStaffCacheApi() {
   try {
     const index = readStaffIndex_(); // warm cache + tra index cho client
@@ -268,7 +268,7 @@ function warmStaffCacheApi() {
  * @returns {{ok: boolean, count: number, message: string}}
  */
 function syncFromCsv() {
-  // P1: kiosk anonymous — KHÔNG cho chạy từ webapp (ai cũng gọi được qua
+  // P1: anonymous — KHÔNG cho chạy từ webapp (ai cũng gọi được qua
   // google.script.run từ console → ghi đè/xóa StaffData).
   // Chỉ cho chạy từ Editor: Session.getActiveUser() rỗng khi anonymous truy cập.
   if (!isEditor_()) {
@@ -294,7 +294,7 @@ function syncFromCsv() {
 
 /** Khởi tạo sheet lần đầu (chạy 1 lần từ editor sau khi deploy). */
 function setupSheets() {
-  // P3: gate editor-only — kiosk anonymous, không cho gọi qua google.script.run console
+  // P3: gate editor-only — anonymous, không cho gọi qua google.script.run console
   if (!isEditor_()) return 'Chỉ chạy từ Script Editor';
   ensureSheets_();
   return 'OK: sheets đã sẵn sàng';

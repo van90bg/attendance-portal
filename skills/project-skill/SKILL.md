@@ -1,13 +1,13 @@
 ---
 name: project-skill
-description: Attendance Portal (RollCall v2) — project skill. Use for ANY edit in this repo (UI, server, tests, docs): architecture mental model, gotchas, deterministic edit + batch runner, perf, pitfalls.
+description: SPX Điểm Danh (RollCall v2) — project skill. Use for ANY edit in this repo (UI, server, tests, docs): architecture mental model, gotchas, deterministic edit + batch runner, perf, pitfalls.
 ---
 
-# Project Skill — Attendance Portal (RollCall v2)
+# Project Skill — SPX Điểm Danh (RollCall v2)
 
-> Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/rollcall-kiosk-v2x`).
+> Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/attendance-portal`).
 > Dùng khi: bất kỳ edit nào với repo này (UI, server, tests, docs).
-> Nguồn: skill Hermes `rollcall-kiosk`. Nếu mâu thuẫn, Hermes skill là nguồn mới nhất.
+> Nguồn: skill Hermes `rollcall`. Nếu mâu thuẫn, Hermes skill là nguồn mới nhất.
 > References: xem `references/` — `architecture-gotchas.md`, `deterministic-batch-runner.md`, `slot-fueled-classification.md`.
 
 ## 1. Repo facts
@@ -17,7 +17,7 @@ description: Attendance Portal (RollCall v2) — project skill. Use for ANY edit
 - Test: `npm run test` = 124 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
 - Frontend (tách module 2026-08-13): `index.html` (HTML + `<?!= include() ?>` GAS template) + `styles.html` (CSS) + 7 module JS `app-*.html` (core/stats/staff/modals/config/tasks/scan — thay app.html 3665 dòng) — cả nguồn GAS CRLF. Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService `.gs`. Test local: `node scripts/build-local.js` → `index.local.html` (trình duyệt không render template).
 
-## 2. Shell: Attendance Portal (2026-08-09)
+## 2. Shell: SPX Điểm Danh (2026-08-09)
 
 App scope mở rộng: quản lý chấm công, không chỉ điểm danh. Layout: `<header>` (controls: userEmail · net-dot · 🔊 · ⟳ — ĐÃ BỎ 📋/ⓘ) > `.app-shell` (flex) = `#sidebar` (240↔48px, icon SVG đơn sắc currentColor, KHÔNG side-head, nút thu gọn `☰`) + `#main-content`.
 

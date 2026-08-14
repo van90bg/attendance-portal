@@ -13,7 +13,7 @@
  */
 function scanStaff(taskId, rawStaffId) {
   // P2 benchmark (QA prod): đo latency thật từng giai đoạn → Stackdriver.
-  // Kiosk queue 2.5s/item — cần số liệu thật trước khi tối ưu thêm.
+  // Queue quét 2.5s/item — cần số liệu thật trước khi tối ưu thêm.
   const t0 = Date.now();
   const staffId = normalizeStaffId(rawStaffId);
   // Chỉ chấp nhận mã barcode NV bắt đầu "Ops" (case-insensitive).
@@ -27,7 +27,7 @@ function scanStaff(taskId, rawStaffId) {
     };
   }
   // DEFENSE: bọc toàn bộ logic trong try/catch — bất kỳ lỗi nào (kể cả
-  // ReferenceError extraRow) trả ok:false thay vì ném ra → kiosk hiện toast, KHÔNG "Server lỗi".
+  // ReferenceError extraRow) trả ok:false thay vì ném ra → thiết bị hiện toast, KHÔNG "Server lỗi".
   try {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
@@ -93,7 +93,7 @@ function scanStaff(taskId, rawStaffId) {
     // planScanCommits (ScanLogic) — chung với pasteCodes, hết duplicate (architecture review B).
     const field = result.field;
     const needsAppend = result.action === 'append';
-    // Re-check race: đọc lại cache sau lock (kiosk khác có thể vừa ghi cùng staffId)
+    // Re-check race: đọc lại cache sau lock (thiết bị khác có thể vừa ghi cùng staffId)
     const freshLogRows = needsAppend ? (readLogRowsCached_(taskId) || []) : logRows;
     let staffIndex = null;
     if (needsAppend) {
@@ -127,7 +127,7 @@ function scanStaff(taskId, rawStaffId) {
     // t2→t3 = classify + write. Nếu read > 1.5s → cần index log (xem Database.gs).
     const t3 = Date.now();
     // Minor#6 (audit): log benchmark CHỈ khi bất thường (> ngưỡng) — trước đây log
-    // mọi lượt thể hiện, ở nhịp kiosk ~1400 log/h/tab → tốn Stackdriver quota/chi phí.
+    // mọi lượt thể hiện, ở nhịp quét ~1400 log/h/tab → tốn Stackdriver quota/chi phí.
     // Ngưỡng: total > 400ms (bất thường) HOẶC read/write > 300ms (bottleneck tiềm ẩn).
     const __dt = { totalMs: t3 - t0, readMs: t2 - t1, writeMs: t3 - t2 };
     if (__dt.totalMs > 400 || __dt.readMs > 300 || __dt.writeMs > 300) {
@@ -154,7 +154,7 @@ function scanStaff(taskId, rawStaffId) {
     lock.releaseLock();
   }
   } catch (e) {
-    // DEFENSE: bất kỳ lỗi runtime → trả ok:false (kiosk toast) thay vì crash "Server lỗi".
+    // DEFENSE: bất kỳ lỗi runtime → trả ok:false (toast) thay vì crash "Server lỗi".
     console.error({ bench: 'scanStaff', taskId: taskId, staffId: staffId, error: e && e.message, stack: e && e.stack });
     return { ok: false, message: 'Lỗi server: ' + (e && e.message ? e.message : 'unknown'), status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
   }
@@ -174,7 +174,7 @@ function pasteCodes(taskId, rawLines) {
   // m3 (audit): guard array — payload string (lỗi client/bug tương lai) → xử lý như rỗng.
   const lines = Array.isArray(rawLines) ? rawLines.slice(0, 200) : [];
   // M1 (review 2026-08-11): gate THẬT ở service layer (chống bypass google.script.run gọi global).
-  // Kiosk vẫn dùng được (ROLES.DEFAULT='operator'); paste giữ owner-gate canScanOpen_ bên trong.
+  // Operator vẫn dùng được (ROLES.DEFAULT='operator'); paste giữ owner-gate canScanOpen_ bên trong.
   if (!requireRole_('operator')) {
     return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)', total: 0, success: 0, failed: 0, results: [], counters: null };
   }
@@ -230,7 +230,7 @@ function pasteCodes(taskId, rawLines) {
     if (commitActions.some(function (p) { return p.action === 'append'; })) {
       try { staffIndex = readStaffIndex_() || null; } catch (e) { console.warn('readStaffIndex fail', e.message); staffIndex = null; }
     }
-    // Re-check race: đọc lại cache sau khi giữ lock (kiosk khác có thể vừa ghi cùng mã)
+    // Re-check race: đọc lại cache sau khi giữ lock (thiết bị khác có thể vừa ghi cùng mã)
     const freshLogRows = readLogRowsCached_(taskId) || [];
     const commit = planScanCommits(
       { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },

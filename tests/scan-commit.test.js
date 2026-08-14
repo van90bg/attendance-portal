@@ -1,7 +1,7 @@
 /**
  * tests/scan-commit.test.js — planScanCommits (seam B 2026-08-12).
  *
- * Seam THUẦN gom quyết định commit scan: re-check race (2 kiosk cùng staffId),
+ * Seam THUẦN gom quyết định commit scan: re-check race (2 thiết bị cùng staffId),
  * enrich staffIndex cho append, gom update/append thành batch — scanStaff +
  * pasteCodes dùng chung (thay buildExtraRow cũ).
  */

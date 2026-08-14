@@ -121,7 +121,7 @@
   }
 
   // P2: format theo TZ Asia/Ho_Chi_Minh (khớp server Session.getScriptTimeZone)
-  // — không dùng local TZ của máy kiosk (có thể lệch nếu đổi vùng).
+  // — không dùng local TZ của thiết bị (có thể lệch nếu đổi vùng).
   var _fmtTZ = (function () {
     try {
       return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
@@ -369,14 +369,14 @@
   }
 
   /* Mobile/tablet (pointer: coarse): KHÔNG tự focus scan input — bàn phím ảo tự bật đè nửa
-     màn hình khi mở task quét. Kiosk desktop (chuột/barcode scanner) vẫn auto-focus như cũ. (2026-08-11) */
+     màn hình khi mở task quét. Máy tính (chuột/barcode scanner) vẫn auto-focus như cũ. (2026-08-11) */
   // R3 (audit 2026-08-11): pointer:coarse có thể đổi runtime (hybrid — gắn/tháo bàn phím rời)
   // → theo dõi change thay vì đóng băng lúc startup, tránh auto-focus bật bàn phím ảo sai.
   // Cache MQ 1 lần (media query là singleton per document — không gọi matchMedia 2 lần).
   var MQ_COARSE = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
   var COARSE_POINTER = !!(MQ_COARSE && MQ_COARSE.matches);
   if (MQ_COARSE && MQ_COARSE.addEventListener) MQ_COARSE.addEventListener('change', function (e) { COARSE_POINTER = e.matches; });
-  /* ===== Auto-focus loop (tham khảo v1): giữ focus vào scan input trên kiosk touch ===== */
+  /* ===== Auto-focus loop (tham khảo v1): giữ focus vào ô quét trên màn hình touch ===== */
   function startAutoFocusLoop() {
     if (COARSE_POINTER) return;  // mobile/tablet: không auto-focus — bàn phím không tự bật
     if (AUTO_FOCUS_TIMER) return;
@@ -388,7 +388,7 @@
       var scanView = document.getElementById('viewScan');
       var input = document.getElementById('scanInput');
       // P2 (audit): viewScan hidden → không cần giữ focus (đang ở danh sách task);
-      // dừng luôn interval để không chạy vô ích mỗi 3s trên kiosk bật lâu.
+      // dừng luôn interval để không chạy vô ích mỗi 3s trên thiết bị bật lâu.
       if (!scanView || scanView.classList.contains('hidden')) { stopAutoFocusLoop(); return; }
       if (input && !input.disabled) {
         var active = document.activeElement;
@@ -436,7 +436,7 @@
 
   /* ===== Background task indicator (header) — 2026-08-09 ===== */
   // Bộ đếm tác vụ nền: scan queue + RPC scan pending + silent reload chờ.
-  // Hiển thị spinner + count ở header khi hệ thống đang xử lý nền — kiosk biết không nên
+  // Hiển thị spinner + count ở header khi hệ thống đang xử lý nền — người dùng biết không nên
   // tắt/refesh giữa chừng. Count = tổng tác vụ đang chạy (0 → ẩn indicator).
   var BG_TASKS = { scan: 0, rpc: 0, silent: 0 };  // { scan: queue+processing, rpc: RPC nền, silent: silent reload }
   function bgTasksTotal() {
@@ -630,7 +630,7 @@
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
       osc.start();
       osc.stop(ctx.currentTime + 0.15);
-    } catch (e) { /* kiosk không hỗ trợ audio — bỏ qua */ }
+    } catch (e) { /* thiết bị không hỗ trợ audio — bỏ qua */ }
   }
 
   /* ===== T-3: View management (7 view: home/stats/tasks/scan/staff/config/reports/about) ===== */
@@ -658,7 +658,7 @@
     stopAutoFocusLoop();
     // m3 (audit 2026-08-11): rời trang chủ → dừng đồng hồ 1Hz (đối xứng stopAutoFocusLoop).
     // renderHomeClock tự restart khi vào lại viewHome (selectPage). Tránh interval + Intl 2 lần/s
-    // sống vĩnh viễn trên kiosk chạy 24/7.
+    // sống vĩnh viễn trên thiết bị chạy 24/7.
     if (sectionName !== 'viewHome' && CLOCK_TIMER) { clearInterval(CLOCK_TIMER); CLOCK_TIMER = null; }
     // Show target view
     var target = document.getElementById(sectionName);
@@ -671,7 +671,7 @@
     }
   }
 
-  /* ===== Attendance Portal — Sidebar & Page routing ===== */
+  /* ===== SPX Điểm Danh — Sidebar & Page routing ===== */
   var SIDEBAR_COMPACT = false;
   try { SIDEBAR_COMPACT = localStorage.getItem('ap2_sidebar_compact') === '1'; } catch (e) {}
 
@@ -724,7 +724,7 @@
   /* Đồng hồ + ngày trang chủ — realtime Asia/Ho_Chi_Minh (khớp fmtDate) */
   var CLOCK_TIMER = null;
   // Finding#2 (2026-08-12): hoist formatter — trước đây tạo 2 Intl.DateTimeFormat MỖI tick 1s
-  // (kiosk ở home 24/7 = ~172k allocation/ngày). Giờ format TÁI DÙNG _fmtTZ (đã hoisted ở UTILITIES);
+  // (thiết bị ở home 24/7 = ~172k allocation/ngày). Giờ format TÁI DÙNG _fmtTZ (đã hoisted ở UTILITIES);
   // chỉ thêm 1 formatter ngày — cùng pattern _fmtTZ (IIFE + try/catch).
   var _clockFmtD = (function () {
     try { return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }); }

@@ -12,7 +12,7 @@
  * - task-owner (canScanOpen_ ở ScanLogic.gs, pure): chủ task khi phase OPEN.
  * - Role mở rộng (2026-08-11): viewer<operator<manager<admin — ROLES (Config.gs),
  *   roleMap lưu Config sheet (SettingsService), đọc qua getRole_; gate chuẩn
- *   requireRole_(min). operator là MẶC ĐỊNH (giữ hành vi kiosk); gate quản trị
+ *   requireRole_(min). operator là MẶC ĐỊNH (giữ hành vi quét); gate quản trị
  *   áp qua requireRole_ — KHÔNG fail-closed anonymous thành viewer.
  */
 
@@ -46,7 +46,7 @@ function roleRank_(role) {
 /**
  * Role của email: roleMap (Config sheet qua SettingsService) > ROLES.DEFAULT.
  * Editor (isEditor_) luôn admin (override map). Anonymous (email rỗng) → operator
- * (kiosk giữ hành vi quét hiện tại — KHÔNG fail-closed thành viewer).
+ * (anonymous giữ hành vi quét hiện tại — KHÔNG fail-closed thành viewer).
  * @param {string} email
  * @returns {string}
  */

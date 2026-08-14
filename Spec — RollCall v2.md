@@ -11,14 +11,14 @@
 ## 1. Tổng quan
 
 **Tên dự án:** RollCall v2 — Điểm danh kho (warehouse)
-**Repo:** `van90bg/rollcall-kiosk-v2x` (private)
+**Repo:** `van90bg/attendance-portal` (private)
 **Loại:** WebApp Google Apps Script (standalone) + Google Sheets
 
 | Thuộc tính | Giá trị |
 | :--------- | :------ |
 | Đối tượng | Nhân viên kho (warehouse staff) |
 | Mục đích | **Đối chiếu** danh sách NV làm việc theo tổ hợp Station / Ca (Slot Code) / Team bằng barcode |
-| Thiết bị | PC/Laptop kiosk đặt tại kho, màn hình rộng; responsive tới mobile |
+| Thiết bị | PC/Laptop đặt tại kho + máy tính bảng + điện thoại; responsive — không cần thiết bị riêng |
 | Ngôn ngữ | Code/cột sheet: tiếng Anh · Giao diện web: tiếng Việt |
 | Stack | GAS (V8) backend + Vanilla HTML/CSS/JS frontend (**không framework, không Bootstrap**) + Google Sheets + Node `node:test` + clasp |
 
@@ -342,11 +342,11 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 
 **Cả 2 đều gate editor-only** qua `isEditor_()` (fail-closed):
 - So sánh `Session.getActiveUser().getEmail()` (người truy cập webapp — rỗng khi anonymous) với `Session.getEffectiveUser().getEmail()` (deployer, vì `executeAs: USER_DEPLOYING`).
-- Chỉ deployer được chạy; exception → `false` (không fail-open). Dùng chung cho `debugState()`, `syncFromCsv()`, `setupSheets()` (kiosk anonymous gọi được qua console nếu không gate).
+- Chỉ deployer được chạy; exception → `false` (không fail-open). Dùng chung cho `debugState()`, `syncFromCsv()`, `setupSheets()` (anonymous gọi được qua console nếu không gate).
 
 ### 8.3 WebApp manifest
 
-- `executeAs: USER_DEPLOYING`, `access: DOMAIN` — chỉ user @spxexpress.com (môi trường máy tính đăng nhập, không kiosk).
+- `executeAs: USER_DEPLOYING`, `access: DOMAIN` — chỉ user @spxexpress.com (môi trường máy tính đăng nhập).
 - `doGet` tự `ensureSheets_()` mỗi lần load (chỉ set header khi sheet trống — rẻ).
 
 ---
@@ -409,7 +409,7 @@ Modal còn lại: tạo task · confirm dùng chung · **pasteModal** (dán danh
 - Skip-link, focus trap modal + Escape, `focus-visible` ring, focus restore khi đóng modal.
 - `prefers-reduced-motion` (tắt animation), `prefers-contrast: more` (badge nền đặc, border đậm).
 - Autofocus loop 3s giữ focus ô quét (dừng khi về danh sách / modal mở).
-- Responsive: ≤991px layout 2 cột về 1 cột; ≤600px header wrap + topbar hết sticky; ≥1280px phóng to cho kiosk touch.
+- Responsive: ≤991px layout 2 cột về 1 cột; ≤600px header wrap + topbar hết sticky; ≥1280px phóng to cho màn hình touch.
 - SWR client: task vừa xem <15s → render NGAY từ bộ nhớ + RPC nền silent (TTL khớp server TASK_DETAIL).
 
 ### 9.7 Mock local
@@ -488,7 +488,7 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 | Task xuyên nửa đêm | Sort/count theo `timeScanEpoch` (số) — không theo text |
 | Kết thúc / quay lại khi còn scan đang xử lý | Chặn bằng `scanBusy()` (queue + processing) |
 | Mở lại task | ABSENT → PENDING (quét tiếp); PRESENT giữ nguyên |
-| Kiosk anonymous gọi `syncFromCsv`/`setupSheets`/`debug` | Gate `isEditor_()` fail-closed (chỉ deployer) |
+| Anonymous gọi `syncFromCsv`/`setupSheets`/`debug` | Gate `isEditor_()` fail-closed (chỉ deployer) |
 | Sheet cũ thiếu cột `date` (migration) | `ensureSheets_` tự thêm cột + header nếu `getLastColumn() < 11` |
 | Non-owner quét task phase Mở (T-1) | Reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY` — client disable input + banner + ẩn nút Chuyển điểm danh/Dán mã; server reject lần cuối |
 | Task legacy `createdBy='web'`/rỗng | **KHÔNG gate** — ai cũng quét được phase Mở (A1 fail-open) |

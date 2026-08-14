@@ -16,7 +16,7 @@ History in git log shows repeated reverts on Dư handling (commits c5903db/dc13b
 
 ## staffIndex lazy-cache gap (Fix #1, 2026-08-05)
 `scanStaff` reads `readStaffIndex_()` only on append, and it's cached 5 min. After a cold cache, the first stranger scan has empty name/slot/station — only populated on later scans or reopen.
-- Fix: `warmStaffCacheApi()` (read-only, safe for kiosk) preloads the index. Called on app open + right after creating a noList task (fire-and-forget, non-blocking). Apply this pattern whenever NV detail is missing on first scan.
+- Fix: `warmStaffCacheApi()` (read-only, an toàn cho mọi vai trò) preloads the index. Called on app open + right after creating a noList task (fire-and-forget, non-blocking). Apply this pattern whenever NV detail is missing on first scan.
 
 ## Toast color convention (UI)
 - `showToast(msg, isError)`: `isError` → red (`err`); else classify by `msg`: `msg === STATUS_C.EXTRA` ('Dư') → amber (`warn`); else green (`ok`). Add CSS `#toast.warn { background: var(--warning, #e85d04); }`. scan-card uses separate classes (`extra`/`ok`/`err`) — do not confuse with toast.

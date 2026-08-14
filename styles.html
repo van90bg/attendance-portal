@@ -42,7 +42,7 @@
       --space-3: 12px;
       --space-4: 16px;
       --space-5: 20px;
-      /* Type scale 8-tier (kiosk readability — tham khảo v1 styles.html) */
+      /* Type scale 8-tier (dễ đọc trên màn hình lớn — tham khảo v1 styles.html) */
       --text-xs: .65rem;
       --text-sm: .72rem;
       --text-base: .82rem;
@@ -310,7 +310,7 @@
     #createModal.about-overlay .about-dialog { transform: scale(.95); transition: transform .2s ease-out; }
     #createModal.about-overlay.open .about-dialog { transform: scale(1); }
     /* touch target 44px (v1) */
-    /* Touch target modal chung (2026-08-11): paste/create/confirm — 44px kiosk, font 14px gọn */
+    /* Touch target modal chung (2026-08-11): paste/create/confirm — 44px touch, font 14px gọn */
     .about-dialog .btn { min-height: 44px; font-size: 14px; font-weight: 600; }
     @media (max-width: 719px) {
       #createModal .about-dialog {
@@ -322,7 +322,7 @@
       }
     }
 
-    /* ===== Bộ đếm — 3 khối luôn cùng 1 hàng (kiosk nhìn nhanh) ===== */
+    /* ===== Bộ đếm — 3 khối luôn cùng 1 hàng (nhìn nhanh) ===== */
     .counters { display: flex; gap: 10px; }
     /* P1-2 fix: dùng transform translateX (GPU-accelerated) thay vì left (layout thrash). */
     @keyframes pasteSlide {
@@ -539,7 +539,7 @@
       font-weight: 700;
       text-align: center;
     }
-    /* Tia quét laser chạy ngang ô nhập khi focus (kiosk feel) — mờ nhẹ, không lấn input */
+    /* Tia quét laser chạy ngang ô nhập khi focus (cảm giác quét) — mờ nhẹ, không lấn input */
     .scan-input-wrap::after {
       content: '';
       position: absolute;
@@ -570,7 +570,7 @@
     @media (min-width: 992px) {
       #btnScan { display: none; }
     }
-    /* Kiosk wide-screen: lớn hơn cho màn hình touch rộng (tham khảo v1 type scale) */
+    /* Màn hình rộng: lớn hơn cho màn hình touch rộng (tham khảo v1 type scale) */
     @media (min-width: 1280px) {
       .scan-input-wrap input { font-size: 34px; padding: 18px 20px; letter-spacing: 2px; }
       .scan-input-wrap input::placeholder { font-size: 17px; }
@@ -740,7 +740,7 @@
 
     /* ===== Background task indicator (header) ===== */
     /* Bổ sung (2026-08-09): spinner + count khi có tác vụ nền đang chạy (scan queue /
-       RPC pending / silent reload). Nhắc kiosk không thoát giữa chừng; thay vì màn "yên lặng" khi queue còn. */
+       RPC pending / silent reload). Nhắc không thoát giữa chừng; thay vì màn "yên lặng" khi queue còn. */
     .bg-task-indicator {
       display: inline-flex;
       align-items: center;
@@ -916,7 +916,7 @@
       }
     }
 
-    /* High contrast (tham khảo v1): kiosk màn cũ/sáng gắt — đậm border, tương phản cao */
+    /* High contrast (tham khảo v1): màn cũ/sáng gắt — đậm border, tương phản cao */
     @media (prefers-contrast: more) {
       :root {
         --border: #000;
@@ -1130,7 +1130,7 @@
     @media (max-width: 1199px) {
       .stats-table-wrap { max-height: 60vh; }
     }
-    /* ===== Attendance Portal — Sidebar điều hướng chính ===== */
+    /* ===== SPX Điểm Danh — Sidebar điều hướng chính ===== */
     body { overflow-x: hidden; }
     .app-shell { display: flex; flex: 1 1 auto; min-height: 0; }
     #sidebar {

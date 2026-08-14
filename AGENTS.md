@@ -1,10 +1,10 @@
-# AGENTS.md — Attendance Portal (RollCall v2)
+# AGENTS.md — SPX Điểm Danh (RollCall v2)
 
 Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trước khi sửa code.
 
 ## 1. Dự án là gì
 
-**Attendance Portal** — ứng dụng quản lý chấm công + điểm danh kho SPX Express, chạy trên **Google Apps Script WebApp** + **Google Sheets**. Repo con: `van90bg/rollcall-kiosk-v2x` (private, remote git + CI auto-clasp-push).
+**SPX Điểm Danh** — ứng dụng quản lý chấm công + điểm danh kho SPX Express, chạy trên **Google Apps Script WebApp** + **Google Sheets**. Repo con: `van90bg/attendance-portal` (private, remote git + CI auto-clasp-push).
 
 - Frontend: **GAS template** — `index.html` (HTML + `<?!= include() ?>`) + `styles.html` (CSS) + **7 module JS `app-*.html`** (core/stats/staff/modals/config/tasks/scan — tách từ app.html 2026-08-13; index.html include tuần tự, chung global scope) — Vanilla không framework. `doGet` dùng `createTemplateFromFile('index').evaluate()` + helper `include(name)`. Test local: `node scripts/build-local.js` resolve MỌI `<?!= include() ?>` → `index.local.html` (file:// không render template).
 - Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Spreadsheet.gs` `Cache.gs` `StaffDataRepo.gs` `TaskRepo.gs` `LogRepo.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs` `Auth.gs` `Debug.gs` `SettingsService.gs` (Database.gs đã tách thành 5 repo file 2026-08-11).
@@ -55,7 +55,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - `classifyScan` xử lý mọi lane (roster/free) — xem `skills/project-skill/SKILL.md` §"Architecture mental model".
 - **Không ghi đè cột lệch trong setValues** — LOG_COLS phải đồng bộ hệt nhau giữa ensureSheets_, methods, migration.
 - Dư (EXTRA): NV lạ phase 2 → Dư (KHÔNG phải Có mặt). `optimistic` client phải y hệt server.
-- **Role (2026-08-11)**: viewer<operator<manager<admin — ROLES (Config.gs) + roleMap (Config sheet qua SettingsService), đọc qua Auth.getRole_; gate chuẩn `requireRole_(min)`. operator là MẶC ĐỊNH — không được phá luồng kiosk (anonymous = operator). Gate hiện tại: getStaffStatsApi operator+ · searchLogsByStaffApi (lịch sử chấm công NV) manager+ · settings editor-only. Khi thêm API quản trị: gate TRONG try (pattern DEFENSE).
+- **Role (2026-08-11)**: viewer<operator<manager<admin — ROLES (Config.gs) + roleMap (Config sheet qua SettingsService), đọc qua Auth.getRole_; gate chuẩn `requireRole_(min)`. operator là MẶC ĐỊNH — không được phá luồng điểm danh (anonymous = operator). Gate hiện tại: getStaffStatsApi operator+ · searchLogsByStaffApi (lịch sử chấm công NV) manager+ · settings editor-only. Khi thêm API quản trị: gate TRONG try (pattern DEFENSE).
 
 ## 5. View/UI pitfalls đã đóng (2026-08-09)
 

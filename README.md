@@ -1,17 +1,27 @@
-# Attendance Portal (RollCall v2) — Quản lý chấm công & điểm danh
+# SPX Điểm Danh (RollCall v2) — Quản lý chấm công & điểm danh
 
 > Hệ thống quản lý thông tin chấm công + điểm danh nhân viên kho (warehouse) bằng barcode, chạy trên **Google Apps Script WebApp** + **Google Sheets**.
-> Repo: `van90bg/rollcall-kiosk-v2x` · Spec chi tiết: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
+> Repo: `van90bg/attendance-portal` · Spec chi tiết: [`Spec — RollCall v2.md`](Spec%20—%20RollCall%20v2.md)
 
 ## Tổng quan
 
-**Attendance Portal** là cổng làm việc tập trung thay thế màn hình điểm danh đơn lẻ: sidebar điều hướng 7 trang, dữ liệu nhân sự lấy từ sheet **StaffData** (20 cột chuẩn Att.csv), dữ liệu chấm công lưu tại **AttendanceTask** / **AttendanceLog**.
+**SPX Điểm Danh** là cổng làm việc tập trung thay thế màn hình điểm danh đơn lẻ: sidebar điều hướng 7 trang, dữ liệu nhân sự lấy từ sheet **StaffData** (20 cột chuẩn Att.csv), dữ liệu chấm công lưu tại **AttendanceTask** / **AttendanceLog**.
+
+## Môi trường hoạt động
+
+| Thiết bị | Trải nghiệm |
+| :------- | :---------- |
+| **Máy tính** | Bảng đầy đủ 13–20 cột; quét bằng barcode scanner (Enter) hoặc nhập tay |
+| **Máy tính bảng** | Layout co lại, touch target ≥44px, nút Quét hiển thị |
+| **Điện thoại** | Thẻ gọn 3 dòng cho task/NV, bottom nav, toggle mở rộng danh sách NV |
+
+Không cần thiết bị chuyên dụng riêng — mọi luồng (tạo task, quét, điểm danh, kết thúc) thao tác được trên cả 3 loại thiết bị.
 
 ## Điều hướng (sidebar trái, collapsible 240px ↔ 48px)
 
 | Mục | Chức năng |
 | :--- | :-------- |
-| **Trang chủ** | Logo + tên app + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình kiosk/chiếu |
+| **Trang chủ** | Logo + tên app + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chiếu/điểm danh |
 | **Thống kê** | Pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), tab lọc BPO / OS — fullscreen |
 | **Điểm danh** | Danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc |
 | **Báo cáo** | Báo cáo chấm công theo tháng cho từng NV theo email đăng nhập — placeholder (đang xây) |
@@ -123,3 +133,4 @@ clasp deploy
 - ✅ 124/124 test + 11/11 CDP local mock; ⏳ viewReports (báo cáo chấm công tháng) đang xây
 - ✅ Vệ sinh (2026-08-13): bỏ BOM 3 file .gs + README/AGENTS (guard mới `tests/eol-bom.test.js`), chuẩn hóa CRLF qua `.gitattributes` (`*.gs` + 3 template `text eol=crlf`), untrack `.clasp.json`, xóa ID production khỏi docs/Spec
 - ✅ Tách module client (2026-08-13): `app.html` 3665 dòng → 7 module `app-*.html` (core/stats/staff/modals/config/tasks/scan)
+- ✅ Đổi tên (2026-08-14): app **Attendance Portal** → **SPX Điểm Danh**; repo `rollcall-kiosk-v2x` → `attendance-portal`; bỏ toàn bộ khái niệm "kiosk" (chỉ dùng máy tính / máy tính bảng / điện thoại)

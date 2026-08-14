@@ -134,7 +134,7 @@ function computeCounters(cfg, logRows) {
 /**
  * B (2026-08-12): planScanCommits — seam THUẦN gom quyết định COMMIT scan.
  * scanStaff + pasteCodes trước đây tự viết lại 3 thứ (duplicate logic — architecture review B):
- *   1. re-check race (2 kiosk cùng staffId trong cửa sổ cache) → append biến update/skip
+ *   1. re-check race (2 thiết bị cùng staffId trong cửa sổ cache) → append biến update/skip
  *   2. enrich append bằng staffIndex
  *   3. gom update/append thành batch
  * Hàm này nhận actions đã plan + log rows RE-CHECK (caller đọc lại sau khi giữ lock)
@@ -146,10 +146,10 @@ function computeCounters(cfg, logRows) {
  *              rowIndex}} — payload response client (scanStaff) / results (pasteCodes).
  *
  * Race semantics (thống nhất theo hành vi scanStaff, bảo thủ hơn pasteCodes cũ):
- *  - append mà staffId ĐÃ có trong freshLogRows (kiosk khác vừa ghi trong lock):
+ *  - append mà staffId ĐÃ có trong freshLogRows (thiết bị khác vừa ghi trong lock):
  *    + field 'timeScan' & chưa có timeScanEpoch → convert thành update timeScan
  *    + field 'timeRef'   & chưa có timeRefEpoch   → convert thành update timeRef
- *    + field đã có epoch (kiosk khác xong phase này) → KHÔNG ghi (không đè thời gian),
+ *    + field đã có epoch (thiết bị khác xong phase này) → KHÔNG ghi (không đè thời gian),
  *      báo thông tin row hiện hữu.
  *
  * @param {Object} cfg — { STATUS, TASK_STATUS, TASK_TYPE }
@@ -199,7 +199,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
     if (a.action === 'append') {
       const ex = existingMap[sid];
       if (ex) {
-        // RACE: kiosk khác vừa append trong lock → chỉ ghi nếu phase CHƯA hoàn thành
+        // RACE: thiết bị khác vừa append trong lock → chỉ ghi nếu phase CHƯA hoàn thành
         if (a.field === 'timeScan' && !num(ex.timeScanEpoch)) {
           updates.push({ rowIndex: ex._rowIndex, field: 'timeScan', time: now, newStatus: a.status || STATUS.EXTRA, keepStatus: ex.status });
           outcomes[sid] = {
@@ -225,7 +225,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
             rowIndex: ex._rowIndex || 0,
           };
         } else {
-          // phase đã xong (kiosk khác) → KHÔNG ghi, báo row hiện hữu (không đè thời gian)
+          // phase đã xong (thiết bị khác) → KHÔNG ghi, báo row hiện hữu (không đè thời gian)
           outcomes[sid] = {
             action: 'update', field: a.field,
             timeScanText: a.field === 'timeScan' ? (ex.timeScanText || fmt(now)) : '',

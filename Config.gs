@@ -135,7 +135,7 @@ const CACHE_KEYS = {
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====
 // Text giao diện khác đã hardcode trong index.html (client tự quản lý).
 const UI_LABELS = {
-  APP_TITLE: 'Attendance Portal',
+  APP_TITLE: 'SPX Điểm Danh',
   ALREADY_SCANNED: 'Đã điểm danh',
   ALREADY_PRESENT: 'Đã có mặt',
   TASK_CLOSED: 'Task đã kết thúc',
@@ -178,7 +178,7 @@ const SETTINGS_DEFAULTS = {
 // Bậc quyền tăng dần: viewer(1) < operator(2) < manager(3) < admin(4).
 // - admin:    isEditor_ (DEPLOYER_EMAIL) — mọi thứ (settings/sync/debug).
 // - manager:  xem StaffData + chỉnh cấu hình vận hành (trang Config Admin P1).
-// - operator: vận hành kiosk (quét/tạo task) — MẶC ĐỊNH: anonymous/logged-in chưa cấu hình
+// - operator: vận hành điểm danh (quét/tạo task) — MẶC ĐỊNH: anonymous/logged-in chưa cấu hình
 //             đều operator → giữ nguyên hành vi hiện tại (không phá luồng quét).
 // - viewer:   chỉ xem (P1) — gate requireRole_('operator') chỉ cắn role mới này.
 // Role thật lưu Config sheet qua SettingsService (key roleMap: { email: role }).
