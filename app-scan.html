@@ -1009,6 +1009,105 @@
     if (t) { t.className = ''; clearTimeout(toastTimer); }
   }
 
+  // ===== Quét camera (mobile) — html5-qrcode (ZXing) qua CDN, lazy-load =====
+  // Tái dùng luồng quét: đọc mã xong → gán scanInput.value rồi submitScan()
+  // (validate prefix Ops qua BARCODE_ID_RE, enqueue, optimistic + counters giữ nguyên).
+  var CAMERA_OPEN = false;
+  var CAMERA_SCANNED = false;     // guard: chỉ xử lý 1 mã mỗi lần mở
+  var CAMERA_SCANNER = null;
+  var CAMERA_LIB_URL = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
 
+  function ensureCameraLib(cb) {
+    if (window.Html5Qrcode) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = CAMERA_LIB_URL;
+    s.async = true;
+    s.onload = function () { cb(); };
+    s.onerror = function () {
+      showToast('Không tải được thư viện camera (kiểm tra mạng)', true);
+      closeCameraScan();
+    };
+    document.head.appendChild(s);
+  }
+
+  function openCameraScan() {
+    if (!CURRENT_TASK) return;
+    // Parent: cho quét cả phase OPEN và ATTEND, chỉ DONE chặn (mirror submitScan app-scan.html:485)
+    if (CURRENT_TASK.phase === TASK_STATUS_C.DONE) {
+      showToast('Task đã kết thúc', true);
+      return;
+    }
+    ensureCameraLib(function () {
+      var m = document.getElementById('cameraModal');
+      if (!m) return;
+      m.classList.add('open');
+      m.setAttribute('aria-hidden', 'false');  // I10
+      CAMERA_OPEN = true;
+      CAMERA_SCANNED = false;
+      startCameraDecoder();
+    });
+  }
+
+  function closeCameraScan() {
+    var m = document.getElementById('cameraModal');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    CAMERA_OPEN = false;
+    if (CAMERA_SCANNER) {
+      var sc = CAMERA_SCANNER;
+      CAMERA_SCANNER = null;
+      sc.stop().then(function () { try { sc.clear(); } catch (e) {} }).catch(function () {});
+    }
+    if (CURRENT_TASK && CURRENT_TASK.phase !== TASK_STATUS_C.DONE) {
+      var inp = document.getElementById('scanInput');
+      if (inp && !inp.disabled) inp.focus();
+    }
+  }
+
+  function startCameraDecoder() {
+    if (!window.Html5Qrcode) {
+      showToast('Thư viện camera chưa sẵn sàng', true);
+      closeCameraScan();
+      return;
+    }
+    var reader = document.getElementById('cameraReader');
+    if (!reader) { closeCameraScan(); return; }
+    CAMERA_SCANNED = false;
+    try {
+      var scanner = new Html5Qrcode('cameraReader');
+      CAMERA_SCANNER = scanner;
+      var config = {
+        fps: 10,
+        qrbox: function (vw, vh) {
+          var size = Math.floor(Math.min(vw, vh) * 0.8);
+          return { width: size, height: size };
+        },
+        // Mã NV là 1D — chỉ hỗ trợ Code128/Code39 (nhanh + ít dương tính giả)
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39
+        ]
+      };
+      scanner.start(
+        { facingMode: 'environment' },  // camera mặt sau trên mobile
+        config,
+        function onScanSuccess(decodedText) {
+          if (CAMERA_SCANNED) return;   // chỉ 1 mã / lần mở — tránh submit lặp
+          CAMERA_SCANNED = true;
+          var code = String(decodedText || '').trim();
+          closeCameraScan();            // tắt camera trước khi gửi server
+          var inp = document.getElementById('scanInput');
+          if (inp) inp.value = code;
+          submitScan();                 // tái dùng luồng quét chuẩn
+        },
+        function onScanError() { /* bỏ qua: gọi liên tục khi chưa thấy mã */ }
+      ).catch(function (err) {
+        showToast('Không mở được camera: ' + (err && err.message ? err.message : 'bị từ chối quyền'), true);
+        closeCameraScan();
+      });
+    } catch (e) {
+      showToast('Lỗi khởi tạo camera: ' + (e && e.message ? e.message : e), true);
+      closeCameraScan();
+    }
+  }
 
 </script>

@@ -570,6 +570,11 @@
     @media (min-width: 992px) {
       #btnScan { display: none; }
     }
+    /* Nút Camera: chỉ trên mobile (<992px) — kiosk desktop đã có máy quét tay */
+    #btnCamera { min-width: 64px; min-height: 44px; font-size: 22px; line-height: 1; padding: 0 12px; }
+    @media (min-width: 992px) {
+      #btnCamera { display: none; }
+    }
     /* Màn hình rộng: lớn hơn cho màn hình touch rộng (tham khảo v1 type scale) */
     @media (min-width: 1280px) {
       .scan-input-wrap input { font-size: 34px; padding: 18px 20px; letter-spacing: 2px; }
@@ -910,6 +915,54 @@
       transform: scale(.96); transition: transform .2s ease-out;
     }
     .about-overlay.open .about-dialog { transform: scale(1); }
+
+    /* ===== Camera scan overlay (mobile) — fullscreen quét mã 1D ===== */
+    .camera-overlay .about-dialog {
+      max-width: 100%;
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      transform: none;  /* fullscreen: không scale như modal nhỏ */
+    }
+    .camera-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 16px; flex-shrink: 0;
+      background: var(--header-bg); color: var(--header-text);
+    }
+    .camera-head h2 { font-size: 16px; font-weight: 700; margin: 0; }
+    .camera-head .btn-icon-dark { border-color: var(--header-border); color: #7f8ea3; }
+    .camera-head .btn-icon-dark:hover { border-color: var(--warning); color: var(--warning); }
+    .camera-reader {
+      flex: 1 1 auto; min-height: 0; position: relative;
+      background: #000; overflow: hidden;
+    }
+    .camera-reader video, .camera-reader img { width: 100% !important; height: 100% !important; object-fit: cover; }
+    .camera-reticle {
+      position: absolute; inset: 0; pointer-events: none; z-index: 2;
+      border: 2px solid rgba(232, 93, 4, .55);
+      box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, .25);
+    }
+    .camera-reticle::after {
+      content: ''; position: absolute; left: 6%; right: 6%; top: 50%; height: 3px;
+      background: linear-gradient(90deg, transparent, var(--warning), transparent);
+      box-shadow: 0 0 8px var(--warning);
+      animation: camLaser 2s ease-in-out infinite;
+    }
+    @keyframes camLaser {
+      0%, 100% { transform: translateY(-90px); opacity: .4; }
+      50%      { transform: translateY(90px);  opacity: 1; }
+    }
+    .camera-hint {
+      padding: 12px 16px; text-align: center; font-size: 14px; flex-shrink: 0;
+      background: var(--card); border-top: 1px solid var(--border); color: var(--muted);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .camera-reticle::after { animation: none; }
+    }
 
     /* P2: tôn trọng prefers-reduced-motion — tắt animation khi user yêu cầu */
     @media (prefers-reduced-motion: reduce) {

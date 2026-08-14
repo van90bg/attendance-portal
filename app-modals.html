@@ -259,6 +259,8 @@
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('pasteModal');
       if (m && m.classList.contains('open')) { closePasteModal(); return; }
+      m = document.getElementById('cameraModal');
+      if (m && m.classList.contains('open')) { closeCameraScan(); return; }
       // viewAbout is now a section, not a modal - go back to previous view
       var aboutV = document.getElementById('viewAbout');
       if (aboutV && !aboutV.classList.contains('hidden')) {
