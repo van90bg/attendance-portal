@@ -381,8 +381,6 @@
     #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy — mỗi cột cuộn riêng */
     .cfg-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }  /* min-width:0: grid item không phình theo min-content bảng (mobile role 718px bug 2026-08-13) */
     .cfg-col + .cfg-col { border-left: 1px solid var(--border); padding-left: 16px; }  /* divider giữa 2 cột trong 1 card (2026-08-13) */
-    #viewConfig .view-topbar { max-width: 1024px; margin-left: auto; margin-right: auto; }  /* căn giữa theo card (2026-08-13) */
-    #viewConfig #configForm { max-width: 1024px; margin: 0 auto; width: 100%; }  /* card giữa trang — không giãn hết màn hình (2026-08-13) */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
     .cfg-section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }  /* A3 (2026-08-13): nút + Thêm role nằm trong title — không khuất khi cuộn */
     /* 2026-08-13: nút + Thêm role chuyển vào group-sep (cfg-group-add) — bỏ cfg-section-add */
@@ -1316,7 +1314,6 @@
       .cfg-col + .cfg-col { border-left: 0; padding-left: 0; margin-top: 14px; }
       #viewConfig .card { overflow-y: auto; }
       #viewConfig #cfgList, #viewConfig #roleWrap { flex: none; overflow: visible; }
-      #viewConfig .view-topbar, #viewConfig #configForm { max-width: 960px; }  /* <1380: card 960px — không giãn hết màn hình (laptop 1280-1366) */
     }
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
