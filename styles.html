@@ -1030,6 +1030,9 @@
       #scanTable tbody td[data-label="Ca"] { grid-column: 4; grid-row: 2; }
       #scanTable tbody td[data-label="Giờ có mặt"] { grid-column: 1 / span 2; grid-row: 3; }
       #scanTable tbody td[data-label="Giờ quét"] { grid-column: 3 / span 2; grid-row: 3; }
+      /* FIX(2026-08-14): nhãn đầy đủ — "Giờ có mặt: 19:10:13" / "Giờ quét: 19:15:05" */
+      #scanTable tbody td[data-label="Giờ có mặt"]::before,
+      #scanTable tbody td[data-label="Giờ quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 11px; }
       #scanTable tbody tr.extra-row td { background: transparent; }  /* thẻ extra — nền theo tr đã đặt ở tr */
     }
     #btnScanListToggle { display: none; min-width: 36px; padding: 6px 10px; font-size: 14px; line-height: 1; margin-left: auto; }  /* desktop ẩn — chỉ mobile; FIX(2026-08-14): nút mũi tên tam giác ▼/▲ gọn ở góc phải card (margin-left:auto ép phải cả khi search ẩn) */

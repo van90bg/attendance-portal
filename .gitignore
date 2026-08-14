@@ -1,4 +1,4 @@
-﻿# Hermes local cache (desktop-v2.db) — local-only, do not commit
+# Hermes local cache (desktop-v2.db) — local-only, do not commit
 .freebuff/
 # build local (scripts/build-local.js) — temp, không commit
 index.local.html
@@ -8,9 +8,3 @@ index.local.html
 .clasprc.json
 *.clasprc.json
 .env
-
-# ===== cloud-agent (local + runtime deps) =====
-cloud-agent/.env
-cloud-agent/node_modules/
-
-cloud-agent/.e2b-runner/
