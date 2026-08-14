@@ -46,8 +46,8 @@
     var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
     var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
     metaEl.innerHTML =
-      esc(TT_LABEL[data.task.taskType] || 'Task') + ' · ' + esc(data.task.station) + ' · ' + esc(data.task.slotCode) + ' · ' + esc(data.task.team) +
-      ' · <b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);
+      esc(TT_LABEL[data.task.taskType] || 'Task') + ' ' + esc(data.task.station) + ' ' + esc(data.task.slotCode) + ' ' + esc(data.task.team) +
+      ' — <b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);  /* FIX(2026-08-14): bỏ dấu · giữa các trường (space phân cách, trước phase dùng —) */
     if (skel) skel.style.display = 'none';
     if (tbl) tbl.style.display = '';
     renderScanTable(safeArr(data.log));

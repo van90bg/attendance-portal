@@ -490,7 +490,7 @@
           '<td data-label="Trạng thái">' + taskStatusBadge(t.status) + '</td>' +
           '<td data-label="Tạo lúc">' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
           '<td data-label="Người tạo">' + esc(displayName(t.createdBy || '')) + '</td>' +
-          '<td data-label="Thao tác">' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
+          '<td data-label="Thao tác">' + (t.status === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>' : '<button class="btn btn-sm btn-view" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>') + '</td>';
         body.appendChild(tr);
       }
       renderPaginator_('taskPagination', total, LIST_PAGE, 'goListPage', LIST_PAGE_SIZE);
@@ -655,7 +655,7 @@
           '<td class="td-slot" data-label="Ca">' + slotCellHtml(r.slotCode || '') + '</td>' +
           '<td data-label="Tạo lúc">' + esc(r.createdAtText || "") + '</td>' +
           '<td data-label="Người tạo">' + esc(displayName(r.createdBy || "")) + '</td>' +
-          '<td data-label="Thao tác"><button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + (r.taskStatus === TASK_STATUS_C.OPEN ? 'Quét' : 'Xem') + '</button></td>';
+          '<td data-label="Thao tác">' + (r.taskStatus === TASK_STATUS_C.OPEN ? '<button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">Quét</button>' : '<button class="btn btn-sm btn-view" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">Xem</button>') + '</td>';
         body.appendChild(tr);
       }
       renderPaginator_("taskPagination", total, LIST_PAGE, "goListPage", LIST_PAGE_SIZE);
