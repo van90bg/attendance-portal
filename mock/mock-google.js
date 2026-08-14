@@ -124,9 +124,13 @@
     },
     warmStaffCacheApi: function () {
       // Khớp server: slim index { staffId, staffName, slotCode, station, team, workstation, agency }
+      // FIX(2026-08-14): key UPPERCASE như server normalizeStaffId (CsvUtil.gs) — client tra cứu
+      // theo .toUpperCase() (scanRowCells/scanCardHTML); mock cũ giữ case gốc 'Ops237511'
+      // → CLIENT_STAFF_INDEX miss → Agency rỗng ở local test (server trả key hoa).
       var slim = {};
       MOCK_DATA.staff.forEach(function (s) {
-        slim[s.staffId] = { staffId: s.staffId, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '' };
+        var id = String(s.staffId || '').trim().toUpperCase();
+        slim[id] = { staffId: id, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '' };
       });
       return { ok: true, index: slim };
     },

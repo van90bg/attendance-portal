@@ -920,8 +920,13 @@
   }
   function scanCardHTML(status, target) {
     var _st = scanStatusLabel_(status);
+    // FIX(2026-08-14): Agency sau tên NV — vd 'Đoàn Hoàng Phát - SKT' (tra CLIENT_STAFF_INDEX;
+    // mobile ẩn khi card hẹp — container query, đủ không gian mới hiện).
+    var _agency = '';
+    var _rec = target && target.staffId ? (CLIENT_STAFF_INDEX[String(target.staffId).toUpperCase()] || null) : null;
+    if (_rec && _rec.agency) _agency = '<span class="sc-agency"> - ' + esc(_rec.agency) + '</span>';
     return '<div class="sc-status">' + esc(_st) + '</div>' +
-      '<div class="sc-name">' + esc(target.staffName || target.staffId) + '</div>' +
+      '<div class="sc-name">' + esc(target.staffName || target.staffId) + _agency + '</div>' +
       '<div class="sc-meta">Mã: ' + esc(target.staffId) +
       (target.slotCode ? ' · Ca: ' + esc(target.slotCode) : '') +
       (target.team ? ' · ' + esc(target.team) : '') + '</div>';
