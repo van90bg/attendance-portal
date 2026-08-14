@@ -179,7 +179,7 @@
     }
     if (!matches) {
       if (q) return '';  // đang tìm — ẩn section không có kết quả
-      rows.push('<tr class="cfg-empty-row"><td colspan="' + colSpan + '" class="cfg-empty-val cfg-group-empty">(chưa có)</td></tr>');
+      rows.push('<tr class="cfg-empty-row"><td colspan="' + colSpan + '" class="cfg-empty-val">(chưa có)</td></tr>');
     }
     return '<div class="cfg-group-section" data-group="' + g.key + '">'
       + '<div class="cfg-section-head">'
@@ -187,7 +187,7 @@
         + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
       + '</div>'
       + '<div class="cfg-table-wrap"><table class="cfg-table">'
-        + '<tbody class="cfg-group" data-group="' + g.key + '"'
+        + '<tbody data-group="' + g.key + '"'
           + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',-1)">'
           + rows.join('')
         + '</tbody>'
@@ -234,7 +234,6 @@
     renderCfgList();
     markCfgDirty_();
   }
-  function cfgDefaultHtml_(g) { return ''; }
 
   // Kéo thả sắp xếp item trong group (HTML5 DnD — 2026-08-12): thứ tự list = thứ tự Config
   // dùng cho Thống kê (orderedByCfg_) và dropdown tạo task.
@@ -518,14 +517,14 @@
         + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addRoleRow()">+ Thêm role</button>'
       + '</div>'
       + '<div class="cfg-table-wrap"><table class="cfg-role-table">'
-        + '<tbody class="cfg-group" data-group="roleMap">';
+        + '<tbody data-group="roleMap">';
     var any = false;
     keys.forEach(function (em) {
       if (ROLE_EDIT && ROLE_EDIT.email === em && !ROLE_EDIT.isNew) { html += roleRowEditHtml_(em, map[em]); any = true; }
       else { html += roleRowCardHtml_(em, map[em]); any = true; }
     });
     if (ROLE_EDIT && ROLE_EDIT.isNew) { html += roleRowEditHtml_('', 'viewer'); any = true; }
-    if (!any) html += '<tr class="cfg-empty-row"><td colspan="3" class="cfg-empty-val cfg-group-empty">(chưa có role)</td></tr>';
+    if (!any) html += '<tr class="cfg-empty-row"><td colspan="3" class="cfg-empty-val">(chưa có role)</td></tr>';
     html += '</tbody></table></div></div>';
     box.innerHTML = html;
     wireRoleEditEvents_(box);

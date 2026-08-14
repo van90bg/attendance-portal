@@ -375,14 +375,12 @@
     .att-toolbar select { flex: 0 0 auto; width: auto; max-width: 190px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
 
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
-    .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
+    .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Hủy thay đổi + Làm mới + Lưu cấu hình) */
     .cfg-discard-btn { border-color: var(--danger); color: var(--danger); }  /* P2 (2026-08-16): nút "Hủy thay đổi" riêng khi dirty — bỏ đổi nhãn Làm mới (min-width 150px cũng bỏ) */
-    /* 2026-08-14: removed .cfg-cols/.cfg-col — sections stack directly in card */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
-    .cfg-role-list { display: block; }  /* container giờ chứa 1 <table> — bỏ grid (mẫu D 2026-08-13) */
-    /* viewConfig bảng role (mẫu D sketch 009 — 2026-08-13) */
+    /* viewConfig bảng role */
     .cfg-role-table { width: 100%; max-width: 760px; border-collapse: collapse; font-size: 14px; }  /* 2026-08-14: cap bảng role — hết giãn rỗng */
     .cfg-role-table { table-layout: fixed; }  /* 2026-08-13: cột cố định (badge 190 / actions 110) — edit không làm cột nhảy; đồng bộ cfg-table (bỏ thead — roleMap thành group-sep) */
     .cfg-role-table tr.cfg-role-row { display: table-row; }  /* neutralize base .cfg-role-row/display:flex — <tr> phải là table-row, không vỡ cột (2026-08-13) */
@@ -398,7 +396,6 @@
     .cfg-role-row { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); min-width: 0; }  /* đồng bộ .cfg-item + actions; min-width:0 (2026-08-13): grid track không phình theo min-content email nowrap; KHÔNG wrap desktop — email shrink + ellipsis 1 dòng, wrap chỉ mobile (media ≤700) */
     .cfg-role-email { flex: 1 1 auto; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* C1 (2026-08-13): email 1 dòng — dài thì truncate + tooltip title, hết vỡ chữ giữa từ */
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
-    .cfg-role-card .cfg-role-email { font-weight: 600; color: var(--text); }
     .cfg-role-badge { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; padding: 3px 10px; border-radius: 999px; background: var(--primary-bg); color: var(--primary-dark); font-size: 12px; font-weight: 700; white-space: nowrap; }  /* P1 (2026-08-16): badge dài (Manager — quản lý…) bị td 190px cắt cụt không dấu hiệu → ellipsis "…" + title tooltip đầy đủ */
     .cfg-role-editing .cfg-role-email { flex: 1 1 240px; min-width: 0; white-space: normal; text-overflow: clip; }  /* input edit: không ellipsis — tự cuộn */
     /* Role mobile thẻ gọn (≤640px, 2026-08-13): 2 dòng — email + role chung dòng 1, nút Sửa/Xoá dòng 2 phải; ẩn thead */
@@ -415,12 +412,9 @@
     /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
     .cfg-list { display: flex; flex-direction: column; gap: 18px; }  /* 2026-08-14: sections xếp dọc, tự cao — card cuộn */
 
-    /* viewConfig bảng gộp (2026-08-13 — mẫu bảng sketch 009): 1 <table> thead sticky + mỗi group 1 <tbody> + item <tr>.
-       Trong <td> dùng inline/inline-block — KHÔNG flex-on-cell (giữ table-column alignment với thead) */
     .cfg-table-wrap { overflow-x: auto; }  /* 2026-08-14: mỗi group 1 bảng con — chỉ cuộn ngang khi cần */
     .cfg-table { width: 100%; max-width: 760px; border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; }  /* 2026-08-14: bỏ thead sticky + min-width 520 — mỗi group 1 bảng gọn ≤760px, hết giãn rỗng; fixed: cột cố định — edit không làm cột nhảy */
     .cfg-table tr.cfg-item, .cfg-table tr.cfg-item-group { display: table-row; }  /* neutralize base display:flex — <tr> phải là table-row (2026-08-13) */
-    .cfg-table .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--primary); }
     /* 2026-08-14: group section (tách nhóm — layout mới): head = title + count + nút + Thêm, bảng con bên dưới */
     .cfg-group-section { margin-bottom: 20px; }
     .cfg-group-section:last-child { margin-bottom: 0; }
@@ -441,11 +435,10 @@
     .cfg-table tr.cfg-drop-target, .cfg-table tbody.cfg-drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; }
     .cfg-table .cfg-edit-input { width: 100%; height: 32px; padding: 4px 8px; }  /* cao bằng dòng thường (default-btn 32px) — edit không nhảy chiều cao (2026-08-13) */
     .cfg-item-actions .btn + .btn { margin-left: 6px; }  /* gap giữa 2 nút Sửa/Xoá khi td không phải flex (table-cell) — 2026-08-13 */
-    /* FIX(2026-08-14): comment lửng (thiếu dấu đóng) nuốt .cfg-item/.cfg-item-group/.cfg-item-label/.cfg-item-value/.cfg-empty-val/.cfg-item-actions — đóng comment + xoá 2 rule chết (layout card cũ; bảng dùng .cfg-table tr.cfg-item-group) */
     .cfg-item-label { font-size: 13px; font-weight: 600; color: var(--text); }  /* combo .cfg-item-idx — flex do idx quyết (bỏ basis 190px dead 2026-08-13) */
+    .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }  /* #idx muted — còn tác dụng (color/font-weight), flex 34px giữ đồng bộ 2026-08-11 */
     .cfg-item-value { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
-    .cfg-item-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }  /* A4 (2026-08-13): khi item wrap (mobile) actions nhảy phải — thẳng hàng */
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
     .task-open-link { color: var(--primary-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }  /* FIX(2026-08-14): link mở task ở Mã task (thay nút Xem/Quét mobile) */
     .task-open-link:hover { color: var(--primary); }
@@ -453,21 +446,10 @@
     .cfg-save-dirty { background: var(--amber); border-color: var(--amber); animation: cfgSavePulse 1.4s ease-in-out infinite; }
     @keyframes cfgSavePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, .30); } 50% { box-shadow: 0 0 0 6px rgba(232, 93, 4, 0); } }
     .cfg-default-btn.cfg-default-on { background: var(--amber); color: #fff; border-color: var(--amber); }
-    .cfg-item-group.is-default { border-color: var(--amber); background: #fff8f0; }  /* viền amber khi là mặc định */
-    .cfg-edit-input { flex: 1 1 auto; }
-    /* Group lists (2026-08-11): danh sách lựa chọn station/team/slotcode/department */
-    .cfg-group { margin-bottom: 14px; }
-
-    .cfg-group-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 0; }
-    .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }
-    .cfg-group-add { margin-top: 6px; }
-    .cfg-group-empty { padding: 6px 2px; }
-    /* 2026-08-14: bỏ .cfg-role-list flex — sections xếp dọc, tự cao */
     .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; touch-action: none; }  /* P0 (2026-08-16): touch-action:none — kéo touch không bị scroll ngắt; P2: tabindex + ↑↓ sắp xếp */
     .cfg-drag-handle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 3px; }
     .cfg-item[draggable="true"] { cursor: grab; }
     .cfg-item.cfg-dragging { opacity: .45; }
-    .cfg-item.cfg-drop-target, .cfg-group.cfg-drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; }
     .btn-clear-filter {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
       border-radius: 8px; padding: 8px 10px; font-size: 14px; cursor: pointer;
