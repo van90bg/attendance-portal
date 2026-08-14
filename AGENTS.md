@@ -15,7 +15,7 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 ## 2. Quy tắc bất biến (KHÔNG bao giờ vi phạm)
 
 1. **KHÔNG sửa file bằng fuzzy/write_file trực tiếp nếu có tiếng Việt + CRLF.** Chỉ được sửa qua **script deterministic** (xem mục 5). Mọi file trên disk (kể cả .gs — `core.autocrlf=true`: git lưu LF, checkout ra CRLF) dùng **CRLF** — tuyệt đối không tạo LF-only.
-2. **User commit + push GitHub, KHÔNG tự clasp push/deploy.** CI tự deploy nhưng trễ — khi user báo bug, KIỂM TRA SHA GAS đang chạy trước (mục 6).
+2. **Mỗi thay đổi + fix: verify xong → commit + push GitHub NGAY** (1 issue = 1 commit = 1 push, format `type(scope): mô tả`). KHÔNG tự clasp push/deploy — CI tự deploy nhưng trễ — khi user báo bug, KIỂM TRA SHA GAS đang chạy trước (mục 6).
 3. **1 issue = 1 commit = 1 push** — gom nhiều edit nhỏ vào 1 script, commit 1-2 lần/batch. **Tự commit + push NGAY sau mỗi đợt chỉnh sửa issue — không chờ user yêu cầu (quy tắc dự án thay thế mặc định "không commit khi chưa được hỏi").**
 4. **Không commit secrets**: `.clasprc.json`, `.clasp.json` credentials, `codegraph.json`, file tạm verify.
 5. **Không đọc/ghi API keys/tokens** — thay `[REDACTED]`.
