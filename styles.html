@@ -571,7 +571,8 @@
       #btnScan { display: none; }
     }
     /* Nút Camera: chỉ trên mobile/tablet (<992px) — desktop dùng máy quét tay */
-    #btnCamera { min-width: 64px; min-height: 44px; font-size: 22px; line-height: 1; padding: 0 12px; }
+    #btnCamera { min-width: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #btnCamera svg, .list-search .btn-icon svg { width: 20px; height: 20px; display: block; }
     @media (min-width: 992px) {
       #btnCamera { display: none; }
     }
@@ -805,7 +806,7 @@
     }
     .list-search input[type=search]::-ms-clear { display: none; }  /* IE/Edge legacy */
     .list-search input[type=search]::placeholder { color: var(--muted); }
-    .list-search .btn-icon { padding: 4px 8px; background: var(--surface-muted); border: 1px solid var(--border); border-radius: 6px; color: var(--text); cursor: pointer; }
+    .list-search .btn-icon { padding: 4px 8px; min-width: 36px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-muted); border: 1px solid var(--border); border-radius: 6px; color: var(--text); cursor: pointer; }
     .list-search .btn-icon:hover { background: var(--surface); border-color: var(--primary); }
     header .btn-icon-dark {
       min-height: 40px;  /* P2 touch >= 44 - header compact */

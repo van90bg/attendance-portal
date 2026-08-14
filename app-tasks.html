@@ -461,7 +461,7 @@
           // (fix 2026-08-11: trước chỉ set khi có filter, xoá filter mà dataset 0 task → message cũ dính)
           emptyTxt.innerHTML = hasFilter
             ? 'Không có task khớp bộ lọc đang áp — bấm <b>Xoá lọc</b> trên funnel để xem toàn bộ'
-            : 'Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b>';
+            : 'Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Task mới</b>';
         }
         renderPaginator_('taskPagination', 0, 1, 'goListPage', LIST_PAGE_SIZE);
         return;
@@ -513,7 +513,7 @@
     } else if (mode === "task") {
       empty.innerHTML = "Không tìm thấy task trùng. Nhập mã task mẫu: <b>R2026</b> hoặc thử lại.";
     } else {
-      empty.innerHTML = "Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b>";
+      empty.innerHTML = "Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Task mới</b>";
     }
   }
     var cl = document.getElementById("btnListSearchClear");

@@ -56,7 +56,7 @@
         <div class="task-title">Điểm danh</div>
         <div class="task-meta">Đối chiếu danh sách theo Station / Ca / Team — tạo task, quét giờ có mặt, điểm danh, bàn giao</div>
       </div>
-      <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Tạo task</button>
+      <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
     </div>
 
     <div class="card">
@@ -64,7 +64,7 @@
         <h2 class="section-heading">DANH SÁCH TASK <span id="taskCount" class="task-count-badge">0</span></h2>
         <div class="list-search" role="search" aria-label="Tìm mã Ops">
           <input type="search" id="listSearch" placeholder="Tìm task (R2026)" autocomplete="off" spellcheck="false" aria-label="Tìm mã Ops">
-          <button class="btn-icon" id="btnListSearch" onclick="runListSearch()" title="Tìm (Enter)" aria-label="Tìm">🔍</button>
+          <button class="btn-icon" id="btnListSearch" onclick="runListSearch()" title="Tìm (Enter)" aria-label="Tìm"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></button>
           <button class="btn-icon" id="btnListSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
         </div>
       </div>
@@ -96,7 +96,7 @@
         </table>
         <div class="empty" id="taskEmpty" style="display:none;">
                   <div class="empty-arrow">↑</div>
-                  <div><span id="taskEmptyText">Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Tạo task</b></span></div>
+                  <div><span id="taskEmptyText">Chưa có task nào — chọn <b>Station / Ca / Team</b> ở trên rồi nhấn <b>+ Task mới</b></span></div>
         </div>
       </div>
       <!-- Phân trang task: NGOÀI .table-wrap (scroll) — luôn hiện đáy card, không phải cuộn xuống fold
@@ -132,7 +132,7 @@
           <div class="scan-input-wrap">
             <input type="text" id="scanInput" pattern="[Oo][Pp][Ss][0-9]+" placeholder="Quét mã nhân viên…" aria-label="Quét mã nhân viên" autocomplete="off" autocapitalize="off" spellcheck="false">
           </div>
-          <button class="btn" id="btnCamera" onclick="openCameraScan()" aria-label="Quét bằng camera" title="Quét bằng camera">📷</button>
+          <button class="btn" id="btnCamera" onclick="openCameraScan()" aria-label="Quét bằng camera" title="Quét bằng camera"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
           <button class="btn" id="btnScan" onclick="submitScan()">Quét</button>
         </div>
         <div class="scan-hint">Quét mã NV bắt đầu bằng Ops + số, hoặc dán danh sách mã (Enter để quét)</div>
@@ -342,7 +342,7 @@
 
       <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
-        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Tạo task</b>.</li>
+        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Task mới</b>.</li>
         <li><b>Quét Giờ có mặt:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách chuyển sang Chưa điểm danh; người lạ tính là Dư.</li>
         <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (Có mặt).</li>
         <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
@@ -398,7 +398,7 @@
 <!-- Modal tạo task (cây nhóm Station → Ca → Team, checkbox) -->
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">
-    <h2 id="createModalTitle">+ Tạo task điểm danh</h2>
+    <h2 id="createModalTitle">+ Task mới điểm danh</h2>
     <!-- Audit UI: bỏ hint cũ — cột đã ghi rõ "· chọn 1 / · chọn nhiều" + modeDesc giải thích mode -->
     <!-- modalA: 2 chế độ tạo task — Quét tự do thay checkbox nổi vàng -->
     <p id="modeDesc" class="mode-desc">Task <b>đối chiếu</b> theo danh sách nhân viên đã chọn.</p>
@@ -429,7 +429,7 @@
       <div class="create-total"><b id="createTotalNum">0</b> <span>nhân viên</span></div>
       <div class="create-actions">
         <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
-        <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Tạo task</button>
+        <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Task mới</button>
       </div>
     </div>
   </div>
