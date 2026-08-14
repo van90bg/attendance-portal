@@ -287,12 +287,15 @@
     </div>
 
     <form id="configForm" onsubmit="return false;" class="card cfg-card">
-      <div class="cfg-cols" id="configWrap" style="display:none;">
-        <div class="cfg-col">
-          <div class="cfg-section-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></div>
+      <div id="configWrap" style="display:none;">
+        <div class="cfg-group-section" data-group="operations">
+          <div class="cfg-section-head">
+            <span class="cfg-group-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></span>
+          </div>
           <div id="cfgList" class="cfg-list"></div>
         </div>
-        <div id="roleWrap" class="cfg-col" style="display:none;">
+
+        <div id="roleWrap" style="display:none;">
           <div id="cfgRoleRows" class="cfg-role-list"></div>
         </div>
       </div>

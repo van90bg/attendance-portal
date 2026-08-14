@@ -39,7 +39,7 @@ const SHARED_CLASSES = [
   'btn-ghost', 'btn-outline', 'btn-danger', 'btn-amber', 'btn-sm', 'btn-icon', 'btn-clear-filter',
   'card', 'empty', 'table-wrap', 'view-topbar', 'view-topbar-title', 'list-search', 'section-heading',
   'task-title', 'task-meta', 'task-count-badge', 'chips', 'pick', 'field-select', 'cfg-input',
-  'cfg-field', 'cfg-section-title', 'cfg-hint', 'flabel', 'fnote', 'counter', 'empty-arrow',
+  'cfg-field', 'cfg-hint', 'flabel', 'fnote', 'counter', 'empty-arrow',
   'paste-title', 'confirm-title', 'reports-empty-title', 'about-title', 'home-title',
 ];
 
