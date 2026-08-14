@@ -13,7 +13,7 @@
   var MOCK_DATA = {
     meta: {
       ok: true,
-      appTitle: 'SPX Điểm Danh [LOCAL MOCK]',
+      appTitle: 'Điểm Danh [LOCAL MOCK]',
       // Khớp server getMetaApi: { ok, appTitle, userEmail } — KHÔNG labels/tableHeaders
       // (client không dùng, server không trả — drift đã xóa 2026-08-11).
     },

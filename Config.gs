@@ -135,7 +135,7 @@ const CACHE_KEYS = {
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====
 // Text giao diện khác đã hardcode trong index.html (client tự quản lý).
 const UI_LABELS = {
-  APP_TITLE: 'SPX Điểm Danh',
+  APP_TITLE: 'Điểm Danh',
   ALREADY_SCANNED: 'Đã điểm danh',
   ALREADY_PRESENT: 'Đã có mặt',
   TASK_CLOSED: 'Task đã kết thúc',
