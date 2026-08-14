@@ -7,6 +7,7 @@
    * ============================================================ */
   /* ===== Paste modal (T-2: dán danh sách mã) ===== */
   var pasteFocusBack = null;
+  var pasteFocusTimer = null;
   function openPasteModal() {
     if (!CURRENT_TASK || !CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
     var m = document.getElementById('pasteModal');
@@ -15,7 +16,8 @@
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     var ta = document.getElementById('pasteTextarea');
-        if (ta) { ta.value = ''; ta.oninput = updatePasteCount; updatePasteCount(); ta.focus(); }
+        if (ta) { ta.value = ''; ta.oninput = updatePasteCount; updatePasteCount(); }
+        if (ta) { pasteFocusTimer = setTimeout(function () { if (m.classList.contains('open')) ta.focus(); }, 60); } // focus sau khi overlay transition visibility (cùng tick bị bỏ vì còn hidden — 2026-08-16)
         var sb = document.getElementById('btnPasteSubmit');
         if (sb) sb.disabled = false; // reset nếu lần trước đóng giữa chừng đang xử lý
         var preview = document.getElementById('pastePreview');
@@ -41,6 +43,7 @@
         if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
         var ta = document.getElementById('pasteTextarea');
         if (ta) ta.oninput = null;
+        if (pasteFocusTimer) { clearTimeout(pasteFocusTimer); pasteFocusTimer = null; }
         if (pasteFocusBack && pasteFocusBack.focus) pasteFocusBack.focus();
         pasteFocusBack = null;
       }

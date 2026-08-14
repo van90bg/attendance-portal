@@ -399,6 +399,27 @@
     </div>
   </div>
 </section>
+
+<div id="pasteModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pasteModalTitle" onclick="if(event.target===this)closePasteModal()">
+  <div class="about-dialog paste-dialog">
+    <h2 id="pasteModalTitle" class="paste-title">Dán danh sách mã</h2>
+    <p class="muted paste-hint">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần.</p>
+    <textarea id="pasteTextarea" class="paste-textarea" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
+        <div id="pasteCountHint" class="paste-count-hint">Nhập mã NV để đếm tự động</div>
+        <div id="pasteProgress" style="display:none;margin-top:8px;">
+          <div class="paste-track">
+            <div id="pasteProgressFill" class="paste-fill"></div>
+          </div>
+          <div id="pasteProgressText" class="paste-progress-text">Đang xử lý…</div>
+        </div>
+        <div id="pastePreview" style="margin-top:10px;overflow:auto;display:none;"></div>
+    <div class="paste-footer">
+      <button class="btn btn-ghost" onclick="closePasteModal()">Huỷ</button>
+      <button class="btn" id="btnPasteSubmit" onclick="submitPaste()">Dán</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal tạo task (cây nhóm Station → Ca → Team, checkbox) -->
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">
