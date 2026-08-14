@@ -377,7 +377,7 @@
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Làm mới + Lưu phân quyền) */
     #cfgRefreshBtn { min-width: 150px; }  /* nhãn ⋆ Làm mới ↔ ✕ Hủy thay đổi đổi chữ không đổi rộng — nút Lưu không nhảy (2026-08-13) */
-    .cfg-cols { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); grid-template-rows: minmax(0, 1fr); }  /* 2026-08-13: 2 cột TRONG 1 card (55/45 — vận hành / role); <1380px về 1 cột */
+    .cfg-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); max-width: 1180px; margin: 0 auto; width: 100%; }  /* 2026-08-14: 2 cột đều 50/50 (vận hành / role); nội dung cap 1180px căn giữa trong card full-width — hết giãn rỗng cột Giá trị trên màn rộng (1920px: 544 → 250px); <1380px về 1 cột */
     #viewConfig .cfg-cols { flex: 1 1 auto; min-height: 0; }  /* card chạm đáy — mỗi cột cuộn riêng */
     .cfg-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }  /* min-width:0: grid item không phình theo min-content bảng (mobile role 718px bug 2026-08-13) */
     .cfg-col + .cfg-col { border-left: 1px solid var(--border); padding-left: 16px; }  /* divider giữa 2 cột trong 1 card (2026-08-13) */

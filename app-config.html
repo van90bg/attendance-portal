@@ -270,14 +270,26 @@
     }
   }
 
+  // (2026-08-14): bỏ edit dở — Thêm (row '' cuối) → pop; Sửa → giữ giá trị cũ (state chưa đổi)
+  function discardCfgGroupEdit_(group) {
+    var list = safeArr(CFG_STATE[group]);
+    if (list.length && String(list[list.length - 1] || '').trim() === '') list.pop();
+    renderCfgList();
+  }
+
+  // (2026-08-14): giá trị trùng trong cùng group (khác dòng, case-insensitive) — chặn thêm/sửa trùng
+  function isDupCfgValue_(group, idx, v) {
+    var list = safeArr(CFG_STATE[group]);
+    var lv = String(v || '').trim().toLowerCase();
+    for (var i = 0; i < list.length; i++) {
+      if (i !== idx && String(list[i] || '').trim().toLowerCase() === lv) return true;
+    }
+    return false;
+  }
+
   function cancelCfgGroupEdit(group) {
     if (CFG_EDIT_TIMER) { clearTimeout(CFG_EDIT_TIMER); CFG_EDIT_TIMER = null; }
-    // Huỷ sau khi Thêm (item '' chưa nhập) → pop item rỗng cuối, không để lại dòng trống
-    if (group && Array.isArray(CFG_STATE[group])) {
-      var list = CFG_STATE[group];
-      if (list.length && String(list[list.length - 1] || '').trim() === '') list.pop();
-    }
-    renderCfgList();
+    discardCfgGroupEdit_(group);
   }
 
   // Commit sửa item group — CỤC BỘ (chỉ đổi state + dirty; chờ 'Lưu cấu hình' ghi server)
@@ -285,6 +297,8 @@
     if (CFG_EDIT_TIMER) { clearTimeout(CFG_EDIT_TIMER); CFG_EDIT_TIMER = null; }
     var inp = document.getElementById('cfgGroupEditInput');
     var v = inp ? inp.value.trim() : '';
+    if (!v) { discardCfgGroupEdit_(group); return; }  // (2026-08-14): commit rỗng = hủy — không để dòng trống
+    if (isDupCfgValue_(group, idx, v)) { showToast('"' + v + '" đã có trong danh sách', true); discardCfgGroupEdit_(group); return; }  // (2026-08-14): chặn trùng
     var list = safeArr(CFG_STATE[group]).slice();
     list[idx] = v;
     CFG_STATE[group] = list;
@@ -305,8 +319,11 @@
     var group = item.getAttribute('data-group');
     var idx = parseInt(item.getAttribute('data-idx'), 10);
     if (!group || isNaN(idx)) return;
+    var v = inp.value.trim();
+    if (!v) { discardCfgGroupEdit_(group); return; }  // (2026-08-14): bỏ trống = hủy — không giữ dòng rỗng
+    if (isDupCfgValue_(group, idx, v)) { showToast('"' + v + '" đã có trong danh sách', true); discardCfgGroupEdit_(group); return; }  // (2026-08-14): chặn trùng
     var list = safeArr(CFG_STATE[group]).slice();
-    list[idx] = inp.value.trim();
+    list[idx] = v;
     CFG_STATE[group] = list;
     renderCfgList();
     markCfgDirty_();
