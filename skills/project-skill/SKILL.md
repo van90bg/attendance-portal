@@ -57,6 +57,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 8. **Paste modal auto-closes success**: `submitPaste` success → toast aggregate → `closePasteModal()` SAU `loadTaskDetail(silent)+renderCounters`.
 
 9. **Duplicate toasts scan**: keep server-confirm toast là single source, bỏ toast optimistic (reduce noise).
+10. **KHÔNG trả Date qua google.script.run** — serialize Date lỗi → toàn bộ response thành null. Chỉ trả text đã format (`createdAtText`/`completedAtText` qua `formatDateTime_`) + epoch number; client không `new Date()` từ response.
 
 ## 5. UI labels & modal (2026-08-07/08)
 

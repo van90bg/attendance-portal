@@ -56,6 +56,8 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - **Không ghi đè cột lệch trong setValues** — LOG_COLS phải đồng bộ hệt nhau giữa ensureSheets_, methods, migration.
 - Dư (EXTRA): NV lạ phase 2 → Dư (KHÔNG phải Có mặt). `optimistic` client phải y hệt server.
 - **Role (2026-08-11)**: viewer<operator<manager<admin — ROLES (Config.gs) + roleMap (Config sheet qua SettingsService), đọc qua Auth.getRole_; gate chuẩn `requireRole_(min)`. operator là MẶC ĐỊNH — không được phá luồng điểm danh (anonymous = operator). Gate hiện tại: getStaffStatsApi operator+ · searchLogsByStaffApi (lịch sử chấm công NV) manager+ · settings editor-only. Khi thêm API quản trị: gate TRONG try (pattern DEFENSE).
+- **Gate ở service layer, KHÔNG chỉ `*Api` wrapper (2026-08-11, M1)**: google.script.run gọi được hàm global trực tiếp — gate chỉ đặt ở `*Api` wrapper bị bypass. MỌI hàm nhận input từ client (kể cả service trung gian như ScanService/TaskService) phải tự `requireRole_(min)` + wrap DEFENSE trong try.
+- **Thứ tự ghi fail-safe (2026-08-07+)**: mutation nhiều bước ghi dữ liệu phụ TRƯỚC, trạng thái chính SAU — completeTask: markUnscannedAbsent_ → updateTaskStatus_(DONE); reopenTask: resetAbsentToPending_ → ATTEND; LogRepo: setValues xong mới cache.remove. Fail nửa chừng → retry an toàn (idempotent), không kẹt trạng thái chính.
 
 ## 5. View/UI pitfalls đã đóng (2026-08-09)
 
@@ -80,6 +82,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 2. Edit deterministic → verify (parse/CRLF/test).
 3. **Commit + push GitHub NGAY khi xong đợt edit (bắt buộc, không chờ user hỏi)** — định dạng `type(scope): mô tả`.
 4. **Verify production**: GAS có thể đang chạy SHA cũ — check `gh run list --limit 5` (xem `.head_sha`), đối chiếu git HEAD. Nếu CI trễ: báo user đợi clasp deploy.
+5. **Fix chồng fix gây hồi quy → revert về baseline sạch rồi làm lại** (tiền lệ d0edc7a 2026-08-05: loạt fix chống race xếp chồng làm hỏng → revert cả loạt về hành vi cũ). Không đắp vá tiếp lên nền hỏng.
 
 ## 7. Test & Tools
 
