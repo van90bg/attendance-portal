@@ -31,13 +31,15 @@
     var saveBtn = document.getElementById('cfgSaveBtn');
     var wrap = document.getElementById('configWrap');
     var roleWrap = document.getElementById('roleWrap');
+    var sk = document.getElementById('cfgSkeleton');
     if (meta) meta.textContent = 'Đang tải…';
     if (empty) empty.style.display = 'none';
     if (wrap) wrap.style.display = 'none';
     if (roleWrap) roleWrap.style.display = 'none';
     if (saveBtn) saveBtn.style.display = 'none';
+    if (sk) sk.style.display = '';  // P2 (2026-08-16): skeleton shimmer thay chữ "Đang tải…" (đồng bộ Task/Staff)
     setBtnBusy_(btn, '⟳ Đang tải…');
-    function restore() { restoreBtnLabel_(btn, CFG_DIRTY ? '✕ Hủy thay đổi' : '⟳ Làm mới'); syncCfgSaveBtn_(); }
+    function restore() { restoreBtnLabel_(btn, '⟳ Làm mới'); syncCfgSaveBtn_(); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
@@ -46,6 +48,7 @@
           if (empty) empty.style.display = '';
           if (meta) meta.textContent = 'Không tải được';
           if (saveBtn) saveBtn.style.display = 'none';
+          if (sk) sk.style.display = 'none';
           return;
         }
         renderConfigForm(res.settings || {});
@@ -53,6 +56,7 @@
         if (roleWrap) roleWrap.style.display = '';
         if (saveBtn) saveBtn.style.display = '';  // Mẫu B: nút Lưu phân quyền trên view-topbar
         if (meta) meta.textContent = 'Đã tải';
+        if (sk) sk.style.display = 'none';
         markServerOk();
       })
       .withFailureHandler(function (err) {
@@ -60,6 +64,7 @@
         markServerFail();
         showToast('Lỗi tải cấu hình: ' + err.message, true);
         if (meta) meta.textContent = 'Lỗi kết nối';
+        if (sk) sk.style.display = 'none';
       })
       .getSettingsApi();
   }
@@ -111,66 +116,104 @@
       b.classList.toggle('cfg-save-dirty', !!CFG_DIRTY);
       b.disabled = !CFG_DIRTY;  // B3 (2026-08-13): nút Lưu tắt khi không có thay đổi chưa lưu
     }
-    var r = document.getElementById('cfgRefreshBtn');
-    if (r) {
-      // B6 (2026-08-13): đổi nhãn Làm mới → Hủy thay đổi khi còn chưa lưu — rõ hơn confirm
-      r.textContent = CFG_DIRTY ? '✕ Hủy thay đổi' : '⟳ Làm mới';
-      r.classList.toggle('cfg-refresh-dirty', !!CFG_DIRTY);
-    }
+    // P2 (2026-08-16): nút "Hủy thay đổi" RIÊNG khi dirty — thay cơ chế đổi nhãn Làm mới (dễ bỡ ngỡ)
+    var d = document.getElementById('cfgDiscardBtn');
+    if (d) d.style.display = CFG_DIRTY ? '' : 'none';
+  }
+
+  // P2 (2026-08-16): hủy bỏ toàn bộ thay đổi chưa lưu → confirm → tải lại từ server.
+  function discardCfgChanges() {
+    showConfirm('Hủy bỏ thay đổi', 'Hủy bỏ toàn bộ thay đổi cấu hình chưa lưu?', function () {
+      CFG_DIRTY = false;
+      syncCfgSaveBtn_();
+      loadConfigView(null);
+    });
   }
 
 
   // renderCfgList: mỗi group 1 section riêng (2026-08-14 — bỏ bảng gộp/thead sticky/cột Nhóm):
   // section = tiêu đề + count + nút + Thêm + bảng nhỏ (Giá trị | Mặc định* | Thao tác).
+  // P1 (2026-08-16): ô tìm kiếm #cfgSearch lọc item theo q — section không khớp ẩn hẳn,
+  // không có kết quả nào thì hiện #cfgNoResult. Giữ scroll của #configForm (.card cuộn).
   function renderCfgList() {
     var box = document.getElementById('cfgList');
     if (!box) return;
     var card = document.getElementById('configForm');
     var st = card ? card.scrollTop : 0;  // giữ vị trí cuộn card khi render lại
-    var html = CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g); }).join('');
-    box.innerHTML = html;
+    var q = cfgSearchQ_();
+    var htmls = CFG_GROUPS.map(function (g) { return cfgGroupHtml_(g, q); }).filter(function (h) { return h !== ''; });
+    var nr = document.getElementById('cfgNoResult');
+    if (nr) {
+      if (q && !htmls.length) { nr.style.display = ''; nr.textContent = 'Không có mục phù hợp “' + q + '”'; }
+      else { nr.style.display = 'none'; nr.textContent = ''; }
+    }
+    box.innerHTML = htmls.join('');
     if (card) card.scrollTop = st;
+  }
+  function cfgSearchQ_() {
+    var s = document.getElementById('cfgSearch');
+    return s ? s.value.trim().toLowerCase() : '';
+  }
+  function cfgItemMatch_(g, v, q) {
+    if (!q) return true;
+    return String(v).toLowerCase().indexOf(q) >= 0 || String(g.label).toLowerCase().indexOf(q) >= 0;
   }
 
   // Render 1 group section (2026-08-14 — tách nhóm): tiêu đề + count + nút + Thêm ở head, bảng con
   // (Giá trị | Mặc định* | Thao tác) — cột Mặc định chỉ hiện cho group có default (stations/teams/slotcodes).
   // Item <tr class="cfg-item cfg-item-group"> giữ class/selector cho editCfgGroupItem/drag*/delete.
-  function cfgGroupHtml_(g) {
+  // P1 (2026-08-16): q != '' → chỉ render item khớp (data-idx vẫn là index THẬT trong CFG_STATE);
+  // group không khớp nào thì trả '' (ẩn hẳn section).
+  function cfgGroupHtml_(g, q) {
     var list = safeArr(CFG_STATE[g.key]);
     var hasDef = !!CFG_DEFAULT_KEY[g.key];
     var colSpan = hasDef ? 3 : 2;
-    var items = list.length
-      ? list.map(function (v, i) {
-          var def = isDefault_(g.key, v);
-          return '<tr class="cfg-item cfg-item-group' + (def ? ' is-default' : '') + '" data-group="' + g.key + '" data-idx="' + i + '" draggable="true"'
-            + ' ondragstart="dragCfgStart(event,\'' + g.key + '\',' + i + ')"'
-            + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',' + i + ')"'
-            + ' ondragend="dragCfgEnd(event)">'
-            + '<td class="cfg-value-cell">'
-              + '<span class="cfg-drag-handle" title="Kéo để sắp xếp" aria-hidden="true">⋮⋮</span>'
-              + '<span class="cfg-item-label cfg-item-idx">#' + (i + 1) + '</span>'
-              + '<span class="cfg-item-value">' + esc(String(v)) + '</span>'
-            + '</td>'
-            + (hasDef ? '<td class="cfg-default-cell">' + cfgDefaultBtnHtml_(g, v, def) + '</td>' : '')
-            + '<td class="cfg-item-actions">'
-              + '<button type="button" class="btn btn-outline btn-sm" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')">Sửa</button>'
-              + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')">Xoá</button>'
-            + '</td>'
-          + '</tr>';
-        }).join('')
-      : '<tr class="cfg-empty-row"><td colspan="' + colSpan + '" class="cfg-empty-val cfg-group-empty">(chưa có)</td></tr>';
+    q = q || '';
+    var rows = [];
+    var matches = 0;
+    for (var i = 0; i < list.length; i++) {
+      var v = String(list[i]);
+      if (!cfgItemMatch_(g, v, q)) continue;
+      matches++;
+      rows.push(cfgItemRowHtml_(g, v, i, hasDef));
+    }
+    if (!matches) {
+      if (q) return '';  // đang tìm — ẩn section không có kết quả
+      rows.push('<tr class="cfg-empty-row"><td colspan="' + colSpan + '" class="cfg-empty-val cfg-group-empty">(chưa có)</td></tr>');
+    }
     return '<div class="cfg-group-section" data-group="' + g.key + '">'
       + '<div class="cfg-section-head">'
-        + '<span class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + list.length + ' mục</span></span>'
+        + '<span class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + matches + ' mục</span></span>'
         + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
       + '</div>'
       + '<div class="cfg-table-wrap"><table class="cfg-table">'
         + '<tbody class="cfg-group" data-group="' + g.key + '"'
           + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',-1)">'
-          + items
+          + rows.join('')
         + '</tbody>'
       + '</table></div>'
     + '</div>';
+  }
+  function cfgItemRowHtml_(g, v, i, hasDef) {
+    var def = isDefault_(g.key, v);
+    return '<tr class="cfg-item cfg-item-group' + (def ? ' is-default' : '') + '" data-group="' + g.key + '" data-idx="' + i + '" draggable="true"'
+      + ' ondragstart="dragCfgStart(event,\'' + g.key + '\',' + i + ')"'
+      + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',' + i + ')"'
+      + ' ondragend="dragCfgEnd(event)">'
+      + '<td class="cfg-value-cell">'
+        + '<span class="cfg-drag-handle" title="Kéo để sắp xếp — focus rồi bấm ↑↓" role="button" tabindex="0" aria-label="Sắp xếp ' + escAttr(v) + '"'
+        + ' onpointerdown="cfgDragPtrDown(event,\'' + g.key + '\',' + i + ')" onpointermove="cfgDragPtrMove(event)"'
+        + ' onpointerup="cfgDragPtrEnd(event)" onpointercancel="cfgDragPtrEnd(event)"'
+        + ' onkeydown="cfgDragHandleKeydown(event,\'' + g.key + '\',' + i + ')">⋮⋮</span>'
+        + '<span class="cfg-item-label cfg-item-idx">#' + (i + 1) + '</span>'
+        + '<span class="cfg-item-value">' + esc(v) + '</span>'
+      + '</td>'
+      + (hasDef ? '<td class="cfg-default-cell">' + cfgDefaultBtnHtml_(g, v, def) + '</td>' : '')
+      + '<td class="cfg-item-actions">'
+        + '<button type="button" class="btn btn-outline btn-sm" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')">Sửa</button>'
+        + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')">Xoá</button>'
+      + '</td>'
+    + '</tr>';
   }
 
   // Nút ◉/◎ Mặc định cho 1 item (group có default mới gọi — 2026-08-14 tách khỏi cfgGroupHtml_).
@@ -195,7 +238,23 @@
 
   // Kéo thả sắp xếp item trong group (HTML5 DnD — 2026-08-12): thứ tự list = thứ tự Config
   // dùng cho Thống kê (orderedByCfg_) và dropdown tạo task.
-  var CFG_DRAG = null;
+  // P0 (2026-08-16): HTML5 DnD không fire dragstart trên cảm ứng → thêm pointer fallback từ
+  // handle ⋮⋮ (mouse giữ nguyên HTML5 DnD) + sắp xếp bằng bàn phím ↑↓/Home/End (P2).
+  var CFG_DRAG = null;        // trạng thái HTML5 DnD (mouse/desktop)
+  var CFG_TOUCH_DRAG = null;  // trạng thái pointer-drag (touch/pen)
+  var CFG_AUTOSCROLL = null;  // rAF auto-scroll khi kéo touch gần mép card
+
+  // Di chuyển item group from → to (dùng chung: drop HTML5, drop touch, phím ↑↓) — CỤC BỘ + dirty.
+  function moveCfgItem_(group, from, to) {
+    cancelPendingGroupEdit_();  // (2026-08-14): hủy edit dở — chỉ nút Lưu dòng mới chốt
+    var list = safeArr(CFG_STATE[group]).slice();
+    var v = list.splice(from, 1)[0];
+    list.splice(to, 0, v);
+    CFG_STATE[group] = list;
+    renderCfgList();  // áp dụng ngay — không reload, giữ scroll
+    markCfgDirty_();
+  }
+
   function dragCfgStart(ev, group, idx) {
     CFG_DRAG = { group: group, from: idx };
     try { ev.dataTransfer.setData('text/plain', String(idx)); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { /* ignore */ }
@@ -216,13 +275,7 @@
     if (!src || src.group !== group) return;
     if (to === -1) to = safeArr(CFG_STATE[group]).length;  // thả cuối group
     if (src.from === to) return;
-    cancelPendingGroupEdit_();  // (2026-08-14): hủy edit dở trước khi kéo thả
-    var list = safeArr(CFG_STATE[group]).slice();
-    var v = list.splice(src.from, 1)[0];
-    list.splice(to, 0, v);
-    CFG_STATE[group] = list;
-    renderCfgList();  // áp dụng ngay — không reload, giữ scroll
-    markCfgDirty_();
+    moveCfgItem_(group, src.from, to);
   }
   function dragCfgEnd(ev) {
     CFG_DRAG = null;
@@ -232,6 +285,88 @@
   function clearDropTargets_() {
     var els = document.querySelectorAll('.cfg-drop-target');
     for (var i = 0; i < els.length; i++) els[i].classList.remove('cfg-drop-target');
+  }
+
+  // ===== Pointer drag (P0 2026-08-16): HTML5 DnD không fire dragstart trên cảm ứng — thêm
+  // pointer fallback từ handle ⋮⋮ (pointerType khác mouse = touch/pen). Mouse giữ nguyên HTML5 DnD.
+  function cfgDragPtrDown(ev, group, idx) {
+    if (ev.pointerType === 'mouse') return;  // mouse dùng HTML5 DnD
+    ev.preventDefault();
+    try { ev.target.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+    CFG_TOUCH_DRAG = { group: group, from: idx, x: ev.clientX, y: ev.clientY, startX: ev.clientX, startY: ev.clientY, moved: false, to: undefined };
+    var row = cfgItemRow_(group, idx);
+    if (row) row.classList.add('cfg-dragging');
+  }
+  function cfgDragPtrMove(ev) {
+    var t = CFG_TOUCH_DRAG;
+    if (!t) return;
+    ev.preventDefault();
+    t.x = ev.clientX; t.y = ev.clientY;
+    if (!t.moved) {
+      if (Math.abs(ev.clientX - t.startX) + Math.abs(ev.clientY - t.startY) < 8) return;  // chưa đủ cử chỉ kéo
+      t.moved = true;
+    }
+    cfgTouchHitTest_();
+    cfgAutoScroll_(ev.clientY);
+  }
+  function cfgDragPtrEnd(ev) {
+    var t = CFG_TOUCH_DRAG;
+    if (!t) return;
+    CFG_TOUCH_DRAG = null;
+    cfgStopAutoScroll_();
+    clearDropTargets_();
+    var row = cfgItemRow_(t.group, t.from);
+    if (row) row.classList.remove('cfg-dragging');
+    if (!t.moved || t.to === undefined || t.to === t.from) return;
+    moveCfgItem_(t.group, t.from, t.to);
+  }
+  function cfgTouchHitTest_() {
+    var t = CFG_TOUCH_DRAG;
+    if (!t) return;
+    var el = document.elementFromPoint(t.x, t.y);
+    var row = el && el.closest ? el.closest('.cfg-item-group[data-group="' + t.group + '"]') : null;
+    clearDropTargets_();
+    if (row) { row.classList.add('cfg-drop-target'); t.to = parseInt(row.getAttribute('data-idx'), 10); }
+    else t.to = undefined;
+  }
+  // Auto-scroll card khi kéo touch gần mép trên/dưới — rAF lặp tới khi nhả tay.
+  function cfgAutoScroll_(y) {
+    if (CFG_AUTOSCROLL) return;
+    var card = document.getElementById('configForm');
+    if (!card) return;
+    var zone = 48;
+    CFG_AUTOSCROLL = requestAnimationFrame(function step() {
+      if (!CFG_TOUCH_DRAG) { CFG_AUTOSCROLL = null; return; }
+      var rect = card.getBoundingClientRect();
+      var dy = 0;
+      if (y < rect.top + zone) dy = -Math.round(((zone - (y - rect.top)) / zone) * 14);
+      else if (y > rect.bottom - zone) dy = Math.round(((zone - (rect.bottom - y)) / zone) * 14);
+      if (dy) { card.scrollTop += dy; cfgTouchHitTest_(); }  // nội dung cuộn → cập nhật target
+      CFG_AUTOSCROLL = requestAnimationFrame(step);
+    });
+  }
+  function cfgStopAutoScroll_() {
+    if (CFG_AUTOSCROLL) { cancelAnimationFrame(CFG_AUTOSCROLL); CFG_AUTOSCROLL = null; }
+  }
+  function cfgItemRow_(group, idx) {
+    var box = document.getElementById('cfgList');
+    return box ? box.querySelector('.cfg-item-group[data-group="' + group + '"][data-idx="' + idx + '"]') : null;
+  }
+
+  // P2 (2026-08-16): sắp xếp bằng bàn phím — handle focus được, ↑↓/Home/End di chuyển item (a11y).
+  function cfgDragHandleKeydown(ev, group, idx) {
+    var list = safeArr(CFG_STATE[group]);
+    var to = -1;
+    if (ev.key === 'ArrowUp') to = idx - 1;
+    else if (ev.key === 'ArrowDown') to = idx + 1;
+    else if (ev.key === 'Home') to = 0;
+    else if (ev.key === 'End') to = list.length - 1;
+    if (to < 0 || to > list.length - 1 || to === idx) return;
+    ev.preventDefault();
+    moveCfgItem_(group, idx, to);
+    var row = cfgItemRow_(group, to);
+    var h = row ? row.querySelector('.cfg-drag-handle') : null;
+    if (h) h.focus();  // giữ focus trên handle sau khi di chuyển — bấm ↑↓ liên tiếp được
   }
 
   // Sửa item group (2026-08-14): input + nút Lưu/Huỷ RÕ RÀNG — chỉ Lưu/Enter mới chốt vào state
@@ -348,6 +483,8 @@
   function addCfgGroupItem(group) {
     // KHÔNG gọi server: append '' cục bộ + mở ô nhập ngay (server lọc item rỗng → gọi server
     // rồi reload sẽ không thấy row mới — UX hỏng). User nhập giá trị → blur/Enter → commit.
+    var s = document.getElementById('cfgSearch');
+    if (s && s.value) s.value = '';  // P1 (2026-08-16): bỏ tìm kiếm — row mới không bị filter ẩn
     var list = safeArr(CFG_STATE[group]).slice();
     list.push('');
     CFG_STATE[group] = list;
@@ -412,7 +549,7 @@
   function roleRowCardHtml_(email, role) {
     return '<tr class="cfg-role-row cfg-role-card" data-email="' + escAttr(email || '') + '">'
       + '<td class="cfg-role-email" title="' + escAttr(email || '') + '">' + esc(email || '(trống)') + '</td>'
-      + '<td><span class="cfg-role-badge">' + esc(roleLabel_(role)) + '</span></td>'
+      + '<td><span class="cfg-role-badge" title="' + escAttr(roleLabel_(role)) + '">' + esc(roleLabel_(role)) + '</span></td>'  /* P1 (2026-08-16): tooltip đầy đủ khi badge bị ellipsis */
       + '<td class="cfg-item-actions">'
         + '<button type="button" class="btn btn-outline btn-sm" onclick="startRoleEdit(\'' + escAttr(email || '') + '\')" title="Sửa role" aria-label="Sửa role">Sửa</button>'
         + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteRoleRow(\'' + escAttr(email || '') + '\')" title="Xoá role" aria-label="Xoá role">Xoá</button>'
@@ -483,9 +620,17 @@
     if (!em || !sel) { ROLE_EDIT = null; renderRoleRows(); return; }
     var email = em.value.trim().toLowerCase();
     var map = CFG_STATE.roleMap || {};
-    if (ROLE_EDIT.email && ROLE_EDIT.email !== email) delete map[ROLE_EDIT.email];
+    var old = ROLE_EDIT.email || '';
+    // P0 (2026-08-16): email mới đã có role (key khác) → CHẶN ghi đè âm thầm — trước đây xoá
+    // mất phân quyền của người khác không cảnh báo.
+    if (email && email !== old && map[email] !== undefined) {
+      showToast('Email "' + email + '" đã có role "' + roleLabel_(map[email]) + '" — không ghi đè. Xoá role cũ trước nếu muốn thay.', true);
+      if (em) em.focus();
+      return;  // giữ ô đang sửa — không đóng ROLE_EDIT
+    }
+    if (old && old !== email) delete map[old];
     if (email) map[email] = sel.value;
-    else delete map[ROLE_EDIT.email];  // bỏ trống email → xoá role
+    else delete map[old];  // bỏ trống email → xoá role
     CFG_STATE.roleMap = map;
     ROLE_EDIT = null;
     renderRoleRows();

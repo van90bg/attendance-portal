@@ -281,18 +281,30 @@
         <div class="task-meta" id="configMeta">Đang tải…</div>
       </div>
       <div class="topbar-actions">
+        <button class="btn btn-outline cfg-discard-btn" id="cfgDiscardBtn" onclick="discardCfgChanges()" style="display:none;" aria-label="Hủy bỏ thay đổi chưa lưu" title="Hủy bỏ thay đổi chưa lưu">✕ Hủy thay đổi</button>
         <button class="btn btn-outline" id="cfgRefreshBtn" onclick="loadConfigView(this)" aria-label="Làm mới cấu hình" title="Làm mới">⟳ Làm mới</button>
         <button type="button" class="btn" id="cfgSaveBtn" onclick="saveConfig(this)" style="display:none;" title="Gửi 1 patch duy nhất cho mọi thay đổi">Lưu cấu hình</button>
       </div>
     </div>
 
     <form id="configForm" onsubmit="return false;" class="card cfg-card">
+      <!-- P2 (2026-08-16): skeleton shimmer lúc tải — đồng bộ Task/Staff (bỏ chữ "Đang tải…" trống trơn) -->
+      <div class="skeleton-wrap" id="cfgSkeleton">
+        <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+        <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+        <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+      </div>
       <div id="configWrap" style="display:none;">
         <div class="cfg-group-section" data-group="operations">
           <div class="cfg-section-head">
             <span class="cfg-group-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></span>
+            <!-- P1 (2026-08-16): ô tìm kiếm mục cấu hình — đồng bộ .list-search Task/Staff/Scan -->
+            <div class="list-search" role="search" aria-label="Tìm mục cấu hình">
+              <input type="search" id="cfgSearch" placeholder="Tìm Station, Team, Ca…" aria-label="Tìm mục cấu hình" autocomplete="off" spellcheck="false" oninput="renderCfgList()" onkeydown="if(event.key==='Escape'){this.value='';renderCfgList();}">
+            </div>
           </div>
           <div id="cfgList" class="cfg-list"></div>
+          <div class="cfg-empty-val" id="cfgNoResult" style="display:none;"></div>
         </div>
 
         <div id="roleWrap" style="display:none;">
