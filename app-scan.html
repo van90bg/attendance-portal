@@ -1072,42 +1072,55 @@
     var reader = document.getElementById('cameraReader');
     if (!reader) { closeCameraScan(); return; }
     CAMERA_SCANNED = false;
-    try {
-      var scanner = new Html5Qrcode('cameraReader');
-      CAMERA_SCANNER = scanner;
-      var config = {
-        fps: 10,
-        qrbox: function (vw, vh) {
-          var size = Math.floor(Math.min(vw, vh) * 0.8);
-          return { width: size, height: size };
-        },
-        // Mã NV là 1D — chỉ hỗ trợ Code128/Code39 (nhanh + ít dương tính giả)
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39
-        ]
-      };
-      scanner.start(
-        { facingMode: 'environment' },  // camera mặt sau trên mobile
-        config,
-        function onScanSuccess(decodedText) {
-          if (CAMERA_SCANNED) return;   // chỉ 1 mã / lần mở — tránh submit lặp
-          CAMERA_SCANNED = true;
-          var code = String(decodedText || '').trim();
-          closeCameraScan();            // tắt camera trước khi gửi server
-          var inp = document.getElementById('scanInput');
-          if (inp) inp.value = code;
-          submitScan();                 // tái dùng luồng quét chuẩn
-        },
-        function onScanError() { /* bỏ qua: gọi liên tục khi chưa thấy mã */ }
-      ).catch(function (err) {
-        showToast('Không mở được camera: ' + (err && err.message ? err.message : 'bị từ chối quyền'), true);
+    var config = {
+      fps: 10,
+      qrbox: function (vw, vh) {
+        var size = Math.floor(Math.min(vw, vh) * 0.8);
+        return { width: size, height: size };
+      },
+      // Mã NV là 1D — chỉ hỗ trợ Code128/Code39 (nhanh + ít dương tính giả)
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39
+      ]
+    };
+    function onSuccess(decodedText) {
+      if (CAMERA_SCANNED) return;   // chỉ 1 mã / lần mở — tránh submit lặp
+      CAMERA_SCANNED = true;
+      var code = String(decodedText || '').trim();
+      closeCameraScan();            // tắt camera trước khi gửi server
+      var inp = document.getElementById('scanInput');
+      if (inp) inp.value = code;
+      submitScan();                 // tái dùng luồng quét chuẩn
+    }
+    function onError() { /* bỏ qua: gọi liên tục khi chưa thấy mã */ }
+    // Thử lần lượt: mặt sau -> mặt trước. start() thất bại để lại trạng thái xấu
+    // nên mỗi lần tạo instance mới và clear() phần tử cũ trước khi thử tiếp.
+    var cams = [ { facingMode: 'environment' }, { facingMode: 'user' } ];
+    function attempt(i) {
+      if (CAMERA_OPEN === false) return;   // đã đóng khi đang thử -> dừng
+      if (i >= cams.length) {
+        showToast('Không mở được camera. Nếu đã từ chối quyền, vào Cài đặt trình duyệt -> Quyền -> Camera -> Cho phép trang này, rồi thử lại.', true);
         closeCameraScan();
+        return;
+      }
+      var sc = new Html5Qrcode('cameraReader');
+      CAMERA_SCANNER = sc;
+      sc.start(cams[i], config, onSuccess, onError).catch(function (err) {
+        var msg = (err && err.message) ? err.message : '';
+        if (/permission|denied|not ?allowed/i.test(msg)) {
+          showToast('Quyền camera bị từ chối — vào Cài đặt trình duyệt -> Quyền -> Camera -> Cho phép, rồi thử lại', true);
+          closeCameraScan();
+          return;
+        }
+        try { sc.clear(); } catch (e) {}   // dọn instance thất bại trước khi thử tiếp
+        attempt(i + 1);
       });
-    } catch (e) {
+    }
+    try { attempt(0); }
+    catch (e) {
       showToast('Lỗi khởi tạo camera: ' + (e && e.message ? e.message : e), true);
       closeCameraScan();
     }
   }
-
 </script>

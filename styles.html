@@ -571,7 +571,7 @@
       #btnScan { display: none; }
     }
     /* Nút Camera: chỉ trên mobile/tablet (<992px) — desktop dùng máy quét tay */
-    #btnCamera { min-width: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #btnCamera { min-width: 44px; min-height: 44px; margin: 4px 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }  /* margin 4px 0 đồng bộ #btnScan -> cùng chiều cao trong scan-row (stretch) */
     #btnCamera svg, .list-search .btn-icon svg { width: 20px; height: 20px; display: block; }
     @media (min-width: 992px) {
       #btnCamera { display: none; }
