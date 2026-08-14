@@ -325,8 +325,12 @@
     var btn = document.getElementById('btnScanListToggle');
     if (!card || !btn) return;
     var open = card.classList.toggle('scan-list-open');
-    btn.textContent = open ? 'Thu gọn' : 'Mở rộng';
+    // FIX(2026-08-14): Mở rộng -> ẩn cột quét (counters + ô nhập + nút Quét + scanCard), danh sách NV đẩy lên full
+    document.body.classList.toggle('scan-expanded', open);
+    btn.textContent = open ? '▲' : '▼';
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.setAttribute('aria-label', open ? 'Thu gọn danh sách NV' : 'Mở rộng danh sách NV');
+    btn.title = open ? 'Thu gọn danh sách NV' : 'Mở rộng danh sách NV';
   }
 
   function scanRowCells(r, idx) {

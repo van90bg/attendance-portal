@@ -479,7 +479,7 @@
         var tr = document.createElement('tr');
         tr.innerHTML =
           '<td class="stt" data-label="STT">' + (start + pi + 1) + '</td>' +
-          '<td data-label="Mã task">' + esc(t.taskId) + '</td>' +
+          '<td data-label="Mã task"><a class="task-open-link" href="javascript:void(0)" onclick="openScan(\'' + escAttr(t.taskId) + '\')">' + esc(t.taskId) + '</a></td>' +
           '<td data-label="Loại">' + taskTypeBadge(t.taskType) + '</td>' +
           '<td data-label="Station">' + esc(t.station) + '</td>' +
           '<td data-label="Team">' + esc(t.team) + '</td>' +
@@ -645,7 +645,7 @@
         var tr = document.createElement("tr");
         tr.innerHTML =
           '<td class="stt" data-label="STT">' + (start + pi + 1) + '</td>' +
-          '<td class="tid-cell" data-label="Mã task">' + esc(r.taskId) + '</td>' +
+          '<td class="tid-cell" data-label="Mã task"><a class="task-open-link" href="javascript:void(0)" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">' + esc(r.taskId) + '</a></td>' +
           '<td data-label="Mã NV">' + esc(r.staffId) + '</td>' +
           '<td data-label="Tên NV">' + esc(r.staffName || "") + '</td>' +
           '<td data-label="Điểm danh">' + badgeFor(r.status) + '</td>' +
@@ -760,6 +760,7 @@
         : 'Đang xử lý lượt quét — chờ xong rồi quay lại', true);
       return;
     }
+    document.body.classList.remove('scan-expanded');
     showSection('viewTasks');
     loadTaskList();
   }

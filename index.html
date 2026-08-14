@@ -145,10 +145,11 @@
         <div class="card" id="scanListCard">
           <div class="att-toolbar">
             <h2 class="section-heading">DANH SÁCH NV</h2>
-            <button type="button" class="btn btn-ghost btn-sm" id="btnScanListToggle" onclick="toggleScanList()" aria-expanded="false" title="Thu gọn / mở rộng danh sách">Mở rộng</button>
             <div class="list-search" role="search" aria-label="Tìm nhân viên">
               <input type="search" id="scanSearch" placeholder="Tìm mã NV, tên…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false">
             </div>
+            <!-- FIX(2026-08-14): nút Mở rộng/Thu gọn = mũi tên tam giác ▼/▲ ở góc phải scanListCard (cuối toolbar, sau search) -->
+            <button type="button" class="btn btn-ghost btn-sm" id="btnScanListToggle" onclick="toggleScanList()" aria-expanded="false" aria-label="Mở rộng danh sách NV" title="Mở rộng danh sách NV">▼</button>
             <select id="scanStatusFilter" aria-label="Lọc theo trạng thái">
               <option value="">Tất cả trạng thái</option>
               <!-- C1: các option còn lại được populate từ STATUS_C trong initScanFilters -->
