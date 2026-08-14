@@ -570,7 +570,7 @@
     @media (min-width: 992px) {
       #btnScan { display: none; }
     }
-    /* Nút Camera: chỉ trên mobile (<992px) — kiosk desktop đã có máy quét tay */
+    /* Nút Camera: chỉ trên mobile/tablet (<992px) — desktop dùng máy quét tay */
     #btnCamera { min-width: 64px; min-height: 44px; font-size: 22px; line-height: 1; padding: 0 12px; }
     @media (min-width: 992px) {
       #btnCamera { display: none; }
@@ -941,6 +941,7 @@
       background: #000; overflow: hidden;
     }
     .camera-reader video, .camera-reader img { width: 100% !important; height: 100% !important; object-fit: cover; }
+    #cameraReader { position: absolute; inset: 0; width: 100%; height: 100%; }
     .camera-reticle {
       position: absolute; inset: 0; pointer-events: none; z-index: 2;
       border: 2px solid rgba(232, 93, 4, .55);
