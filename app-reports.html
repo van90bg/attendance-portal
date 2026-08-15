@@ -1,0 +1,95 @@
+<script>
+  /* ============================================================
+   * MODULE: app-reports.html — viewReports (Báo cáo) — chấm công tháng theo email đăng nhập
+   * Nạp qua index.html (directive include app-reports) — script block
+   * riêng, chung global scope với các module khác (thứ tự include quan trọng).
+   * Nguồn: StaffAttendance (sheet ngoài, lọc theo Ops ID của email đăng nhập qua StaffInfo).
+   * ============================================================ */
+  var REPORTS_LOADED = false;
+  var REPORT_ROWS = [];    // rows server trả (đã sort giảm dần theo ngày)
+  var REPORT_META = null;  // { email, opsId, staffName, message }
+
+  // Tải báo cáo của user đang đăng nhập (getReportsApi — gate operator+ TRONG server).
+  function loadReportsView(btn) {
+    var skel = document.getElementById('reportsSkeleton');
+    var metaEl = document.getElementById('reportsMeta');
+    var tbl = document.getElementById('reportsTableWrap');
+    var empty = document.getElementById('reportsEmpty');
+    if (skel) skel.style.display = REPORTS_LOADED ? 'none' : '';
+    if (tbl) tbl.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+    if (metaEl) metaEl.textContent = 'Đang tải…';
+    if (btn) setBtnBusy_(btn, '⟳ Đang tải…');
+    function restore() { if (btn) restoreBtnLabel_(btn, '⟳ Cập nhật'); }
+    google.script.run
+      .withSuccessHandler(function (res) {
+        restore();
+        if (!res || !res.ok) {
+          if (metaEl) metaEl.textContent = 'Lỗi';
+          if (skel) skel.style.display = 'none';
+          showToast((res && res.message) || 'Lỗi tải báo cáo', true);
+          return;
+        }
+        REPORT_ROWS = safeArr(res.rows);
+        REPORT_META = res;
+        REPORTS_LOADED = true;
+        if (skel) skel.style.display = 'none';
+        renderReportsTable();
+        markServerOk();
+      })
+      .withFailureHandler(function (err) {
+        restore();
+        markServerFail();
+        if (skel) skel.style.display = 'none';
+        showToast('Lỗi tải báo cáo: ' + err.message, true);
+      })
+      .getReportsApi();
+  }
+
+  // Render bảng — lọc client theo ô tìm kiếm (ngày / station / kết quả / giờ / PMO).
+  function renderReportsTable() {
+    var q = ((document.getElementById('reportsSearch') || {}).value || '').trim().toLowerCase();
+    var rows = REPORT_ROWS.filter(function (r) {
+      if (!q) return true;
+      var hay = [r.reportDate, r.bizStaffId, r.employeeId, r.staffName, r.station, r.result, r.workHour, r.inTime, r.outTime, r.pmo].join(' ').toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+    var tbl = document.getElementById('reportsTableWrap');
+    var empty = document.getElementById('reportsEmpty');
+    var body = document.getElementById('reportsTableBody');
+    var metaEl = document.getElementById('reportsMeta');
+    if (!tbl || !body) return;
+    var baseMeta = '';
+    if (REPORT_META) {
+      var nm = (REPORT_META.staffName ? REPORT_META.staffName + ' · ' : '') + (REPORT_META.email || 'Khách');
+      baseMeta = REPORT_ROWS.length ? (nm + ' — ' + REPORT_ROWS.length + ' dòng') : (nm + (REPORT_META.message ? ' — ' + REPORT_META.message : ''));
+    }
+    if (metaEl) metaEl.textContent = q ? (rows.length + '/' + REPORT_ROWS.length + ' dòng phù hợp') : baseMeta;
+    if (!rows.length) {
+      body.innerHTML = '';
+      tbl.style.display = 'none';
+      if (empty) {
+        empty.style.display = '';
+        empty.textContent = q ? 'Không có dòng phù hợp “' + q + '”' : ((REPORT_META && REPORT_META.message) || 'Chưa có dữ liệu chấm công');
+      }
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    body.innerHTML = rows.map(function (r) {
+      var off = String(r.result || '').toUpperCase() === 'OFF';
+      return '<tr>'
+        + '<td>' + esc(r.reportDate) + '</td>'
+        + '<td><b>' + esc(r.bizStaffId) + '</b></td>'
+        + '<td>' + esc(r.employeeId) + '</td>'
+        + '<td>' + esc(r.staffName) + '</td>'
+        + '<td>' + esc(r.station) + '</td>'
+        + '<td>' + (off ? '<span class="reports-off">OFF</span>' : esc(r.result)) + '</td>'
+        + '<td class="reports-num">' + esc(r.workHour || '—') + '</td>'
+        + '<td>' + esc(r.inTime || '—') + '</td>'
+        + '<td>' + esc(r.outTime || '—') + '</td>'
+        + '<td>' + esc(r.pmo || '—') + '</td>'
+        + '</tr>';
+    }).join('');
+    tbl.style.display = '';
+  }
+</script>

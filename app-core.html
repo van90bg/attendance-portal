@@ -709,6 +709,7 @@
     if (page === 'home' && typeof renderHomeClock === 'function') { renderHomeClock(); }
     if ((page === 'stats' || page === 'data') && typeof ensureStaffData === 'function') { ensureStaffData(false); }
     if (page === 'config' && typeof ensureConfigData === 'function') { ensureConfigData(false); }
+    if (page === 'reports' && typeof loadReportsView === 'function' && !REPORTS_LOADED) { loadReportsView(); }
   }
 
   function toggleSidebarCompact() {

@@ -3,7 +3,7 @@
  * Debug URL (?debug=1 / ?debug=createTask) xử lý trong Debug.gs (editor-gated);
  * quyền/định danh trong Auth.gs.
  *
- * API (gọi từ client index.html — 17 endpoint, tên chuẩn hậu tố *Api):
+ * API (gọi từ client index.html — 18 endpoint, tên chuẩn hậu tố *Api):
  *   getMetaApi()                 → { ok, appTitle, userEmail }
  *   getFilterOptionsApi()        → { ok, stationGroups }
  *   previewStaffApi(input)       → { ok, matched, missing, count } — preview tạo task
@@ -19,6 +19,7 @@
  *   reopenTaskApi(taskId)         → { ok, message } — task done → open (quét bổ sung)
  *   pasteCodesApi(taskId, lines)  → { ok, total, success, failed, results } — dán mã hàng loạt
  *   searchLogsByStaffApi(staffId) → { ok, rows } — manager+ (báo cáo tháng theo mail)
+ *   getReportsApi()               → { ok, rows, email, opsId } — báo cáo chấm công tháng theo mail đăng nhập (StaffAttendance × StaffInfo)
  *   searchTasksByQueryApi(q)      → { ok, rows } — tìm task theo mã NV / mã task
  *   warmStaffCacheApi()          → { ok, index } — preload staffIndex cache (fire-and-forget)
  * Editor tools (không phải *Api — chạy tay trong GAS editor): syncFromCsv(), setupSheets()
@@ -241,6 +242,17 @@ function searchLogsByStaffApi(rawStaffId) {
  *  (dùng readTaskList_ cache + counters, không đọc sheet riêng). */
 function searchTasksByQueryApi(rawQ) {
   return searchTasksByQuery(rawQ);
+}
+
+/** Báo cáo chấm công tháng theo email đăng nhập (viewReports — StaffAttendance × StaffInfo).
+ *  Gate requireRole_('operator') nằm TRONG getReports (ReportService) — chống bypass;
+ *  wrapper chỉ giữ DEFENSE: catch mọi lỗi (kể cả sheet nguồn chưa có) → ok:false. */
+function getReportsApi() {
+  try {
+    return getReports();
+  } catch (e) {
+    return { ok: false, rows: [], message: e && e.message ? e.message : 'getReportsApi fail' };
+  }
 }
 
 /** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ

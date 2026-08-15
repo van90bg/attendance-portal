@@ -122,7 +122,7 @@ function loadAll(ctx) {
   const files = [
     'Config.gs', 'CsvUtil.gs', 'Spreadsheet.gs', 'Cache.gs', 'StaffDataRepo.gs',
     'TaskRepo.gs', 'LogRepo.gs', 'ScanLogic.gs', 'ScanService.gs', 'TaskService.gs',
-    'Auth.gs', 'Debug.gs', 'SettingsService.gs', 'Code.gs',
+    'Auth.gs', 'Debug.gs', 'SettingsService.gs', 'ReportRepo.gs', 'ReportService.gs', 'Code.gs',
   ];
   const sandbox = vm.createContext(ctx);
   files.forEach((f) => {

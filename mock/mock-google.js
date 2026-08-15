@@ -14,6 +14,7 @@
     meta: {
       ok: true,
       appTitle: 'Điểm Danh [LOCAL MOCK]',
+      userEmail: 'nv001.demo@spxexpress.com',  // demo viewReports — khớp MOCK_REPORT_INFO bên dưới
       // Khớp server getMetaApi: { ok, appTitle, userEmail } — KHÔNG labels/tableHeaders
       // (client không dùng, server không trả — drift đã xóa 2026-08-11).
     },
@@ -116,11 +117,23 @@
     agencies: ['GRG', 'FEX', 'SKT'],  // demo: mock staff có GRG/FEX/SKT (có trong Config) + TPZ/GMG/AGR (lệch → Khác)
   };
 
+  // Báo cáo (viewReports) mock: StaffInfo email→Ops + StaffAttendance rows — khớp server
+  // ReportRepo/ReportService: lọc theo Ops ID, "None"→'', sort desc theo ngày (client render).
+  var MOCK_REPORT_INFO = {
+    'nv001.demo@spxexpress.com': { opsId: 'Ops237511', name: 'NV001' },
+  };
+  var MOCK_REPORT_ROWS = [
+    { reportDate: '2026-08-01', bizStaffId: 'Ops237511', employeeId: 'SPXVN00001', staffName: 'NV001', station: 'HN2 SOC', result: '22:00-06:00', workHour: '8.13', inTime: '21:52', outTime: '06:00', pmo: 'Tang NV001' },
+    { reportDate: '2026-08-02', bizStaffId: 'Ops237511', employeeId: 'SPXVN00001', staffName: 'NV001', station: 'HN2 SOC', result: 'OFF', workHour: '', inTime: '', outTime: '', pmo: 'Không chấm công hoặc OFF tuần' },
+    { reportDate: '2026-08-03', bizStaffId: 'Ops237511', employeeId: 'SPXVN00001', staffName: 'NV001', station: 'HN2 SOC', result: '08:00-17:00', workHour: '8', inTime: '07:58', outTime: '17:02', pmo: 'Tang NV001' },
+    { reportDate: '2026-08-04', bizStaffId: 'Ops999999', employeeId: 'SPXVN00999', staffName: 'NV-DU', station: 'HN2 SOC', result: '13:00-22:00', workHour: '9', inTime: '12:55', outTime: '22:01', pmo: '—' },
+  ];
+
   var handlers = {
     getMetaApi: function () {
       // Khớp server getMetaApi (Code.gs): { ok, appTitle, userEmail, isEditor, role }.
       // Mock LUÔN editor (isEditor:true) + role admin (server getRole_: editor => ADMIN) — để test trang Cấu hình ở local.
-      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, userEmail: '', isEditor: true, role: 'admin' };
+      return { ok: true, appTitle: MOCK_DATA.meta.appTitle, userEmail: MOCK_DATA.meta.userEmail || '', isEditor: true, role: 'admin' };
     },
     warmStaffCacheApi: function () {
       // Khớp server: slim index { staffId, staffName, slotCode, station, team, workstation, agency }
@@ -337,6 +350,14 @@
         else { ignored.push(k); }
       });
       return { ok: true, saved: saved, ignored: ignored, message: 'Đã lưu ' + saved.length + ' cấu hình' };
+    },
+    getReportsApi: function () {
+      // Khớp server getReports (ReportService): lọc theo email đăng nhập → Ops ID (StaffInfo).
+      var email = String((MOCK_DATA.meta && MOCK_DATA.meta.userEmail) || '').trim().toLowerCase();
+      var info = MOCK_REPORT_INFO[email];
+      if (!info) return { ok: true, rows: [], email: email, message: 'Không tìm thấy mã nhân viên (StaffInfo) cho email này' };
+      var rows = MOCK_REPORT_ROWS.filter(function (r) { return String(r.bizStaffId).toUpperCase() === String(info.opsId).toUpperCase(); });
+      return { ok: true, rows: rows, email: email, opsId: info.opsId, staffName: info.name, message: rows.length ? '' : 'Chưa có dữ liệu chấm công (StaffAttendance) cho nhân viên này' };
     },
   };
 

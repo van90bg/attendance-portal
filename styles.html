@@ -1129,7 +1129,11 @@
     #staffTable thead th { position: sticky; top: 0; z-index: 2; }
     #taskListTable thead th { position: sticky; top: 0; z-index: 2; }  /* nền th chung var(--surface-muted) — đồng bộ staffTable/scanTable (2026-08-11) */
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
-    #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }
+    #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }    /* ===== Báo cáo (viewReports) — chấm công tháng theo email đăng nhập (2026-08-16) ===== */
+    #reportsTable { font-size: 13px; }
+    #reportsTable thead th { position: sticky; top: 0; z-index: 2; }
+    .reports-num { text-align: right; font-variant-numeric: tabular-nums; }
+    .reports-off { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
     /* Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox */
     /* th-filter dùng chung staffTable + taskListTable (funnel phễu) */
@@ -1331,10 +1335,7 @@
     /* ===== Class dùng chung theo view/modal (gom inline style, 2026-08-11) ===== */
     .about-cell { padding: 8px; border: 1px solid var(--border); text-align: left; }
     /* viewTasks hint */
-    /* viewReports placeholder */
-    .reports-empty { padding: 48px 16px; text-align: center; color: var(--text); opacity: .65; }
-    .reports-empty-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
-    .reports-empty-desc { font-size: 13px; line-height: 1.7; }
+    /* viewReports (2026-08-16): bảng chấm công — dùng .empty + .table-wrap chung, bỏ class placeholder cũ */
     /* viewAbout */
     .about-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .about-title { margin: 0; font-size: 20px; font-weight: 700; }

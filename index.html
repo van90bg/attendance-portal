@@ -331,14 +331,42 @@
   <div class="view-topbar">
     <div class="view-topbar-title">
       <div class="task-title">Báo cáo</div>
-      <div class="task-meta">Tính năng đang phát triển</div>
+      <div class="task-meta" id="reportsMeta">Chấm công tháng theo email đăng nhập</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" id="reportsRefreshBtn" onclick="loadReportsView(this)" aria-label="Cập nhật báo cáo" title="Cập nhật">⟳ Cập nhật</button>
     </div>
   </div>
   <div class="card">
-    <div class="reports-empty">
-      <div class="reports-empty-title">Báo cáo chấm công theo tháng</div>
-      <div class="reports-empty-desc">Đang xây dựng — hiển thị chấm công tháng của từng nhân viên theo email đăng nhập.</div>
+    <div class="skeleton-wrap" id="reportsSkeleton" style="display:none;">
+      <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+      <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+      <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
     </div>
+    <div class="task-list-toolbar">
+      <div class="task-title">Bảng chấm công</div>
+      <div class="list-search" role="search" aria-label="Tìm báo cáo">
+        <input type="search" id="reportsSearch" placeholder="Tìm ngày, station, kết quả…" aria-label="Tìm báo cáo" autocomplete="off" spellcheck="false" oninput="renderReportsTable()" onkeydown="if(event.key==='Escape'){this.value='';renderReportsTable();}">
+      </div>
+    </div>
+    <div class="table-wrap" id="reportsTableWrap" style="display:none;">
+      <table id="reportsTable">
+        <thead><tr>
+          <th scope="col">Ngày</th>
+          <th scope="col">Mã Ops</th>
+          <th scope="col">Mã NV</th>
+          <th scope="col">Tên NV</th>
+          <th scope="col">Station</th>
+          <th scope="col">Kết quả</th>
+          <th scope="col">Giờ công</th>
+          <th scope="col">Giờ vào</th>
+          <th scope="col">Giờ ra</th>
+          <th scope="col">PMO formula</th>
+        </tr></thead>
+        <tbody id="reportsTableBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="reportsEmpty" style="display:none;"></div>
   </div>
 </section>
 
@@ -503,4 +531,5 @@
 <?!= include('app-config') ?>
 <?!= include('app-tasks') ?>
 <?!= include('app-scan') ?>
+<?!= include('app-reports') ?>
 
