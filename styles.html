@@ -439,8 +439,8 @@
     .cfg-icon-danger:hover { background: var(--card-err-bg); border-color: var(--danger); }
     .cfg-icon-ok { color: var(--success); }
     .cfg-icon-ok:hover { background: var(--card-ok-bg); border-color: var(--success); }
-    .cfg-chip-editing { flex-basis: 100%; border-radius: 8px; }  /* chip edit giãn full-width — input thoáng */
-    .cfg-chip-editing .cfg-edit-input { flex: 1 1 140px; min-width: 0; height: 32px; padding: 4px 8px; border: 1.5px solid var(--primary); background: #fff; font-size: 14px; }
+    .cfg-chip-editing { border-radius: 8px; }  /* (2026-08-16): KHÔNG giãn full-width — chip edit co theo nội dung (user: input fullwidth chiếm chỗ thừa); input 200px cố định, không grow */
+    .cfg-chip-editing .cfg-edit-input { flex: 0 1 auto; width: 200px; min-width: 120px; height: 32px; padding: 4px 8px; border: 1.5px solid var(--primary); background: #fff; font-size: 14px; }
     .cfg-chip-editing .cfg-edit-input::placeholder { color: var(--muted); opacity: 1; }
     .cfg-role-table td.cfg-item-actions .cfg-icon-btn + .cfg-icon-btn { margin-left: 4px; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
@@ -1350,6 +1350,7 @@
       .cfg-chip { padding: 4px 6px 4px 4px; font-size: 12px; }  /* touch chip dày hơn */
       .cfg-icon-btn { width: 32px; height: 32px; }  /* touch 32px mobile (30 desktop) — không phụ thuộc ellipsis */
       .cfg-collapse-btn { width: 30px; height: 30px; }
+      .cfg-chip-editing .cfg-edit-input { width: 140px; }  /* mobile: input gọn hơn — chip edit vừa 1 hàng (container 306px, 200px tràn) */
       .cfg-role-table tr.cfg-role-row > td.cfg-item-actions { overflow: visible; text-overflow: clip; white-space: nowrap; }  /* FIX(2026-08-16): td actions không ellipsis — nút Xoá không bị cắt '…' */
     }
     .home-hero {
