@@ -77,17 +77,18 @@
     if (empty) empty.style.display = 'none';
     body.innerHTML = rows.map(function (r) {
       var off = String(r.result || '').toUpperCase() === 'OFF';
+      // data-label: mobile hiển thị dạng card (td::before = nhãn, ẩn Mã NV + PMO).
       return '<tr>'
-        + '<td>' + esc(r.reportDate) + '</td>'
-        + '<td><b>' + esc(r.bizStaffId) + '</b></td>'
-        + '<td>' + esc(r.employeeId) + '</td>'
-        + '<td>' + esc(r.staffName) + '</td>'
-        + '<td>' + esc(r.station) + '</td>'
-        + '<td>' + (off ? '<span class="reports-off">OFF</span>' : esc(r.result)) + '</td>'
-        + '<td class="reports-num">' + esc(r.workHour || '—') + '</td>'
-        + '<td>' + esc(r.inTime || '—') + '</td>'
-        + '<td>' + esc(r.outTime || '—') + '</td>'
-        + '<td>' + esc(r.pmo || '—') + '</td>'
+        + '<td data-label="Ngày">' + esc(r.reportDate) + '</td>'
+        + '<td data-label="Mã Ops"><b>' + esc(r.bizStaffId) + '</b></td>'
+        + '<td data-label="Mã NV">' + esc(r.employeeId) + '</td>'
+        + '<td data-label="Tên NV">' + esc(r.staffName) + '</td>'
+        + '<td data-label="Station">' + esc(r.station) + '</td>'
+        + '<td data-label="Kết quả">' + (off ? '<span class="reports-off">OFF</span>' : esc(r.result)) + '</td>'
+        + '<td data-label="Giờ công" class="reports-num">' + esc(r.workHour || '—') + '</td>'
+        + '<td data-label="Giờ vào">' + esc(r.inTime || '—') + '</td>'
+        + '<td data-label="Giờ ra">' + esc(r.outTime || '—') + '</td>'
+        + '<td data-label="PMO">' + esc(r.pmo || '—') + '</td>'
         + '</tr>';
     }).join('');
     tbl.style.display = '';

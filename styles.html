@@ -1130,10 +1130,34 @@
     #taskListTable thead th { position: sticky; top: 0; z-index: 2; }  /* nền th chung var(--surface-muted) — đồng bộ staffTable/scanTable (2026-08-11) */
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }    /* ===== Báo cáo (viewReports) — chấm công tháng theo email đăng nhập (2026-08-16) ===== */
-    #reportsTable { font-size: 13px; }
+    #reportsTable { font-size: 13px; table-layout: fixed; }
     #reportsTable thead th { position: sticky; top: 0; z-index: 2; }
-    .reports-num { text-align: right; font-variant-numeric: tabular-nums; }
+    /* Kích thước cột cố định — Tên NV + PMO nhận phần còn lại (wrap thay vì cắt) */
+    #reportsTable th:nth-child(1) { width: 105px; }  /* Ngày */
+    #reportsTable th:nth-child(2) { width: 105px; }  /* Mã Ops */
+    #reportsTable th:nth-child(3) { width: 105px; }  /* Mã NV */
+    #reportsTable th:nth-child(5) { width: 130px; }  /* Station */
+    #reportsTable th:nth-child(6) { width: 110px; }  /* Kết quả */
+    #reportsTable th:nth-child(7) { width: 85px; }   /* Giờ công */
+    #reportsTable th:nth-child(8) { width: 85px; }   /* Giờ vào */
+    #reportsTable th:nth-child(9) { width: 85px; }   /* Giờ ra */
+    /* Cột giá trị ngắn — cân giữa (Station / Kết quả / Giờ công / Giờ vào / Giờ ra) */
+    #reportsTable th:nth-child(5), #reportsTable th:nth-child(6), #reportsTable th:nth-child(7),
+    #reportsTable th:nth-child(8), #reportsTable th:nth-child(9) { text-align: center; }
+    #reportsTable td:nth-child(5), #reportsTable td:nth-child(6), #reportsTable td:nth-child(7),
+    #reportsTable td:nth-child(8), #reportsTable td:nth-child(9) { text-align: center; }
+    #reportsTable td:nth-child(4), #reportsTable td:nth-child(10) { white-space: normal; word-break: break-word; }  /* Tên NV + PMO wrap thay vì cắt */
+    .reports-num { font-variant-numeric: tabular-nums; }
     .reports-off { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+    /* Mobile ≤640px: bảng → card (mỗi dòng 1 thẻ), nhãn ::before từ data-label, bỏ Mã NV + PMO */
+    @media (max-width: 640px) {
+      #reportsTable thead { display: none; }
+      #reportsTable tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px 12px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
+      #reportsTable tbody td { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border: 0; padding: 2px 0; white-space: normal; word-break: break-word; text-align: left; }
+      #reportsTable tbody td::before { content: attr(data-label); color: var(--muted); font-size: 12px; flex-shrink: 0; }
+      #reportsTable tbody td:nth-child(3), #reportsTable tbody td:nth-child(10) { display: none; }  /* bỏ Mã NV + PMO */
+      #reportsTable tbody tr:hover td { background: var(--card); }
+    }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
     /* Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox */
     /* th-filter dùng chung staffTable + taskListTable (funnel phễu) */
