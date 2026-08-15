@@ -41,7 +41,7 @@
     if (saveBtn) saveBtn.style.display = 'none';
     if (sk) sk.style.display = '';  // P2 (2026-08-16): skeleton shimmer thay chữ "Đang tải…" (đồng bộ Task/Staff)
     setBtnBusy_(btn, '⟳ Đang tải…');
-    function restore() { restoreBtnLabel_(btn, '⟳ Làm mới'); syncCfgSaveBtn_(); }
+    function restore() { restoreBtnLabel_(btn, '⟳ Cập nhật'); syncCfgSaveBtn_(); }
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
