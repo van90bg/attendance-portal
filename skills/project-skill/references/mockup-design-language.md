@@ -60,7 +60,7 @@
 
 ## 4. App-wide color language (P1/P2 2026-08-16 — BẮT BUỘC toàn app)
 
-Một accent tương tác duy nhất = **--primary (cam SPX #e85d04 — tông chủ đạo 2026-08-16)**; xanh không còn dùng cho tương tác. Đỏ/cảnh báo giữ `--danger`/`--warning` (cam cảnh báo). Không bao giờ dùng xanh cho tương tác/heading/focus.
+Một accent tương tác duy nhất = **--primary (xanh #0b57d0)**; amber CHỈ cho brand/cảnh báo. Không bao giờ dùng amber cho tương tác/heading/focus.
 
 - **Tương tác/hiển thị chọn = primary**: focus ring (`--focus-ring` rgba(11,87,208,.45)), input/select focus border, `pick.on` (primary-bg + border primary + primary-dark — giống chip default), `pick.all.on`, pagination hover/active, `th-funnel` hover/on, modal title border-bottom, spin-dialog border-top, stats `td.total` (primary-bg + primary-dark), cột Tổng.
 - **Active nav trên nền dark** = `--primary-bright #1a73e8` (sidebar `.side-item.active`, bottom-nav `.nav-item.active`) — #0b57d0 quá tối trên #0d111a.
