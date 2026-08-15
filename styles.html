@@ -1276,7 +1276,7 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 3px;
       background: transparent; border: 0; border-radius: 8px;
-      color: var(--side-text-muted); font-size: 10.5px; font-weight: 600; line-height: 1.1;
+      color: var(--side-text-muted); font-size: 12px; font-weight: 600; line-height: 1.15;
       cursor: pointer; padding: 4px 2px;
       transition: color .15s, background .15s;
     }
@@ -1341,11 +1341,11 @@
       .cfg-table .cfg-item-value { word-break: break-word; }  /* value dài tự xuống dòng */
       .cfg-table .cfg-drag-handle, .cfg-table .cfg-item-idx { white-space: nowrap; }  /* handle + #idx không wrap */
       .cfg-table .cfg-default-cell { overflow: hidden; }  /* FIX: nút Mặc định không tràn cột */
-      .cfg-table .cfg-default-btn { padding: 4px 8px; font-size: 11px; }  /* FIX: nút Mặc định gọn mobile */
+      .cfg-table .cfg-default-btn { padding: 5px 8px; font-size: 12px; }  /* FIX: nút Mặc định gọn mobile */
       .cfg-table .cfg-default-cell { width: 100px; }  /* FIX(2026-08-16): cột Mặc định 110px thừa 32px (nút 78px + padding 20) → bóp value-cell: input edit chỉ 91px; cân lại */
-      .cfg-table td.cfg-item-actions { width: 88px; }  /* FIX(2026-08-16): 2 nút Sửa/Xoá 71px + padding 12 — cột 111px phí 40px; nhường value-cell */
+      .cfg-table td.cfg-item-actions { width: 96px; }  /* FIX(2026-08-16): nút 12px (45+44px) + gap 4 = 93px — cột 88 tràn 3px; 96 vừa khít */
       .cfg-table td.cfg-item-actions { padding-left: 6px; padding-right: 6px; }  /* nút Sửa/Xoá sát cạnh */
-      .cfg-table td.cfg-item-actions .btn { padding: 5px 6px; font-size: 11px; line-height: 1; min-height: 30px; }  /* FIX: nút actions gọn — hết tràn cột (trước 99px/84px) */
+      .cfg-table td.cfg-item-actions .btn { padding: 6px 6px; font-size: 12px; line-height: 1; min-height: 32px; }  /* FIX: nút actions gọn — hết tràn cột (trước 99px/84px) */
       .cfg-table td.cfg-item-actions .btn + .btn { margin-left: 4px; }  /* FIX: gap 4px thay 6px */
     }
     .home-hero {
