@@ -200,16 +200,22 @@
     }
     if (!matches) {
       if (q) return '';  // đang tìm — ẩn section không có kết quả
-      chips.push('<span class="cfg-chip cfg-chip-empty">(chưa có)</span>');
+      chips.push('<span class="cfg-empty-val">(chưa có)</span>');
     }
+    // Mockup (2026-08-16): cả head click được để collapse — chevron ▾ xoay -90° khi đóng,
+    // count badge pill cạnh title; nút + Thêm là dashed pill cuối hàng chips (không còn nút ở head).
     return '<div class="cfg-group-card' + (collapsed ? ' is-collapsed' : '') + '" data-group="' + g.key + '">'
-      + '<div class="cfg-card-head">'
-        + '<button type="button" class="cfg-collapse-btn" onclick="toggleCfgGroupCollapse(\'' + g.key + '\')" title="' + (collapsed ? 'Mở rộng' : 'Thu gọn') + '" aria-label="' + (collapsed ? 'Mở rộng ' : 'Thu gọn ') + esc(g.label) + '">' + (collapsed ? '▸' : '▾') + '</button>'
-        + '<span class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + matches + ' mục</span></span>'
-        + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
+      + '<div class="cfg-card-head" role="button" tabindex="0" aria-expanded="' + (!collapsed) + '"'
+        + ' onclick="toggleCfgGroupCollapse(\'' + g.key + '\')"'
+        + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleCfgGroupCollapse(\'' + g.key + '\')}"'
+        + ' title="' + (collapsed ? 'Mở rộng' : 'Thu gọn') + ' ' + esc(g.label) + '">'
+        + '<span class="cfg-chevron" aria-hidden="true">▾</span>'
+        + '<span class="cfg-group-title">' + esc(g.label) + '</span>'
+        + '<span class="cfg-count" aria-label="' + list.length + ' mục">' + list.length + '</span>'
       + '</div>'
       + '<div class="cfg-chips" ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',-1)">'
         + chips.join('')
+        + '<button type="button" class="cfg-add-chip" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
       + '</div>'
     + '</div>';
   }
@@ -224,10 +230,10 @@
       + ' onpointerdown="cfgDragPtrDown(event,\'' + g.key + '\',' + i + ')" onpointermove="cfgDragPtrMove(event)"'
       + ' onpointerup="cfgDragPtrEnd(event)" onpointercancel="cfgDragPtrEnd(event)"'
       + ' onkeydown="cfgDragHandleKeydown(event,\'' + g.key + '\',' + i + ')">⋮⋮</span>'
-      + '<span class="cfg-chip-value">' + esc(v) + '</span>'
+      + '<span class="cfg-chip-value" title="' + escAttr(v) + '">' + esc(v) + '</span>'  /* tooltip đầy đủ khi value bị ellipsis (mockup) */
       + (hasDef ? cfgStarHtml_(g, v, def) : '')
-      + '<button type="button" class="cfg-icon-btn" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')" title="Sửa" aria-label="Sửa ' + escAttr(v) + '">✎</button>'
-      + '<button type="button" class="cfg-icon-btn cfg-icon-danger" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')" title="Xoá" aria-label="Xoá ' + escAttr(v) + '">✕</button>'
+      + '<button type="button" class="cfg-chip-edit" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')" title="Sửa" aria-label="Sửa ' + escAttr(v) + '">✎</button>'
+      + '<button type="button" class="cfg-chip-del" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')" title="Xoá" aria-label="Xoá ' + escAttr(v) + '">✕</button>'
     + '</span>';
   }
 
@@ -405,10 +411,12 @@
     if (!item) return;
     CFG_EDIT_ORIG = String(cur);
     item.classList.add('cfg-chip-editing');
+    // Mockup (2026-08-16): chip edit = input transparent liền chip (viền primary ở chip) + icon ✓/✕ —
+    // gọn hơn nút chữ Lưu/Huỷ; placeholder "Giá trị mới" chỉ khi Thêm mới (cur rỗng).
     item.innerHTML = '<span class="cfg-drag-handle">⋮⋮</span>'
-        + '<input class="cfg-input cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="Giá trị" autocomplete="off">'
-        + '<button type="button" class="btn btn-outline btn-sm" onclick="commitCfgGroupItem(\'' + group + '\',' + idx + ')">Lưu</button>'
-        + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelCfgGroupEdit(\'' + group + '\',' + idx + ')">Huỷ</button>';
+        + '<input class="cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="' + (cur === '' ? 'Giá trị mới' : '') + '" autocomplete="off">'
+        + '<button type="button" class="cfg-chip-edit" onclick="commitCfgGroupItem(\'' + group + '\',' + idx + ')" title="Lưu" aria-label="Lưu thay đổi">✓</button>'
+        + '<button type="button" class="cfg-chip-del" onclick="cancelCfgGroupEdit(\'' + group + '\',' + idx + ')" title="Huỷ" aria-label="Huỷ thay đổi">✕</button>';
     var inp = document.getElementById('cfgGroupEditInput');
     if (inp) {
       inp.focus(); inp.select();
@@ -537,21 +545,22 @@
     if (!box) return;
     var map = (CFG_STATE.roleMap && typeof CFG_STATE.roleMap === 'object') ? CFG_STATE.roleMap : {};
     var keys = Object.keys(map);
+    // Mockup (2026-08-16): role = card rows (không bảng) — email + badge + icon ✎/✕; + Thêm role = dashed pill.
     var html = '<div class="cfg-group-card" data-group="roleMap">'
-      + '<div class="cfg-card-head">'
-        + '<span class="cfg-group-title">Phân quyền (roleMap) <span class="cfg-hint">' + keys.length + ' role</span></span>'
-        + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addRoleRow()">+ Thêm role</button>'
+      + '<div class="cfg-card-head" style="cursor:default;">'
+        + '<span class="cfg-group-title">Phân quyền (roleMap)</span>'
+        + '<span class="cfg-count">' + keys.length + '</span>'
       + '</div>'
-      + '<div class="cfg-table-wrap"><table class="cfg-role-table">'
-        + '<tbody data-group="roleMap">';
+      + '<div class="cfg-role-rows">';
     var any = false;
     keys.forEach(function (em) {
       if (ROLE_EDIT && ROLE_EDIT.email === em && !ROLE_EDIT.isNew) { html += roleRowEditHtml_(em, map[em]); any = true; }
       else { html += roleRowCardHtml_(em, map[em]); any = true; }
     });
     if (ROLE_EDIT && ROLE_EDIT.isNew) { html += roleRowEditHtml_('', 'viewer'); any = true; }
-    if (!any) html += '<tr class="cfg-empty-row"><td colspan="3" class="cfg-empty-val">(chưa có role)</td></tr>';
-    html += '</tbody></table></div></div>';
+    if (!any) html += '<div class="cfg-empty-val">(chưa có role)</div>';
+    html += '<button type="button" class="cfg-add-chip" onclick="addRoleRow()">+ Thêm role</button>'
+      + '</div></div>';
     box.innerHTML = html;
     wireRoleEditEvents_(box);
   }
@@ -572,14 +581,14 @@
 
 
   function roleRowCardHtml_(email, role) {
-    return '<tr class="cfg-role-row cfg-role-card" data-email="' + escAttr(email || '') + '">'
-      + '<td class="cfg-role-email" title="' + escAttr(email || '') + '">' + esc(email || '(trống)') + '</td>'
-      + '<td><span class="cfg-role-badge" title="' + escAttr(roleLabel_(role)) + '">' + esc(roleLabel_(role)) + '</span></td>'  /* P1 (2026-08-16): tooltip đầy đủ khi badge bị ellipsis */
-      + '<td class="cfg-item-actions">'
+    return '<div class="cfg-role-card" data-email="' + escAttr(email || '') + '">'
+      + '<span class="cfg-role-email" title="' + escAttr(email || '') + '">' + esc(email || '(trống)') + '</span>'
+      + '<span class="cfg-role-badge" title="' + escAttr(roleLabel_(role)) + '">' + esc(roleLabel_(role)) + '</span>'
+      + '<div class="cfg-role-actions">'
         + '<button type="button" class="cfg-icon-btn" onclick="startRoleEdit(\'' + escAttr(email || '') + '\')" title="Sửa role" aria-label="Sửa role">✎</button>'
         + '<button type="button" class="cfg-icon-btn cfg-icon-danger" onclick="deleteRoleRow(\'' + escAttr(email || '') + '\')" title="Xoá role" aria-label="Xoá role">✕</button>'
-      + '</td>'
-    + '</tr>';
+      + '</div>'
+    + '</div>';
   }
 
   // Xoá 1 role (inline onclick — thay closure cũ khi chuyển sang HTML-string, 2026-08-13).
@@ -600,14 +609,14 @@
     var opts = CFG_ROLES.map(function (r) {
       return '<option value="' + r.v + '"' + (r.v === role ? ' selected' : '') + '>' + esc(r.l) + '</option>';
     }).join('');
-    return '<tr class="cfg-role-row cfg-role-editing" data-email="' + escAttr(email || '') + '">'
-      + '<td><input class="cfg-input cfg-role-email" type="text" placeholder="email@spxexpress.com" autocomplete="off" value="' + escAttr(email || '') + '"></td>'
-      + '<td><select class="cfg-input cfg-role-select">' + opts + '</select></td>'
-      + '<td class="cfg-item-actions">'
+    return '<div class="cfg-role-card cfg-role-editing" data-email="' + escAttr(email || '') + '">'
+      + '<input class="cfg-role-email" type="text" placeholder="email@spxexpress.com" autocomplete="off" value="' + escAttr(email || '') + '">'
+      + '<select class="cfg-role-select">' + opts + '</select>'
+      + '<div class="cfg-role-actions">'
         + '<button type="button" class="cfg-icon-btn cfg-icon-ok" onclick="commitRoleEdit()" title="Lưu role" aria-label="Lưu role">✓</button>'
         + '<button type="button" class="cfg-icon-btn cfg-icon-danger" onclick="cancelRoleEdit()" title="Huỷ sửa" aria-label="Huỷ sửa role">✕</button>'
-      + '</td>'
-    + '</tr>';
+      + '</div>'
+    + '</div>';
   }
 
   function startRoleEdit(email) {
