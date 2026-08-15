@@ -8,7 +8,7 @@ description: SPX Điểm Danh (RollCall v2) — project skill. Use for ANY edit 
 > Bản skill đóng gói đầy đủ cho AI agent làm việc trong repo `RollCall_2_deploy` (GitHub: `van90bg/attendance-portal`).
 > Dùng khi: bất kỳ edit nào với repo này (UI, server, tests, docs).
 > Nguồn: skill Hermes `rollcall`. Nếu mâu thuẫn, Hermes skill là nguồn mới nhất.
-> References: xem `references/` — `architecture-gotchas.md`, `deterministic-batch-runner.md`, `slot-fueled-classification.md`.
+> References: xem `references/` — `architecture-gotchas.md`, `deterministic-batch-runner.md`, `slot-fueled-classification.md`, `mockup-design-language.md`.
 
 ## 1. Repo facts
 
@@ -139,6 +139,13 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - Verify sau edit: guard test nói trên (nếu LF-only > 0 → normalize `data.replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')`).
 - `.gs` files: KHÔNG normalize sang LF — giữ CRLF như checkout (nếu LF-only > 0 → normalize về CRLF; tránh diff khổng lồ).
 
+## 12. viewConfig design language = mockup (2026-08-16 — BẮT BUỘC cho UI viewConfig)
+
+- Nguồn: `C:\Users\Van90BG\Documents\AppScript\New folder\mockup.html` — user: "lấy đây là ngôn ngữ giao diện cho app" (commit fee929b).
+- Pattern lõi: head card clickable (chevron ▾ xoay -90°, role=button + aria-expanded) · count badge pill · chip surface-muted + default primary-bg/primary xanh · chip-value ellipsis cap 220/140px + title tooltip · chip edit input transparent 140px + ✓/✕ 20px tròn (KHÔNG `.cfg-input`, placeholder "Giá trị mới" chỉ khi thêm) · + Thêm dashed pill cuối chips · role = card rows (KHÔNG bảng, head không click) · icon-btn 30×30 cả mobile · star 14px border/warning. Chi tiết + mapping cfg2-* → cfg-*: `references/mockup-design-language.md`.
+- **Config state KHÔNG reload UI**: mọi thao tác = state cục bộ + dirty; Lưu = 1 patch diff vs CFG_SNAPSHOT; Huỷ thay đổi = khôi phục snapshot cục bộ (KHÔNG loadConfigView/fetch/skeleton); renderCfgList giữ card.scrollTop. Verify không-reload bằng CDP navigation type + skeleton display + scroll.
+- Nút Lưu luôn hiện sau load — cờ hết dirty = disabled=true (không phải display:none).
+
 ## Verify workflow
 
 - Logic changes → `npm run test` (124/124 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
@@ -154,3 +161,4 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - `references/architecture-gotchas.md` — 2-phase model, Dư/PENDING timeline, staffIndex fixes.
 - `references/deterministic-batch-runner.md` — known-good multi-file/multi-module runner skeleton + undo module pattern.
 - `references/slot-fueled-classification.md` — approved plan modal redesign (magic 'Tự do', delete tabs, edge cases).
+- `references/mockup-design-language.md` — viewConfig theo mockup: mapping cfg2-* → cfg-*, 9 pattern UI, config state không-reload + verify workflow.

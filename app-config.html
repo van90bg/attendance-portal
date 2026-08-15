@@ -142,12 +142,14 @@
     if (d) d.style.display = CFG_DIRTY ? '' : 'none';
   }
 
-  // P2 (2026-08-16): hủy bỏ toàn bộ thay đổi chưa lưu → confirm → tải lại từ server.
+  // (2026-08-16): hủy bỏ toàn bộ thay đổi chưa lưu → confirm → khôi phục CFG_SNAPSHOT CỤC BỘ.
+  // KHÔNG gọi loadConfigView (không fetch/skeleton/nhấp nháy) — snapshot luôn = trạng thái server
+  // cuối (cập nhật sau mỗi save thành công) → hủy chỉ đổi state + render lại dưới nền, giữ scroll.
   function discardCfgChanges() {
     showConfirm('Hủy bỏ thay đổi', 'Hủy bỏ toàn bộ thay đổi cấu hình chưa lưu?', function () {
-      CFG_DIRTY = false;
-      syncCfgSaveBtn_();
-      loadConfigView(null);
+      if (!CFG_SNAPSHOT) return;  // chưa load lần nào — không có gì để hủy
+      renderConfigForm(JSON.parse(JSON.stringify(CFG_SNAPSHOT)));  // reset state về base server
+      showToast('Đã hủy thay đổi', false);
     });
   }
 
