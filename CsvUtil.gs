@@ -122,9 +122,13 @@ function isValidBarcodeId(id) {
  * ra 'Sat Dec 30 1899 08:12:05 GMT+0706 (Indochina Time)' — phải format.
  * Khớp client fmtClockHMS + scanTable fmtDate (giờ pad 0, 24h).
  */
-function normalizeClockTime_(v) {
+function normalizeClockTime_(v, tz) {
   if (v === undefined || v === null) return '';
   if (v instanceof Date && !isNaN(v.getTime())) {
+    if (tz) {
+      try { return Utilities.formatDate(v, tz, 'HH:mm:ss'); }
+      catch (e) { /* tz không hợp lệ → fallback getHours (hành vi cũ) */ }
+    }
     return ('0' + v.getHours()).slice(-2) + ':'
       + ('0' + v.getMinutes()).slice(-2) + ':'
       + ('0' + v.getSeconds()).slice(-2);
@@ -145,7 +149,7 @@ function normalizeClockTime_(v) {
  * @param {Array<Array<*>>} values
  * @returns {Object<string, Object>}
  */
-function buildStaffIndex(values) {
+function buildStaffIndex(values, tz) {
   const index = {};
   if (!values || values.length < 2) return index;
   const header = values[0].map(function (h) { return String(h === null || h === undefined ? '' : h).trim(); });
@@ -165,8 +169,8 @@ function buildStaffIndex(values) {
       slotCode: String(v[col.slotCode] || '').trim(),
       team: String(v[col.team] || '').trim(),
       workstation: String(v[col.workstation] || '').trim(),
-      cardIn: normalizeClockTime_(v[col.cardIn]),
-      cardOut: normalizeClockTime_(v[col.cardOut]),
+      cardIn: normalizeClockTime_(v[col.cardIn], tz),
+      cardOut: normalizeClockTime_(v[col.cardOut], tz),
       agency: String(v[col.agency] || '').trim(),
       date: normalizeStaffDate_(v[col.date]),  // ngày vào làm (StaffData 'Date' col) — chuẩn yyyy-MM-dd
     };
@@ -181,7 +185,7 @@ function buildStaffIndex(values) {
  * @param {Array<Array<*>>} values — dòng 0 = header
  * @returns {Array<Object>}
  */
-function buildStaffListFromValues(values) {
+function buildStaffListFromValues(values, tz) {
   const out = [];
   if (!values || values.length < 2) return out;
   const header = values[0].map(function (h) { return String(h === null || h === undefined ? '' : h).trim(); });
@@ -207,8 +211,8 @@ function buildStaffListFromValues(values) {
       matchingType: String(v[col.matchingType] || '').trim(),
       gender: String(v[col.gender] || '').trim(),
       department: String(v[col.department] || '').trim(),
-      cardIn: normalizeClockTime_(v[col.cardIn]),
-      cardOut: normalizeClockTime_(v[col.cardOut]),
+      cardIn: normalizeClockTime_(v[col.cardIn], tz),
+      cardOut: normalizeClockTime_(v[col.cardOut], tz),
       actualHours: String(v[col.actualHours] || '').trim(),
       cardInRemark: String(v[col.cardInRemark] || '').trim(),
       cardOutRemark: String(v[col.cardOutRemark] || '').trim(),

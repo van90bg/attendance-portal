@@ -52,12 +52,13 @@ function makeSheet(name) {
   return sheet;
 }
 
-function makeSpreadsheet() {
+function makeSpreadsheet(tz) {
   const sheets = {};
   return {
     getSheetByName: (n) => sheets[n] || null,
     insertSheet: (n) => { const s = makeSheet(n); sheets[n] = s; return s; },
     getId: () => 'test-spreadsheet-id',
+    getSpreadsheetTimeZone: () => (tz || 'Asia/Ho_Chi_Minh'),
     sheets: sheets,
   };
 }
@@ -74,7 +75,7 @@ function makeCache() {
 function makeSandbox(opts) {
   const o = opts || {};
   const activeEmail = o.activeEmail === undefined ? 'admin@spx.com' : o.activeEmail;
-  const ss = makeSpreadsheet();
+  const ss = makeSpreadsheet(o.sheetTz);
   const props = new Map([['DEPLOYER_EMAIL', 'admin@spx.com']]);
   // 1 cache dùng chung (như CacheService thật) — nếu tạo Map mới mỗi lần gọi thì
   // không phát hiện lỗi invalidation (bài học từ code-review 2026-08-11)
@@ -100,8 +101,14 @@ function makeSandbox(opts) {
     },
     Utilities: {
       formatDate: (d, tz, fmt) => {
-        const s = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-        return fmt === 'HH:mm:ss' ? s : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + s;
+        const dt = new Date(d);
+        let s;
+        if (tz) {
+          s = dt.toLocaleTimeString('en-GB', { timeZone: tz, hour12: false });
+        } else {
+          s = pad(dt.getHours()) + ':' + pad(dt.getMinutes()) + ':' + pad(dt.getSeconds());
+        }
+        return fmt === 'HH:mm:ss' ? s : dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) + ' ' + s;
       },
     },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },

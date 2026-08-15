@@ -297,7 +297,7 @@ function syncFromCsv() {
     return { ok: false, count: 0, message: 'Sheet ' + SHEETS.STAFF_DATA + ' không có dữ liệu (cần header + ít nhất 1 dòng)' };
   }
   // Parse trực tiếp từ mảng 2D — an toàn với dấu phẩy/nháy trong giá trị.
-  const staff = buildStaffListFromValues(values);
+  const staff = buildStaffListFromValues(values, ss.getSpreadsheetTimeZone());
   if (!staff.length) {
     return { ok: false, count: 0, message: 'Không parse được dữ liệu — kiểm tra header khớp Att.csv (20 cột)' };
   }

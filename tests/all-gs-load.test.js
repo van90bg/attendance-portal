@@ -13,6 +13,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const vm = require('node:vm');
 const { makeSandbox, loadAll } = require('./gas-sandbox');
 
 test('load toàn bộ .gs + ensureSheets_ tạo 4 sheet đúng header (sau tách Database.gs)', () => {
@@ -96,6 +97,31 @@ test('overwriteStaffData_ ghi đè + readStaffList_ đọc lại qua CsvUtil par
   assert.equal(list[0].staffName, 'Nguyen Van A');     // normalize double-space
   assert.equal(list[0].contractType, 'OS');
   assert.equal(list[0].date, '2026-01-08');            // normalizeStaffDate_
+});
+
+test('Clock In/Out Time: cell time-only format theo TZ bang tinh (sheet TZ != script TZ khong lech LMT 1899)', () => {
+  // GAS dung Date cell theo TZ BANG TINH. Sheet TZ = Asia/Bangkok (LMT +06:42:04),
+  // wall-clock 12:43:53 -> UTC 1899-12-30T06:01:49Z. Script TZ van Asia/Ho_Chi_Minh.
+  // Bug cu: format theo getHours (TZ script HCM +07:06:40) -> 13:08:19 (lech +24:26).
+  const rowOf = (d) => ['1', '8/1/2026', 'Ops000001', 'NV A', 'a@spx.com', 'GRG', 'OS', 'EV1', '', '', 'SOC', d, d, '7.6', '', '', '08:00-17:00', 'OB', 'Outbound', 'HN2 SOC'];
+  const { ctx, ss } = makeSandbox({ sheetTz: 'Asia/Bangkok' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  // Date phai tao TRONG vm (cung realm) — Date o realm test file khong qua instanceof Date
+  const d1 = vm.runInContext("new Date('1899-12-30T06:01:49.000Z')", ctx);
+  ss.sheets.StaffData.data.push(rowOf(d1));
+  const list = svc.readStaffFullList_();
+  assert.equal(list.length, 1);
+  assert.equal(list[0].cardIn, '12:43:53');   // = wall-clock sheet hien thi (TZ bang tinh)
+  assert.equal(list[0].cardOut, '12:43:53');
+  // Control: sheet TZ = HCM -> cung Date hien thi theo TZ HCM (13:08:19)
+  const sandbox2 = makeSandbox();
+  const svc2 = loadAll(sandbox2.ctx);
+  svc2.ensureSheets_();
+  const d2 = vm.runInContext("new Date('1899-12-30T06:01:49.000Z')", sandbox2.ctx);
+  sandbox2.ss.sheets.StaffData.data.push(rowOf(d2));
+  const list2 = svc2.readStaffFullList_();
+  assert.equal(list2[0].cardIn, '13:08:19');
 });
 
 test('getTaskDetail (TaskService + isEditor_) trả permission đúng sau tách file', () => {

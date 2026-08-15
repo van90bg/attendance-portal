@@ -15,7 +15,8 @@ function readStaffIndex_() {
   return cachedJson_(CACHE_KEYS.STAFF_INDEX, function () {
     const sheet = getSheet_(SHEETS.STAFF_DATA);
     const values = sheet.getDataRange().getValues();
-    return buildStaffIndex(values);
+    const tz = getSpreadsheet_().getSpreadsheetTimeZone();
+    return buildStaffIndex(values, tz);
   }, CACHE_TTL.STAFF_INDEX);
 }
 
@@ -34,7 +35,8 @@ function invalidateStaffIndex_() {
 function readStaffFullList_() {
   return cachedJson_(CACHE_KEYS.STAFF_STATS, function () {
     const sheet = getSheet_(SHEETS.STAFF_DATA);
-    return buildStaffListFromValues(sheet.getDataRange().getValues());
+    const tz = getSpreadsheet_().getSpreadsheetTimeZone();
+    return buildStaffListFromValues(sheet.getDataRange().getValues(), tz);
   }, CACHE_TTL.STAFF_STATS);
 }
 
@@ -45,7 +47,8 @@ function readStaffFullList_() {
 function readStaffList_() {
   return cachedJson_(CACHE_KEYS.STAFF_LIST, function () {
     const sheet = getSheet_(SHEETS.STAFF_DATA);
-    return buildStaffListFromValues(sheet.getDataRange().getValues());
+    const tz = getSpreadsheet_().getSpreadsheetTimeZone();
+    return buildStaffListFromValues(sheet.getDataRange().getValues(), tz);
   }, CACHE_TTL.STAFF_LIST);
 }
 
