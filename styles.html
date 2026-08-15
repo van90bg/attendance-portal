@@ -1155,7 +1155,7 @@
       #reportsTable tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px 12px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
       #reportsTable tbody td { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border: 0; padding: 2px 0; white-space: normal; word-break: break-word; text-align: left; }
       #reportsTable tbody td::before { content: attr(data-label); color: var(--muted); font-size: 12px; flex-shrink: 0; }
-      #reportsTable tbody td:nth-child(3), #reportsTable tbody td:nth-child(10) { display: none; }  /* bỏ Mã NV + PMO */
+      #reportsTable tbody td:nth-child(3), #reportsTable tbody td:nth-child(5) { display: none; }  /* bỏ Mã NV + Station — giữ PMO */
       #reportsTable tbody tr:hover td { background: var(--card); }
     }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
