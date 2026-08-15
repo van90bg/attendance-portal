@@ -421,7 +421,7 @@
     #roleWrap { margin-top: 20px; }
     .cfg-section-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
     .cfg-section-head .cfg-group-title { font-size: 14px; font-weight: 700; color: var(--primary); }
-    .cfg-section-head .cfg-group-add { margin-left: auto; margin-top: 0; }  /* nút + Thêm ép phải */
+    .cfg-section-head .cfg-group-add { margin-top: 0; }  /* P2 (2026-08-16): bỏ margin-left:auto — desktop section-head rộng 1071px đẩy nút Thêm cách title 803px; gắn cạnh title (gap 8px) */
     .cfg-table tr.cfg-item-group > td { padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
     .cfg-table tr.cfg-item-group:hover > td { background: var(--row-hover); }
     .cfg-table tr.cfg-item-group.is-default > td { background: #fff8f0; }  /* viền amber khi là mặc định — td mới paint, <tr> không paint (2026-08-13) */
@@ -1327,20 +1327,14 @@
     #viewReports .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; overflow-y: auto; }  /* reports có topbar — trừ 120 như viewStats để trang không cuộn */
     #viewStats .card { display: flex; flex-direction: column; max-height: calc(100vh - var(--header-h) - 120px); min-height: 0; }  /* -120: trừ cả topbar + main padding để trang không cuộn khi wrap max */
     #viewStats .stats-table-wrap { max-height: none; }  /* tablet: wrap giãn đầy card (trước bị chặn 60vh → cuộn nhiều + trống dưới card, CDP 1024: card 594 wrap 460 nội dung 613) */
-    #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }  /* FIX(2026-08-14): overflow:hidden đặt card là scroll container chết — cột vận hành dài bị cắt đuôi bảng (agencies 38px) không cuộn được; chuyển card cuộn toàn phần + thead sticky sống */
+    #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }  /* P2 (2026-08-16 v2): bỏ cuộn card — scroll chuyển xuống cfg-list-wrap; toolbar đứng ngoài nên luôn thấy (giống Task/Staff). overflow:hidden không chặn cuộn con (FIX 2026-08-14: card overflow:hidden làm scroll container chết — vì KHÔNG có container con overflow:auto; giờ có cfg-list-wrap) */
     #viewConfig #roleWrap { display: block; }  /* 2026-08-14: sections xếp dọc — tự cao, card cuộn */
-    /* P2 (2026-08-16): CỐ ĐỊNH thanh "CẤU HÌNH VẬN HÀNH" + ô tìm kiếm trên cùng card — card config tự cuộn toàn phần
-       nên toolbar cần sticky top:0 (Task/Staff/Scan: toolbar đứng NGOÀI vùng cuộn bảng — hiệu ứng tương đương).
-       Bleed -12px ra cạnh card + nền đặc + border-bottom → thanh che nội dung cuộn bên dưới, list lướt gọn bên dưới. */
-    #viewConfig .task-list-toolbar {
-      position: sticky;
-      top: 0;
-      z-index: 6;
-      margin: -12px -12px 0;
-      padding: 12px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-    }
+    /* P2 (2026-08-16 v2): "CẤU HÌNH VẬN HÀNH" + ô tìm kiếm CỐ ĐỊNH = đứng NGOÀI vùng cuộn (cfg-list-wrap) —
+       giống Task/Staff/Scan, KHÔNG sticky. Sticky v1 (nền đặc + border-bottom + bleed) fail: margin âm bị
+       sticky top:0 clamp + padding-bottom đè cắt phần đầu group đầu tiên + trông treo lơ lửng. */
+    #configWrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    #configWrap .task-list-toolbar { flex-shrink: 0; }
+    #configWrap .cfg-list-wrap { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
     @media (max-width: 700px) {

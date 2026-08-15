@@ -296,18 +296,19 @@
       </div>
       <div id="configWrap" style="display:none;">
         <!-- P1 (2026-08-16): ô tìm kiếm cố định trên cùng card — đồng bộ .task-list-toolbar Task/Staff/Scan;
-             lọc TOÀN BỘ mục cấu hình (không lẫn là search riêng của section đầu) -->
+             toolbar đứng NGOÀI vùng cuộn (cfg-list-wrap) nên luôn thấy khi list cuộn — KHÔNG sticky (v1 gây đè/treo) -->
         <div class="task-list-toolbar">
           <h2 class="section-heading">CẤU HÌNH VẬN HÀNH <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></h2>
           <div class="list-search" role="search" aria-label="Tìm mục cấu hình">
             <input type="search" id="cfgSearch" placeholder="Tìm Station, Team, Ca…" aria-label="Tìm mục cấu hình" autocomplete="off" spellcheck="false" oninput="renderCfgList()" onkeydown="if(event.key==='Escape'){this.value='';renderCfgList();}">
           </div>
         </div>
-        <div id="cfgList" class="cfg-list"></div>
-        <div class="cfg-empty-val" id="cfgNoResult" style="display:none;"></div>
-
-        <div id="roleWrap" style="display:none; margin-top:20px;">
-          <div id="cfgRoleRows"></div>
+        <div class="cfg-list-wrap">
+          <div id="cfgList" class="cfg-list"></div>
+          <div class="cfg-empty-val" id="cfgNoResult" style="display:none;"></div>
+          <div id="roleWrap" style="display:none; margin-top:20px;">
+            <div id="cfgRoleRows"></div>
+          </div>
         </div>
       </div>
     </form>
