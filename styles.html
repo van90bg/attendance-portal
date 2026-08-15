@@ -1130,6 +1130,10 @@
     #taskListTable thead th { position: sticky; top: 0; z-index: 2; }  /* nền th chung var(--surface-muted) — đồng bộ staffTable/scanTable (2026-08-11) */
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }    /* ===== Báo cáo (viewReports) — chấm công tháng theo email đăng nhập (2026-08-16) ===== */
+    /* Topbar meta: tên NV đậm màu primary + email muted — to rõ hơn task-meta mặc định */
+    #reportsMeta { font-size: 15px; font-weight: 600; color: var(--primary-dark); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    #reportsMeta .reports-user-email, #reportsMeta .reports-user-count { font-weight: 400; font-size: 13px; color: var(--muted); }
+
     #reportsTable { font-size: 13px; table-layout: fixed; }
     #reportsTable thead th { position: sticky; top: 0; z-index: 2; }
     /* Kích thước cột cố định — Tên NV + PMO nhận phần còn lại (wrap thay vì cắt) */
@@ -1156,15 +1160,17 @@
       #reportsTable tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px 12px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
       #reportsTable tbody td { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border: 0; padding: 2px 0; white-space: normal; word-break: break-word; text-align: left; }
       #reportsTable tbody td::before { content: attr(data-label); color: var(--muted); font-size: 12px; flex-shrink: 0; }
-      /* Bỏ Mã NV + Station + Giờ công — card 2 cột: cột 1 = Ngày/Tên NV/Mã Ops/PMO, cột 2 = Kết quả/Giờ vào/Giờ ra */
-      #reportsTable tbody td:nth-child(3), #reportsTable tbody td:nth-child(5), #reportsTable tbody td:nth-child(7) { display: none; }
+      /* Bỏ Tên NV + Mã Ops (+ Mã NV, Station, Giờ công) — card 2 cột:
+         cột 1 = Ngày/Giờ vào/Giờ ra, cột 2 = Kết quả; PMO riêng 1 hàng full-width cuối
+         (PMO dài 2 dòng không đẩy Giờ vào/Giờ ra tách nhau). */
+      #reportsTable tbody td:nth-child(2), #reportsTable tbody td:nth-child(3),
+      #reportsTable tbody td:nth-child(4), #reportsTable tbody td:nth-child(5),
+      #reportsTable tbody td:nth-child(7) { display: none; }
       #reportsTable tbody td:nth-child(1) { grid-column: 1; grid-row: 1; }  /* Ngày */
-      #reportsTable tbody td:nth-child(4) { grid-column: 1; grid-row: 2; }  /* Tên NV */
-      #reportsTable tbody td:nth-child(2) { grid-column: 1; grid-row: 3; }  /* Mã Ops */
-      #reportsTable tbody td:nth-child(10) { grid-column: 1; grid-row: 4; } /* PMO */
       #reportsTable tbody td:nth-child(6) { grid-column: 2; grid-row: 1; }  /* Kết quả */
-      #reportsTable tbody td:nth-child(8) { grid-column: 2; grid-row: 2; }  /* Giờ vào */
-      #reportsTable tbody td:nth-child(9) { grid-column: 2; grid-row: 3; }  /* Giờ ra */
+      #reportsTable tbody td:nth-child(8) { grid-column: 1; grid-row: 2; }  /* Giờ vào */
+      #reportsTable tbody td:nth-child(9) { grid-column: 2; grid-row: 2; }  /* Giờ ra — cùng hàng Giờ vào, không bao giờ tách */
+      #reportsTable tbody td:nth-child(10) { grid-column: 1 / -1; grid-row: 3; align-items: flex-start; } /* PMO full-width — 2 dòng không phá layout */
       #reportsTable tbody tr:hover td { background: var(--card); }
     }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }

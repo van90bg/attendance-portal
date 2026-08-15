@@ -9,6 +9,20 @@
   var REPORT_ROWS = [];    // rows server trả (đã sort giảm dần theo ngày)
   var REPORT_META = null;  // { email, opsId, staffName, message }
 
+  // Meta topbar: tên NV đậm màu + email + count — HTML (không textContent để giữ style span).
+  function reportsMetaHtml_(q, rows) {
+    if (q) return '<span class="reports-user-count">' + rows.length + '/' + REPORT_ROWS.length + ' dòng phù hợp</span>';
+    var m = REPORT_META || {};
+    var name = String(m.staffName || '').trim();
+    var em = String(m.email || '').trim();
+    var out = '';
+    if (name) out += '<span class="reports-user-name">' + esc(name) + '</span>';
+    if (em) out += ' <span class="reports-user-email">' + esc(em) + '</span>';
+    var extra = REPORT_ROWS.length ? ' — ' + REPORT_ROWS.length + ' dòng' : (m.message ? ' — ' + m.message : '');
+    if (extra) out += ' <span class="reports-user-count">' + esc(extra) + '</span>';
+    return out;
+  }
+
   // Tải báo cáo của user đang đăng nhập (getReportsApi — gate operator+ TRONG server).
   function loadReportsView(btn) {
     var skel = document.getElementById('reportsSkeleton');
@@ -59,12 +73,7 @@
     var body = document.getElementById('reportsTableBody');
     var metaEl = document.getElementById('reportsMeta');
     if (!tbl || !body) return;
-    var baseMeta = '';
-    if (REPORT_META) {
-      var nm = (REPORT_META.staffName ? REPORT_META.staffName + ' · ' : '') + (REPORT_META.email || 'Khách');
-      baseMeta = REPORT_ROWS.length ? (nm + ' — ' + REPORT_ROWS.length + ' dòng') : (nm + (REPORT_META.message ? ' — ' + REPORT_META.message : ''));
-    }
-    if (metaEl) metaEl.textContent = q ? (rows.length + '/' + REPORT_ROWS.length + ' dòng phù hợp') : baseMeta;
+    if (metaEl) metaEl.innerHTML = reportsMetaHtml_(q, rows);
     if (!rows.length) {
       body.innerHTML = '';
       tbl.style.display = 'none';
