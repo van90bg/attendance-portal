@@ -29,6 +29,8 @@
         // Prefetch nền StaffData — mở Thống kê/Dữ liệu lần đầu KHÔNG delay
         // (CDP: cold 280ms → warm ~22ms; silent = không toast lúc khởi động; 2026-08-11)
         if (typeof ensureStaffData === 'function') { ensureStaffData(false, true); }
+        // Prefetch nền Cấu hình (editor-only) — mở viewConfig lần đầu KHÔNG delay (giống StaffData; silent = không toast lỗi lúc khởi động)
+        if (meta && meta.isEditor && typeof ensureConfigData === 'function') { ensureConfigData(false, true); }
         // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
         // khi quét đầu thay vì về sau. KHÔNG block UI — chỉ warm cache.
         try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) { /* ignore */ }

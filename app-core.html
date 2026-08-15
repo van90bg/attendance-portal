@@ -708,7 +708,7 @@
     // Lazy-load theo page
     if (page === 'home' && typeof renderHomeClock === 'function') { renderHomeClock(); }
     if ((page === 'stats' || page === 'data') && typeof ensureStaffData === 'function') { ensureStaffData(false); }
-    if (page === 'config' && typeof loadConfigView === 'function' && !CFG_LOADED) { loadConfigView(); }
+    if (page === 'config' && typeof ensureConfigData === 'function') { ensureConfigData(false); }
   }
 
   function toggleSidebarCompact() {

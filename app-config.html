@@ -14,9 +14,11 @@
     { v: 'manager',  l: 'Manager — quản lý vận hành' },
     { v: 'admin',    l: 'Admin — toàn quyền' },
   ];
-  var CFG_LOADED = false; // đã render 1 lần — mở lại không fetch trùng
+  var CFG_LOADED = false;      // đã render 1 lần — mở lại không fetch trùng
+  var CFG_LOADED_AT = 0;      // (2026-08-16) mốc tải thành công — TTL cache (giống STAFF_LOADED_AT)
+  var CFG_MAX_AGE_MS = 60 * 60 * 1000; /* 1h — cấu hình ít đổi, không fetch mỗi lần mở view (đồng bộ STAFF_MAX_AGE_MS) */
 
-  function loadConfigView(btn) {
+  function loadConfigView(btn, silent) {
     // Guard (2026-08-13): bấm 'Làm mới' khi còn thay đổi chưa lưu → confirm
     if (CFG_DIRTY && btn) {
       showConfirm('Chưa lưu cấu hình', 'Hủy bỏ thay đổi sẽ mất toàn bộ thay đổi cấu hình chưa lưu. Tiếp tục?', function () {
@@ -44,14 +46,15 @@
       .withSuccessHandler(function (res) {
         restore();
         if (!res || !res.ok) {
-          showToast((res && res.message) || 'Lỗi tải cấu hình', true);
+          if (!silent) showToast((res && res.message) || 'Lỗi tải cấu hình', true);
           if (empty) empty.style.display = '';
           if (meta) meta.textContent = 'Không tải được';
           if (saveBtn) saveBtn.style.display = 'none';
           if (sk) sk.style.display = 'none';
           return;
         }
-        renderConfigForm(res.settings || {});
+          renderConfigForm(res.settings || {});
+          CFG_LOADED_AT = Date.now();  // (2026-08-16) mốc TTL cache — đồng bộ STAFF_LOADED_AT
         if (wrap) wrap.style.display = '';
         if (roleWrap) roleWrap.style.display = '';
         if (saveBtn) saveBtn.style.display = '';  // Mẫu B: nút Lưu phân quyền trên view-topbar
@@ -62,11 +65,19 @@
       .withFailureHandler(function (err) {
         restore();
         markServerFail();
-        showToast('Lỗi tải cấu hình: ' + err.message, true);
+          if (!silent) showToast('Lỗi tải cấu hình: ' + err.message, true);
         if (meta) meta.textContent = 'Lỗi kết nối';
         if (sk) sk.style.display = 'none';
       })
       .getSettingsApi();
+  }
+
+  // (2026-08-16) Mở viewConfig: dùng cache nếu còn hạn (TTL 1h — giống ensureStaffData), không fetch trùng.
+  // CFG_DIRTY → KHÔNG reload (đang sửa dở — tránh mất thay đổi). Nút "⟳ Làm mới" gọi loadConfigView trực tiếp = force.
+  function ensureConfigData(force, silent) {
+    if (CFG_DIRTY) return;  // đang có thay đổi chưa lưu — không reload mất dữ liệu
+    if (!force && CFG_LOADED && (Date.now() - CFG_LOADED_AT) < CFG_MAX_AGE_MS) return;  // cache còn hạn — giữ DOM sẵn có
+    loadConfigView(null, silent);
   }
 
   // ===== Cấu hình vận hành — danh sách mục; MỌI thao tác = state cục bộ + markCfgDirty_,
