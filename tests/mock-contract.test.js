@@ -107,7 +107,7 @@ test('getFilterOptionsApi shape khớp server: { ok, stationGroups, defaults, li
   const f = await call('getFilterOptionsApi');
   assert.deepEqual(Object.keys(f).sort(), ['defaults', 'lists', 'ok', 'stationGroups']);
   assert.deepEqual(Object.keys(f.defaults || {}).sort(), ['slotCode', 'station', 'team']);
-  assert.deepEqual(Object.keys(f.lists || {}).sort(), ['agencies', 'departments', 'slotcodes', 'stations', 'teams']);
+  assert.deepEqual(Object.keys(f.lists || {}).sort(), ['agencies', 'contractTypes', 'departments', 'slotcodes', 'stations', 'teams']);
   assert.ok(Array.isArray(f.lists.stations), 'lists.stations phải là mảng');
   assert.ok(Array.isArray(f.lists.teams), 'lists.teams phải là mảng');
   assert.ok(Array.isArray(f.lists.slotcodes), 'lists.slotcodes phải là mảng');

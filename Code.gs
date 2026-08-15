@@ -85,6 +85,7 @@ function getFilterOptionsApi() {
       slotcodes: settingsList_('slotcodes'),
       departments: settingsList_('departments'),
       agencies: settingsList_('agencies'),
+      contractTypes: settingsList_('contractTypes'),
     },
   };
 }

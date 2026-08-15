@@ -129,8 +129,9 @@
     var rSplit = splitByConfig_(rowKeys, CFG_LISTS.slotcodes);
     var orderedRows = rSplit.ordered.slice();
     if (rSplit.others.length) orderedRows.push('Khác');
-    // Cột Agency cũng theo Config (agencies); agency ngoài Config gom 1 cột 'Khác' cuối.
-    var cSplit = (colField === 'agency') ? splitByConfig_(colKeys, CFG_LISTS.agencies) : null;
+    // Cột Agency/Contract Type theo Config (agencies/contractTypes); giá trị ngoài Config gom 1 cột 'Khác' cuối.
+    var cSplit = (colField === 'agency') ? splitByConfig_(colKeys, CFG_LISTS.agencies)
+      : (colField === 'contractType') ? splitByConfig_(colKeys, CFG_LISTS.contractTypes) : null;
     if (cSplit) {
       colKeys = cSplit.ordered.slice();
       if (cSplit.others.length) colKeys.push('Khác');

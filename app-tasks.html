@@ -90,7 +90,7 @@
         if (!res.ok) { _releaseRefreshLock(); showToast(res.message, true); return; }
         STATION_GROUPS = res.stationGroups || [];
         CFG_DEFAULTS = res.defaults || CFG_DEFAULTS;
-        CFG_LISTS = res.lists || { stations: [], teams: [], slotcodes: [], departments: [], agencies: [] };
+        CFG_LISTS = res.lists || { stations: [], teams: [], slotcodes: [], departments: [], agencies: [], contractTypes: [] };
         // Admin khai báo station trong Config (chưa có data) vẫn tạo task được.
         var canCreate = STATION_GROUPS.length > 0 || (CFG_LISTS.stations || []).length > 0;
         document.getElementById('btnCreate').disabled = !canCreate;
@@ -143,7 +143,7 @@
   var CFG_DEFAULTS = { station: '', slotCode: '', team: '' };
   // lists từ Config sheet (SettingsService qua getFilterOptionsApi.lists) — danh sách Admin khai báo.
   // Client MERGE với distinct StaffData (mergeOpts_) để không mất giá trị thực có trong dữ liệu NV.
-  var CFG_LISTS = { stations: [], teams: [], slotcodes: [], departments: [], agencies: [] };
+  var CFG_LISTS = { stations: [], teams: [], slotcodes: [], departments: [], agencies: [], contractTypes: [] };
   // Union 2 mảng, dedup, giữ thứ tự a trước rồi b (giá trị trùng chỉ lấy của a).
   function mergeOpts_(a, b) {
     var out = [];
@@ -274,7 +274,7 @@
   function renderSelContract() {
     var c = document.getElementById('chipsContract');
     if (!c) return;
-    var opts = selContractOptions();
+    var opts = mergeOpts_(CFG_LISTS.contractTypes, selContractOptions());  // (2026-08-16): thứ tự Config trước, giá trị lệch xếp sau
     if (!SEL.station) { c.innerHTML = ''; return; }
     var allOn = opts.length > 0 && opts.every(function (v) { return SEL.contractTypes.indexOf(v) !== -1; });
     var html = '<button type="button" class="pick all' + (allOn ? ' on' : '') + '" data-col="contract" data-val="__ALL__" aria-pressed="' + allOn + '">Tất cả</button>';
