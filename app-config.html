@@ -403,7 +403,7 @@
     if (!item) return;
     CFG_EDIT_ORIG = String(cur);
     var hasDef = !!CFG_DEFAULT_KEY[group];
-    item.innerHTML = '<td class="cfg-value-cell">'
+    item.innerHTML = '<td class="cfg-value-cell cfg-editing">'
         + '<span class="cfg-item-label cfg-item-idx">#' + (idx + 1) + '</span>'
         + '<input class="cfg-input cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="Giá trị" autocomplete="off">'
       + '</td>'

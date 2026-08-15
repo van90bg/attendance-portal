@@ -426,6 +426,7 @@
     .cfg-table tr.cfg-item-group:hover > td { background: var(--row-hover); }
     .cfg-table tr.cfg-item-group.is-default > td { background: #fff8f0; }  /* viền amber khi là mặc định — td mới paint, <tr> không paint (2026-08-13) */
     .cfg-table .cfg-value-cell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* td giữ table-cell; children inline — value 1 dòng, dài thì ellipsis (fixed layout) */
+    .cfg-table .cfg-value-cell.cfg-editing { white-space: normal; overflow: visible; text-overflow: clip; }  /* FIX (2026-08-16): chế độ Sửa/Thêm (editCfgGroupItem) chèn <input width:100%> cùng ô với span #idx — tổng bề rộng vượt td, bị nowrap+overflow:hidden+ellipsis phía trên clip nguyên input (input là atomic, không cắt nửa chừng) → chỉ còn dấu '…', input mất tăm không hiện chữ. Reset về bình thường (input tự xuống dòng dưới #idx nếu không đủ chỗ) chỉ khi đang sửa. */
     .cfg-table .cfg-item-value { display: inline; vertical-align: middle; }
     .cfg-table .cfg-item-idx { display: inline-block; vertical-align: middle; margin-right: 8px; min-width: 30px; }
     .cfg-table .cfg-drag-handle { display: inline-block; vertical-align: middle; margin-right: 6px; }
