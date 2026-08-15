@@ -58,7 +58,19 @@
 - Bẫy probe cũ: nút Lưu luôn hiện sau load — cờ hết dirty là `disabled=true`, KHÔNG phải display:none;
   sau khi Lưu thành công default mới đã persist → starsOn=1 là ĐÚNG (đừng kỳ vọng 0).
 
-## 4. Verify workflow viewConfig
+## 4. App-wide color language (P1/P2 2026-08-16 — BẮT BUỘC toàn app)
+
+Một accent tương tác duy nhất = **--primary (xanh #0b57d0)**; amber CHỈ cho brand/cảnh báo. Không bao giờ dùng amber cho tương tác/heading/focus.
+
+- **Tương tác/hiển thị chọn = primary**: focus ring (`--focus-ring` rgba(11,87,208,.45)), input/select focus border, `pick.on` (primary-bg + border primary + primary-dark — giống chip default), `pick.all.on`, pagination hover/active, `th-funnel` hover/on, modal title border-bottom, spin-dialog border-top, stats `td.total` (primary-bg + primary-dark), cột Tổng.
+- **Active nav trên nền dark** = `--primary-bright #1a73e8` (sidebar `.side-item.active`, bottom-nav `.nav-item.active`) — #0b57d0 quá tối trên #0d111a.
+- **Heading view** (`.task-title`, `.section-heading`) = `var(--text)` đậm — KHÔNG màu. **Label** (`.flabel`, `label`) = `var(--muted)`.
+- **Giữ amber (brand/cảnh báo — KHÔNG đụng)**: header `.brand-accent` ("ĐIỂM DANH"), `.home-clock` gradient, `.counter.extra` (amber-dark), `.scan-card.extra/.warn`, `#toast.warn`, laser scan-line + camera reticle, `.bg-task-indicator`, `.empty-arrow`, `.btn-amber`, `.pick.free.on` (xanh lá FREE).
+- **Badge xanh 1 token**: `.badge.present` = `--success-dark` (hợp nhất #137333 vs #1e7e34); `.badge.done` nền `#e9ecf2` (tông task-count-badge).
+- **Card padding = 14px** (12→14, mockup 13/16); viewConfig giữ 13/16 riêng theo mockup.
+- **Home (P2)**: `.home-brand` label "SPX Express" (12px 800, letter-spacing 5px, muted, uppercase) trên logo + `.home-shortcuts` 3 card mềm (Điểm danh → `selectPage('attendance')` · Thống kê → `selectPage('stats')` · Báo cáo → `selectPage('reports')`), hover primary-bg + border primary, icon SVG stroke currentColor 20px.
+
+## 5. Verify workflow viewConfig
 
 1. Edit deterministic (Python, CRLF) → CRLF 0 LF-only/no BOM + JS parse + CSS braces 0.
 2. `node scripts/build-local.js` (BẮT BUỘC trước CDP — index.local.html stale gây probe false-fail).

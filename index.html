@@ -193,11 +193,27 @@
   <!-- ================= VIEW HOME: SPX Điểm Danh ================= -->
   <section id="viewHome" class="hidden" data-mark="PORTAL-OK">
     <div class="home-hero">
+      <div class="home-brand">SPX Express</div>
       <img src="https://spx.vn/new_static/assets/images/sea-logo.svg" alt="SPX logo" class="home-logo" onerror="this.style.display='none'">
       <h1 class="home-title">Điểm Danh</h1>
       <p class="home-sub">Quản lý thông tin chấm công · điểm danh</p>
       <div class="home-clock" id="homeClock" role="timer" aria-live="off">--:--:--</div>
       <div class="home-date" id="homeDate"></div>
+      <!-- P2 (2026-08-16): truy cập nhanh — 3 card mềm (ngôn ngữ mockup: tương tác = primary xanh) -->
+      <div class="home-shortcuts" role="group" aria-label="Truy cập nhanh">
+        <button type="button" class="home-shortcut" onclick="selectPage('attendance')" aria-label="Điểm danh">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10M7 8h6M7 16h8"/></svg>
+          Điểm danh
+        </button>
+        <button type="button" class="home-shortcut" onclick="selectPage('stats')" aria-label="Thống kê">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+          Thống kê
+        </button>
+        <button type="button" class="home-shortcut" onclick="selectPage('reports')" aria-label="Báo cáo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 13h6M9 17h6"/></svg>
+          Báo cáo
+        </button>
+      </div>
     </div>
   </section>
 
