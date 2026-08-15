@@ -64,6 +64,13 @@
       flex-direction: column;
       height: 100vh; height: 100dvh; overflow: hidden;  /* khóa 1 màn hình: nội dung dài cuộn TRONG card, trang không cuộn (2026-08-11) */
     }
+    /* Scrollbar mỏng toàn app (P3 2026-08-16) — thumb = border, hover = muted, track trong suốt */
+    * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+    *::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    *::-webkit-scrollbar-corner { background: transparent; }
     header {
       background: var(--card);
       border-bottom: 1px solid var(--border);
@@ -282,7 +289,7 @@
       border-radius: 999px; font-size: 12px; padding: 4px 10px; cursor: pointer; font-weight: 500;
       line-height: 1.4; transition: background .12s, border-color .12s, color .12s;
     }
-    .pick:hover { background: #faf8f4; }
+    .pick:hover { background: var(--surface-muted); }  /* P3 (2026-08-16): token hóa hover chip pick */
     .pick.on { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); font-weight: 700; }  /* P1 (2026-08-16): selected = primary (mockup chip default) */
     .pick.free.on { background: #e8f6ec; border-color: #b3d9bc; color: #1f7a3d; }
     /* Chip 'Tất cả' — nét đứt + chữ đậm nhẹ để phân biệt chip giá trị; on = đang áp dụng */
@@ -1338,7 +1345,6 @@
       min-height: calc(100vh - var(--header-h) - 48px);
       text-align: center;
     }
-    .home-brand { font-size: 12px; font-weight: 800; letter-spacing: 5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }  /* P2 (2026-08-16): label thương hiệu trên logo */
     .home-logo { height: 96px; width: auto; margin-bottom: 18px; }
     /* P2 (2026-08-16): shortcut nhanh — card mềm, hover primary (ngôn ngữ mockup: tương tác = xanh) */
     .home-shortcuts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 34px; }

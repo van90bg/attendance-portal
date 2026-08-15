@@ -68,7 +68,7 @@ Một accent tương tác duy nhất = **--primary (xanh #0b57d0)**; amber CHỈ
 - **Giữ amber (brand/cảnh báo — KHÔNG đụng)**: header `.brand-accent` ("ĐIỂM DANH"), `.home-clock` gradient, `.counter.extra` (amber-dark), `.scan-card.extra/.warn`, `#toast.warn`, laser scan-line + camera reticle, `.bg-task-indicator`, `.empty-arrow`, `.btn-amber`, `.pick.free.on` (xanh lá FREE).
 - **Badge xanh 1 token**: `.badge.present` = `--success-dark` (hợp nhất #137333 vs #1e7e34); `.badge.done` nền `#e9ecf2` (tông task-count-badge).
 - **Card padding = 14px** (12→14, mockup 13/16); viewConfig giữ 13/16 riêng theo mockup.
-- **Home (P2)**: `.home-brand` label "SPX Express" (12px 800, letter-spacing 5px, muted, uppercase) trên logo + `.home-shortcuts` 3 card mềm (Điểm danh → `selectPage('attendance')` · Thống kê → `selectPage('stats')` · Báo cáo → `selectPage('reports')`), hover primary-bg + border primary, icon SVG stroke currentColor 20px.
+- **Home (P2)**: logo SPX Express (bỏ text thương hiệu — P3 2026-08-16) + `.home-shortcuts` 3 card mềm (Điểm danh → `selectPage('attendance')` · Thống kê → `selectPage('stats')` · Báo cáo → `selectPage('reports')`), hover primary-bg + border primary, icon SVG stroke currentColor 20px.
 
 ## 5. Verify workflow viewConfig
 
