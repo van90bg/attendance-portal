@@ -54,6 +54,7 @@ const ALLOWED_DRIFT = [
   'pick',              // .pick.on (active: nền cam + weight 700) vs .pick thường — trạng thái chọn là chủ đích
   'card',              // card trong scan-layout là flex item (min-width auto) — chủ đích
   'table-wrap',        // scan table là flex item (min-width auto) — chủ đích
+  'cfg-hint',          // hint trong toolbar .section-heading (flex item — width auto) vs inline group-title — chủ đích (2026-08-16)
 ];
 
 let chromeProc = null;

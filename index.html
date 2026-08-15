@@ -295,24 +295,23 @@
         <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
       </div>
       <div id="configWrap" style="display:none;">
-        <div class="cfg-group-section" data-group="operations">
-          <div class="cfg-section-head">
-            <span class="cfg-group-title">Cấu hình vận hành <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></span>
-            <!-- P1 (2026-08-16): ô tìm kiếm mục cấu hình — đồng bộ .list-search Task/Staff/Scan -->
-            <div class="list-search" role="search" aria-label="Tìm mục cấu hình">
-              <input type="search" id="cfgSearch" placeholder="Tìm Station, Team, Ca…" aria-label="Tìm mục cấu hình" autocomplete="off" spellcheck="false" oninput="renderCfgList()" onkeydown="if(event.key==='Escape'){this.value='';renderCfgList();}">
-            </div>
+        <!-- P1 (2026-08-16): ô tìm kiếm cố định trên cùng card — đồng bộ .task-list-toolbar Task/Staff/Scan;
+             lọc TOÀN BỘ mục cấu hình (không lẫn là search riêng của section đầu) -->
+        <div class="task-list-toolbar">
+          <h2 class="section-heading">CẤU HÌNH VẬN HÀNH <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></h2>
+          <div class="list-search" role="search" aria-label="Tìm mục cấu hình">
+            <input type="search" id="cfgSearch" placeholder="Tìm Station, Team, Ca…" aria-label="Tìm mục cấu hình" autocomplete="off" spellcheck="false" oninput="renderCfgList()" onkeydown="if(event.key==='Escape'){this.value='';renderCfgList();}">
           </div>
-          <div id="cfgList" class="cfg-list"></div>
-          <div class="cfg-empty-val" id="cfgNoResult" style="display:none;"></div>
         </div>
+        <div id="cfgList" class="cfg-list"></div>
+        <div class="cfg-empty-val" id="cfgNoResult" style="display:none;"></div>
 
         <div id="roleWrap" style="display:none; margin-top:20px;">
           <div id="cfgRoleRows"></div>
         </div>
       </div>
     </form>
-    <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ editor (DEPLOYER_EMAIL)</div>
+    <div class="empty" id="configEmpty" style="display:none;">Không có quyền xem cấu hình — chỉ tài khoản admin (editor)</div>
   </section>
 </main>
 </div>

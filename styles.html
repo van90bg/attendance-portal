@@ -378,7 +378,7 @@
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Hủy thay đổi + Làm mới + Lưu cấu hình) */
     .cfg-discard-btn { border-color: var(--danger); color: var(--danger); }  /* P2 (2026-08-16): nút "Hủy thay đổi" riêng khi dirty — bỏ đổi nhãn Làm mới (min-width 150px cũng bỏ) */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
-    .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); }
+    .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); text-transform: none; letter-spacing: 0; }  /* hint không bị uppercase khi nằm trong .section-heading (toolbar CẤU HÌNH VẬN HÀNH) */
     .cfg-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); }
     /* viewConfig bảng role */
     .cfg-role-table { width: 100%; max-width: 760px; border-collapse: collapse; font-size: 14px; }  /* 2026-08-14: cap bảng role — hết giãn rỗng */
@@ -398,8 +398,8 @@
     .cfg-role-select { flex: 0 0 auto; width: auto; max-width: 220px; }  /* desktop giữ 220px; mobile co lại (media dưới) */
     .cfg-role-badge { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; padding: 3px 10px; border-radius: 999px; background: var(--primary-bg); color: var(--primary-dark); font-size: 12px; font-weight: 700; white-space: nowrap; }  /* P1 (2026-08-16): badge dài (Manager — quản lý…) bị td 190px cắt cụt không dấu hiệu → ellipsis "…" + title tooltip đầy đủ */
     .cfg-role-editing .cfg-role-email { flex: 1 1 240px; min-width: 0; white-space: normal; text-overflow: clip; }  /* input edit: không ellipsis — tự cuộn */
-    /* Role mobile thẻ gọn (≤640px, 2026-08-13): 2 dòng — email + role chung dòng 1, nút Sửa/Xoá dòng 2 phải; ẩn thead */
-    @media (max-width: 640px) {
+    /* Role mobile thẻ gọn (≤700px, 2026-08-13): 2 dòng — email + role chung dòng 1, nút Sửa/Xoá dòng 2 phải; ẩn thead */
+    @media (max-width: 700px) {  /* P2 (2026-08-16): đồng bộ breakpoint role = cfg-table mobile (700px) — trước lệch 640/700 */
       .cfg-role-table tr.cfg-role-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; background: var(--card); }
       .cfg-role-table tr.cfg-role-row > td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 2px 0; font-size: 13px; line-height: 1.35; }
       .cfg-role-table tr.cfg-role-row > td:nth-child(1) { grid-column: 1; grid-row: 1; }
@@ -422,7 +422,6 @@
     .cfg-section-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
     .cfg-section-head .cfg-group-title { font-size: 14px; font-weight: 700; color: var(--primary); }
     .cfg-section-head .cfg-group-add { margin-left: auto; margin-top: 0; }  /* nút + Thêm ép phải */
-    .cfg-section-head .list-search { margin-left: auto; }  /* P1 (2026-08-16): ô tìm kiếm cấu hình ép phải (đồng bộ .list-search Task/Staff) */
     .cfg-table tr.cfg-item-group > td { padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
     .cfg-table tr.cfg-item-group:hover > td { background: var(--row-hover); }
     .cfg-table tr.cfg-item-group.is-default > td { background: #fff8f0; }  /* viền amber khi là mặc định — td mới paint, <tr> không paint (2026-08-13) */
@@ -440,10 +439,11 @@
     .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }  /* #idx muted — còn tác dụng (color/font-weight), flex 34px giữ đồng bộ 2026-08-11 */
     .cfg-item-value { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
+    #cfgNoResult { padding: 8px 2px; }  /* P1 (2026-08-16): "Không có mục phù hợp" ngoài section — có chút thở */
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
     .task-open-link { color: var(--primary-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }  /* FIX(2026-08-14): link mở task ở Mã task (thay nút Xem/Quét mobile) */
     .task-open-link:hover { color: var(--primary); }
-    .cfg-default-btn { min-height: 32px; padding: 4px 10px; font-size: 12px; line-height: 1.2; white-space: nowrap; }  /* nút chữ "◉/◎ Mặc định" (2026-08-13): bỏ icon-only — icon lẻ loi xấu trong cột Mặc định; trạng thái = nền amber */
+    .cfg-default-btn { min-height: 32px; padding: 4px 10px; font-size: 12px; line-height: 1.2; white-space: nowrap; }  /* nút chữ "Mặc định" (2026-08-13): bỏ icon-only + bỏ ký tự ◉/◎ (2026-08-16); trạng thái bật = nền amber */
     .cfg-save-dirty { background: var(--amber); border-color: var(--amber); animation: cfgSavePulse 1.4s ease-in-out infinite; }
     @keyframes cfgSavePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, .30); } 50% { box-shadow: 0 0 0 6px rgba(232, 93, 4, 0); } }
     .cfg-default-btn.cfg-default-on { background: var(--amber); color: #fff; border-color: var(--amber); }
@@ -1345,7 +1345,7 @@
       .cfg-table .cfg-default-cell { width: 100px; }  /* FIX(2026-08-16): cột Mặc định 110px thừa 32px (nút 78px + padding 20) → bóp value-cell: input edit chỉ 91px; cân lại */
       .cfg-table td.cfg-item-actions { width: 96px; }  /* FIX(2026-08-16): nút 12px (45+44px) + gap 4 = 93px — cột 88 tràn 3px; 96 vừa khít */
       .cfg-table td.cfg-item-actions { padding-left: 6px; padding-right: 6px; }  /* nút Sửa/Xoá sát cạnh */
-      .cfg-table td.cfg-item-actions .btn { padding: 6px 6px; font-size: 12px; line-height: 1; min-height: 32px; }  /* FIX: nút actions gọn — hết tràn cột (trước 99px/84px) */
+      .cfg-table td.cfg-item-actions .btn { padding: 6px 6px; font-size: 12px; line-height: 1; min-height: 36px; }  /* P2 (2026-08-16): font 12px (mobile) + min-height 36px touch — đồng bộ btn-sm mobile; giữ gọn ngang khớp cột 96px */
       .cfg-table td.cfg-item-actions .btn + .btn { margin-left: 4px; }  /* FIX: gap 4px thay 6px */
     }
     .home-hero {
