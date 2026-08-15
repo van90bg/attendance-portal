@@ -1,8 +1,8 @@
 <style>
     :root {
       color-scheme: light;  /* thay cho <meta color-scheme> — GAS addMetaTag không cho phép tag này; CSS tương đương meta */
-      --primary: #0b57d0;
-      --primary-dark: #0a4ab8;
+      --primary: #e85d04;  /* SPX cam — tông chủ đạo (2026-08-16) */
+      --primary-dark: #b84500;  /* cam đậm — hover nút chính / text trên nền cam nhạt */
       --danger: #d93025;
       --warning: #e37400;
       --success: #188038;
@@ -25,13 +25,13 @@
       --header-text: #f4f7fb;
       --header-border: #3a4a66;
       --surface-muted: #f1f3f4;    /* badge pending, counter lbl, th */
-      --focus-ring: rgba(11, 87, 208, .45);  /* focus = primary (P1 2026-08-16: nhất quán 1 accent tương tác — hết cam) */
-      --primary-bright: #1a73e8;         /* primary sáng trên nền dark (sidebar/bottom-nav active — P1 2026-08-16) */
+      --focus-ring: rgba(232, 93, 4, .45);  /* focus = primary (P1 2026-08-16: 1 accent tương tác; SPX cam 2026-08-16) */
+      --primary-bright: #ff8a3d;         /* cam sáng trên nền dark (sidebar/bottom-nav active — SPX cam 2026-08-16) */
       --accent: var(--amber);          /* accent chung — dùng amber làm chuẩn */
       --surface: #f5f6f8;              /* surface hover nhẹ (list-search .btn-icon:hover) — khớp --bg */
       /* Màu bổ sung (token hóa 2026-08-11 — màu dùng >=2 chỗ) */
       --row-hover: #f8faff;            /* hover hàng bảng (task/stats/staff) */
-      --primary-bg: #e8f0fe;           /* badge.open / badge-reconcile */
+      --primary-bg: #fff3e0;           /* cam nhạt — badge.open / badge-reconcile / pick.on / chip default */
       --surface-soft: #f0f1f3;          /* btn-ghost hover / badge.done — họ surface */
       --amber-dark: #9a4d00;           /* text amber đậm trên nền trắng — AA 6.1:1 (flabel) */
       --side-text: #c3cddb;            /* text sidebar dark (side-item) */
@@ -109,7 +109,7 @@
       color: var(--primary);
       border: 1px solid var(--primary);
     }
-    .btn-outline:hover { background: #eaf1fe; }
+    .btn-outline:hover { background: #fff3e0; }  /* cam nhạt — SPX cam 2026-08-16 */
     /* FIX(2026-08-14): nút Xem xám nhẹ — phân biệt với Quét (primary) ở cột Thao tác */
     .btn-view { background: var(--surface-muted); color: var(--text); border: 1px solid var(--border); }
     .btn-view:hover { background: #e4e7ea; }
