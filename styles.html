@@ -413,46 +413,48 @@
     .cfg-list { display: flex; flex-direction: column; gap: 18px; }  /* 2026-08-14: sections xếp dọc, tự cao — card cuộn */
 
     .cfg-table-wrap { overflow-x: auto; }  /* 2026-08-14: mỗi group 1 bảng con — chỉ cuộn ngang khi cần */
-    .cfg-table { width: 100%; max-width: 760px; border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; }  /* 2026-08-14: bỏ thead sticky + min-width 520 — mỗi group 1 bảng gọn ≤760px, hết giãn rỗng; fixed: cột cố định — edit không làm cột nhảy */
-    .cfg-table tr.cfg-item, .cfg-table tr.cfg-item-group { display: table-row; }  /* neutralize base display:flex — <tr> phải là table-row (2026-08-13) */
-    /* 2026-08-14: group section (tách nhóm — layout mới): head = title + count + nút + Thêm, bảng con bên dưới */
-    .cfg-group-section { margin-bottom: 20px; }
-    .cfg-group-section:last-child { margin-bottom: 0; }
-    #roleWrap { margin-top: 20px; }
-    .cfg-section-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-    .cfg-section-head .cfg-group-title { font-size: 14px; font-weight: 700; color: var(--primary); }
-    .cfg-section-head .cfg-group-add { margin-top: 0; }  /* P2 (2026-08-16): bỏ margin-left:auto — desktop section-head rộng 1071px đẩy nút Thêm cách title 803px; gắn cạnh title (gap 8px) */
-    .cfg-table tr.cfg-item-group > td { padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--card); vertical-align: middle; }
-    .cfg-table tr.cfg-item-group:hover > td { background: var(--row-hover); }
-    .cfg-table tr.cfg-item-group.is-default > td { background: #fff8f0; }  /* viền amber khi là mặc định — td mới paint, <tr> không paint (2026-08-13) */
-    .cfg-table .cfg-value-cell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* td giữ table-cell; children inline — value 1 dòng, dài thì ellipsis (fixed layout) */
-    .cfg-table .cfg-value-cell.cfg-editing { white-space: normal; overflow: visible; text-overflow: clip; }  /* FIX (2026-08-16): chế độ Sửa/Thêm (editCfgGroupItem) chèn <input width:100%> cùng ô với span #idx — tổng bề rộng vượt td, bị nowrap+overflow:hidden+ellipsis phía trên clip nguyên input (input là atomic, không cắt nửa chừng) → chỉ còn dấu '…', input mất tăm không hiện chữ. Reset về bình thường (input tự xuống dòng dưới #idx nếu không đủ chỗ) chỉ khi đang sửa. */
-    .cfg-table .cfg-item-value { display: inline; vertical-align: middle; }
-    .cfg-table .cfg-item-idx { display: inline-block; vertical-align: middle; margin-right: 8px; min-width: 30px; }
-    .cfg-table .cfg-drag-handle { display: inline-block; vertical-align: middle; margin-right: 6px; }
-    .cfg-table .cfg-default-cell { width: 110px; text-align: center; white-space: nowrap; }
-    .cfg-table td.cfg-item-actions { display: table-cell; text-align: right; white-space: nowrap; }  /* override base display:flex — td là table-cell, buttons inline-block co cụm phải (2026-08-13) */
-    .cfg-table tr.cfg-empty-row > td { color: var(--muted); font-style: italic; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-    .cfg-table tr.cfg-drop-target, .cfg-table tbody.cfg-drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; }
-    .cfg-table .cfg-edit-input { width: 100%; height: 32px; padding: 4px 8px; border: 1.5px solid var(--primary); background: #fff; font-size: 14px; }  /* cao bằng dòng thường (default-btn 32px) — edit không nhảy chiều cao (2026-08-13); FIX(2026-08-16): viền primary 1.5px nổi bật — trước input trắng trên row trắng chỉ 1px #d9dce1 trông 'trong suốt' khi Thêm mới */
-    .cfg-table .cfg-edit-input::placeholder { color: var(--muted); opacity: 1; }
-    .cfg-item-actions .btn + .btn { margin-left: 6px; }  /* gap giữa 2 nút Sửa/Xoá khi td không phải flex (table-cell) — 2026-08-13 */
-    .cfg-item-label { font-size: 13px; font-weight: 600; color: var(--text); }  /* combo .cfg-item-idx — flex do idx quyết (bỏ basis 190px dead 2026-08-13) */
-    .cfg-item-idx { flex: 0 0 34px; color: var(--muted); font-weight: 600; }  /* #idx muted — còn tác dụng (color/font-weight), flex 34px giữ đồng bộ 2026-08-11 */
-    .cfg-item-value { flex: 1 1 auto; font-size: 14px; color: var(--primary-dark); word-break: break-word; }
+    /* 2026-08-16: group = CARD riêng (bỏ bảng — chip wrap): viền + khoảng cách rõ ràng, collapse ▾/▸,
+       chip ôm nội dung, star ★/☆ mặc định, icon ✎/✕ 30×30. */
+    .cfg-group-card { border: 1px solid var(--border); border-radius: var(--card-radius); padding: 10px 12px; background: var(--card); }
+    #roleWrap { margin-top: 14px; }  /* role card cách group cuối — gap .cfg-list 18px lo group, roleWrap sibling riêng */
+    .cfg-card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .cfg-card-head .cfg-group-title { font-size: 14px; font-weight: 700; color: var(--primary); }
+    .cfg-card-head .cfg-group-add { margin-top: 0; }  /* gắn cạnh title (gap 8px) */
+    .cfg-collapse-btn { flex: 0 0 auto; width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-muted); color: var(--text); font-size: 12px; line-height: 1; cursor: pointer; padding: 0; }
+    .cfg-collapse-btn:hover { background: var(--surface-soft); }
+    .cfg-group-card.is-collapsed .cfg-chips { display: none; }  /* thu gọn: chỉ còn head (title + count + ▸) — trang ngắn lại */
+    .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }  /* chip wrap — 7 mục Slot Code co lại 2 dòng */
+    .cfg-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px 3px 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: 13px; max-width: 100%; }
+    .cfg-chip:hover { border-color: var(--primary); }
+    .cfg-chip.is-default { background: #fff8f0; border-color: var(--amber); }
+    .cfg-chip-empty { color: var(--muted); font-style: italic; border-style: dashed; }
+    .cfg-chip-value { font-size: 14px; color: var(--primary-dark); word-break: break-word; }
+    .cfg-chip .cfg-drag-handle { display: inline-flex; cursor: grab; color: var(--muted); font-size: 12px; line-height: 1; }
+    .cfg-star-btn { flex: 0 0 auto; width: 24px; height: 24px; border: 0; background: transparent; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; border-radius: 50%; padding: 0; }
+    .cfg-star-btn:hover { color: var(--amber-dark); }
+    .cfg-star-btn.cfg-star-on { color: var(--amber-dark); }  /* ★ đang mặc định — nổi bật */
+    .cfg-icon-btn { flex: 0 0 auto; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 13px; line-height: 1; cursor: pointer; padding: 0; }
+    .cfg-icon-btn:hover { background: var(--row-hover); border-color: var(--primary); }
+    .cfg-icon-danger { color: var(--danger); }
+    .cfg-icon-danger:hover { background: var(--card-err-bg); border-color: var(--danger); }
+    .cfg-icon-ok { color: var(--success); }
+    .cfg-icon-ok:hover { background: var(--card-ok-bg); border-color: var(--success); }
+    .cfg-chip-editing { flex-basis: 100%; border-radius: 8px; }  /* chip edit giãn full-width — input thoáng */
+    .cfg-chip-editing .cfg-edit-input { flex: 1 1 140px; min-width: 0; height: 32px; padding: 4px 8px; border: 1.5px solid var(--primary); background: #fff; font-size: 14px; }
+    .cfg-chip-editing .cfg-edit-input::placeholder { color: var(--muted); opacity: 1; }
+    .cfg-role-table td.cfg-item-actions .cfg-icon-btn + .cfg-icon-btn { margin-left: 4px; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
     #cfgNoResult { padding: 8px 2px; }  /* P1 (2026-08-16): "Không có mục phù hợp" ngoài section — có chút thở */
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
     .task-open-link { color: var(--primary-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }  /* FIX(2026-08-14): link mở task ở Mã task (thay nút Xem/Quét mobile) */
     .task-open-link:hover { color: var(--primary); }
-    .cfg-default-btn { min-height: 32px; padding: 4px 10px; font-size: 12px; line-height: 1.2; white-space: nowrap; }  /* nút chữ "Mặc định" (2026-08-13): bỏ icon-only + bỏ ký tự ◉/◎ (2026-08-16); trạng thái bật = nền amber */
     .cfg-save-dirty { background: var(--amber); border-color: var(--amber); animation: cfgSavePulse 1.4s ease-in-out infinite; }
     @keyframes cfgSavePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, .30); } 50% { box-shadow: 0 0 0 6px rgba(232, 93, 4, 0); } }
-    .cfg-default-btn.cfg-default-on { background: var(--amber); color: #fff; border-color: var(--amber); }
     .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; touch-action: none; }  /* P0 (2026-08-16): touch-action:none — kéo touch không bị scroll ngắt; P2: tabindex + ↑↓ sắp xếp */
     .cfg-drag-handle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 3px; }
-    .cfg-item[draggable="true"] { cursor: grab; }
-    .cfg-item.cfg-dragging { opacity: .45; }
+    .cfg-chip[draggable="true"] { cursor: grab; }
+    .cfg-chip.cfg-dragging { opacity: .45; }
+    .cfg-chip.cfg-drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; border-radius: 999px; }
     .btn-clear-filter {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
       border-radius: 8px; padding: 8px 10px; font-size: 14px; cursor: pointer;
@@ -1340,21 +1342,15 @@
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
     @media (max-width: 700px) {
-      .cfg-item { flex-wrap: wrap; }
       .cfg-role-row { flex-wrap: wrap; }
       .cfg-role-email { flex: 1 1 100%; }  /* C1: email dòng riêng mobile (ellipsis) — badge + actions dòng 2 */
       .cfg-role-badge { max-width: 60%; overflow: hidden; text-overflow: ellipsis; }  /* C1 (2026-08-13): badge dài "Manager — quản lý vận hành" (170px) + actions (124px) > content 320px → 3 dòng; cap 60% giữ 2 dòng */
       .cfg-role-select { flex: 1 1 auto; min-width: 0; max-width: none; }
-      .cfg-table .cfg-value-cell { white-space: normal; }  /* FIX(2026-08-14): mobile value wrap — hết scroll ngang (trước 347px) */
-      .cfg-table .cfg-item-value { word-break: break-word; }  /* value dài tự xuống dòng */
-      .cfg-table .cfg-drag-handle, .cfg-table .cfg-item-idx { white-space: nowrap; }  /* handle + #idx không wrap */
-      .cfg-table .cfg-default-cell { overflow: hidden; }  /* FIX: nút Mặc định không tràn cột */
-      .cfg-table .cfg-default-btn { padding: 5px 8px; font-size: 12px; }  /* FIX: nút Mặc định gọn mobile */
-      .cfg-table .cfg-default-cell { width: 100px; }  /* FIX(2026-08-16): cột Mặc định 110px thừa 32px (nút 78px + padding 20) → bóp value-cell: input edit chỉ 91px; cân lại */
-      .cfg-table td.cfg-item-actions { width: 96px; }  /* FIX(2026-08-16): nút 12px (45+44px) + gap 4 = 93px — cột 88 tràn 3px; 96 vừa khít */
-      .cfg-table td.cfg-item-actions { padding-left: 6px; padding-right: 6px; }  /* nút Sửa/Xoá sát cạnh */
-      .cfg-table td.cfg-item-actions .btn { padding: 6px 6px; font-size: 12px; line-height: 1; min-height: 36px; }  /* P2 (2026-08-16): font 12px (mobile) + min-height 36px touch — đồng bộ btn-sm mobile; giữ gọn ngang khớp cột 96px */
-      .cfg-table td.cfg-item-actions .btn + .btn { margin-left: 4px; }  /* FIX: gap 4px thay 6px */
+      .cfg-chips { gap: 6px; }  /* chip mobile sát hơn */
+      .cfg-chip { padding: 4px 6px 4px 4px; font-size: 12px; }  /* touch chip dày hơn */
+      .cfg-icon-btn { width: 32px; height: 32px; }  /* touch 32px mobile (30 desktop) — không phụ thuộc ellipsis */
+      .cfg-collapse-btn { width: 30px; height: 30px; }
+      .cfg-role-table tr.cfg-role-row > td.cfg-item-actions { overflow: visible; text-overflow: clip; white-space: nowrap; }  /* FIX(2026-08-16): td actions không ellipsis — nút Xoá không bị cắt '…' */
     }
     .home-hero {
       display: flex; flex-direction: column; align-items: center; justify-content: center;

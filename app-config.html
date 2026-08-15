@@ -99,6 +99,8 @@
     { key: 'departments', label: 'Danh sách Department' },
     { key: 'agencies', label: 'Danh sách Agency' },
   ];
+  // (2026-08-16): trạng thái thu gọn từng group card (▾/▸) — state phiên, không persist, không dirty.
+  var CFG_COLLAPSED = {};
 
   function deepCopyCfg_() { return JSON.parse(JSON.stringify(CFG_STATE)); }
 
@@ -178,66 +180,66 @@
     return String(v).toLowerCase().indexOf(q) >= 0 || String(g.label).toLowerCase().indexOf(q) >= 0;
   }
 
-  // Render 1 group section (2026-08-14 — tách nhóm): tiêu đề + count + nút + Thêm ở head, bảng con
-  // (Giá trị | Mặc định* | Thao tác) — cột Mặc định chỉ hiện cho group có default (stations/teams/slotcodes).
-  // Item <tr class="cfg-item cfg-item-group"> giữ class/selector cho editCfgGroupItem/drag*/delete.
-  // P1 (2026-08-16): q != '' → chỉ render item khớp (data-idx vẫn là index THẬT trong CFG_STATE);
-  // group không khớp nào thì trả '' (ẩn hẳn section).
+  // Render 1 group card (2026-08-16 — bỏ bảng, dùng chip wrap): card riêng viền + collapse ▾/▸ +
+  // head (title + count + nút + Thêm) + chips (.cfg-chips flex wrap — 7 mục Slot Code co lại 2 dòng).
+  // Chip <span class="cfg-chip cfg-item-group"> giữ class/selector cho editCfgGroupItem/drag*/delete.
+  // P1 (2026-08-16): q != '' → chỉ render chip khớp (data-idx vẫn là index THẬT trong CFG_STATE);
+  // group không khớp nào thì trả '' (ẩn hẳn section). Search → luôn mở (bỏ qua collapse).
   function cfgGroupHtml_(g, q) {
     var list = safeArr(CFG_STATE[g.key]);
     var hasDef = !!CFG_DEFAULT_KEY[g.key];
-    var colSpan = hasDef ? 3 : 2;
+    var collapsed = !!CFG_COLLAPSED[g.key] && !q;
     q = q || '';
-    var rows = [];
+    var chips = [];
     var matches = 0;
     for (var i = 0; i < list.length; i++) {
       var v = String(list[i]);
       if (!cfgItemMatch_(g, v, q)) continue;
       matches++;
-      rows.push(cfgItemRowHtml_(g, v, i, hasDef));
+      chips.push(cfgItemChipHtml_(g, v, i, hasDef));
     }
     if (!matches) {
       if (q) return '';  // đang tìm — ẩn section không có kết quả
-      rows.push('<tr class="cfg-empty-row"><td colspan="' + colSpan + '" class="cfg-empty-val">(chưa có)</td></tr>');
+      chips.push('<span class="cfg-chip cfg-chip-empty">(chưa có)</span>');
     }
-    return '<div class="cfg-group-section" data-group="' + g.key + '">'
-      + '<div class="cfg-section-head">'
+    return '<div class="cfg-group-card' + (collapsed ? ' is-collapsed' : '') + '" data-group="' + g.key + '">'
+      + '<div class="cfg-card-head">'
+        + '<button type="button" class="cfg-collapse-btn" onclick="toggleCfgGroupCollapse(\'' + g.key + '\')" title="' + (collapsed ? 'Mở rộng' : 'Thu gọn') + '" aria-label="' + (collapsed ? 'Mở rộng ' : 'Thu gọn ') + esc(g.label) + '">' + (collapsed ? '▸' : '▾') + '</button>'
         + '<span class="cfg-group-title">' + esc(g.label) + ' <span class="cfg-hint">' + matches + ' mục</span></span>'
         + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addCfgGroupItem(\'' + g.key + '\')">+ Thêm</button>'
       + '</div>'
-      + '<div class="cfg-table-wrap"><table class="cfg-table">'
-        + '<tbody data-group="' + g.key + '"'
-          + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',-1)">'
-          + rows.join('')
-        + '</tbody>'
-      + '</table></div>'
+      + '<div class="cfg-chips" ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',-1)">'
+        + chips.join('')
+      + '</div>'
     + '</div>';
   }
-  function cfgItemRowHtml_(g, v, i, hasDef) {
+  // Chip 1 item (2026-08-16): value + star ★/☆ (default) + icon ✎/✕ — ôm sát nội dung, wrap tự nhiên.
+  function cfgItemChipHtml_(g, v, i, hasDef) {
     var def = isDefault_(g.key, v);
-    return '<tr class="cfg-item cfg-item-group' + (def ? ' is-default' : '') + '" data-group="' + g.key + '" data-idx="' + i + '" draggable="true"'
+    return '<span class="cfg-chip cfg-item-group' + (def ? ' is-default' : '') + '" data-group="' + g.key + '" data-idx="' + i + '" draggable="true"'
       + ' ondragstart="dragCfgStart(event,\'' + g.key + '\',' + i + ')"'
       + ' ondragover="dragCfgOver(event)" ondrop="dragCfgDrop(event,\'' + g.key + '\',' + i + ')"'
       + ' ondragend="dragCfgEnd(event)">'
-      + '<td class="cfg-value-cell">'
-        + '<span class="cfg-drag-handle" title="Kéo để sắp xếp — focus rồi bấm ↑↓" role="button" tabindex="0" aria-label="Sắp xếp ' + escAttr(v) + '"'
-        + ' onpointerdown="cfgDragPtrDown(event,\'' + g.key + '\',' + i + ')" onpointermove="cfgDragPtrMove(event)"'
-        + ' onpointerup="cfgDragPtrEnd(event)" onpointercancel="cfgDragPtrEnd(event)"'
-        + ' onkeydown="cfgDragHandleKeydown(event,\'' + g.key + '\',' + i + ')">⋮⋮</span>'
-        + '<span class="cfg-item-label cfg-item-idx">#' + (i + 1) + '</span>'
-        + '<span class="cfg-item-value">' + esc(v) + '</span>'
-      + '</td>'
-      + (hasDef ? '<td class="cfg-default-cell">' + cfgDefaultBtnHtml_(g, v, def) + '</td>' : '')
-      + '<td class="cfg-item-actions">'
-        + '<button type="button" class="btn btn-outline btn-sm" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')">Sửa</button>'
-        + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')">Xoá</button>'
-      + '</td>'
-    + '</tr>';
+      + '<span class="cfg-drag-handle" title="Kéo để sắp xếp — focus rồi bấm ↑↓" role="button" tabindex="0" aria-label="Sắp xếp ' + escAttr(v) + '"'
+      + ' onpointerdown="cfgDragPtrDown(event,\'' + g.key + '\',' + i + ')" onpointermove="cfgDragPtrMove(event)"'
+      + ' onpointerup="cfgDragPtrEnd(event)" onpointercancel="cfgDragPtrEnd(event)"'
+      + ' onkeydown="cfgDragHandleKeydown(event,\'' + g.key + '\',' + i + ')">⋮⋮</span>'
+      + '<span class="cfg-chip-value">' + esc(v) + '</span>'
+      + (hasDef ? cfgStarHtml_(g, v, def) : '')
+      + '<button type="button" class="cfg-icon-btn" onclick="editCfgGroupItem(\'' + g.key + '\',' + i + ')" title="Sửa" aria-label="Sửa ' + escAttr(v) + '">✎</button>'
+      + '<button type="button" class="cfg-icon-btn cfg-icon-danger" onclick="deleteCfgGroupItem(\'' + g.key + '\',' + i + ')" title="Xoá" aria-label="Xoá ' + escAttr(v) + '">✕</button>'
+    + '</span>';
   }
 
-  // Nút "Mặc định" cho 1 item (group có default mới gọi — 2026-08-14 tách khỏi cfgGroupHtml_) — trạng thái bật = nền amber.
-  function cfgDefaultBtnHtml_(g, v, def) {
-    return '<button type="button" class="btn btn-outline btn-sm cfg-default-btn' + (def ? ' cfg-default-on' : '') + '" onclick="toggleCfgDefault(\'' + g.key + '\',\'' + escAttr(String(v)) + '\')" title="' + (def ? 'Bỏ mặc định' : 'Đặt mặc định') + '" aria-label="' + (def ? 'Bỏ mặc định ' : 'Đặt mặc định ') + esc(String(v)) + '">' + 'Mặc định' + '</button>';
+  // Star ★/☆ (2026-08-16 — thay nút "Mặc định" to lặp mọi dòng): 1 ★ tô đậm = đang mặc định.
+  function cfgStarHtml_(g, v, def) {
+    return '<button type="button" class="cfg-star-btn' + (def ? ' cfg-star-on' : '') + '" onclick="toggleCfgDefault(\'' + g.key + '\',\'' + escAttr(String(v)) + '\')" title="' + (def ? 'Bỏ mặc định' : 'Đặt mặc định') + '" aria-label="' + (def ? 'Bỏ mặc định ' : 'Đặt mặc định ') + esc(String(v)) + '">' + (def ? '★' : '☆') + '</button>';
+  }
+
+  // (2026-08-16): thu gọn/mở rộng group card — chỉ đổi hiển thị, không dirty (không phải thay đổi cấu hình).
+  function toggleCfgGroupCollapse(group) {
+    CFG_COLLAPSED[group] = !CFG_COLLAPSED[group];
+    renderCfgList();
   }
 
   function isDefault_(group, val) {
@@ -402,16 +404,11 @@
     var item = box.querySelector('.cfg-item-group[data-group="' + group + '"][data-idx="' + idx + '"]');
     if (!item) return;
     CFG_EDIT_ORIG = String(cur);
-    var hasDef = !!CFG_DEFAULT_KEY[group];
-    item.innerHTML = '<td class="cfg-value-cell cfg-editing">'
-        + '<span class="cfg-item-label cfg-item-idx">#' + (idx + 1) + '</span>'
+    item.classList.add('cfg-chip-editing');
+    item.innerHTML = '<span class="cfg-drag-handle">⋮⋮</span>'
         + '<input class="cfg-input cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="Giá trị" autocomplete="off">'
-      + '</td>'
-      + (hasDef ? '<td class="cfg-default-cell"></td>' : '')
-      + '<td class="cfg-item-actions">'
         + '<button type="button" class="btn btn-outline btn-sm" onclick="commitCfgGroupItem(\'' + group + '\',' + idx + ')">Lưu</button>'
-        + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelCfgGroupEdit(\'' + group + '\',' + idx + ')">Huỷ</button>'
-      + '</td>';
+        + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelCfgGroupEdit(\'' + group + '\',' + idx + ')">Huỷ</button>';
     var inp = document.getElementById('cfgGroupEditInput');
     if (inp) {
       inp.focus(); inp.select();
@@ -512,6 +509,7 @@
     // rồi reload sẽ không thấy row mới — UX hỏng). User nhập giá trị → blur/Enter → commit.
     var s = document.getElementById('cfgSearch');
     if (s && s.value) s.value = '';  // P1 (2026-08-16): bỏ tìm kiếm — row mới không bị filter ẩn
+    CFG_COLLAPSED[group] = false;  // (2026-08-16): group đang thu gọn → mở ra — chip mới phải thấy
     var list = safeArr(CFG_STATE[group]).slice();
     list.push('');
     CFG_STATE[group] = list;
@@ -539,8 +537,8 @@
     if (!box) return;
     var map = (CFG_STATE.roleMap && typeof CFG_STATE.roleMap === 'object') ? CFG_STATE.roleMap : {};
     var keys = Object.keys(map);
-    var html = '<div class="cfg-group-section" data-group="roleMap">'
-      + '<div class="cfg-section-head">'
+    var html = '<div class="cfg-group-card" data-group="roleMap">'
+      + '<div class="cfg-card-head">'
         + '<span class="cfg-group-title">Phân quyền (roleMap) <span class="cfg-hint">' + keys.length + ' role</span></span>'
         + '<button type="button" class="btn btn-outline btn-sm cfg-group-add" onclick="addRoleRow()">+ Thêm role</button>'
       + '</div>'
@@ -578,8 +576,8 @@
       + '<td class="cfg-role-email" title="' + escAttr(email || '') + '">' + esc(email || '(trống)') + '</td>'
       + '<td><span class="cfg-role-badge" title="' + escAttr(roleLabel_(role)) + '">' + esc(roleLabel_(role)) + '</span></td>'  /* P1 (2026-08-16): tooltip đầy đủ khi badge bị ellipsis */
       + '<td class="cfg-item-actions">'
-        + '<button type="button" class="btn btn-outline btn-sm" onclick="startRoleEdit(\'' + escAttr(email || '') + '\')" title="Sửa role" aria-label="Sửa role">Sửa</button>'
-        + '<button type="button" class="btn btn-danger btn-sm" onclick="deleteRoleRow(\'' + escAttr(email || '') + '\')" title="Xoá role" aria-label="Xoá role">Xoá</button>'
+        + '<button type="button" class="cfg-icon-btn" onclick="startRoleEdit(\'' + escAttr(email || '') + '\')" title="Sửa role" aria-label="Sửa role">✎</button>'
+        + '<button type="button" class="cfg-icon-btn cfg-icon-danger" onclick="deleteRoleRow(\'' + escAttr(email || '') + '\')" title="Xoá role" aria-label="Xoá role">✕</button>'
       + '</td>'
     + '</tr>';
   }
@@ -606,8 +604,8 @@
       + '<td><input class="cfg-input cfg-role-email" type="text" placeholder="email@spxexpress.com" autocomplete="off" value="' + escAttr(email || '') + '"></td>'
       + '<td><select class="cfg-input cfg-role-select">' + opts + '</select></td>'
       + '<td class="cfg-item-actions">'
-        + '<button type="button" class="btn btn-outline btn-sm" onclick="commitRoleEdit()" title="Lưu role" aria-label="Lưu role">Lưu</button>'
-        + '<button type="button" class="btn btn-ghost btn-sm" onclick="cancelRoleEdit()" title="Huỷ sửa" aria-label="Huỷ sửa role">Huỷ</button>'
+        + '<button type="button" class="cfg-icon-btn cfg-icon-ok" onclick="commitRoleEdit()" title="Lưu role" aria-label="Lưu role">✓</button>'
+        + '<button type="button" class="cfg-icon-btn cfg-icon-danger" onclick="cancelRoleEdit()" title="Huỷ sửa" aria-label="Huỷ sửa role">✕</button>'
       + '</td>'
     + '</tr>';
   }
