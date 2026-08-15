@@ -1329,6 +1329,18 @@
     #viewStats .stats-table-wrap { max-height: none; }  /* tablet: wrap giãn đầy card (trước bị chặn 60vh → cuộn nhiều + trống dưới card, CDP 1024: card 594 wrap 460 nội dung 613) */
     #viewConfig .card { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }  /* FIX(2026-08-14): overflow:hidden đặt card là scroll container chết — cột vận hành dài bị cắt đuôi bảng (agencies 38px) không cuộn được; chuyển card cuộn toàn phần + thead sticky sống */
     #viewConfig #roleWrap { display: block; }  /* 2026-08-14: sections xếp dọc — tự cao, card cuộn */
+    /* P2 (2026-08-16): CỐ ĐỊNH thanh "CẤU HÌNH VẬN HÀNH" + ô tìm kiếm trên cùng card — card config tự cuộn toàn phần
+       nên toolbar cần sticky top:0 (Task/Staff/Scan: toolbar đứng NGOÀI vùng cuộn bảng — hiệu ứng tương đương).
+       Bleed -12px ra cạnh card + nền đặc + border-bottom → thanh che nội dung cuộn bên dưới, list lướt gọn bên dưới. */
+    #viewConfig .task-list-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 6;
+      margin: -12px -12px 0;
+      padding: 12px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
     /* viewConfig mobile (CDP 390/375): role row email bị bóp 49px do select flex:0 0 auto 220px
        + nút Lưu ngoài vùng nhìn card cuộn → select co lại, email full-width, save bar sticky đáy card */
     @media (max-width: 700px) {
