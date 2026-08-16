@@ -387,10 +387,12 @@
     if (status === TASK_STATUS_C.OPEN) return '<span class="badge open">Mở</span>';
     return '<span class="badge">' + esc(status || '') + '</span>';
   }
-  // Cột Ca (slotCode) có thể nhiều giá trị — giới hạn độ rộng + '...' + tooltip (2026-08-10).
+  // Cột Ca (slotCode) có thể nhiều giá trị (server join ', ') — hiển thị gọn 'Nhiều ca', tooltip đầy đủ.
   function slotCellHtml(v) {
     var s = v || '';
-    return '<span class="slot-ellipsis" title="' + escAttr(s) + '">' + esc(s) + '</span>';
+    var parts = s.split(', ').filter(function (x) { return x.trim(); });
+    var text = parts.length > 1 ? 'Nhiều ca' : s;
+    return '<span class="slot-ellipsis" title="' + escAttr(s) + '">' + esc(text) + '</span>';
   }
 
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.

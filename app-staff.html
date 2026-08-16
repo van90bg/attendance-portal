@@ -174,16 +174,19 @@
     var firstOpt = document.querySelector('#sfpBody input[type="checkbox"]');
     if (firstOpt) firstOpt.focus();
   }
+  // Funnel hiển thị label theo app — field taskType/status lưu code wire/server (reconcile/free, open/attend/done).
+  var FUNNEL_LABEL = { taskType: TT_LABEL, status: TASK_PHASE_LABEL };
   function renderFunnelOptions_(field, sel) {
     var ctx = _funnel.ctx;
     var rows = ctx.rows();
     var opts = funnelOptions_(rows, field);
     var counts = funnelOptionCounts_(rows, field, ctx.filters);
+    var lblMap = FUNNEL_LABEL[field];
     var html = opts.map(function (v) {
       var checked = sel.indexOf(v) !== -1;
       var zero = !counts[v] ? ' zero' : '';
       return '<label class="sfp-opt' + zero + '"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onFunnelCheck(\'' + field + '\', this, \'' + ctx.key + '\')">' +
-        '<span class="sfp-label">' + esc(v) + '</span>' +
+        '<span class="sfp-label">' + esc((lblMap && lblMap[v]) || v) + '</span>' +
         '<span class="sfp-count">' + (counts[v] || 0) + '</span></label>';
     }).join('') || '<div class="sfp-empty">(không có giá trị)</div>';
     document.getElementById('sfpBody').innerHTML = html;
