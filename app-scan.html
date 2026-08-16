@@ -1104,7 +1104,7 @@
     function attempt(i) {
       if (CAMERA_OPEN === false) return;   // đã đóng khi đang thử -> dừng
       if (i >= cams.length) {
-        showToast('Không mở được camera. Nếu đã từ chối quyền, vào Cài đặt trình duyệt -> Quyền -> Camera -> Cho phép trang này, rồi thử lại.', true);
+        showToast('Không mở được camera — dùng nút Chụp ảnh bên cạnh để quét từ ảnh (hoặc vào Cài đặt trình duyệt -> Quyền -> Camera -> Cho phép, rồi thử lại).', true);
         closeCameraScan();
         return;
       }
@@ -1113,7 +1113,7 @@
       sc.start(cams[i], config, onSuccess, onError).catch(function (err) {
         var msg = (err && err.message) ? err.message : '';
         if (/permission|denied|not ?allowed/i.test(msg)) {
-          showToast('Quyền camera bị từ chối — vào Cài đặt trình duyệt -> Quyền -> Camera -> Cho phép, rồi thử lại', true);
+          showToast('Quyền camera bị từ chối — dùng nút Chụp ảnh bên cạnh, hoặc vào Cài đặt trình duyệt -> Quyền -> Camera -> Cho phép, rồi thử lại', true);
           closeCameraScan();
           return;
         }
@@ -1126,5 +1126,89 @@
       showToast('Lỗi khởi tạo camera: ' + (e && e.message ? e.message : e), true);
       closeCameraScan();
     }
+  }
+
+  // ===== Chụp ảnh + decode (fallback camera bị chặn trong iframe GAS) =====
+  // input[type=file capture=environment] không cần permission policy camera → mở thẳng
+  // camera app / thư viện ảnh. Decode bằng Html5Qrcode.scanFile (cùng lib quét live) rồi
+  // tái dùng submitScan() — server không đổi, chỉ client.
+  var PHOTO_SCANNED = false;
+
+  function openPhotoScan() {
+    if (!CURRENT_TASK) return;
+    // Mirror openCameraScan: cho chụp ở phase OPEN và ATTEND, chỉ DONE chặn.
+    if (CURRENT_TASK.phase === TASK_STATUS_C.DONE) {
+      showToast('Task đã kết thúc', true);
+      return;
+    }
+    ensureCameraLib(function () {
+      var inp = document.getElementById('photoInput');
+      if (!inp) return;
+      inp.value = '';   // cho phép chọn lại cùng file
+      inp.click();
+    });
+  }
+
+  function onPhotoPicked() {
+    var inp = document.getElementById('photoInput');
+    var file = inp && inp.files && inp.files[0];
+    if (!file) return;
+    if (PHOTO_SCANNED) return;          // guard: 1 ảnh / lần
+    if (!window.Html5Qrcode) {
+      showToast('Thư viện đọc ảnh chưa sẵn sàng', true);
+      return;
+    }
+    PHOTO_SCANNED = true;
+    showToast('Đang đọc ảnh…');
+    decodePhoto(file).then(function (code) {
+      PHOTO_SCANNED = false;
+      var text = String(code || '').trim();
+      if (!text) {
+        showToast('Không tìm thấy mã trong ảnh — chụp sát mã hơn, đủ sáng', true);
+        playBeep('error');
+        return;
+      }
+      var input = document.getElementById('scanInput');
+      if (input) input.value = text;
+      submitScan();                     // reuse luồng quét chuẩn (validate + enqueue + optimistic)
+    }).catch(function (e) {
+      PHOTO_SCANNED = false;
+      var msg = e && e.message ? String(e.message) : '';
+      if (/not found|no .*(code|barcode|qr)|unable to parse/i.test(msg)) {
+        showToast('Không tìm thấy mã trong ảnh — chụp sát mã hơn, đủ sáng', true);
+      } else {
+        showToast('Không đọc được ảnh: ' + msg, true);
+      }
+      playBeep('error');
+    });
+  }
+
+  function decodePhoto(file) {
+    // Ảnh máy ảnh 12–48MP — downscale ≤1280px trước decode (scanFile đọc kích thước gốc).
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var MAX = 1280;
+        var scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        if (scale >= 1) { resolve(file); return; }
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (blob) {
+          if (!blob) { reject(new Error('Không tạo được ảnh thu nhỏ')); return; }
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.9);
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error('Ảnh không đọc được (có thể định dạng HEIC)'));
+      };
+      img.src = url;
+    }).then(function (smallFile) {
+      return new Html5Qrcode('cameraReader').scanFile(smallFile, false);
+    });
   }
 </script>
