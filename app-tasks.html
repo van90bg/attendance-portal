@@ -541,7 +541,7 @@
       // #10: tìm NV xuyên task cần role manager+ (server cũng gate fail-closed) — chặn sớm trước RPC
       if (BARCODE_ID_RE.test(raw)) {
         if (!canManager_()) {
-          showToast('Tìm NV theo mã cần role <b>manager</b> trở lên', true);
+          showToast('Tìm NV theo mã cần role manager trở lên', true);
           return;
         }
         runSearchStaff(raw);

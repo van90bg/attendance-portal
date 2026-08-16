@@ -56,8 +56,6 @@
     _statsChipsBound = true;
   }
 
-  function selectedStation() { return STATS.station; }
-
   function staffFiltered() {
     return STAFF_ROWS.filter(function (r) {
       if (STATS.station && (r.station || '') !== STATS.station) return false;
