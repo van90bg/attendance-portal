@@ -20,6 +20,11 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 4. **Không commit secrets**: `.clasprc.json`, `.clasp.json` credentials, `codegraph.json`, file tạm verify.
 5. **Không đọc/ghi API keys/tokens** — thay `[REDACTED]`.
 6. **Kiểm chứng bằng kết quả thực (CDP / npm test)**, không tưởng tượng.
+7. **KHÔNG thêm comment rác vào code khi fix/patch** — cấm comment dạng lịch sử/date/marker vòng fix:
+   `FIX(YYYY-MM-DD): …` · `P1/P2/P3 (date): …` · `B3/I5/F7: …` · restatement lặp lại đúng lời gọi liền kề.
+   Chúng lỗi thời ngay khi có fix/patch/tính năng khác — lịch sử đã nằm trong git log + commit message.
+   Chỉ ghi comment khi CÓ GIÁ TRỊ: giải thích TẠI SAO (rationale non-obvious), cảnh báo gotcha "đừng regress",
+   khớp nối wire/server ("KHỚP server X") — viết ngắn, KHÔNG kèm date/commit hash.
 
 ## 3. Cách edit deterministic (BẮT BUỘC)
 

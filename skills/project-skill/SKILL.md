@@ -58,6 +58,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 9. **Duplicate toasts scan**: keep server-confirm toast là single source, bỏ toast optimistic (reduce noise).
 10. **KHÔNG trả Date qua google.script.run** — serialize Date lỗi → toàn bộ response thành null. Chỉ trả text đã format (`createdAtText`/`completedAtText` qua `formatDateTime_`) + epoch number; client không `new Date()` từ response.
+11. **Comment code: KHÔNG ghi date/marker vòng fix** (`FIX(2026-08-XX):` `P1/P2:` `B3:` `I5:`) hay restatement — lỗi thời khi có fix/tính năng mới; lịch sử ở git log. Chỉ comment có giá trị: rationale "tại sao", gotcha "đừng regress", khớp wire/server (quy tắc AGENTS.md §2.7).
 
 ## 5. UI labels & modal (2026-08-07/08)
 
