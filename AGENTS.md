@@ -100,5 +100,6 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - `skills/` — bộ skill chuẩn `SKILL.md` (format chuẩn Agent Skills — tái sử dụng đa công cụ AI: Claude Code, OpenCode, Codex, Cursor…):
   - `project-skill/SKILL.md` — skill dự án ĐẦY ĐỦ (architecture, gotchas, batch/perf, deterministic, pitfalls) + `references/` (3 reference: `architecture-gotchas.md` · `deterministic-batch-runner.md` · `slot-fueled-classification.md`).
   - `audit-webapp-optimize/SKILL.md` — 3-phase audit (code → UI/UX → optimize), P0/P1/P2, user duyệt trước khi fix.
+  - `ui-ux-audit/SKILL.md` — UI/UX audit toàn diện 1 lần: design language nhất quán + a11y (WCAG 2.2) + performance + lớp verify tự động (audit-css/gs/style/ui + CDP) — gom ui-design-process/accessibility/performance/audit-webapp-optimize, output P0/P1/P2 trình user duyệt trước khi fix.
   - `review-gas-failure-modes/SKILL.md` — review GAS with confidence scoring + failure modes checklist + MoA option.
   - `debug-systematic/SKILL.md` — 4-phase root-cause debugging (Iron Law: không fix trước root cause).
