@@ -97,7 +97,7 @@
         + '<td data-label="Giờ công" class="reports-num">' + esc(r.workHour || '—') + '</td>'
         + '<td data-label="Giờ vào">' + esc(r.inTime || '—') + '</td>'
         + '<td data-label="Giờ ra">' + esc(r.outTime || '—') + '</td>'
-        + '<td data-label="PMO">' + esc(r.pmo || '—') + '</td>'
+        + '<td data-label="PMO"' + (r.pmo ? ' class="has-pmo"' : '') + '>' + esc(r.pmo || '—') + '</td>'
         + '</tr>';
     }).join('');
     tbl.style.display = '';

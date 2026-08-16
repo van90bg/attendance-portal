@@ -1144,8 +1144,9 @@
     #reportsTable td:nth-child(8), #reportsTable td:nth-child(9) { text-align: center; }
     #reportsTable td:nth-child(4) { white-space: normal; word-break: break-word; }  /* Tên NV wrap thay vì cắt */
     #reportsTable td:nth-child(10) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* PMO 1 dòng desktop/tablet — ellipsis thay wrap (2026-08-16) */
+    #reportsTable td.has-pmo { background: var(--card-extra-bg); color: #b45309; font-weight: 600; }  /* highlight PMO — tint cam nhạt (đồng bộ badge.extra), chỉ khi có giá trị */
     .reports-num { font-variant-numeric: tabular-nums; }
-    .reports-off { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .reports-off { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--card-err-bg); color: #b3261e; font-size: 12px; font-weight: 700; white-space: nowrap; }  /* OFF = đỏ (đồng bộ badge.absent) */
     /* Mobile ≤640px: bảng → card (mỗi dòng 1 thẻ), nhãn ::before ': ' từ data-label, ẩn Mã Ops/Mã NV/Tên NV */
     @media (max-width: 640px) {
       #reportsTable thead { display: none; }
@@ -1170,6 +1171,7 @@
       #reportsTable tbody td:nth-child(9) { grid-column: 1; grid-row: 3; }  /* Giờ ra */
       #reportsTable tbody td:nth-child(5) { grid-column: 2; grid-row: 3; }  /* Station */
       #reportsTable tbody td:nth-child(10) { grid-column: 1 / -1; grid-row: 4; white-space: normal; word-break: break-word; } /* PMO full-width dài — wrap như Agency scan */
+      #reportsTable tbody td.has-pmo { background: var(--card-extra-bg); color: #b45309; font-weight: 600; }  /* highlight PMO mobile — cùng tint cam nhạt, band full-width */
       #reportsTable tbody .reports-off { font-size: 13px; }  /* pill OFF khớp badge 13px */
       .stats-table td { font-size: 15px; padding: 6px 8px; }  .stats-table th { font-size: 15px; }  .stats-col-title { font-size: 15px; }  #staffTable th { font-size: 15px; }  #viewAbout .about-body { font-size: 15px; }  #viewAbout .about-table { font-size: 15px; }
     }
