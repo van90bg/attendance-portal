@@ -1157,7 +1157,7 @@
     @media (max-width: 640px) {
       #reportsTable thead { display: none; }
       #reportsTable tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px 12px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
-      #reportsTable tbody td { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border: 0; padding: 3px 0; font-size: 15px; white-space: normal; word-break: break-word; text-align: left; }
+      #reportsTable tbody td { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; white-space: normal; word-break: break-word; text-align: left; }
       #reportsTable tbody td::before { content: attr(data-label); color: var(--muted); font-size: 12px; flex-shrink: 0; }
       /* FIX(2026-08-16): card 2 cột — dòng 1 Ngày (16px đậm) | Kết quả (không nhãn, khớp màn quét);
          dòng 2 Giờ vào | Giờ công; dòng 3 Giờ ra | Station; PMO full-width cuối. Ẩn Tên NV/Mã Ops/Mã NV
@@ -1173,7 +1173,7 @@
       #reportsTable tbody td:nth-child(5) { grid-column: 2; grid-row: 3; }  /* Station */
       #reportsTable tbody td:nth-child(10) { grid-column: 1 / -1; grid-row: 4; align-items: flex-start; } /* PMO full-width — 2 dòng không phá layout */
       #reportsTable tbody .reports-off { font-size: 13px; }  /* pill OFF khớp badge 13px */
-      #reportsTable tbody tr:hover td { background: var(--card); }
+      #reportsTable tbody tr:hover td { background: var(--card); }  .stats-table td { font-size: 15px; padding: 6px 8px; }  .stats-table th { font-size: 15px; }  .stats-col-title { font-size: 15px; }  #staffTable th { font-size: 15px; }  #viewAbout .about-body { font-size: 15px; }  #viewAbout .about-table { font-size: 15px; }  /* FIX(2026-08-16): đồng bộ cỡ chữ mobile 15px family — Thống kê (td/th/title) + staff th + About */
     }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
     /* Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox */
