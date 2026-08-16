@@ -1018,7 +1018,7 @@
   // quét live liên tục nhiều NV, mỗi mã postMessage về app → reuse submitScan().
   // SCANNER_URL: URL scanner/scanner.html sau khi deploy host tĩnh (Netlify/Vercel/Cloudflare Pages).
   // Rỗng → nút camera báo dùng Chụp ảnh. Đổi URL = sửa hằng số này + push (CI auto-deploy GAS).
-  var SCANNER_URL = '';
+  var SCANNER_URL = 'https://enchanting-starburst-9c32fc.netlify.app/scanner.html';
   var EXTERNAL_SCAN_ORIGIN = (function () {
     try { return SCANNER_URL ? new URL(SCANNER_URL).origin : ''; }
     catch (e) { return ''; }
