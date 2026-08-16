@@ -1020,7 +1020,7 @@
     @media (max-width: 640px) {
       #taskListTable thead { display: none; }
       #taskListTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) 1fr 1fr; gap: 2px 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; background: var(--card); }
-      #taskListTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }  #staffTable { font-size: 15px; }  /* FIX(2026-08-16): mobile cỡ chữ task list + staff 13→15px (đồng bộ scan) */
+      #taskListTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }  #staffTable td { font-size: 15px; }  /* FIX(2026-08-16): mobile cỡ chữ task list + staff 13→15px (đồng bộ scan); #staffTable td specificity (1,1,0) thắng base line 1124 (1,0,0) */
       /* Bỏ tiêu đề ô trên thẻ (2026-08-13): chỉ còn dữ liệu — giữ nhãn ngắn 'Tổng'/'Đã quét' cho 2 số (số trần khó đoán) + dấu · ngăn cách giữa các mục */
       #taskListTable tbody td[data-label]::before { content: none; }
       #taskListTable tbody td[data-label="Tổng NV"]::before,
@@ -1057,7 +1057,7 @@
       /* FIX(2026-08-16): thẻ NV 2 cột — cột 1 Tên NV / Agency / OpsID / Team · cột 2 Trạng thái / Ca / Giờ có mặt / Giờ quét (Agency = hàng riêng, wrap đủ) */
       #scanTable tbody td[data-label="Tên NV"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--text); font-size: 16px; }
       #scanTable tbody td[data-label="Trạng thái"] { grid-column: 2; grid-row: 1; justify-self: start; }  #scanTable tbody td[data-label="Trạng thái"] .badge { font-size: 13px; }
-      #scanTable tbody td[data-label="Agency"] { grid-column: 1; grid-row: 2; white-space: normal; }
+      #scanTable tbody td[data-label="Agency"] { grid-column: 1; grid-row: 2; white-space: normal; }  #scanTable tbody td[data-label="Agency"]:empty::before { content: none; }
       #scanTable tbody td[data-label="Mã NV"] { grid-column: 1; grid-row: 3; font-weight: 600; color: var(--muted); }
       #scanTable tbody td[data-label="Team"] { grid-column: 1; grid-row: 4; }
       #scanTable tbody td[data-label="Ca"] { grid-column: 2; grid-row: 2; }
@@ -1070,7 +1070,7 @@
       #scanTable tbody td[data-label="Ca"]::before { content: 'Ca: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody td[data-label="Giờ có mặt"]::before,
       #scanTable tbody td[data-label="Giờ quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }
-      #scanTable tbody tr.extra-row td { background: transparent; }  /* thẻ extra — nền theo tr đã đặt ở tr */
+      #scanTable tbody tr.extra-row td { background: transparent; }  #scanTable tbody tr.extra-row { background: var(--card-extra-bg); }  /* FIX(2026-08-16): thẻ extra mobile — nền cam giữ trên tr (td transparent, tr grid mặc định var(--card)) */
     }
     #btnScanListToggle { display: none; min-width: 36px; padding: 6px 10px; font-size: 14px; line-height: 1; margin-left: auto; }  /* desktop ẩn — chỉ mobile; FIX(2026-08-14): nút mũi tên tam giác ▼/▲ gọn ở góc phải card (margin-left:auto ép phải cả khi search ẩn) */
     /* FIX(2026-08-14): Mở rộng danh sách → ẩn cột quét (counters + ô nhập + nút Quét + scanCard) — danh sách NV đẩy lên full */
