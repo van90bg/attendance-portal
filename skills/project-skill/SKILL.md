@@ -60,6 +60,8 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 10. **KHÔNG trả Date qua google.script.run** — serialize Date lỗi → toàn bộ response thành null. Chỉ trả text đã format (`createdAtText`/`completedAtText` qua `formatDateTime_`) + epoch number; client không `new Date()` từ response.
 11. **Comment code: KHÔNG ghi date/marker vòng fix** (`FIX(2026-08-XX):` `P1/P2:` `B3:` `I5:`) hay restatement — lỗi thời khi có fix/tính năng mới; lịch sử ở git log. Chỉ comment có giá trị: rationale "tại sao", gotcha "đừng regress", khớp wire/server (quy tắc AGENTS.md §2.7).
 
+12. **Mobile card — rule desktop rò rỉ xuống thẻ (2026-08-16)**: rule cột desktop (`#reportsTable td:nth-child(5-9) { text-align:center }` = specificity 1,1,1) thắng base mobile (`#reportsTable tbody td` = 1,0,2) BẤT KỂ thứ tự khai báo → card lệch tông. Ép override bằng selector cao hơn `tbody td:nth-child(n)` (1,2,1) + `text-align:left`; không tin thứ tự, phải thắng về specificity. Kiểm tra mọi rule cột desktop khi thêm view card mobile.
+
 ## 5. UI labels & modal (2026-08-07/08)
 
 - Counter OPEN phase label "Chưa điểm danh" = presentAt (xanh primary — đang chờ), KHÔNG "Có mặt" ("Có mặt" chỉ dành cho người đã quét lần 2 ở phase2). Chain: OPEN → Chưa điểm danh (xanh) → ATTEND → Chưa điểm danh → DONE → Vắng.

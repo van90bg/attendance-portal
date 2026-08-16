@@ -35,14 +35,14 @@ Kiểm tra từng component chung xuyên view (bảng bên dưới là "chuẩn"
 |---|---|
 | Topbar (Tasks/Scan/Stats/Staff/Config/Reports) | `.view-topbar` + `.view-topbar-title` (`task-title` uppercase qua CSS + `task-meta`) + nút hành động |
 | Bảng dữ liệu desktop (task/scan/staff/reports) | font 13px, th 13px surface-muted, hover `tr:hover td` row-hover, wrap `.table-wrap` scroll ngang; fixed-layout chỉ khi có cột text dài cần cap (reports PMO ellipsis) |
-| Bảng → thẻ card mobile ≤640px | grid `minmax(0,1.2fr) minmax(0,1fr)` gap `3px 10px`; td block nowrap+ellipsis `15px/1.35`; nhãn `::before attr(data-label) ': '` 12px/600/muted; title cell 16px/700; badge/pill 13px; ẩn cột phụ |
+| Bảng → thẻ card mobile ≤640px | grid `minmax(0,1.2fr) minmax(0,1fr)` gap `3px 10px`; td block nowrap+ellipsis `15px/1.35`; nhãn `::before attr(data-label) ': '` 12px/600/muted; title cell 16px/700; badge/pill 13px; ẩn cột phụ; MỌI cell `text-align:left` |
 | Search | `.list-search` chung + Escape clear + nút ✕ (`#btnListSearchClear` pattern) |
 | Badge/pill/button | bộ token duy nhất (primary-bg/primary-dark, success, danger, amber-dark) — không hardcode màu lệch tông |
 | Empty / skeleton / loading | `.empty` chung; skeleton cell count = số cột thật; spinner guard (không 2 spinner đè) |
 | Modal | overlay+dialog chung, 44px touch, scale-in, Escape đóng |
 | Trạng thái | loading skeleton → data · empty state · error toast · disabled + tooltip |
 
-CDP verify: đo từng cell bảng card (computed `::before` content = `"Nhãn: "`, `white-space`, `grid-column/row`, font) — so sánh 4 bảng. Đối chiếu ngôn ngữ mockup: `project-skill` §12 + `references/mockup-design-language.md` (viewConfig, home shortcuts, chip/star/chevron pattern).
+CDP verify: đo từng cell bảng card (computed `::before` content = `"Nhãn: "`, `white-space`, `grid-column/row`, font, `text-align`) — so sánh 4 bảng. Cảnh báo đã gặp (2026-08-16): rule cột desktop (`td:nth-child(5-9)` center, specificity 1,1,1) rò rỉ xuống card — thắng base mobile (1,0,2) bất kể thứ tự; phải ép `tbody td:nth-child(n)` (1,2,1) + `left`. Đối chiếu ngôn ngữ mockup: `project-skill` §12 + `references/mockup-design-language.md` (viewConfig, home shortcuts, chip/star/chevron pattern).
 
 ## Phase 2 — Accessibility audit (WCAG 2.2)
 

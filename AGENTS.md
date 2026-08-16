@@ -80,6 +80,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - **Search dùng chung `.list-search` (2026-08-11, d6b0516)**: viewTasks `#listSearch` + `#btnListSearch` + `#btnListSearchClear` nằm trong `task-list-toolbar` (hàng DANH SÁCH TASK trong card, `margin-left:auto` ép phải kể cả wrap) — KHÔNG còn trong `.view-topbar`; viewStaff `#staffSearch` + viewScan `#scanSearch` cũng dùng chung class `.list-search` (đã xóa `.att-search`). Hàm `runListSearch()` (nhánh con `runSearchStaff`/`runSearchTask` GIỮ tên) + `onListSearchKeydown` (Escape clear). CSS `.list-search` (style sáng hợp card).
 - **Spinner toàn màn**: `showModalSpin` có guard — nếu `#loadingOverlay` đang hiện thì KHÔNG mở spinModal (tránh 2 spinner đè nhau; khởi động refreshAll mở spinModal trong lúc overlay còn hiện — fix 2026-08-11).
 - **Scroll trong card**: các view dùng `.table-wrap`/`.stats-table-wrap` cuộn nội bộ; `#viewAbout .card` + `#viewStats .card` giới hạn `max-height` + cuộn trong (đồng bộ 2026-08-11) — giữ `pageScrolls:false`.
+- **Mobile card — rule desktop rò rỉ (2026-08-16)**: rule cột desktop (`#reportsTable td:nth-child(5-9)` text-align:center, specificity 1,1,1) thắng base mobile (`#reportsTable tbody td`, 1,0,2) bất kể thứ tự khai báo → card lệch tông. Ép override bằng selector cao hơn `tbody td:nth-child(n)` (1,2,1) + `text-align:left`.
 
 ## 6. Workflow — fix & verify
 
