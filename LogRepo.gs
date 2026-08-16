@@ -76,6 +76,7 @@ function readLogRows_(taskId) {
 function searchLogsByStaff(rawStaffId) {
   const sid = normalizeStaffId(rawStaffId);
   if (!sid) return [];
+  if (!requireRole_('manager')) return [];  // M1: gate service-layer — google.script.run gọi trực tiếp hàm global phải bị chặn (không chỉ ở wrapper)
   // Cache 15s theo staffId — tìm cùng mã liên tiếp không quét lại toàn sheet log
   // (sheet lớn = vài giây GAS); kết quả join task meta từ readTaskList_ (cache 30s).
   return cachedJson_(CACHE_KEYS.SEARCH_STAFF + sid, function () {

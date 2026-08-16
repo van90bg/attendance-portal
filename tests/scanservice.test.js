@@ -45,6 +45,9 @@ function makeCtx(overrides) {
     readStaffIndex_: () => STAFF_INDEX,
     computeCounters: () => ({ scanned: 0, absent: 0, extra: 0, total: 0 }),
     isEditor_: () => false,
+    // M2: scanStaff giờ tự gate requireRole_('operator') — loader này không load Auth.gs
+    // nên stub (user 'web' = operator mặc định → qua gate, giữ focus test logic quét).
+    requireRole_: () => true,
     canScanOpen_: (cfg, createdBy, activeEmail, isAdmin) => {
       if (isAdmin) return true;
       const cb = String(createdBy || '').trim().toLowerCase();

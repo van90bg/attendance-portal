@@ -16,6 +16,7 @@ function scanStaff(taskId, rawStaffId) {
   // Queue quét 2.5s/item — cần số liệu thật trước khi tối ưu thêm.
   const t0 = Date.now();
   const staffId = normalizeStaffId(rawStaffId);
+  if (!requireRole_('operator')) return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)', status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };  // M2: gate service-layer (bypass-proof)
   // Chỉ chấp nhận mã barcode NV bắt đầu "Ops" (case-insensitive).
   if (!isValidBarcodeId(staffId)) {
     console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, phase: 'reject-format', ms: Date.now() - t0 });
