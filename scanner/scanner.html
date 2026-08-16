@@ -200,7 +200,14 @@
     window.addEventListener('message', function (e) {
       if (e.source !== window.opener) return;
       var d = e.data;
-      if (!d || d.source !== 'spx-app' || !d.result) return;
+      if (!d || d.source !== 'spx-app') return;
+      // App báo task đã kết thúc (quét xong) → tự đóng tab.
+      if (d.action === 'close') {
+        window.close();
+        setTimeout(function () { setStatus('Task đã kết thúc — hãy tự đóng tab này', 'err'); }, 400);
+        return;
+      }
+      if (!d.result) return;
       showResult(d.result);
     });
 

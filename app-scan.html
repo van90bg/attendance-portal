@@ -39,6 +39,10 @@
       CURRENT_TASK.phase = CURRENT_TASK.status === TASK_STATUS_C.ATTEND ? 'attend'
         : (CURRENT_TASK.status === TASK_STATUS_C.DONE ? 'done' : 'open');
     }
+    // Task kết thúc → tự đóng tab scanner ngoài (nếu mở cho chính task này).
+    if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.DONE && EXTERNAL_SCAN_TASK_ID === CURRENT_TASK.taskId) {
+      closeExternalScanner();
+    }
     CURRENT_LOG = safeArr(data.log);
     SCAN_PAGE = 1; // dữ liệu mới (task vừa mở) → về trang đầu
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
@@ -907,6 +911,7 @@
             BUSY = false;
             if (res.ok) {
               invalidateClientCaches_();
+              closeExternalScanner();   // task kết thúc → tự đóng tab scanner ngoài
               showToast(res.message, false);
               // C: silent=true → KHÔNG reset UI (skeleton/ẩn table) — chỉ render view mới lên view cũ (mượt, không nháy toàn bộ)
               loadTaskDetail(CURRENT_TASK.taskId, true);
@@ -1038,6 +1043,7 @@
     catch (e) { return ''; }
   })();
   var EXTERNAL_SCAN_WIN = null;
+  var EXTERNAL_SCAN_TASK_ID = null;   // task lúc mở scanner — tự đóng khi task này DONE
   var CAMERA_LIB_URL = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
 
   function ensureCameraLib(cb) {
@@ -1067,12 +1073,15 @@
       return;
     }
     // window.open trong user gesture trực tiếp → không bị chặn popup.
+    EXTERNAL_SCAN_TASK_ID = CURRENT_TASK ? CURRENT_TASK.taskId : null;
     EXTERNAL_SCAN_WIN = window.open(SCANNER_URL, 'spx-external-scanner');
   }
 
   // Nhận mã từ scanner tab ngoài — validate origin (chống giả mã) + payload, reuse submitScan().
   function onExternalScanMessage(e) {
     if (!EXTERNAL_SCAN_ORIGIN || e.origin !== EXTERNAL_SCAN_ORIGIN) return;
+    // Siết thêm: chỉ nhận message từ đúng cửa sổ scanner đang mở (null sau reload → bỏ qua check).
+    if (EXTERNAL_SCAN_WIN && e.source !== EXTERNAL_SCAN_WIN) return;
     var d = e.data;
     if (!d || d.source !== 'spx-scan') return;
     // Scanner báo đóng: opener đóng child (luôn được phép, kể cả khi child tự close() bị chặn).
@@ -1085,6 +1094,11 @@
     }
     var code = String(d.code || '').trim();
     if (!code) return;
+    // App đang không ở task nào (đổi view/task giữa chừng) → báo về scanner, không drop im lặng.
+    if (!CURRENT_TASK) {
+      notifyExternalScanner({ code: code, ok: false, message: 'Chưa mở task — mở task trong app rồi quét' });
+      return;
+    }
     var inp = document.getElementById('scanInput');
     if (inp) inp.value = code;
     submitScan();   // validate Ops + enqueue + optimistic + counters
@@ -1097,6 +1111,17 @@
     var win = EXTERNAL_SCAN_WIN;
     if (!win || win.closed) return;
     try { win.postMessage({ source: 'spx-app', result: p }, EXTERNAL_SCAN_ORIGIN || '*'); } catch (e) {}
+  }
+
+  // Đóng tab scanner ngoài — task kết thúc (quét xong). Gửi thông báo để scanner tự
+  // đóng (dọn camera sạch) + opener close() dự phòng (luôn được phép).
+  function closeExternalScanner() {
+    var win = EXTERNAL_SCAN_WIN;
+    if (win && !win.closed) {
+      try { win.postMessage({ source: 'spx-app', action: 'close' }, EXTERNAL_SCAN_ORIGIN || '*'); } catch (e) {}
+      try { win.close(); } catch (e) {}
+    }
+    EXTERNAL_SCAN_WIN = null;
   }
 
   // ===== Chụp ảnh + decode (fallback camera bị chặn trong iframe GAS) =====
@@ -1120,11 +1145,20 @@
     });
   }
 
+  // Html5Qrcode.scanFile append container placeholder vào #photoScanReader mỗi lần decode
+  // (vô hại thị giác) — dọn sau mỗi lần xử lý ảnh.
+  function clearPhotoScanReader_() {
+    var pr = document.getElementById('photoScanReader');
+    if (pr) pr.innerHTML = '';
+  }
   function onPhotoPicked() {
     var inp = document.getElementById('photoInput');
     var file = inp && inp.files && inp.files[0];
     if (!file) return;
-    if (PHOTO_SCANNED) return;          // guard: 1 ảnh / lần
+    if (PHOTO_SCANNED) {
+      showToast('Đang xử lý ảnh trước — chờ giây lát', true);   // không drop im lặng
+      return;
+    }
     if (!window.Html5Qrcode) {
       showToast('Thư viện đọc ảnh chưa sẵn sàng', true);
       return;
@@ -1133,6 +1167,7 @@
     showToast('Đang đọc ảnh…');
     decodePhoto(file).then(function (code) {
       PHOTO_SCANNED = false;
+      clearPhotoScanReader_();
       var text = String(code || '').trim();
       if (!text) {
         showToast('Không tìm thấy mã trong ảnh — chụp sát mã hơn, đủ sáng', true);
@@ -1144,6 +1179,7 @@
       submitScan();                     // reuse luồng quét chuẩn (validate + enqueue + optimistic)
     }).catch(function (e) {
       PHOTO_SCANNED = false;
+      clearPhotoScanReader_();
       var msg = e && e.message ? String(e.message) : '';
       if (/not found|no .*(code|barcode|qr)|unable to parse/i.test(msg)) {
         showToast('Không tìm thấy mã trong ảnh — chụp sát mã hơn, đủ sáng', true);
