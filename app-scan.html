@@ -478,6 +478,7 @@
       var lockMsg = scanOwnerLocked
         ? 'Chỉ owner mới quét được ở phase Mở (task này)'
         : (CURRENT_TASK.phase === TASK_STATUS_C.DONE ? 'Task đã kết thúc' : 'Hàng đợi đang đầy — chờ giây lát');
+      notifyExternalScanner({ code: (input.value || '').trim(), ok: false, message: lockMsg });
       showToast(lockMsg, true);
       playBeep('error');
       input.value = '';
@@ -489,6 +490,7 @@
     // 2-phase: chặn chỉ khi task DONE (Xong). Phase OPEN (ghi Giờ có mặt) và
     // ATTEND (ghi Giờ quét) đều cho quét. Tab khác kết thúc task giữa chừng → server reject.
     if (CURRENT_TASK.phase === TASK_STATUS_C.DONE) {
+      notifyExternalScanner({ code: (input.value || '').trim(), ok: false, message: 'Task đã kết thúc' });
       showToast('Task đã kết thúc', true);
       playBeep('error');
       document.getElementById('scanInput').value = '';
@@ -497,6 +499,7 @@
     }
     // P2: chặn khi queue đầy — tránh backlog tăng mãi (2.5s/item)
     if (SCAN_QUEUE.length >= SCAN_QUEUE_MAX) {
+      notifyExternalScanner({ code: (input.value || '').trim(), ok: false, message: 'Hàng đợi đang đầy — chờ giây lát' });
       input.value = '';  // I8: không giữ backlog — xoá ngay
       showToast('Hàng đợi đang đầy — chờ giây lát', true);
       playBeep('error');
@@ -509,6 +512,7 @@
     // Ví dụ hợp lệ: Ops6219, Ops000001. Sai: OpsABC, OPS, Ops12a.
     // Check client-side TRƯỚC khi vào queue → 0ms, không gọi server → KHÔNG làm chậm scan.
     if (!BARCODE_ID_RE.test(staffId)) {
+      notifyExternalScanner({ code: staffId, ok: false, message: 'Sai mã — phải bắt đầu bằng Ops + số' });
       showToast('Mã phải bắt đầu bằng "Ops" và chỉ chứa số, ví dụ: Ops6219', true);
       playBeep('error');
       showScanCard('Sai mã', { staffId: staffId }, 'err');
@@ -534,6 +538,7 @@
     if (target) {
       if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
         if (Number(target.timeScanEpoch) > 0) {
+          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã điểm danh' });
           showToast('Đã điểm danh', true);
           playBeep('error');
           showScanCard('Đã điểm danh', target, 'warn');
@@ -541,6 +546,7 @@
         }
       } else {
         if (Number(target.timeRefEpoch) > 0) {
+          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã có mặt' });
           showToast('Đã có mặt', true);
           playBeep('error');
           showScanCard('Đã có mặt', target, 'warn');
@@ -765,6 +771,13 @@
           playBeep('error');
           showToast(res.message, true);
         }
+        notifyExternalScanner({
+          code: item.staffId,
+          ok: true,
+          name: res.staffName || (item.target && item.target.staffName) || item.staffId,
+          status: res.status || item.optimisticStatus || '',
+          time: res.timeScanText || res.timeRefText || ''
+        });
         syncCounters(res.counters);
         renderScanTable(CURRENT_LOG);
         updateFinishBtnState();
@@ -781,6 +794,7 @@
         }
         rollback();
         playBeep('error');
+        notifyExternalScanner({ code: item.staffId, ok: false, message: 'Lỗi quét: ' + err.message });
         showToast('Lỗi quét: ' + err.message, true);
         syncCounters(null);
         renderScanTable(CURRENT_LOG);
@@ -1061,6 +1075,14 @@
     if (!EXTERNAL_SCAN_ORIGIN || e.origin !== EXTERNAL_SCAN_ORIGIN) return;
     var d = e.data;
     if (!d || d.source !== 'spx-scan') return;
+    // Scanner báo đóng: opener đóng child (luôn được phép, kể cả khi child tự close() bị chặn).
+    if (d.action === 'close') {
+      if (EXTERNAL_SCAN_WIN && !EXTERNAL_SCAN_WIN.closed) {
+        try { EXTERNAL_SCAN_WIN.close(); } catch (err) {}
+      }
+      EXTERNAL_SCAN_WIN = null;
+      return;
+    }
     var code = String(d.code || '').trim();
     if (!code) return;
     var inp = document.getElementById('scanInput');
@@ -1068,6 +1090,14 @@
     submitScan();   // validate Ops + enqueue + optimistic + counters
   }
   window.addEventListener('message', onExternalScanMessage);
+
+  // Gửi kết quả quét về tab scanner ngoài (nếu đang mở) — NV quét thấy tên + trạng
+  // thái ngay trên tab, không phải ngó về app. origin đích = origin đã validate.
+  function notifyExternalScanner(p) {
+    var win = EXTERNAL_SCAN_WIN;
+    if (!win || win.closed) return;
+    try { win.postMessage({ source: 'spx-app', result: p }, EXTERNAL_SCAN_ORIGIN || '*'); } catch (e) {}
+  }
 
   // ===== Chụp ảnh + decode (fallback camera bị chặn trong iframe GAS) =====
   // input[type=file capture=environment] không cần permission policy camera → mở thẳng

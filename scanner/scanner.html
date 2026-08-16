@@ -55,8 +55,14 @@
     padding: 8px 14px 14px; font-size: 13px; color: #94a3b8;
     border-top: 1px solid #334155;
   }
-  #sent .row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-variant-numeric: tabular-nums; }
-  #sent .row b { color: #4ade80; font-weight: 600; }
+  #sent .row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+  #sent .code { font-weight: 700; color: #e2e8f0; min-width: 74px; }
+  #sent .name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1; }
+  #sent .time { color: #64748b; }
+  #sent .badge { padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  #sent .badge.ok { background: rgba(74, 222, 128, .15); color: #4ade80; }
+  #sent .badge.warn { background: rgba(251, 146, 60, .15); color: #fb923c; }
+  #sent .badge.err { background: rgba(248, 113, 113, .15); color: #f87171; }
   @media (prefers-reduced-motion: reduce) {
     .reticle::after { animation: none; }
   }
@@ -127,18 +133,66 @@
       countEl.textContent = SENT_COUNT + ' mã';
       beep();
       setStatus('Đã gửi: ' + code, 'ok');
-      var t = new Date();
-      var hm = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2) + ':' + ('0' + t.getSeconds()).slice(-2);
+      addRow(code, '', '…', '', '');
+    }
+    function fmtTime(d) {
+      return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+    }
+    function addRow(code, name, statusText, cls, time) {
       var row = document.createElement('div');
       row.className = 'row';
-      row.innerHTML = '<span>' + esc(code) + '</span><b>' + hm + '</b>';
+      row.setAttribute('data-code', code);
+      row.innerHTML = '<span class="code">' + esc(code) + '</span>' +
+        '<span class="name">' + esc(name) + '</span>' +
+        '<span class="badge ' + (cls || '') + '">' + esc(statusText || '…') + '</span>' +
+        '<span class="time">' + esc(time || fmtTime(new Date())) + '</span>';
       sentEl.insertBefore(row, sentEl.firstChild);
       if (sentEl.children.length > 40) sentEl.removeChild(sentEl.lastChild);
     }
+    // Nhận kết quả từ app (sau khi server xử lý): tên NV + trạng thái — cập nhật banner + dòng.
+    // Chỉ tin message từ window.opener (chính app đã mở tab này).
+    function showResult(r) {
+      var code = String(r.code || '').trim();
+      var name = String(r.name || '').trim();
+      var status = String(r.status || '').trim();
+      if (status === '-') status = 'Chưa điểm danh';
+      var msg = String(r.message || '').trim();
+      var time = String(r.time || '').trim();
+      var ok = !!r.ok;
+      var badgeText = ok ? status : (msg || 'Lỗi');
+      var badgeCls = ok ? (status === 'Dư' ? 'warn' : 'ok') : 'err';
+      if (ok) {
+        setStatus((name ? name + ' — ' : '') + (status || 'Đã điểm danh') + (time ? ' · ' + time : ''), 'ok');
+      } else {
+        setStatus(msg || 'Không điểm danh được', 'err');
+      }
+      var rows = sentEl.children;
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].getAttribute('data-code') === code) {
+          var nm = rows[i].querySelector('.name');
+          var bd = rows[i].querySelector('.badge');
+          if (nm && name) nm.textContent = name;
+          if (bd) { bd.textContent = badgeText; bd.className = 'badge ' + badgeCls; }
+          return;
+        }
+      }
+      addRow(code, name, badgeText, badgeCls, time);
+    }
+    window.addEventListener('message', function (e) {
+      if (e.source !== window.opener) return;
+      var d = e.data;
+      if (!d || d.source !== 'spx-app' || !d.result) return;
+      showResult(d.result);
+    });
+
     function closeSelf() {
-      // window.close() chỉ hoạt động với tab do script mở — đúng trường hợp này.
+      // Báo app đóng tab (opener đóng child luôn được phép) — rồi tự close() nếu được.
+      var target = window.opener;
+      if (target) {
+        try { target.postMessage({ source: 'spx-scan', action: 'close' }, '*'); } catch (e) {}
+      }
       window.close();
-      setTimeout(function () { setStatus('Trình duyệt chặn tự đóng — hãy tự đóng tab này', 'err'); }, 300);
+      setTimeout(function () { setStatus('Trình duyệt chặn tự đóng — hãy tự đóng tab này', 'err'); }, 400);
     }
     function start() {
       if (!window.Html5Qrcode) { setStatus('Không tải được thư viện quét (kiểm tra mạng)', 'err'); return; }
