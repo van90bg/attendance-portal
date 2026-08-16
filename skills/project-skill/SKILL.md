@@ -61,7 +61,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## 5. UI labels & modal (2026-08-07/08)
 
-- Counter OPEN phase label "Chờ có mặt" (KHÔNG "Chờ điểm danh"). Chain: OPEN → Chờ có mặt → ATTEND → Chưa điểm danh → DONE → Vắng.
+- Counter OPEN phase label "Chưa điểm danh" = presentAt (xanh primary — đang chờ), KHÔNG "Có mặt" ("Có mặt" chỉ dành cho người đã quét lần 2 ở phase2). Chain: OPEN → Chưa điểm danh (xanh) → ATTEND → Chưa điểm danh → DONE → Vắng.
 - Table headers Vietnamese: Ngày · Mã NV · Tên NV · Ca · Team · Giờ có mặt · Giờ quét · Trạng thái. (StaffData table riêng — xem §9.)
 - FREE description: "Quét lần 1 lấy danh sách, lần 2 điểm danh; NV lần 2 chưa có lần 1 → Dư."
 - Task type badge: FREE → 'Quét tự do' (purple), RECONCILE → 'Đối chiếu' (blue). List order: STT, Mã task, Loại, Station, Team, Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác.

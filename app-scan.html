@@ -159,22 +159,22 @@
       document.getElementById('cScanned').textContent = c.scanned || 0;
       document.getElementById('cAbsent').textContent = c.absent || 0;
       document.getElementById('cExtra').textContent = c.extra || 0;
-      // Label + màu động theo phase: phase1 (Mở) → counter "Có mặt" dùng presentAt (xanh);
-      // phase2 chưa kết thúc → "Chưa điểm danh" (vàng); DONE → "Vắng" (đỏ).
+      // Label + màu động theo phase: phase1 (Mở) → counter "Chưa điểm danh" = presentAt (xanh);
+      // phase2 chưa kết thúc → "Chưa điểm danh" = absent; DONE → "Vắng" (đỏ).
       var absentCounter = document.querySelector('.counter.absent');
       var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
       if (lbl && CURRENT_TASK) {
-        // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chờ có mặt'.
+        // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chưa điểm danh'.
         var isDone = CURRENT_TASK.status === TASK_STATUS_C.DONE || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
         if (isDone) {
           lbl.textContent = 'Vắng';
           absentCounter.classList.add('absent');
           absentCounter.classList.remove('waiting');
         } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
-          // phase OPEN: dùng presentAt (có mặt) thay vì absent; label đổi sang "Có mặt", màu primary.
+          // phase OPEN: counter giữa = presentAt (đã quét Giờ có mặt, đang chờ Giờ quét) — label khớp scanCard "Chưa điểm danh".
           var presentAt = c.presentAt || 0;
           document.getElementById('cAbsent').textContent = presentAt;
-          lbl.textContent = 'Có mặt';
+          lbl.textContent = 'Chưa điểm danh';
           absentCounter.classList.add('waiting');
           absentCounter.classList.remove('absent');
         } else { // ATTEND (phase) — chưa kết thúc
@@ -431,7 +431,7 @@
       else if (!hasScan) a++;
     });
     // D2 (review 2026-08-11): presentAt đủ shape như server computeCounters —
-    // trước thiếu → 'Có mặt' counter = 0 trong phase OPEN đến khi server trả res.counters.
+    // trước thiếu → 'Chưa điểm danh' counter = 0 trong phase OPEN đến khi server trả res.counters.
     CURRENT_COUNTERS = { scanned: s, absent: a, extra: e, presentAt: p };
     renderCounters(CURRENT_COUNTERS);
   }
@@ -924,7 +924,7 @@
     // mobile ẩn khi card hẹp — container query, đủ không gian mới hiện).
     var _agency = '';
     var _rec = target && target.staffId ? (CLIENT_STAFF_INDEX[String(target.staffId).toUpperCase()] || null) : null;
-    if (_rec && _rec.agency) _agency = '<span class="sc-agency"> - ' + esc(_rec.agency) + '</span>';
+    if (_rec && _rec.agency) _agency = '<span class="sc-agency">' + esc(_rec.agency) + '</span>';
     return '<div class="sc-status">' + esc(_st) + '</div>' +
       '<div class="sc-name">' + esc(target.staffName || target.staffId) + _agency + '</div>' +
       '<div class="sc-meta">Mã: ' + esc(target.staffId) +

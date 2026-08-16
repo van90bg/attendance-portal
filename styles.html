@@ -366,7 +366,7 @@
     }
     .counter.scanned { border-color: var(--success); }
     .counter.absent { border-color: var(--danger); }   /* DONE: Vắng (đỏ) */
-    .counter.waiting { border-color: var(--primary); } /* Mở: Chờ có mặt (xanh) */
+    .counter.waiting { border-color: var(--primary); } /* Mở: Chờ điểm danh (xanh) */
     .counter.extra { border-color: var(--amber-dark); } /* Dư (cam đậm) — khớp scanCard.extra */
     .counter.scanned .num { color: var(--success); }
     .counter.absent .num { color: var(--danger); }
@@ -586,7 +586,7 @@
     .scan-card.pending .sc-status { color: var(--primary); }
     .scan-card.pending { border-color: var(--primary); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
     .scan-card .sc-name { font-size: 30px; font-weight: 800; line-height: 1.25; margin-top: 2px; }
-    .scan-card .sc-agency { font-weight: 400; color: var(--muted); }  /* FIX(2026-08-14): Agency sau tên NV — vd 'Đoàn Hoàng Phát - SKT' */
+    .scan-card .sc-agency { display: block; font-size: 18px; font-weight: 400; color: var(--muted); margin-top: 2px; }  /* FIX(2026-08-16): Agency xuống dòng riêng — vd 'Đoàn Hoàng Phát' + dòng 'SKT' */
     .scan-card .sc-meta { font-size: 14px; color: var(--muted); margin-top: 4px; }
     /* FIX(2026-08-14): đủ không gian mới hiện Agency — card hẹp (điện thoại nhỏ) ẩn để tên không ôm/tràn */
     @container (max-width: 300px) {

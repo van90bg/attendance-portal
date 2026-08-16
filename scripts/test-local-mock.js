@@ -175,7 +175,7 @@ async function main() {
   const VS = vs.err ? null : JSON.parse(vs.value);
   check('openScan → viewScan hiển thị', !!(VS && VS.visible), open.value || open.err);
   check('scanTable có dòng log', !!(VS && VS.rows >= 1), VS ? VS.rows + ' rows' : vs.err);
-  // Client phase OPEN: counter giữa hiển thị presentAt (số NV có Giờ có mặt, label "Có mặt")
+  // Client phase OPEN: counter giữa hiển thị presentAt (số NV có Giờ có mặt, label "Chưa điểm danh")
   // — KHÔNG phải absent. scanned đếm MỌI row timeScanEpoch>0 kể cả Dư phase 2 (khớp server
   // computeCounters) → scanned = 2 NV + 1 Dư = 3. Mock: presentAt=2, extra=1.
   check('Counter ban đầu (mock 6 dòng log: 2 quét / 3 chưa / 1 dư) → S:3 A:2 E:1',
