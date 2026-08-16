@@ -1150,7 +1150,8 @@
     @media (max-width: 640px) {
       #reportsTable thead { display: none; }
       #reportsTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
-      #reportsTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }  /* FIX(2026-08-16): đồng bộ hệt scanTable (block + label chảy cùng dòng) */
+      #reportsTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }
+      #reportsTable tbody td:nth-child(n) { text-align: left; }  /* thắng desktop td:nth-child(5-9) center (1,1,1) — card đồng bộ scan/task/staff */
       #reportsTable tbody td[data-label="Station"]::before,
       #reportsTable tbody td[data-label="Giờ công"]::before,
       #reportsTable tbody td[data-label="Giờ vào"]::before,
