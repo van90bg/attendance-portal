@@ -136,7 +136,7 @@
     var b = document.getElementById('cfgSaveBtn');
     if (b) {
       b.classList.toggle('cfg-save-dirty', !!CFG_DIRTY);
-      b.disabled = !CFG_DIRTY;  // B3 (2026-08-13): nút Lưu tắt khi không có thay đổi chưa lưu
+      b.disabled = !CFG_DIRTY;  // nút Lưu tắt khi chưa có thay đổi
     }
     // P2 (2026-08-16): nút "Hủy thay đổi" RIÊNG khi dirty — thay cơ chế đổi nhãn Làm mới (dễ bỡ ngỡ)
     var d = document.getElementById('cfgDiscardBtn');

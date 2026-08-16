@@ -116,7 +116,7 @@
       .withSuccessHandler(function (res) {
         if (seq !== SCAN_LOAD_SEQ) return; // response của task cũ — bỏ qua
         if (!res.ok) {
-          hideLoadingOverlay();  // I5: ẩn spinner ngay cả khi res.ok === false
+          hideLoadingOverlay();  // ẩn cả khi res.ok === false — không kẹt spinner
           if (!silent) { showToast(res.message, true); backToList(); }
           else {
             // P3-12: silent fail (finishTask) → render lại view tươi (không kẹt UI OPEN)
@@ -131,12 +131,12 @@
         if (silent && scanBusy()) { _pendingSilentReload = taskId; BG_TASKS.silent = 1; updateBgIndicator(); return; } // m4: hoãn, reload khi queue idle
         renderScanView(res);
         LAST_SCAN_VIEW = { taskId: taskId, ts: Date.now() };
-        hideLoadingOverlay();  // P2: load xong → ẩn spinner
+        hideLoadingOverlay();
       })
       .withFailureHandler(function (err) {
-        markServerFail();  // P2: RPC fail → server offline
+        markServerFail();
         if (seq !== SCAN_LOAD_SEQ) return; // response của task cũ — bỏ qua
-        hideLoadingOverlay();  // P2: load lỗi cũng ẩn spinner
+        hideLoadingOverlay();  // ẩn cả khi lỗi — không kẹt spinner
         if (silent) return; // RPC nền lỗi — giữ view đang hiển thị (cache) — không phá UX
         var skel = document.getElementById('scanSkeleton');
         var tbl = document.getElementById('scanTable');
@@ -773,7 +773,7 @@
         processScanQueue();
       })
       .withFailureHandler(function (err) {
-        markServerFail();  // P2: RPC fail → server offline
+        markServerFail();
         SCAN_PROCESSING = false;
         if (!CURRENT_TASK || CURRENT_TASK.taskId !== item.taskId) {
           processScanQueue();
@@ -903,7 +903,7 @@
             }
           })
           .withFailureHandler(function (err) {
-            markServerFail();  // P2: RPC fail → server offline
+            markServerFail();
             BUSY = false;
             if (btn) btn.disabled = false;
             showToast('Lỗi kết thúc: ' + err.message, true);

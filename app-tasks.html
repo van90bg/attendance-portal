@@ -37,7 +37,7 @@
         syncHeaderH();  // FIX(2026-08-09): title/user đã render xong — đo lại header thật (--header-h)
       })
       .withFailureHandler(function (err) {
-        markServerFail();  // P2: RPC fail = server unreachable → netDot offline
+        markServerFail();
         hideLoadingOverlay();
         showToast('Lỗi tải meta: ' + err.message, true);
         refreshAll();
@@ -56,13 +56,13 @@
     _refreshPending--;
     if (_refreshPending > 0) return;  // còn RPC kia chưa xong — giữ khóa
     _refreshLock = false;
-    hideModalSpin();  // B3: đóng spinModal khi toàn bộ refresh xong
+    hideModalSpin();
     var btn = document.getElementById('btnRefresh');
     if (btn) { btn.disabled = false; btn.style.opacity = ''; }
   }
   function refreshAll() {
     if (_refreshLock) return;  // đang load rồi — bỏ qua, tránh chồng RPC
-    showModalSpin('Đang làm mới…');  // B3: spinModal khi bấm Làm mới (ẩn ở _releaseRefreshLock)
+    showModalSpin('Đang làm mới…');  // ẩn ở _releaseRefreshLock
     _refreshLock = true;
     _refreshPending = 2;  // loadFilterOptions + loadTaskList
     // Finding#1 (2026-08-12): stats/data — refreshAll còn fire RPC thứ 3 loadStaffView.
@@ -99,7 +99,7 @@
         if (SEL.station === '' && anyModalOpen()) applySelDefaults();
 
         renderAllCols();  // refresh 4 cột khi data mới về (nếu modal đang mở)
-        markServerOk();  // RPC success → server sống lại (netDot hồi phục — phủ cả trường hợp chỉ load options)
+        markServerOk();  // phủ cả trường hợp chỉ load options
         _releaseRefreshLock();
       })
       .withFailureHandler(function (err) { markServerFail(); _releaseRefreshLock(); showToast('Lỗi tải options: ' + err.message, true); })
@@ -421,11 +421,11 @@
         LAST_TASK_LIST = { tasks: safeArr(tasks), ts: Date.now() };  // cập nhật cache
         try { renderTaskList_(safeArr(tasks)); }
         catch (e) { showToast('Lỗi hiển thị danh sách: ' + (e && e.message ? e.message : e), true); }
-        markServerOk();  // P2: RPC thành công → server sống lại → netDot hồi phục
+        markServerOk();
         _releaseRefreshLock();  // P2: RPC xong → nhả lock refresh (nếu dở)
       })
       .withFailureHandler(function (err) {
-        markServerFail();  // P2: RPC fail → server offline
+        markServerFail();
         _releaseRefreshLock();
         // Cache-reuse: RPC nền lỗi → giữ bảng đang hiển thị (cache), không phá UX
         if (!cacheHit) {
@@ -575,7 +575,7 @@
                 }
                 LAST_SEARCH_ROWS = [];
                 renderSearchResults_([]);
-                markServerOk();  // RPC success → server sống (chỉ là thiếu quyền)
+                markServerOk();  // server sống — chỉ thiếu quyền
                 return;
               }
               LAST_SEARCH_ROWS = safeArr(res.rows);
@@ -726,7 +726,7 @@
         }
       })
       .withFailureHandler(function (err) {
-        markServerFail();  // P2: RPC fail → server offline
+        markServerFail();
         BUSY = false;
         if (btn) btn.disabled = false;
         showToast('Lỗi tạo task: ' + err.message, true);
@@ -748,7 +748,7 @@
       loadTaskDetail(taskId, true);  // RPC nền — sync dữ liệu mới nhất (nếu có thay đổi)
       return;
     }
-    showModalSpin('Đang tải chi tiết…');  // B3: spinModal thay loadingOverlay (chỉ dùng overlay khi mở app)
+    showModalSpin('Đang tải chi tiết…');  // spinModal thay loadingOverlay (chỉ dùng overlay khi mở app)
     loadTaskDetail(taskId);
   }
 
