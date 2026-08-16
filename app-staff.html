@@ -60,26 +60,26 @@
     var pageRows = rows.slice(startIdx, startIdx + STAFF_PAGE_SIZE);
     var trs = pageRows.map(function (r, i) {
       return '<tr>' +
-        '<td>' + esc(r.no || (startIdx + i + 1)) + '</td>' +
-        '<td>' + esc(r.date) + '</td>' +
-        '<td><b>' + esc(r.staffId) + '</b></td>' +
-        '<td>' + esc(r.staffName) + '</td>' +
-        '<td>' + esc(r.staffEmail) + '</td>' +
-        '<td>' + esc(r.agency) + '</td>' +
-        '<td>' + esc(r.contractType) + '</td>' +
-        '<td>' + esc(r.eventId) + '</td>' +
-        '<td>' + esc(r.matchingType) + '</td>' +
-        '<td>' + esc(r.gender) + '</td>' +
-        '<td>' + esc(r.department) + '</td>' +
-        '<td>' + fmtClockHMS(r.cardIn) + '</td>' +
-        '<td>' + fmtClockHMS(r.cardOut) + '</td>' +
-        '<td>' + esc(r.actualHours) + '</td>' +
-        '<td>' + esc(r.cardInRemark) + '</td>' +
-        '<td>' + esc(r.cardOutRemark) + '</td>' +
-        '<td>' + esc(r.slotCode) + '</td>' +
-        '<td>' + esc(r.workstation) + '</td>' +
-        '<td>' + esc(r.team) + '</td>' +
-        '<td>' + esc(r.station) + '</td>' +
+        '<td data-label="No.">' + esc(r.no || (startIdx + i + 1)) + '</td>' +
+        '<td data-label="Date">' + esc(r.date) + '</td>' +
+        '<td data-label="Staff ID"><b>' + esc(r.staffId) + '</b></td>' +
+        '<td data-label="Staff Name">' + esc(r.staffName) + '</td>' +
+        '<td data-label="Staff Email">' + esc(r.staffEmail) + '</td>' +
+        '<td data-label="Agency">' + esc(r.agency) + '</td>' +
+        '<td data-label="Contract Type">' + esc(r.contractType) + '</td>' +
+        '<td data-label="Event ID">' + esc(r.eventId) + '</td>' +
+        '<td data-label="Matching Type">' + esc(r.matchingType) + '</td>' +
+        '<td data-label="Gender">' + esc(r.gender) + '</td>' +
+        '<td data-label="Department">' + esc(r.department) + '</td>' +
+        '<td data-label="Clock In">' + fmtClockHMS(r.cardIn) + '</td>' +
+        '<td data-label="Clock Out">' + fmtClockHMS(r.cardOut) + '</td>' +
+        '<td data-label="Actual Hours">' + esc(r.actualHours) + '</td>' +
+        '<td data-label="Clock In Remark">' + esc(r.cardInRemark) + '</td>' +
+        '<td data-label="Clock Out Remark">' + esc(r.cardOutRemark) + '</td>' +
+        '<td data-label="Slot Code">' + esc(r.slotCode) + '</td>' +
+        '<td data-label="Workstation">' + esc(r.workstation) + '</td>' +
+        '<td data-label="Team">' + esc(r.team) + '</td>' +
+        '<td data-label="Station">' + esc(r.station) + '</td>' +
         '</tr>';
     }).join('');
     body.innerHTML = trs;

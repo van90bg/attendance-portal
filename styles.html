@@ -1180,6 +1180,44 @@
       .stats-table td { font-size: 15px; padding: 6px 8px; }  .stats-table th { font-size: 15px; }  .stats-col-title { font-size: 15px; }  #staffTable th { font-size: 15px; }  #viewAbout .about-body { font-size: 15px; }  #viewAbout .about-table { font-size: 15px; }  /* FIX(2026-08-16): đồng bộ cỡ chữ mobile 15px family — Thống kê (td/th/title) + staff th + About */
     }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
+    /* Mobile viewStaff (≤640px, 2026-08-16): StaffData 20 cột → thẻ card 2 cột (đồng bộ scan/task/reports) —
+       dòng 1 Staff Name (16px) | Staff ID; dòng 2 Date | Agency; dòng 3 Contract Type | Department;
+       dòng 4 Clock In | Clock Out; dòng 5 Actual Hours | Slot Code; dòng 6 Team | Station. Ẩn cột ít dùng
+       (No/Email/Event ID/Matching/Gender/Remark/Workstation); thead ẩn → phễu lọc mất như task list. */
+    @media (max-width: 640px) {
+      #staffTable thead { display: none; }
+      #staffTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
+      #staffTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }
+      #staffTable tbody td:nth-child(-n+4) { position: static; box-shadow: none; }  /* hết sticky-left desktop — card không cuộn ngang */
+      /* Nhãn ': ' đủ — đồng bộ scan/task/reports (12px/600/muted) */
+      #staffTable tbody td[data-label="Date"]::before, #staffTable tbody td[data-label="Agency"]::before,
+      #staffTable tbody td[data-label="Contract Type"]::before, #staffTable tbody td[data-label="Department"]::before,
+      #staffTable tbody td[data-label="Clock In"]::before, #staffTable tbody td[data-label="Clock Out"]::before,
+      #staffTable tbody td[data-label="Actual Hours"]::before, #staffTable tbody td[data-label="Slot Code"]::before,
+      #staffTable tbody td[data-label="Team"]::before, #staffTable tbody td[data-label="Station"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }
+      /* Ẩn cột ít dùng trên mobile (tra cứu nhanh — chi tiết đầy đủ ở desktop) */
+      #staffTable tbody td[data-label="No."],
+      #staffTable tbody td[data-label="Staff Email"],
+      #staffTable tbody td[data-label="Event ID"],
+      #staffTable tbody td[data-label="Matching Type"],
+      #staffTable tbody td[data-label="Gender"],
+      #staffTable tbody td[data-label="Clock In Remark"],
+      #staffTable tbody td[data-label="Clock Out Remark"],
+      #staffTable tbody td[data-label="Workstation"] { display: none; }
+      /* Card 2 cột — dòng 1 Staff Name (16px) | Staff ID (muted, khớp OpsID scan) */
+      #staffTable tbody td[data-label="Staff Name"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--text); font-size: 16px; }
+      #staffTable tbody td[data-label="Staff ID"] { grid-column: 2; grid-row: 1; justify-self: start; font-weight: 600; color: var(--muted); }
+      #staffTable tbody td[data-label="Date"] { grid-column: 1; grid-row: 2; }
+      #staffTable tbody td[data-label="Agency"] { grid-column: 2; grid-row: 2; }
+      #staffTable tbody td[data-label="Contract Type"] { grid-column: 1; grid-row: 3; }
+      #staffTable tbody td[data-label="Department"] { grid-column: 2; grid-row: 3; }
+      #staffTable tbody td[data-label="Clock In"] { grid-column: 1; grid-row: 4; }
+      #staffTable tbody td[data-label="Clock Out"] { grid-column: 2; grid-row: 4; }
+      #staffTable tbody td[data-label="Actual Hours"] { grid-column: 1; grid-row: 5; }
+      #staffTable tbody td[data-label="Slot Code"] { grid-column: 2; grid-row: 5; }
+      #staffTable tbody td[data-label="Team"] { grid-column: 1; grid-row: 6; }
+      #staffTable tbody td[data-label="Station"] { grid-column: 2; grid-row: 6; }
+    }
     /* Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox */
     /* th-filter dùng chung staffTable + taskListTable (funnel phễu) */
     th.th-filter { position: relative; }
