@@ -431,6 +431,7 @@
     var ok = SERVER_OK && online;
     dot.className = 'net-dot' + (ok ? '' : ' offline');
     txt.textContent = SERVER_OK ? (online ? 'Online' : 'Offline') : 'Server lỗi';
+    dot.setAttribute('aria-label', 'Trạng thái mạng: ' + txt.textContent);
   }
   function markServerFail() {
     if (!SERVER_OK) return;
