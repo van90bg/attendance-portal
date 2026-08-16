@@ -2,6 +2,8 @@
 .freebuff/
 # build local (scripts/build-local.js) — temp, không commit
 index.local.html
+# codegraph cache (tool DB, local-only — không commit)
+.codegraph/
 
 # ===== Config / secrets (AGENTS.md rule 4 — không commit) =====
 .clasp.json
