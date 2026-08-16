@@ -90,7 +90,7 @@
       background: rgba(255,255,255,.08);
       max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    @media (max-width: 700px) { .header-user { display: none; } }  /* FIX(2026-08-09): 599→700 — giữ header 1 hàng khi hẹp (tránh tràn header) */
+    @media (max-width: 700px) { .header-user { display: none; } }  /* giữ header 1 hàng khi hẹp (tránh tràn header) */
     .btn {
       border: none;
       border-radius: 8px;
@@ -128,7 +128,7 @@
       border: 1px solid var(--border);
     }
     .btn-ghost:hover { background: var(--surface-soft); }
-    .btn-sm { padding: 6px 12px; font-size: 13px; }  /* nút nhỏ trong bảng — hết inline style */
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
     td.stt { width: 40px; text-align: center; color: var(--muted); font-size: 13px; }  /* STT hẹp, không đẩy widths */
 
     main {
@@ -142,7 +142,7 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--card-radius);
-      padding: 14px;  /* P2 (2026-08-16): 12 -> 14px — thoáng hơn (mockup 13/16) */
+      padding: 14px;  /* thoáng hơn (mockup 13/16) */
       margin-bottom: var(--space-3);
     }
 
@@ -227,8 +227,7 @@
     }
 
     /* ===== Form controls chung (2026-08-11): modal tạo task / paste + form Cấu hình ===== */
-    /* 2026-08-09: BỎ giãn full card DANH SÁCH TASK (commit 31e49b3) — card tự cao theo nội dung,
-       hết khoảng trắng 600px khi ít task. Nhiều task → table-wrap scroll trong (max-height viewport). */
+    /* Card tự cao theo nội dung — ít task không trắng 600px; nhiều task → table-wrap scroll trong (max-height viewport). */
     label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
     select, input[type="text"] {
       width: 100%;
@@ -269,7 +268,6 @@
     .create-total b { color: var(--amber-dark); font-weight: 700; }
 
     /* v1: badge count nhẹ — nền xám nhạt, bo tròn, chữ muted (không lấn át) */
-    /* ===== Commit 2026-08-08: modal tạo task gọn — dropdown thay 5 cây checkbox ===== */
         .create-form { display: grid; gap: 10px; margin-top: 10px; }
         .create-form .frow { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 8px; }
         .create-form .chips.disabled { opacity: .45; pointer-events: none; }
@@ -289,14 +287,13 @@
       border-radius: 999px; font-size: 12px; padding: 4px 10px; cursor: pointer; font-weight: 500;
       line-height: 1.4; transition: background .12s, border-color .12s, color .12s;
     }
-    .pick:hover { background: var(--surface-muted); }  /* P3 (2026-08-16): token hóa hover chip pick */
+    .pick:hover { background: var(--surface-muted); }
     .pick.on { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); font-weight: 700; }  /* P1 (2026-08-16): selected = primary (mockup chip default) */
     .pick.free.on { background: #e8f6ec; border-color: #b3d9bc; color: #1f7a3d; }
     /* Chip 'Tất cả' — nét đứt + chữ đậm nhẹ để phân biệt chip giá trị; on = đang áp dụng */
     .pick.all { border-style: dashed; color: #6b7280; }
     .pick.all.on { background: var(--primary-bg); border-color: var(--primary); border-style: solid; color: var(--primary-dark); font-weight: 700; }
     .pick:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-    /* Kích thước modal + header amber (v1) */
     /* Audit UI (2026-08-07): modal cao ~850px (3 hàng filter) từng bị CẮT nút Tạo task trên
        màn <900px — overlay không cuộn + dialog không max-height. Fix: dialog scroll trong +
        margin:auto (căn giữa khi vừa, không kẹt top khi cao) + overlay cuộn dự phòng. */
@@ -314,10 +311,8 @@
       border-bottom: 2px solid var(--primary);
       display: flex; align-items: center; gap: 8px;
     }
-    /* animation scale-in (v1) */
     #createModal.about-overlay .about-dialog { transform: scale(.95); transition: transform .2s ease-out; }
     #createModal.about-overlay.open .about-dialog { transform: scale(1); }
-    /* touch target 44px (v1) */
     /* Touch target modal chung (2026-08-11): paste/create/confirm — 44px touch, font 14px gọn */
     .about-dialog .btn { min-height: 44px; font-size: 14px; font-weight: 600; }
     @media (max-width: 719px) {
@@ -371,12 +366,10 @@
     .counter.scanned .num { color: var(--success); }
     .counter.absent .num { color: var(--danger); }
     .counter.waiting .num { color: var(--primary); }
-    .counter.extra .num { color: var(--amber-dark); }  /* FIX(2026-08-14): đồng bộ scanCard.extra/.warn (--amber-dark) — trước --warning #e37400 lệch tông */
+    .counter.extra .num { color: var(--amber-dark); }  /* đồng bộ scanCard.extra/.warn (--amber-dark) */
 
     /* ===== Toolbar bảng NV chung (2026-08-11): viewScan + viewStaff ===== */
     .att-toolbar {
-      /* 2026-08-11: bỏ nền xám/border — đồng bộ task-list-toolbar (header bảng trong suốt, chỉ heading + search).
-         User duyệt 2026-08-11: att-toolbar xám nhẹ còn task-list-toolbar trong suốt → chọn trong suốt cho cả 2. */
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       margin-bottom: 10px;
     }
@@ -384,7 +377,7 @@
 
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
     .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Hủy thay đổi + Làm mới + Lưu cấu hình) */
-    .cfg-discard-btn { border-color: var(--danger); color: var(--danger); }  /* P2 (2026-08-16): nút "Hủy thay đổi" riêng khi dirty — bỏ đổi nhãn Làm mới (min-width 150px cũng bỏ) */
+    .cfg-discard-btn { border-color: var(--danger); color: var(--danger); }  /* nút "Hủy thay đổi" riêng khi dirty — không đổi nhãn Làm mới */
     .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
     .cfg-hint { font-weight: 400; font-size: 12px; color: var(--muted); text-transform: none; letter-spacing: 0; }  /* hint không bị uppercase khi nằm trong .section-heading (toolbar CẤU HÌNH VẬN HÀNH) */
     /* viewConfig role = CARD rows (mockup 2026-08-16 — thay bảng): email + badge + icon ✎/✕,
@@ -438,7 +431,7 @@
     .cfg-chip-editing .cfg-edit-input { border: none; outline: none; font-size: 13px; padding: 4px 6px; width: 140px; background: transparent; color: var(--text); flex: 0 1 auto; min-width: 0; }  /* mockup: input transparent không viền */
     .cfg-chip-editing .cfg-edit-input::placeholder { color: var(--muted); opacity: 1; }
     .cfg-empty-val { color: var(--muted); font-style: italic; }
-    #cfgNoResult { padding: 8px 2px; }  /* P1 (2026-08-16): "Không có mục phù hợp" ngoài section — có chút thở */
+    #cfgNoResult { padding: 8px 2px; }
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
     .task-open-link { color: var(--primary-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }  /* FIX(2026-08-14): link mở task ở Mã task (thay nút Xem/Quét mobile) */
     .task-open-link:hover { color: var(--primary); }
@@ -497,7 +490,7 @@
     .badge.extra   { background: var(--card-extra-bg); color: #b45309; }
     .badge.open    { background: var(--primary-bg); color: var(--primary); }
     .badge.attend { background: var(--card-ok-bg); color: var(--success-dark); }
-    .badge.done    { background: #e9ecf2; color: var(--muted); }  /* P2 (2026-08-16): đồng bộ tông task-count-badge */
+    .badge.done    { background: #e9ecf2; color: var(--muted); }
     .badge.badge-free      { background: #f3e8fd; color: #7c3aed; }
     .badge.badge-reconcile { background: var(--primary-bg); color: var(--primary); }
 
@@ -629,7 +622,7 @@
           animation: empty-bounce 1.4s ease-in-out infinite; margin-bottom: 6px;
         }
         @keyframes empty-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
-        /* ===== Pagination (tham khảo v1 scan.html — 50 dòng/trang) ===== */
+        /* ===== Pagination ===== */
         .pag-wrap { padding: 8px 2px 2px; }
         .pag-bar {
           display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -710,7 +703,6 @@
       text-shadow: 0 1px 2px rgba(0,0,0,.35);
       white-space: nowrap;  /* FIX(2026-08-09): title không wrap thành 2 dòng khi header hẹp */
     }
-    /* v1: ĐIỂM DANH nổi bật amber — brand signal */
     header .brand .title .brand-accent { color: var(--amber); font-weight: 800; }
     header .header-right {
       display: flex; align-items: center; gap: 10px;
@@ -1020,12 +1012,12 @@
     @media (max-width: 640px) {
       #taskListTable thead { display: none; }
       #taskListTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }  /* FIX(2026-08-16): 2 cột đồng bộ scan/reports */
-      #taskListTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }  #staffTable td { font-size: 15px; }  /* FIX(2026-08-16): mobile cỡ chữ task list + staff 13→15px (đồng bộ scan); #staffTable td specificity (1,1,0) thắng base line 1124 (1,0,0) */
-      /* Bỏ tiêu đề ô trên thẻ (2026-08-13): chỉ còn dữ liệu — giữ nhãn ngắn 'Tổng'/'Đã quét' cho 2 số (số trần khó đoán) + dấu · ngăn cách giữa các mục */
+      #taskListTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }  #staffTable td { font-size: 15px; }  /* #staffTable td specificity (1,1,0) thắng base (1,0,0) */
+      /* Chỉ còn dữ liệu — giữ nhãn ngắn 'Tổng'/'Đã quét' cho 2 số (số trần khó đoán) */
       #taskListTable tbody td[data-label="Mã task"]::before, #taskListTable tbody td[data-label="Trạng thái"]::before, #taskListTable tbody td[data-label="Điểm danh"]::before { content: none; }  /* tiêu đề + badge không nhãn */
       #taskListTable tbody td[data-label="Station"]::before { content: 'Station: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #taskListTable tbody td[data-label="Team"]::before { content: 'Team: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Ca"]::before { content: 'Ca: '; font-weight: 600; color: var(--muted); font-size: 12px; }
-      /* FIX(2026-08-14): bỏ dấu · ngăn cách giữa các mục — grid gap 8px đã phân cách */  #taskListTable tbody td[data-label="Mã NV"]::before { content: 'Mã NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tên NV"]::before { content: 'Tên NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tổng NV"]::before, #taskListTable tbody td[data-label="Đã quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }  /* FIX(2026-08-16): nhãn đầy đủ đồng bộ scan/reports */
+      #taskListTable tbody td[data-label="Mã NV"]::before { content: 'Mã NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tên NV"]::before { content: 'Tên NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tổng NV"]::before, #taskListTable tbody td[data-label="Đã quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }  /* FIX(2026-08-16): nhãn đầy đủ đồng bộ scan/reports */
       /* Ẩn trên mobile: STT + Loại + Tạo lúc + Người tạo + Dư (xem nhanh không cần — chi tiết có ở màn quét) */
       #taskListTable tbody td[data-label="STT"],
       #taskListTable tbody td[data-label="Loại"],
@@ -1038,7 +1030,7 @@
       #taskListTable tbody td[data-label="Station"] { grid-column: 1; grid-row: 2; }
       #taskListTable tbody td[data-label="Team"] { grid-column: 1; grid-row: 3; }
       #taskListTable tbody td[data-label="Ca"] { grid-column: 2; grid-row: 2; }
-      #taskListTable tbody td[data-label="Trạng thái"] { grid-column: 2; grid-row: 1; justify-self: start; }  /* FIX(2026-08-16): đồng bộ badge đầu cột 2 */  #taskListTable tbody .badge { font-size: 13px; }  /* FIX(2026-08-16): badge task list mobile 13px (đồng bộ scan) */
+      #taskListTable tbody td[data-label="Trạng thái"] { grid-column: 2; grid-row: 1; justify-self: start; }  #taskListTable tbody .badge { font-size: 13px; }
       #taskListTable tbody td[data-label="Tổng NV"] { grid-column: 2; grid-row: 3; }
       #taskListTable tbody td[data-label="Đã quét"] { grid-column: 2; grid-row: 4; }
       /* F-search: cột khác — Điểm danh thay chỗ Trạng thái (dòng 1 cạnh Mã task), Mã NV + Tên NV dòng 3 */
@@ -1072,7 +1064,7 @@
       #scanTable tbody td[data-label="Giờ quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody tr.extra-row td { background: transparent; }  #scanTable tbody tr.extra-row { background: var(--card-extra-bg); }  /* FIX(2026-08-16): thẻ extra mobile — nền cam giữ trên tr (td transparent, tr grid mặc định var(--card)) */
     }
-    #btnScanListToggle { display: none; min-width: 36px; padding: 6px 10px; font-size: 14px; line-height: 1; margin-left: auto; }  /* desktop ẩn — chỉ mobile; FIX(2026-08-14): nút mũi tên tam giác ▼/▲ gọn ở góc phải card (margin-left:auto ép phải cả khi search ẩn) */
+    #btnScanListToggle { display: none; min-width: 36px; padding: 6px 10px; font-size: 14px; line-height: 1; margin-left: auto; }  /* desktop ẩn — mobile: nút ▼/▲ góc phải card (margin-left:auto ép phải) */
     /* FIX(2026-08-14): Mở rộng danh sách → ẩn cột quét (counters + ô nhập + nút Quét + scanCard) — danh sách NV đẩy lên full */
     body.scan-expanded .scan-col-left { display: none; }
     /* Mobile viewScan (≤700px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard; bấm Mở rộng mới hiện bảng + tìm/lọc (2026-08-13) */
@@ -1135,7 +1127,7 @@
 
     #reportsTable { font-size: 13px; table-layout: fixed; }
     #reportsTable thead th { position: sticky; top: 0; z-index: 2; }
-    /* Kích thước cột cố định — Tên NV + PMO nhận phần còn lại (wrap thay vì cắt) */
+    /* Kích thước cột cố định — Tên NV + PMO nhận phần còn lại */
     #reportsTable th:nth-child(1) { width: 105px; }  /* Ngày */
     #reportsTable th:nth-child(2) { width: 105px; }  /* Mã Ops */
     #reportsTable th:nth-child(3) { width: 105px; }  /* Mã NV */
@@ -1150,7 +1142,8 @@
     #reportsTable th:nth-child(8), #reportsTable th:nth-child(9) { text-align: center; }
     #reportsTable td:nth-child(5), #reportsTable td:nth-child(6), #reportsTable td:nth-child(7),
     #reportsTable td:nth-child(8), #reportsTable td:nth-child(9) { text-align: center; }
-    #reportsTable td:nth-child(4), #reportsTable td:nth-child(10) { white-space: normal; word-break: break-word; }  /* Tên NV + PMO wrap thay vì cắt */
+    #reportsTable td:nth-child(4) { white-space: normal; word-break: break-word; }  /* Tên NV wrap thay vì cắt */
+    #reportsTable td:nth-child(10) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* PMO 1 dòng desktop/tablet — ellipsis thay wrap (2026-08-16) */
     .reports-num { font-variant-numeric: tabular-nums; }
     .reports-off { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
     /* Mobile ≤640px: bảng → card (mỗi dòng 1 thẻ), nhãn ::before ': ' từ data-label, ẩn Mã Ops/Mã NV/Tên NV */
@@ -1177,7 +1170,7 @@
       #reportsTable tbody td:nth-child(5) { grid-column: 2; grid-row: 3; }  /* Station */
       #reportsTable tbody td:nth-child(10) { grid-column: 1 / -1; grid-row: 4; white-space: normal; word-break: break-word; } /* PMO full-width dài — wrap như Agency scan */
       #reportsTable tbody .reports-off { font-size: 13px; }  /* pill OFF khớp badge 13px */
-      .stats-table td { font-size: 15px; padding: 6px 8px; }  .stats-table th { font-size: 15px; }  .stats-col-title { font-size: 15px; }  #staffTable th { font-size: 15px; }  #viewAbout .about-body { font-size: 15px; }  #viewAbout .about-table { font-size: 15px; }  /* FIX(2026-08-16): đồng bộ cỡ chữ mobile 15px family — Thống kê (td/th/title) + staff th + About */
+      .stats-table td { font-size: 15px; padding: 6px 8px; }  .stats-table th { font-size: 15px; }  .stats-col-title { font-size: 15px; }  #staffTable th { font-size: 15px; }  #viewAbout .about-body { font-size: 15px; }  #viewAbout .about-table { font-size: 15px; }
     }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
     /* Mobile viewStaff (≤640px, 2026-08-16): StaffData 20 cột → thẻ card 2 cột (đồng bộ scan/task/reports) —
