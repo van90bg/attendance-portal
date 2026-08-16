@@ -29,7 +29,7 @@ Ghi nhận PASS/FAIL → audit chỉ tập trung vào FAIL + những gì script 
 
 ## Phase 1 — Design language audit
 
-Kiểm tra từng component chung xuyên view (bảng bên dưới là "chuẩn" đã chốt 2026-08-16):
+Mở đầu: đối chiếu **component-inventory.md** (6 nhóm + audit đúng từng nhóm + lỗ hổng tooling) — rà theo nhóm, không bỏ sót thành phần. Kiểm tra từng component chung xuyên view (bảng bên dưới là "chuẩn" đã chốt 2026-08-16):
 
 | Component | Chuẩn (khớp mọi view) |
 |---|---|
@@ -73,6 +73,7 @@ Load skill `accessibility` — checklist chính:
 
 - `../project-skill/SKILL.md` — architecture, gotchas, deterministic editing, pitfalls
 - `../project-skill/references/mockup-design-language.md` — ngôn ngữ mockup viewConfig
+- `component-inventory.md` — kiểm kê 6 nhóm thành phần + audit đúng từng nhóm + lỗ hổng tooling
 - `../audit-webapp-optimize/SKILL.md` — 3-phase audit + GAS perf patterns
 - `../review-gas-failure-modes/SKILL.md` — failure modes backend (confidence scoring)
 - Skill hệ thống (load theo tên): `accessibility` · `performance` · `ui-design-process`
