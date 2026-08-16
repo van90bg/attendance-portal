@@ -36,8 +36,11 @@ const LOAD_WAIT_MS = 2500;
 // Class dùng chung ≥2 view/modal — thêm class mới vào đây khi thêm component
 // (KHÔNG đưa class base như .btn — nó match mọi variant → 11 fingerprint nhiễu; so variant riêng)
 const SHARED_CLASSES = [
-  'btn-ghost', 'btn-outline', 'btn-danger', 'btn-amber', 'btn-sm', 'btn-icon', 'btn-clear-filter',
+  'btn-ghost', 'btn-outline', 'btn-danger', 'btn-amber', 'btn-sm', 'btn-icon', 'btn-icon-dark', 'btn-clear-filter',
   'card', 'empty', 'table-wrap', 'view-topbar', 'view-topbar-title', 'list-search', 'section-heading',
+  'side-item', 'nav-item', 'net-dot', 'spin-big', 'skeleton-cell', 'pag-wrap', 'att-toolbar',
+  'task-list-toolbar', 'sortable', 'stats-table', 'about-dialog', 'about-overlay', 'home-shortcut',
+  'cfg-item', 'staff-filter-panel',
   'task-title', 'task-meta', 'task-count-badge', 'chips', 'pick', 'field-select', 'cfg-input',
   'cfg-field', 'cfg-hint', 'flabel', 'fnote', 'counter', 'empty-arrow',
   'paste-title', 'confirm-title', 'reports-empty-title', 'about-title', 'home-title',
@@ -55,6 +58,14 @@ const ALLOWED_DRIFT = [
   'card',              // card trong scan-layout là flex item (min-width auto) — chủ đích
   'table-wrap',        // scan table là flex item (min-width auto) — chủ đích
   'cfg-hint',          // hint trong toolbar .section-heading (flex item — width auto) vs inline group-title — chủ đích (2026-08-16)
+  'about-dialog',      // 5 modal variants padding: paste/confirm 24px · base 18px · spin 26px — chủ đích
+  'btn-icon-dark',     // header 32px vs camera-close chip (nền xám đậm) — chủ đích
+  'counter',           // 3 màu viền trạng thái (scanned xanh / absent đỏ / extra cam) — chủ đích
+  'nav-item',          // active #4d8fe8 vs inactive — trạng thái chọn là chủ đích (a11y AA 5.76:1)
+  'side-item',         // active (primary bg) vs inactive — trạng thái chọn là chủ đích
+  'spin-big',          // spinModal ẩn (0x0) vs loadingOverlay hiện — chủ đích
+  'task-meta',         // #reportsMeta hiển thị tên user đậm primary 15px — "to rõ hơn task-meta mặc định" (CSS comment, chủ đích)
+  'task-title',        // title trong toolbar (reports card) là flex item width auto — chủ đích (giống cfg-hint)
 ];
 
 let chromeProc = null;

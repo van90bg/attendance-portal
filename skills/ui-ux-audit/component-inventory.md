@@ -86,9 +86,9 @@ Chung: overlay `.about-overlay` (đóng click ngoài) + `.about-dialog` (scale-i
 - **Busy**: nút disabled + tooltip (btnFinish/btnToAttend khi scanBusy)
 - **Dirty (config)**: `#cfgSaveBtn` pulse `cfgSavePulse` + `#cfgDiscardBtn` hiện
 
-## Lỗ hổng audit tooling hiện tại (2026-08-16)
+## Lỗ hổng audit tooling hiện tại (2026-08-16, đã vá 1-2)
 
-1. **audit-ui.js thiếu viewAbout** — chỉ 7 view (home/tasks/scan/stats/staff/config/reports) → thêm `about` vào `pages[]`.
-2. **audit-style.js SHARED_CLASSES thiếu ~15 class chung**: `.btn` base, `.btn-icon-dark`, `.badge.*`, `.side-item`, `.nav-item`, `.net-dot`, `.spin-big`, `.skeleton-cell`, `.pag-wrap`, `.att-toolbar`, `.task-list-toolbar`, `.sortable`, `.stats-table`, `.about-dialog`, `.home-shortcut`, `.cfg-item`, `.staff-filter-panel`.
+1. ~~**audit-ui.js thiếu viewAbout**~~ — **ĐÃ VÁ** (commit 2026-08-16): thêm `about` vào `pages[]` + `viewAbout`/`viewReports` vào check bảng có dữ liệu → 29/29 PASS.
+2. ~~**audit-style.js SHARED_CLASSES thiếu ~15 class**~~ — **ĐÃ VÁ**: thêm 16 class (btn-icon-dark, side-item, nav-item, net-dot, spin-big, skeleton-cell, pag-wrap, att-toolbar, task-list-toolbar, sortable, stats-table, about-dialog, about-overlay, home-shortcut, cfg-item, staff-filter-panel) + ALLOWED_DRIFT +8 (about-dialog, btn-icon-dark, counter, nav-item, side-item, spin-big, task-meta, task-title) → --strict 0 lệch thật. (`.btn` base + `.badge` không thêm — variant màu chồng nhau sẽ tạo drift giả; `.counter` là lệch định sẵn bị sót đã thêm vào ALLOWED.)
 3. **Chưa có audit geometry modal** (fit mobile, touch target trong modal, overlay đóng) — test-local-mock chỉ phủ tương tác scan/task, chưa phủ staff/reports/config render + funnel + sort + pagination.
 4. **audit-css/audit-gs** — đã đủ (dead class/function + API treo).
