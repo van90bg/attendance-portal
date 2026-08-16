@@ -48,15 +48,16 @@ test('requireRole_: bậc quyền đúng (manager ≥ operator/viewer, < admin)'
   assert.equal(svc.requireRole_('admin'), false);
 });
 
-test('role lạ trong roleMap → default operator; requireRole_ minRole lạ → fail-closed false', () => {
+test('role lạ trong roleMap → fail-closed viewer; không cấu hình → operator; requireRole_ minRole lạ → false', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'x@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'x@spx.com': 'superuser', 'y@spx.com': 'viewer' })]);
-  assert.equal(svc.getRole_('x@spx.com'), 'operator'); // role không hợp lệ → default
+  assert.equal(svc.getRole_('x@spx.com'), 'viewer'); // roleMap gõ sai → fail-closed viewer (không nâng lên operator)
   assert.equal(svc.getRole_('y@spx.com'), 'viewer');
+  assert.equal(svc.getRole_('z@spx.com'), 'operator'); // không cấu hình → operator mặc định (giữ hành vi quét)
   assert.equal(svc.requireRole_('operatr'), false);     // minRole gõ sai → chặn (fail-closed)
-  assert.equal(svc.requireRole_('operator'), true);
+  assert.equal(svc.requireRole_('operator'), false);    // x@spx.com đã là viewer → không đạt operator
 });
 
 test('getCurrentUser trả { email, role, isAdmin } — operator mặc định, admin khi editor', () => {

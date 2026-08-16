@@ -139,7 +139,11 @@ function getSettingsApi() {
 
 /** Settings Admin: ghi patch cấu hình — whitelist key trong SETTINGS_DEFAULTS (gate trong saveSettings_). */
 function saveSettingsApi(patch) {
-  return saveSettings_(patch);
+  try {
+    return saveSettings_(patch);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'saveSettings fail' };
+  }
 }
 
 /** Tạo task đối chiếu + pre-fill. Gate requireRole_('operator') đặt TRONG createReconcileTask

@@ -88,6 +88,9 @@ function searchLogsByStaff(rawStaffId) {
       for (let i = 1; i < values.length; i++) {
         const tid = String(values[i][LOG_COLS.TASK_ID] || '').trim();
         if (!tid) continue;
+        // S1 (perf audit): chỉ format date khi đúng staffId — tránh logFromRow_ chạy
+        // 2× formatDate cho mọi dòng sheet log vài chục nghìn dòng.
+        if (normalizeStaffId(String(values[i][LOG_COLS.STAFF_ID] || '')) !== sid) continue;
         logRows.push(logFromRow_(tid, values[i]));
       }
       var tasks = [];
@@ -338,29 +341,6 @@ function resetAbsentToPending_(taskId) {
 
 
 
-/**
- * Cập nhật 1 dòng trong LOG_ROWS cache sau khi ghi sheet (incremental).
- * Chỉ chạm cache NẾU đang có (cache hit) — miss thì dòng sau sẽ rebuild. Tránh
- * getDataRange full sheet log mỗi scan liên tiếp.
- * @param {string} taskId
- * @param {number} rowIndex 1-based
- * @param {Function} mutate(r) — sửa object row trong cache tại chỗ
- */
-function updateLogRowCache_(taskId, rowIndex, mutate) {
-  try {
-    const key = CACHE_KEYS.LOG_ROWS + taskId;
-    const cached = cache_().get(key);
-    if (cached === null) return; // miss — không xây cache trong luồng ghi
-    const rows = JSON.parse(cached);
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i]._rowIndex === rowIndex) { mutate(rows[i]); break; }
-    }
-    cache_().put(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
-  } catch (e) {
-    console.warn('updateLogRowCache_ fail', taskId, e.message);
-    invalidateLogRows_(taskId); // force rebuild lần sau — tránh cache stale gây classify sai
-  }
-}
 
 /**
  * M1 (audit): ghi 1 đợt update log rows — gom (row, field, time, status) + invalidate

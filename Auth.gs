@@ -55,10 +55,17 @@ function getRole_(email) {
   const em = String(email || '').trim().toLowerCase();
   if (!em) return ROLES.DEFAULT;
   const map = getSetting_('roleMap');
-  const role = map && typeof map === 'object' ? String(map[em] || '').trim().toLowerCase() : '';
+  const entry = map && typeof map === 'object' ? map[em] : undefined;
+  if (entry === undefined) return ROLES.DEFAULT; // không cấu hình → operator mặc định (giữ hành vi quét)
+  const role = String(entry || '').trim().toLowerCase();
   const valid = role === ROLES.VIEWER || role === ROLES.OPERATOR
     || role === ROLES.MANAGER || role === ROLES.ADMIN;
-  return valid ? role : ROLES.DEFAULT;
+  if (!valid) {
+    // roleMap có nhưng gõ sai → fail-closed viewer (KHÔNG nâng nhầm lên operator).
+    console.warn('getRole_: role không hợp lệ trong roleMap cho ' + em + ' (' + role + ') → viewer');
+    return ROLES.VIEWER;
+  }
+  return role;
 }
 
 /** Gate role tối thiểu — fail-closed cả 2 phía:

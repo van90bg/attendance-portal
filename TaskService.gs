@@ -109,11 +109,13 @@ function createReconcileTask(input) {
       createdBy: createdBy,
       completedAt: null,
     };
-    insertTask_(task);
     // TIME_REF = Giờ có mặt (breaking 2026-08-05): pre-fill ghi ngay giờ tạo task
     // cho mọi NV trong list. Khác v1 (pre-fill time = taskCreated rỗng).
+    // S2 (idempotency audit): ghi log TRƯỚC insertTask_ — nếu batchInsertLogRows_
+    // fail (quota/lock) thì KHÔNG để lại task ATTEND rỗng (tránh mọi scan sau thành
+    // EXTRA + cho phép retry tạo lại task mới sạch). batchInsert là 1 setValues → atomic.
     const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
-
+    insertTask_(task);
     return { ok: true, taskId: taskId, count: count, message: 'Tạo task' + (noList ? ' quét tự do' : '') + ' thành công: ' + taskId };
   } finally {
     lock.releaseLock();
