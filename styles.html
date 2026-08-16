@@ -481,7 +481,7 @@
     tr:hover td { background: var(--row-hover); }
     /* C4: dòng NV Dư — nền cam nhạt nổi bật giữa bảng */
     #scanTable tr.extra-row td { background: var(--card-extra-bg); }
-    #scanTable tr.extra-row:hover td { background: #fdf0cd; }
+    #scanTable tr.extra-row:hover td { background: #fdf0cd; }  .scan-cell-agency { display: none; }  /* FIX(2026-08-16): Agency inline theo Tên NV — chỉ hiện mobile (td Agency ẩn, span này hiện) */
 
     .badge {
       display: inline-block;
@@ -1046,29 +1046,29 @@
       #taskListTable tbody td[data-label="Tên NV"] { grid-column: 2 / span 2; grid-row: 3; }
       #taskListTable tbody td[data-label="Điểm danh"] { grid-column: 3; grid-row: 1; justify-self: end; }  /* FIX(2026-08-14): dời cột 3 (search mode — Thao tác ẩn) */
     }
-    /* Mobile viewScan (≤640px, 2026-08-13): danh sách NV thành thẻ gọn 2 dòng — dòng 1 = Mã NV + Trạng thái, dòng 2 = Tên NV;
-       chỉ giữ thông tin cần, ẩn STT/Agency/Station/Team/Ca/Ngày/Giờ có mặt/Giờ quét (chi tiết có ở màn quét desktop) */
+    /* Mobile viewScan (≤640px, 2026-08-16): danh sách NV thành thẻ 2 cột — cột 1 = Tên NV - Agency / OpsID / Team;
+       cột 2 = Ca / Giờ có mặt / Giờ quét; Trạng thái gắn cuối dòng Tên NV. Cỡ chữ mobile nâng 13→15px. */
     @media (max-width: 640px) {
       #scanTable thead { display: none; }
-      #scanTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 2px 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; background: var(--card); }
-      #scanTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 2px 0; font-size: 13px; line-height: 1.35; }
-      #scanTable tbody td[data-label="STT"], #scanTable tbody td[data-label="Station"],
+      #scanTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
+      #scanTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }
+      #scanTable tbody td[data-label="STT"], #scanTable tbody td[data-label="Station"], #scanTable tbody td[data-label="Agency"],
       #scanTable tbody td[data-label="Ngày"] { display: none; }
-      /* FIX(2026-08-14): thẻ NV 3 hàng — dòng 1 Tên NV + Agency + Trạng thái · dòng 2 OpsID + Team + Ca · dòng 3 Giờ có mặt + Giờ quét */
-      #scanTable tbody td[data-label="Tên NV"] { grid-column: 1 / span 2; grid-row: 1; font-weight: 700; color: var(--text); }
-      #scanTable tbody td[data-label="Agency"] { grid-column: 3; grid-row: 1; }
-      #scanTable tbody td[data-label="Trạng thái"] { grid-column: 4; grid-row: 1; justify-self: end; }
+      /* FIX(2026-08-16): thẻ NV 2 cột — cột 1 Tên NV - Agency / OpsID / Team · cột 2 Ca / Giờ có mặt / Giờ quét; badge Trạng thái cuối dòng Tên NV */
+      #scanTable tbody td[data-label="Tên NV"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--text); font-size: 16px; }
+      #scanTable tbody td[data-label="Tên NV"] .scan-cell-agency { display: inline; font-weight: 400; color: var(--muted); font-size: 13px; }
+      #scanTable tbody td[data-label="Trạng thái"] { grid-column: 2; grid-row: 1; justify-self: end; }  #scanTable tbody td[data-label="Trạng thái"] .badge { font-size: 13px; }
       #scanTable tbody td[data-label="Mã NV"] { grid-column: 1; grid-row: 2; font-weight: 600; color: var(--muted); }
-      #scanTable tbody td[data-label="Team"] { grid-column: 2; grid-row: 2; }
-      #scanTable tbody td[data-label="Ca"] { grid-column: 3 / span 2; grid-row: 2; }
-      #scanTable tbody td[data-label="Giờ có mặt"] { grid-column: 1 / span 2; grid-row: 3; }
-      #scanTable tbody td[data-label="Giờ quét"] { grid-column: 3 / span 2; grid-row: 3; }
+      #scanTable tbody td[data-label="Team"] { grid-column: 1; grid-row: 3; }
+      #scanTable tbody td[data-label="Ca"] { grid-column: 2; grid-row: 2; }
+      #scanTable tbody td[data-label="Giờ có mặt"] { grid-column: 2; grid-row: 3; }
+      #scanTable tbody td[data-label="Giờ quét"] { grid-column: 2; grid-row: 4; }
       /* FIX(2026-08-14): nhãn đầy đủ hàng 2 + 3 trước thông tin — "OpsID: 12345" "Team: A" "Ca: 08:00-17:00" "Giờ có mặt: 19:10:13" "Giờ quét: 19:15:05" */
-      #scanTable tbody td[data-label="Mã NV"]::before { content: 'OpsID: '; font-weight: 600; color: var(--muted); font-size: 11px; }
-      #scanTable tbody td[data-label="Team"]::before { content: 'Team: '; font-weight: 600; color: var(--muted); font-size: 11px; }
-      #scanTable tbody td[data-label="Ca"]::before { content: 'Ca: '; font-weight: 600; color: var(--muted); font-size: 11px; }
+      #scanTable tbody td[data-label="Mã NV"]::before { content: 'OpsID: '; font-weight: 600; color: var(--muted); font-size: 12px; }
+      #scanTable tbody td[data-label="Team"]::before { content: 'Team: '; font-weight: 600; color: var(--muted); font-size: 12px; }
+      #scanTable tbody td[data-label="Ca"]::before { content: 'Ca: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody td[data-label="Giờ có mặt"]::before,
-      #scanTable tbody td[data-label="Giờ quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 11px; }
+      #scanTable tbody td[data-label="Giờ quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody tr.extra-row td { background: transparent; }  /* thẻ extra — nền theo tr đã đặt ở tr */
     }
     #btnScanListToggle { display: none; min-width: 36px; padding: 6px 10px; font-size: 14px; line-height: 1; margin-left: auto; }  /* desktop ẩn — chỉ mobile; FIX(2026-08-14): nút mũi tên tam giác ▼/▲ gọn ở góc phải card (margin-left:auto ép phải cả khi search ẩn) */

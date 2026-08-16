@@ -339,7 +339,7 @@
     return [
       '<td class="stt" data-label="STT">' + (idx + 1) + '</td>',
       '<td data-label="Mã NV"><b>' + esc(r.staffId) + '</b></td>',
-      '<td data-label="Tên NV">' + esc(r.staffName) + '</td>',
+      '<td data-label="Tên NV">' + esc(r.staffName) + (staffRec && staffRec.agency ? '<span class="scan-cell-agency"> - ' + esc(staffRec.agency) + '</span>' : '') + '</td>',
       '<td data-label="Agency">' + esc(staffRec && staffRec.agency ? staffRec.agency : '') + '</td>',
       '<td data-label="Station">' + esc(r.station || '') + '</td>',
       '<td data-label="Team">' + esc(r.team || '') + '</td>',
