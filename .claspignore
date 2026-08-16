@@ -13,6 +13,7 @@ package-lock.json
 cloud-agent/**
 .opencode/**
 sketches/**
+scanner/**
 
 # ===== Git / CI =====
 .git/**

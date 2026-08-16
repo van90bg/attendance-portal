@@ -54,7 +54,7 @@ Nguồn sự thật: `index.html` (shell + 8 view + 5 modal) · 8 module `app-*.
 |---|---|
 | viewHome | `.home-hero` (logo, `.home-title`, `.home-sub`, `#homeClock` role=timer, `#homeDate`), `.home-shortcuts` 3× `.home-shortcut` |
 | viewTasks | `.task-list-toolbar` (heading + `.list-search`), `#taskListTable` 13 cột, empty, `#taskPagination` |
-| viewScan | `.scan-layout` → `.scan-col-left` (`.counters` 3× `.counter.scanned/absent/extra`, `.scan-row` `#scanInput`+`#btnCamera`+`#btnScan`, `.scan-hint`, `#scanCard` `.scan-card` projector + `.sc-empty`, `#scanLiveMsg` sr-only) + `.scan-col-right` (`#scanListCard`: `.att-toolbar`, search, `#btnScanListToggle` ▼/▲, `#scanStatusFilter` select, `#scanClearFilter`, `#scanTable` 11 cột sortable, empty, `#scanPagination`) |
+| viewScan | `.scan-layout` → `.scan-col-left` (`.counters` 3× `.counter.scanned/absent/extra`, `.scan-row` `#scanInput`+`#btnCamera`(tab scanner ngoài)+`#btnCameraPhoto`(chụp ảnh)+`#btnScan`, `.scan-hint`, `#scanCard` `.scan-card` projector + `.sc-empty`, `#scanLiveMsg` sr-only) + `.scan-col-right` (`#scanListCard`: `.att-toolbar`, search, `#btnScanListToggle` ▼/▲, `#scanStatusFilter` select, `#scanClearFilter`, `#scanTable` 11 cột sortable, empty, `#scanPagination`) |
 | viewStats | `.stats-filters` 3× `.stats-filter-row` (flabel + `.chips`), `#statsTableWrap` `.stats-table-wrap` (grid 2 cột), `#statsA11yMsg` sr-only |
 | viewStaff | `.att-toolbar` + search, `#staffTable` **20 cột** (thead động từ STAFF_TABLE_HEAD, 4 cột đầu sticky-left), `#staffFilterPanel` funnel (`.staff-filter-panel` role=dialog: `.sfp-head/.sfp-body/.sfp-foot`), `#staffPagination` |
 | viewConfig | form `.card.cfg-card`, `#cfgSkeleton`, `.task-list-toolbar` + `#cfgSearch`, `.cfg-list-wrap` → `#cfgList` (`.cfg-item` dòng), `#cfgNoResult`, `#roleWrap`/`#cfgRoleRows` (role editor), topbar `#cfgDiscardBtn`/`#cfgRefreshBtn`/`#cfgSaveBtn` (dirty) |
@@ -63,7 +63,7 @@ Nguồn sự thật: `index.html` (shell + 8 view + 5 modal) · 8 module `app-*.
 
 **Audit đúng**: topbar đồng bộ (`.view-topbar` + title + actions) 6/8 view; desktop 4 bảng: data-table auto-fit + table-wrap scroll, fixed-layout chỉ reports; mobile ≤640px: bảng → **card 2 cột đồng bộ** (grid `minmax(0,1.2fr) minmax(0,1fr)` gap `3px 10px`, td block nowrap+ellipsis 15px, nhãn `::before attr(data-label) ': '` 12px/600/muted, title 16px/700, badge 13px, MỌI cell `text-align:left` — rule desktop `td:nth-child(5-9)` center rò rỉ là gotcha đã đóng); phễu/select/sort hoạt động trên mobile.
 
-## Nhóm 5 — Modals & dialog (5 + 1)
+## Nhóm 5 — Modals & dialog (4 + 1)
 
 Chung: overlay `.about-overlay` (đóng click ngoài) + `.about-dialog` (scale-in, 44px touch, Escape đóng).
 
@@ -73,10 +73,10 @@ Chung: overlay `.about-overlay` (đóng click ngoài) + `.about-dialog` (scale-i
 | Tạo task | `#createModal` | `#modeDesc`, `.create-form` 5× `.frow` (Station/Team/Ca/Hình thức/Date chips + `#selDate`), `.create-footer` → `.create-total` + `.create-actions` |
 | Confirm chung | `#confirmModal` | `.confirm-title/.confirm-msg`, `#confirmOkBtn` btn-danger |
 | Spinner | `#spinModal` | `.spin-dialog` + `#spinModalMsg` role=status |
-| Camera | `#cameraModal` | `.camera-overlay`, `.camera-head`, `.camera-reader` (`#cameraReader` html5-qrcode + `.camera-reticle`), `.camera-hint` |
+| Quét ảnh (photo) | `#btnCameraPhoto` → `#photoInput` (input file capture=environment) | Html5Qrcode.scanFile decode → submitScan; nút Camera → tab scanner ngoài `scanner/scanner.html` (postMessage origin-validate) |
 | Funnel staff | `#staffFilterPanel` | role=dialog; sfp-head/body/foot |
 
-**Audit đúng**: role=dialog + aria-modal + labelledby đủ; click ngoài đóng + Escape; 44px touch mọi nút trong modal; không 2 overlay đè; camera fullscreen không scroll.
+**Audit đúng**: role=dialog + aria-modal + labelledby đủ; click ngoài đóng + Escape; 44px touch mọi nút trong modal; không 2 overlay đè.
 
 ## Nhóm 6 — Trạng thái luồng (patterns xuyên view)
 
