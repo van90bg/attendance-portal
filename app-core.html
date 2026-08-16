@@ -336,17 +336,31 @@
       SCAN_PAGE = 1; // xoá lọc → về trang đầu
       renderScanTable(CURRENT_LOG);
     });
-    if (scanTbl) scanTbl.addEventListener('click', function (e) {
-      var th = e.target && e.target.closest ? e.target.closest('th.sortable') : null;
-      if (!th) return;
-      var col = parseInt(th.dataset.sort, 10);
-      if (SCAN_SORT.col === col) SCAN_SORT.asc = !SCAN_SORT.asc;
-      else { SCAN_SORT.col = col; SCAN_SORT.asc = true; }
-      SCAN_SORT.userSet = true;  // F: user tự chọn cột → bỏ ép-theo-phase
-      SCAN_PAGE = 1; // sort đổi thứ tự → về trang đầu
-      updateSortIndicators();
-      renderScanTable(CURRENT_LOG);
-    });
+    if (scanTbl) {
+      var sThs = scanTbl.querySelectorAll('th.sortable');
+      for (var si = 0; si < sThs.length; si++) {
+        sThs[si].setAttribute('tabindex', '0');
+        if (!sThs[si].getAttribute('role')) sThs[si].setAttribute('role', 'button');
+      }
+      scanTbl.addEventListener('click', function (e) {
+        var th = e.target && e.target.closest ? e.target.closest('th.sortable') : null;
+        if (!th) return;
+        var col = parseInt(th.dataset.sort, 10);
+        if (SCAN_SORT.col === col) SCAN_SORT.asc = !SCAN_SORT.asc;
+        else { SCAN_SORT.col = col; SCAN_SORT.asc = true; }
+        SCAN_SORT.userSet = true;  // F: user tự chọn cột → bỏ ép-theo-phase
+        SCAN_PAGE = 1; // sort đổi thứ tự → về trang đầu
+        updateSortIndicators();
+        renderScanTable(CURRENT_LOG);
+      });
+      scanTbl.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+        var th = e.target && e.target.closest ? e.target.closest('th.sortable') : null;
+        if (!th) return;
+        e.preventDefault();
+        th.click();
+      });
+    }
     updateSortIndicators();
   }
 
