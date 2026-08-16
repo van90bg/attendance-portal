@@ -106,18 +106,36 @@
       statusEl.textContent = text;
       statusEl.className = cls || '';
     }
-    function beep() {
+    // Âm thanh phân biệt trạng thái — quét nhanh không cần nhìn màn hình:
+    // Có mặt = 2 tiếng cao (ok) · Dư = 2 tiếng giữa (warn) · Lỗi = tiếng trầm xuống (err).
+    var audioCtx = null;
+    function getCtx() {
       try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+        return audioCtx;
+      } catch (e) { return null; }
+    }
+    // iOS Safari: mở khóa AudioContext ở thao tác chạm đầu tiên (autoplay policy).
+    document.addEventListener('pointerdown', function () { getCtx(); }, { once: true, passive: true });
+    function tone(freq, dur, delay, type) {
+      var ctx = getCtx();
+      if (!ctx) return;
+      try {
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = 1568;
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
-        osc.start(); osc.stop(ctx.currentTime + 0.2);
+        osc.type = type || 'sine';
+        osc.frequency.value = freq;
+        var t0 = ctx.currentTime + (delay || 0);
+        gain.gain.setValueAtTime(0.12, t0);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.start(t0); osc.stop(t0 + dur + 0.03);
       } catch (e) { /* không có audio — bỏ qua */ }
     }
+    function beepOk() { tone(1046, 0.12, 0); tone(1568, 0.16, 0.13); }
+    function beepWarn() { tone(740, 0.1, 0); tone(740, 0.1, 0.15); }
+    function beepErr() { tone(311, 0.18, 0, 'sawtooth'); tone(233, 0.22, 0.16, 'sawtooth'); }
     function sendCode(code) {
       if (!code) return;
       var now = Date.now();
@@ -131,7 +149,6 @@
       target.postMessage({ source: 'spx-scan', code: code }, '*');
       SENT_COUNT++;
       countEl.textContent = SENT_COUNT + ' mã';
-      beep();
       setStatus('Đã gửi: ' + code, 'ok');
       addRow(code, '', '…', '', '');
     }
@@ -161,6 +178,8 @@
       var ok = !!r.ok;
       var badgeText = ok ? status : (msg || 'Lỗi');
       var badgeCls = ok ? (status === 'Dư' ? 'warn' : 'ok') : 'err';
+      if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
+      else { beepErr(); }
       if (ok) {
         setStatus((name ? name + ' — ' : '') + (status || 'Đã điểm danh') + (time ? ' · ' + time : ''), 'ok');
       } else {
