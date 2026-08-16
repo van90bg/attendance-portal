@@ -48,7 +48,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 7 trang:
 | **Trang chủ** | Logo + tên app + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chiếu/điểm danh |
 | **Thống kê** | Pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), tab lọc BPO / OS — fullscreen |
 | **Điểm danh** | Danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc |
-| **Báo cáo** | Báo cáo chấm công theo tháng cho từng NV theo email đăng nhập — đang xây dựng |
+| **Báo cáo** | Báo cáo chấm công tháng theo email đăng nhập — bảng 10 cột (desktop/tablet), thẻ card mobile |
 | **Dữ liệu chấm công** | Toàn bộ StaffData — 20 cột khớp tên sheet, Clock In/Out định dạng `H:mm:ss`, tìm mã/tên/agency |
 | **Cấu hình** | Trang Config Admin (chỉ editor) — đọc/ghi settings qua SettingsService: Station/Ca/Team/Department mặc định + roleMap phân quyền |
 | **Giới thiệu** | Hướng dẫn sử dụng và thông tin kỹ thuật |
@@ -98,9 +98,9 @@ RollCall_2/
 ├── app-scan.html          # JS client (module 7/7) — scan view + queue + actions
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 124 unit tests node --test
+├── tests/                 # 134 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
-├── skills/                # skill chuẩn SKILL.md (Agent Skills format)
+├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
 ```
 
@@ -109,7 +109,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 124/124 unit tests (node:test)
+npm test                        # 134/134 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -142,14 +142,15 @@ clasp deploy
 - **Frontend GAS template:** `index.html` + `styles.html` + **7 module JS `app-*.html`** (include tuần tự, chung global scope). `doGet` dùng `createTemplateFromFile` + `include()`.
 - **Line ending:** mọi file trên disk dùng **CRLF**; `index.html` **KHÔNG BOM** (BOM sinh khoảng trống phía trên header trên GAS). Sửa file có tiếng Việt + CRLF chỉ qua script deterministic (đọc `utf-8-sig`, ghi `utf-8`, không sig).
 - **Commit:** `type(scope): mô tả` — 1 issue = 1 commit = 1 push; không commit secrets (`.clasp.json`, `.clasprc.json`).
+- **Comment:** chỉ ghi khi CÓ GIÁ TRỊ (rationale "tại sao", gotcha "đừng regress", khớp wire/server) — cấm comment rác dạng `FIX(date)` / `P1-P3 (date)` / marker vòng fix (`B3/I5/F7`) / restatement; lịch sử fix nằm ở git log (AGENTS.md §2.7).
 
 ## Trạng thái phát triển
 
-- ✅ Portal shell: sidebar 7 trang; trang chủ logo + đồng hồ; viewReports placeholder.
+- ✅ Portal shell: sidebar 7 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile).
 - ✅ Tách frontend (index/styles + 7 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 124/124 unit tests + 11/11 CDP local mock.
-- ⏳ viewReports (báo cáo chấm công tháng) đang xây dựng.
+- ✅ 134/134 unit tests + 11/11 CDP local mock.
+- ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 
 ---
 
