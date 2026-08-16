@@ -905,6 +905,8 @@
           .withFailureHandler(function (err) {
             markServerFail();
             BUSY = false;
+            hideModalSpin();
+            hideLoadingOverlay();
             if (btn) btn.disabled = false;
             showToast('Lỗi kết thúc: ' + err.message, true);
           })

@@ -540,6 +540,9 @@
         if (fromRefresh) _releaseRefreshLock();  // Finding#1: RPC refresh (stats/data) kết thúc → nhả lock (no-op khi gọi độc lập)
         if (!res || !res.ok) {
           if (!silent) showToast((res && res.message) || 'Lỗi tải StaffData', true);
+          if (skel) skel.style.display = 'none';
+          var metaEl = document.getElementById('staffMeta');
+          if (metaEl) metaEl.textContent = 'Không tải được';
           return;
         }
         STAFF_ROWS = safeArr(res.staff);
