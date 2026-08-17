@@ -69,7 +69,7 @@
   // Header HTML cho 2 chế độ taskListTable (reuse cùng element #taskListTable).
   // Thead danh sách task — động (funnel phễu 4 cột: Loại/Station/Team/Trạng thái + state .on)
   // Thead danh sách task — PHẢI khớp thứ tự body render: STT, Mã task, Loại, Station, Team,
-  // Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác (fix 2026-08-11:
+  // Ca, Tổng NV, Đã quét lần 2, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác (fix 2026-08-11:
   // trước đây gom 4 funnel liên tiếp → 'Trạng thái' lệch sang cột 6, header/body lệch từ Ca).
   function funnelTh_(lbl, field) {
     var on = hasFunnel_(TASK_FILTERS, field);
@@ -82,7 +82,7 @@
       funnelTh_('Loại', 'taskType') +
       funnelTh_('Station', 'station') +
       funnelTh_('Team', 'team') +
-      '<th scope="col">Ca</th><th scope="col">Tổng NV</th><th scope="col">Đã quét</th><th scope="col">Dư</th>' +
+      '<th scope="col">Ca</th><th scope="col">Tổng NV</th><th scope="col">Đã quét lần 2</th><th scope="col">Dư</th>' +
       funnelTh_('Trạng thái', 'status') +
       '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
   }
