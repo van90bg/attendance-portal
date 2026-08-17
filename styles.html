@@ -1202,6 +1202,14 @@
       #reportsTable tbody .reports-off { font-size: var(--text-sm); }  /* pill OFF khớp badge 13px */
       .stats-table td { font-size: var(--text-md); padding: var(--space-2) var(--space-2); }  .stats-table th { font-size: var(--text-md); }  .stats-col-title { font-size: var(--text-md); }  #staffTable th { font-size: var(--text-md); }  #viewAbout .about-body { font-size: var(--text-md); }  #viewAbout .about-table { font-size: var(--text-md); }
     }
+    /* Báo cáo tablet (<1200px): 9 cột fixed = 1010px > vùng bảng (~718px tại 1024) → cột PMO bị ép 0px,
+       nowrap + ellipsis che mất giá trị (CDP: th10W=0). Chuyển auto + max-content như stats-table —
+       cột giãn theo nội dung, PMO hiện đủ; wrap cuộn ngang (đã có overflow:auto). */
+    @media (max-width: 1199px) {
+      #reportsTable { width: max-content; min-width: 100%; table-layout: auto; }
+      #reportsTable th, #reportsTable td { overflow: visible; text-overflow: clip; }
+      #reportsTable td:nth-child(10) { white-space: normal; word-break: break-word; }  /* PMO wrap thay nowrap — giá trị dài không bị cắt */
+    }
     #staffTable tbody tr:hover td:nth-child(-n+4) { background: var(--row-hover); }
     /* Mobile viewStaff (≤640px, 2026-08-16): StaffData 20 cột → thẻ card 2 cột (đồng bộ scan/task/reports) —
        dòng 1 Staff Name (16px) | Staff ID; dòng 2 Date | Agency; dòng 3 Contract Type | Department;
