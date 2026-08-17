@@ -146,7 +146,8 @@
     }
     // iOS Safari: mở khóa AudioContext ở thao tác chạm đầu tiên (autoplay policy).
     document.addEventListener('pointerdown', function () { getCtx(); }, { once: true, passive: true });
-    function tone(freq, dur, delay, type) {
+    // vol mặc định 0.9 (gần max, decay nhanh nên không clip) — to hơn 0.55 cũ ~4dB.
+    function tone(freq, dur, delay, type, vol) {
       var ctx = getCtx();
       if (!ctx) return;
       try {
@@ -156,14 +157,22 @@
         osc.type = type || 'sine';
         osc.frequency.value = freq;
         var t0 = ctx.currentTime + (delay || 0);
-        gain.gain.setValueAtTime(0.55, t0);
+        var v = (vol === undefined) ? 0.9 : vol;
+        gain.gain.setValueAtTime(v, t0);
         gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
         osc.start(t0); osc.stop(t0 + dur + 0.03);
       } catch (e) { /* không có audio — bỏ qua */ }
     }
-    function beepOk() { tone(1046, 0.12, 0); tone(1568, 0.16, 0.13); }
-    function beepWarn() { tone(740, 0.1, 0); tone(740, 0.1, 0.15); }
-    function beepErr() { tone(311, 0.18, 0, 'sawtooth'); tone(233, 0.22, 0.16, 'sawtooth'); }
+    // TING thành công — 2 tiếng E6→A6 (triangle: sáng hơn sine, nghe giòn) + họa âm
+    // bội 1 quãng tám (sine nhỏ) tạo âm chuông 'ting' lanh lảnh, to rõ cả mobile + desktop.
+    function beepOk() {
+      tone(1318, 0.1, 0, 'triangle');
+      tone(2636, 0.08, 0.004, 'sine', 0.22);
+      tone(1760, 0.14, 0.11, 'triangle');
+      tone(3520, 0.1, 0.114, 'sine', 0.22);
+    }
+    function beepWarn() { tone(740, 0.12, 0, 'triangle'); tone(740, 0.12, 0.16, 'triangle'); }
+    function beepErr() { tone(311, 0.2, 0, 'sawtooth'); tone(233, 0.24, 0.18, 'sawtooth'); }
     function sendCode(code) {
       if (!code) return;
       var now = Date.now();
