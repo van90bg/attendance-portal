@@ -25,6 +25,10 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
    Chúng lỗi thời ngay khi có fix/patch/tính năng khác — lịch sử đã nằm trong git log + commit message.
    Chỉ ghi comment khi CÓ GIÁ TRỊ: giải thích TẠI SAO (rationale non-obvious), cảnh báo gotcha "đừng regress",
    khớp nối wire/server ("KHỚP server X") — viết ngắn, KHÔNG kèm date/commit hash.
+8. **KHÔNG hardcode màu/spacing/type/radius ngoài `:root`** — styles.html + inline style/JS phải dùng token
+   (92 token: màu semantic · `--space-1..8` 4pt grid · `--text-3xs..8xl` px-exact · `--radius-2xs..full`).
+   Ngoại lệ chủ đích: micro 1-3px trong component · `#fff`/`#000` · fallback `var(--x, #hex)` · px đo runtime (width/scroll).
+   Thêm màu/spacing mới = thêm token vào `:root`, KHÔNG hardcode. (Audit 2026-08-17: 0 hex/px rời rạc còn lại.)
 
 ## 3. Cách edit deterministic (BẮT BUỘC)
 
@@ -81,6 +85,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - **Spinner toàn màn**: `showModalSpin` có guard — nếu `#loadingOverlay` đang hiện thì KHÔNG mở spinModal (tránh 2 spinner đè nhau; khởi động refreshAll mở spinModal trong lúc overlay còn hiện — fix 2026-08-11).
 - **Scroll trong card**: các view dùng `.table-wrap`/`.stats-table-wrap` cuộn nội bộ; `#viewAbout .card` + `#viewStats .card` giới hạn `max-height` + cuộn trong (đồng bộ 2026-08-11) — giữ `pageScrolls:false`.
 - **Mobile card — rule desktop rò rỉ (2026-08-16)**: rule cột desktop (`#reportsTable td:nth-child(5-9)` text-align:center, specificity 1,1,1) thắng base mobile (`#reportsTable tbody td`, 1,0,2) bất kể thứ tự khai báo → card lệch tông. Ép override bằng selector cao hơn `tbody td:nth-child(n)` (1,2,1) + `text-align:left`.
+- **Design token system (2026-08-17)**: toàn bộ màu/spacing/type/radius nằm trong `:root` (92 token — quy tắc 8 §2). Spacing 4pt grid `--space-1..8` · type px-exact `--text-3xs..8xl` · radius `--radius-2xs..full` · màu semantic đủ family (primary/danger/warning/success/amber/badge status/dark-mode). Chi tiết: `skills/ui-ux-audit/component-inventory.md` Nhóm 7 + `skills/project-skill/SKILL.md` §13.
 
 ## 6. Workflow — fix & verify
 
@@ -92,7 +97,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 
 ## 7. Test & Tools
 
-- `npm run test` → **124/124** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS + contract mock↔server + role — GAS API thật không test được trong Node). `index-html-parse` + `test-local-mock` tự build template qua `scripts/build-local.js` → `index.local.html` trước khi chạy.
+- `npm run test` → **136/136** bằng `node:test` (cover pure logic ScanLogic/CsvUtil + smoke load toàn bộ .gs với mock GAS + contract mock↔server + role — GAS API thật không test được trong Node). `index-html-parse` + `test-local-mock` tự build template qua `scripts/build-local.js` → `index.local.html` trước khi chạy.
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 - Dead CSS audit: `node scripts/audit-css.js` — rà class selector styles.html đối chiếu index.html + toàn bộ app-*.html (class="" / classList / className literal + nối chuỗi / querySelector / getElementsByClassName) → phân loại DEAD chắc chắn vs DYNAMIC; **exit 1 nếu có dead** (chạy sau mỗi batch CSS). `--full` in thêm class nối chuỗi.
 - Dead GAS audit: `node scripts/audit-gs.js` — rà hàm/const top-level 14 file .gs đối chiếu toàn bộ nguồn (gs + index/app + mock + tests + scripts); phân loại **DEAD** (không ai gọi) + **API TREO** (*Api server có nhưng client không gọi — drift mock↔server↔client); **exit 1 nếu có dead/treo** (chạy sau mỗi batch server). Entry runtime GAS (doGet/doPost/include) không tính.

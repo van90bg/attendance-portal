@@ -149,9 +149,16 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - **Config state KHÔNG reload UI**: mọi thao tác = state cục bộ + dirty; Lưu = 1 patch diff vs CFG_SNAPSHOT; Huỷ thay đổi = khôi phục snapshot cục bộ (KHÔNG loadConfigView/fetch/skeleton); renderCfgList giữ card.scrollTop. Verify không-reload bằng CDP navigation type + skeleton display + scroll.
 - Nút Lưu luôn hiện sau load — cờ hết dirty = disabled=true (không phải display:none).
 
+## 13. Design token system (2026-08-17 — BẮT BUỘC khi sửa style)
+
+- **92 token trong `:root`** (styles.html) — màu semantic (primary/danger/warning/success/amber-solid-text-hover-deep/badge status free/reconcile/net-err/dark-mode/surface) · `--space-1..8` = 4/8/12/16/20/24/28/32px (4pt grid) · `--text-3xs..8xl` = 10→72px px-exact · `--radius-2xs..full` = 4/6/8/12/20/999px · layout `--header-h`/`--bottom-nav-h`/`--card-radius` (= var(--radius-md)).
+- **Invariant**: KHÔNG hardcode hex/px ngoài :root (cả inline style + JS). Ngoại lệ chủ đích: micro 1-3px trong component · `#fff`/`#000` · fallback `var(--x, #hex)` · px đo runtime (width/scroll/progress). Audit 2026-08-17: 0 rời rạc còn lại.
+- **Spacing đã chuẩn hóa 4pt** (10px→8px, 6px→8px, 14px→16px, 18px→16px — UI chặt hơn ~2px; đã verify audit-ui 132/132). Đừng regress về 10px/6px cũ.
+- **Tech debt ghi nhận — KHÔNG refactor**: hàm dài core (server: scanStaff 7.9k chars, pasteCodes 5.4k, createReconcileTask 5.7k, planScanCommits 5.3k; client: submitScan 9.2k, processScanQueue 6.0k, renderScanView 4.2k, submitPaste 4.5k). Đã qua nhiều vòng review (security gate/optimistic/race) — refactor rủi ro > lợi ích trên GAS.
+
 ## Verify workflow
 
-- Logic changes → `npm run test` (124/124 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (136/136 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
 - **Checklist 3 audit (2026-08-11) — chạy sau MỌI batch**:
   - `npm run test:css` — dead CSS class (styles.html vs index/app + JS render động); exit 1 nếu có dead.
   - `npm run test:gs` — hàm/const/API dead trong 14 file .gs (đối chiếu gs + index/app + mock + tests + scripts); exit 1 nếu dead/treo.

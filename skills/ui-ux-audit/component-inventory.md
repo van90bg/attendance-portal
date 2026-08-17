@@ -86,6 +86,22 @@ Chung: overlay `.about-overlay` (đóng click ngoài) + `.about-dialog` (scale-i
 - **Busy**: nút disabled + tooltip (btnFinish/btnToAttend khi scanBusy)
 - **Dirty (config)**: `#cfgSaveBtn` pulse `cfgSavePulse` + `#cfgDiscardBtn` hiện
 
+## Nhóm 7 — Design token system (2026-08-17)
+
+Tất cả màu/spacing/type/radius nằm trong `:root` (styles.html) — **92 token, 0 duplicate**:
+
+| Nhóm | Token | Ghi chú |
+|---|---|---|
+| Màu semantic (~59) | `--primary(-dark/-bright/-bg/-soft/-active)` · `--danger(-strong)` · `--warning` · `--success(-dark)` · `--amber(-dark/-solid/-text/-hover/-deep)` · `--card-ok/err/extra-bg` · `--free(-bg/-text/-dark-*)` · `--net-err(-border)` · `--reconcile-dark-*` · `--toast-bg` · `--surface(-muted/-soft)` · `--text/--muted/--muted-2` | Mọi tông status/badge đều có token; `--danger-strong` #b3261e ≠ `--danger` #d93025 (AA trên nền err) |
+| Spacing (8) | `--space-1..8` = 4/8/12/16/20/24/28/32px | 4pt grid; micro 1-3px trong component được phép raw |
+| Type (15) | `--text-3xs..8xl` = 10/11/12/13/14/15/16/18/20/22/28/32/34/44/72px | px-exact (scale rem cũ chết đã thay) |
+| Radius (6) | `--radius-2xs..full` = 4/6/8/12/20/999px | 8px = chuẩn chủ đạo; `--card-radius: var(--radius-md)` |
+| Layout (3) | `--header-h` 59px · `--bottom-nav-h` 60px · `--card-radius` | 1 nguồn cho sticky/nav |
+
+**Invariant**: KHÔNG hardcode hex/px ngoài :root (cả inline style/JS). Ngoại lệ: micro 1-3px · `#fff`/`#000` · fallback `var(--x, #hex)` · px đo runtime. Audit 2026-08-17: 0 rời rạc còn lại (trước đó: 93 hex + 317 spacing px + 100% font px).
+
+**Tech debt — hàm dài (ghi nhận, KHÔNG refactor)**: server `scanStaff` 7.9k chars · `pasteCodes` 5.4k · `createReconcileTask` 5.7k · `planScanCommits` 5.3k; client `submitScan` 9.2k · `processScanQueue` 6.0k · `renderScanView` 4.2k · `submitPaste` 4.5k · `renderStaffDataTable` 4.5k. Core đã review nhiều vòng (gate/optimistic/race) — rủi ro refactor > lợi ích trên GAS.
+
 ## Lỗ hổng audit tooling hiện tại (2026-08-16, đã vá 1-2)
 
 1. ~~**audit-ui.js thiếu viewAbout**~~ — **ĐÃ VÁ** (commit 2026-08-16): thêm `about` vào `pages[]` + `viewAbout`/`viewReports` vào check bảng có dữ liệu → 29/29 PASS.
