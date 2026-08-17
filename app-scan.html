@@ -557,10 +557,10 @@
     if (target) {
       if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
         if (Number(target.timeScanEpoch) > 0) {
-          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã điểm danh' });
-          showToast('Đã điểm danh', true);
+          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã điểm danh rồi' });
+          showToast('Đã điểm danh rồi', true);
           playBeep('error');
-          showScanCard('Đã điểm danh', target, 'warn');
+          showScanCard('Đã điểm danh rồi', target, 'warn');
           return;
         }
       } else {

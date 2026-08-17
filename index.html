@@ -85,7 +85,7 @@
               <th scope="col">Team</th>
               <th scope="col">Ca</th>
               <th scope="col">Tổng NV</th>
-              <th scope="col">Đã quét</th>
+              <th scope="col">Đã quét lần 2</th>
               <th scope="col">Dư</th>
               <th scope="col">Trạng thái</th>
               <th scope="col">Tạo lúc</th>
@@ -457,7 +457,7 @@
       <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
         <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Task mới</b>.</li>
-        <li><b>Quét Giờ có mặt:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách chuyển sang <i>Chưa điểm danh</i>; người lạ tính là <i>Dư</i>.</li>
+        <li><b>Quét Giờ có mặt:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách hiện <i>Có mặt</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
         <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (Có mặt).</li>
         <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
       </ol>
@@ -480,10 +480,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Có trong danh sách nhưng chưa quét Giờ quét.</td></tr>
-          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Đã quét lần 2 thành công.</td></tr>
+          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Quét lần 1 đã ghi Giờ có mặt (xanh ngay khi quét), hoặc quét lần 2 đã ghi Giờ quét.</td></tr>
+          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Có trong danh sách, quét lần 1 xong nhưng chưa quét Giờ quét (phase 2).</td></tr>
           <tr><td class="about-cell">Vắng</td><td class="about-cell">Chưa quét Giờ quét khi task kết thúc.</td></tr>
-          <tr><td class="about-cell">Dư</td><td class="about-cell">Quét người không có trong danh sách (sai ca / không có tên).</td></tr>
+          <tr><td class="about-cell">Dư</td><td class="about-cell">Quét người không có trong danh sách (sai ca, không có tên).</td></tr>
         </tbody>
       </table>
 
