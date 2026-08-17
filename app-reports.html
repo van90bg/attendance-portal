@@ -49,6 +49,7 @@
         REPORTS_LOADED = true;
         if (skel) skel.style.display = 'none';
         renderReportsTable();
+        loadAdminPanel();
         markServerOk();
       })
       .withFailureHandler(function (err) {
@@ -101,5 +102,92 @@
         + '</tr>';
     }).join('');
     tbl.style.display = '';
+  }
+
+  // ===== Admin (manager+): toàn bộ task + nhật ký hoạt động =====
+  // Gate client canManager_() (khớp server requireRole_('manager')); server vẫn tự
+  // gate trong getAuditLogApi/getAllTasksApi (DEFENSE — bypass google.script.run).
+  var ADMIN_ACTIONS = {
+    scan: 'Quét', createTask: 'Tạo task', transitionToAttend: 'Chuyển điểm danh',
+    completeTask: 'Kết thúc task', reopenTask: 'Mở lại task', pasteCodes: 'Dán mã',
+    settings: 'Cấu hình'
+  };
+  function adminActionLabel_(a) { return ADMIN_ACTIONS[a] || a; }
+  function phaseLabel_(ph) {
+    if (ph === 'done') return '<span class="badge err">Xong</span>';
+    if (ph === 'attend') return '<span class="badge ok">Điểm danh</span>';
+    return '<span class="badge warn">Mở</span>';
+  }
+  function loadAdminPanel() {
+    var panel = document.getElementById('adminPanel');
+    if (!panel) return;
+    if (!(typeof canManager_ === 'function' && canManager_())) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    google.script.run
+      .withSuccessHandler(function (res) {
+        var tb = document.getElementById('adminTaskTable');
+        if (!tb || !tb.tBodies[0]) return;
+        if (res && res.ok && Array.isArray(res.tasks)) { renderAdminTasks(res.tasks); return; }
+        tb.tBodies[0].innerHTML = '<tr><td colspan="6">' + esc((res && res.message) || 'Không tải được task') + '</td></tr>';
+      })
+      .getAllTasksApi();
+    google.script.run
+      .withSuccessHandler(function (res) {
+        var tb = document.getElementById('auditTable');
+        if (!tb || !tb.tBodies[0]) return;
+        if (res && res.ok && Array.isArray(res.rows)) { renderAuditRows(res.rows); return; }
+        tb.tBodies[0].innerHTML = '<tr><td colspan="4">' + esc((res && res.message) || 'Không tải được nhật ký') + '</td></tr>';
+      })
+      .getAuditLogApi(100);
+  }
+  function renderAdminTasks(tasks) {
+    var tb = document.getElementById('adminTaskTable');
+    if (!tb || !tb.tBodies[0]) return;
+    var html = tasks.slice(0, 50).map(function (t) {
+      var phase = t.phase === 'done' ? 'done' : (t.phase === 'attend' ? 'attend' : 'open');
+      var taskId = esc(t.taskId || '');
+      var btn = '';
+      if (phase === 'attend') btn = '<button class="btn btn-sm" onclick="adminCompleteTask(\'' + taskId + '\')">Kết thúc</button>';
+      if (phase === 'done') btn = '<button class="btn btn-sm btn-outline" onclick="adminReopenTask(\'' + taskId + '\')">Mở lại</button>';
+      return '<tr><td>' + taskId + '</td><td>' + esc(t.taskType === 'free' ? 'Tự do' : 'Đối chiếu') + '</td>'
+        + '<td>' + esc((t.slotCode || '') + (t.team ? ' / ' + t.team : '')) + '</td>'
+        + '<td>' + esc(t.createdBy || '') + '</td>'
+        + '<td>' + phaseLabel_(phase) + '</td>'
+        + '<td>' + btn + '</td></tr>';
+    }).join('');
+    tb.tBodies[0].innerHTML = html || '<tr><td colspan="6">Chưa có task</td></tr>';
+  }
+  function renderAuditRows(rows) {
+    var tb = document.getElementById('auditTable');
+    if (!tb || !tb.tBodies[0]) return;
+    var html = rows.map(function (r) {
+      return '<tr><td>' + esc(fmtAuditTime_(r.timestamp)) + '</td><td>' + esc(r.email || '') + '</td>'
+        + '<td>' + esc(adminActionLabel_(r.action)) + '</td>'
+        + '<td>' + esc(r.targetId || (r.detail || '').slice(0, 60)) + '</td></tr>';
+    }).join('');
+    tb.tBodies[0].innerHTML = html || '<tr><td colspan="4">Chưa có hoạt động nào</td></tr>';
+  }
+  function fmtAuditTime_(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' '
+      + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  }
+  function adminCompleteTask(taskId) {
+    showConfirm('Kết thúc task', 'Kết thúc task ' + taskId + '?', function () {
+      google.script.run
+        .withSuccessHandler(function (res) { showToast((res && res.message) || 'Xong', !(res && res.ok)); loadAdminPanel(); })
+        .withFailureHandler(function (err) { showToast('Lỗi: ' + err.message, true); })
+        .completeTaskApi(taskId);
+    });
+  }
+  function adminReopenTask(taskId) {
+    showConfirm('Mở lại task', 'Mở lại task ' + taskId + '?', function () {
+      google.script.run
+        .withSuccessHandler(function (res) { showToast((res && res.message) || 'Xong', !(res && res.ok)); loadAdminPanel(); })
+        .withFailureHandler(function (err) { showToast('Lỗi: ' + err.message, true); })
+        .reopenTaskApi(taskId);
+    });
   }
 </script>

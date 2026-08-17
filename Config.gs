@@ -10,6 +10,7 @@ const SHEETS = {
   STAFF_DATA: 'StaffData',
   ATTENDANCE_TASK: 'AttendanceTask',
   ATTENDANCE_LOG: 'AttendanceLog',
+  AUDIT_LOG: 'AuditLog',             // nhật ký hoạt động quản trị — ai làm gì khi nào (AuditRepo)
   STAFF_INFO: 'StaffInfo',           // báo cáo (viewReports): email NV → mã Ops
   REPORT_ATTENDANCE: 'StaffAttendance', // báo cáo: chấm công tháng theo Ops ID (nguồn ngoài — KHÔNG tự tạo)
 };
@@ -77,6 +78,17 @@ const LOG_COLS = {
   DATE: 10,       // ngày vào làm (copy từ StaffData) — hiển thị cột Date, khác TIME_REF (ngày task)
 };
 const LOG_COL_COUNT = 11;
+
+// ===== Cột AuditLog (1 dòng / thao tác quản trị) =====
+const AUDIT_LOG_COLS = {
+  TIMESTAMP: 0,
+  EMAIL: 1,
+  ACTION: 2,
+  TARGET_ID: 3,
+  DETAIL: 4,
+};
+
+
 
 // ===== Trạng thái đối chiếu (badge — tiếng Việt) =====
 const STATUS = {

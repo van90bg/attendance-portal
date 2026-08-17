@@ -16,11 +16,13 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { makeSandbox, loadAll } = require('./gas-sandbox');
 
-test('load toàn bộ .gs + ensureSheets_ tạo 4 sheet đúng header (sau tách Database.gs)', () => {
+test('load toàn bộ .gs + ensureSheets_ tạo 5 sheet đúng header (gồm AuditLog)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   assert.doesNotThrow(() => svc.ensureSheets_());
-  assert.deepEqual(Object.keys(ss.sheets).sort(), ['AttendanceLog', 'AttendanceTask', 'Config', 'StaffData'].sort());
+  assert.deepEqual(Object.keys(ss.sheets).sort(), ['AttendanceLog', 'AttendanceTask', 'AuditLog', 'Config', 'StaffData'].sort());
+  // AuditLog: header 5 cột (timestamp/email/action/targetId/detail)
+  assert.equal(ss.sheets.AuditLog.data[0].length, 5);
   // StaffData: header 20 cột
   assert.equal(ss.sheets.StaffData.data[0].length, 20);
   // Log: đủ 11 cột (LOG_COL_COUNT)

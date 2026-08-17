@@ -134,6 +134,7 @@ function scanStaff(taskId, rawStaffId) {
     if (__dt.totalMs > 400 || __dt.readMs > 300 || __dt.writeMs > 300) {
       console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, action: result.action, totalMs: __dt.totalMs, readMs: __dt.readMs, writeMs: __dt.writeMs });
     }
+    audit_('scan', taskId, { staffId: staffId, status: outcome ? outcome.status : result.status });
     return {
       ok: true,
       message: outcome ? outcome.status : result.status,
@@ -273,6 +274,7 @@ function pasteCodes(taskId, rawLines) {
       console.log({ bench: 'pasteCodes', taskId: taskId, totalLines: lines.length, success: success, failed: failed, totalMs: t3 - t0 });
     }
     
+    audit_('pasteCodes', taskId, { total: lines.length, success: success, failed: failed });
     return { ok: true, total: lines.length, success: success, failed: failed, results: results, counters: counters, taskId: taskId };
     
   } finally {

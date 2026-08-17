@@ -146,6 +146,26 @@ function saveSettingsApi(patch) {
   }
 }
 
+/** Nhật ký hoạt động (audit). Gate manager+ TRONG try (DEFENSE). */
+function getAuditLogApi(limit) {
+  try {
+    if (!requireRole_('manager')) return { ok: false, rows: [], message: 'Không đủ quyền (cần role manager trở lên)' };
+    return { ok: true, rows: getAuditLog_(limit), message: '' };
+  } catch (e) {
+    return { ok: false, rows: [], message: e && e.message ? e.message : 'getAuditLog fail' };
+  }
+}
+
+/** Admin console: toàn bộ task (mọi owner). Gate manager+ TRONG try (DEFENSE). */
+function getAllTasksApi() {
+  try {
+    if (!requireRole_('manager')) return { ok: false, tasks: [], message: 'Không đủ quyền (cần role manager trở lên)' };
+    return { ok: true, tasks: listTasks(), message: '' };
+  } catch (e) {
+    return { ok: false, tasks: [], message: e && e.message ? e.message : 'getAllTasks fail' };
+  }
+}
+
 /** Tạo task đối chiếu + pre-fill. Gate requireRole_('operator') đặt TRONG createReconcileTask
  *  (TaskService) — chống bypass google.script.run gọi global; wrapper chỉ DEFENSE. */
 function createReconcileTaskApi(input) {

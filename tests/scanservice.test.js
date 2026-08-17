@@ -48,6 +48,7 @@ function makeCtx(overrides) {
     // M2: scanStaff giờ tự gate requireRole_('operator') — loader này không load Auth.gs
     // nên stub (user 'web' = operator mặc định → qua gate, giữ focus test logic quét).
     requireRole_: () => true,
+    audit_: () => {},  // AuditRepo không load trong harness này
     canScanOpen_: (cfg, createdBy, activeEmail, isAdmin) => {
       if (isAdmin) return true;
       const cb = String(createdBy || '').trim().toLowerCase();

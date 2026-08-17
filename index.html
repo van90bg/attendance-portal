@@ -385,6 +385,35 @@
     </div>
     <div class="empty" id="reportsEmpty" style="display:none;"></div>
   </div>
+  <!-- Admin (manager+): toàn bộ task + nhật ký hoạt động — ẩn cho operator/viewer (client canManager_) -->
+  <div class="card" id="adminPanel" style="display:none;">
+    <div class="task-title">Quản trị — toàn bộ task</div>
+    <div class="table-wrap" style="max-height:280px;" id="adminTaskWrap">
+      <table id="adminTaskTable">
+        <thead><tr>
+          <th scope="col">Task</th>
+          <th scope="col">Loại</th>
+          <th scope="col">Ca / Team</th>
+          <th scope="col">Người tạo</th>
+          <th scope="col">Trạng thái</th>
+          <th scope="col">Thao tác</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="task-title" style="margin-top:14px;">Nhật ký hoạt động</div>
+    <div class="table-wrap" style="max-height:280px;" id="auditWrap">
+      <table id="auditTable">
+        <thead><tr>
+          <th scope="col">Thời gian</th>
+          <th scope="col">Email</th>
+          <th scope="col">Thao tác</th>
+          <th scope="col">Đối tượng</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
 </section>
 
 <!-- T-3: About view (replaces aboutModal) -->

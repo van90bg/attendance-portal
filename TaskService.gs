@@ -116,6 +116,7 @@ function createReconcileTask(input) {
     // EXTRA + cho phép retry tạo lại task mới sạch). batchInsert là 1 setValues → atomic.
     const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
     insertTask_(task);
+    audit_('createTask', taskId, { type: noList ? TASK_TYPE.FREE : TASK_TYPE.RECONCILE, count: count });
     return { ok: true, taskId: taskId, count: count, message: 'Tạo task' + (noList ? ' quét tự do' : '') + ' thành công: ' + taskId };
   } finally {
     lock.releaseLock();
@@ -153,6 +154,7 @@ function completeTask(taskId) {
     // đóng nhưng log chưa chuyển Vắng, retry bị chặn "Task đã kết thúc".
     const absentCount = markUnscannedAbsent_(taskId);
     updateTaskStatus_(taskId, TASK_STATUS.DONE, new Date(), task._rowIndex, task.contractType || '');
+    audit_('completeTask', taskId, { absentCount: absentCount });
     return {
       ok: true,
       message: 'Đã kết thúc task ' + taskId + (absentCount > 0 ? ' — ' + absentCount + ' NV chưa quét đánh dấu Vắng' : ''),
@@ -185,6 +187,7 @@ function transitionToAttend(taskId) {
       return { ok: false, message: UI_LABELS.TRANSITION_BLOCKED };
     }
     updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
+    audit_('transitionToAttend', taskId, {});
     return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét Giờ quét' };
   } finally {
     lock.releaseLock();
@@ -218,6 +221,7 @@ function reopenTask(taskId) {
     const resetCount = resetAbsentToPending_(taskId);
     // F4: mở lại → Điểm danh (phase2, ghi Giờ quét) để quét tiếp luôn — KHÔNG về OPEN.
     updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
+    audit_('reopenTask', taskId, { resetCount: resetCount });
     return {
       ok: true,
       message: 'Đã mở lại task ' + taskId + (resetCount > 0 ? ' — ' + resetCount + ' NV Vắng được đặt lại Chưa điểm danh' : ''),

@@ -94,6 +94,7 @@ function saveSettings_(patch) {
     lock.releaseLock();
   }
   if (saved.length) invalidateSettingsCache_();
+  if (saved.length) audit_('settings', '', { saved: saved });
   return {
     ok: true,
     saved: saved,

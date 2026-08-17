@@ -69,6 +69,7 @@ function ensureSheets_() {
     'taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation',
     'timeRef', 'timeScan', 'status', 'date',
   ]);
+  getSheet_(SHEETS.AUDIT_LOG, ['timestamp', 'email', 'action', 'targetId', 'detail']);
   // Migration an toàn: sheet cũ tạo trước khi có cột date (LOG_COL_COUNT=11) vẫn còn
   // 10 cột → getSheet_ chỉ set header khi sheet trống, không tự thêm cột. Nếu thiếu,
   // thêm cột cuối + đặt header, nếu không batchInsertLogRows_ ghi 11 giá trị sẽ vỡ.
