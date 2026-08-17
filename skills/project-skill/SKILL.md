@@ -14,18 +14,18 @@ description: SPX Điểm Danh (RollCall v2) — project skill. Use for ANY edit 
 
 - Local: `C:\Users\Van90BG\Documents\AppScript\RollCall_2_deploy` · Remote `main` (CI self-clasp).
 - **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug (`gh run list --limit 5`, đối chiếu `.head_sha`).
-- Test: `npm run test` = 124 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
-- Frontend (tách module 2026-08-13): `index.html` (HTML + `<?!= include() ?>` GAS template) + `styles.html` (CSS) + 7 module JS `app-*.html` (core/stats/staff/modals/config/tasks/scan — thay app.html 3665 dòng) — cả nguồn GAS CRLF. Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService `.gs`. Test local: `node scripts/build-local.js` → `index.local.html` (trình duyệt không render template).
+- Test: `npm run test` = 138 tests (node:test — pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
+- Frontend (tách module 2026-08-13): `index.html` (HTML + `<?!= include() ?>` GAS template) + `styles.html` (CSS) + 9 module JS `app-*.html` (core/stats/staff/modals/config/tasks/scan/reports/admin — thay app.html 3665 dòng) — cả nguồn GAS CRLF. Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService/AuditRepo/ReportRepo/ReportService `.gs`. Test local: `node scripts/build-local.js` → `index.local.html` (trình duyệt không render template).
 
 ## 2. Shell: SPX Điểm Danh (2026-08-09)
 
 App scope mở rộng: quản lý chấm công, không chỉ điểm danh. Layout: `<header>` (controls: userEmail · net-dot · 🔊 · ⟳ — ĐÃ BỎ 📋/ⓘ) > `.app-shell` (flex) = `#sidebar` (240↔48px, icon SVG đơn sắc currentColor, KHÔNG side-head, nút thu gọn `☰`) + `#main-content`.
 
-Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewTasks', data:'viewStaff', config:'viewConfig', reports:'viewReports', about:'viewAbout' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
+Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats', attendance:'viewTasks', data:'viewStaff', config:'viewConfig', reports:'viewReports', admin:'viewAdmin', about:'viewAbout' }`. `initSidebar()` + `selectPage('home')` trong DOMContentLoaded. ⚠️ `showSection` ẩn **danh sách cố định** — thêm view mới phải thêm vào đó.
 
 - viewHome: hero logo SPX — URL remote `https://spx.vn/new_static/assets/images/sea-logo.svg` (`onerror` ẩn khi không tải được, KHÔNG dùng file svg local — đã xóa 2026-08-11) + tên + đồng hồ realtime (`renderHomeClock`, Intl Asia/Ho_Chi_Minh).
 - viewStats: pivot fullscreen — 2 bảng Contract×Ca + Agency×Ca, MỖI TEAM 1 bảng (Ca dọc), filter Station · Ngày · Department. viewStaff (page key `data`): bảng StaffData fullscreen (search `#staffSearch` + count `#staffCount`).
-- View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig','viewReports']`.
+- View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig','viewReports','viewAdmin']`.
 
 ## 3. Architecture mental model (đọc TRƯỚC mọi fix)
 
@@ -123,7 +123,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - `.hidden { display:none !important }` — thắng ID rule (chồng view).
 - `--header-h: 59px` đo thật (53 → scroll 6px).
 - **Chuẩn tên (2026-08-11)**: viewTasks (danh sách task) · viewScan · viewHome · viewStats · viewStaff · viewConfig · viewAbout (prefix `view*`). CẤM tên cũ: viewList · aboutView · headerSearch · globalSearch · runSearch · scan-topbar · view-toolbar.
-- **Toolbar chung**: 1 class `.view-topbar` (+ `.view-topbar-title`) cho List/Scan/Stats/Staff/Config — sticky `--header-h`, `.stuck` đổ bóng, JS sync `querySelectorAll('.view-topbar')`.
+- **Toolbar chung**: 1 class `.view-topbar` (+ `.view-topbar-title`) cho List/Scan/Stats/Staff/Config/Reports/Admin — sticky `--header-h`, `.stuck` đổ bóng, JS sync `querySelectorAll('.view-topbar')`.
 - **Search dùng chung `.list-search` (d6b0516)**: `#listSearch` + `runListSearch()` trong `task-list-toolbar` (card DANH SÁCH TASK, ép phải `margin-left:auto`) — nhánh con giữ tên `runSearchStaff`/`runSearchTask`; Escape → `onListSearchKeydown` clear; `#staffSearch`/`#scanSearch` cũng dùng `.list-search` (hết `.att-search`).
 - **Spinner**: `showModalSpin` guard — loadingOverlay đang hiện thì KHÔNG mở spinModal (2 spinner đè nhau; khởi động refreshAll mở spinModal khi overlay còn hiện — fix 2026-08-11).
 - `taskListTable` KHÔNG trong `#taskSkeleton` — parent chain check (`table.parentElement.id === 'taskSkeleton'` → table height 0).
@@ -165,10 +165,10 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## Verify workflow
 
-- Logic changes → `npm run test` (136/136 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (138/138 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
 - **Checklist 3 audit (2026-08-11) — chạy sau MỌI batch**:
   - `npm run test:css` — dead CSS class (styles.html vs index/app + JS render động); exit 1 nếu có dead.
-  - `npm run test:gs` — hàm/const/API dead trong 14 file .gs (đối chiếu gs + index/app + mock + tests + scripts); exit 1 nếu dead/treo.
+  - `npm run test:gs` — hàm/const/API dead trong 17 file .gs (đối chiếu gs + index/app + mock + tests + scripts); exit 1 nếu dead/treo.
   - `npm run test:style` — computed style class chung qua CDP (--strict; cần Chrome); exit 1 nếu lệch ngoài ALLOWED_DRIFT (modal 44px touch / btn-sm / cfg-card / flabel 56px / card+table-wrap flex scan là chủ đích).
 - CDP: `node scripts/build-local.js` trước rồi `node scripts/cdp-helper.js open "file:///.../index.local.html?t=N"` — geometry `getBoundingClientRect` là truth; check `scrollHeight` vs `innerHeight`, `section.parentElement` (repair), table parents.
 - Production bug: `gh run list --limit 5` TRƯỚC khi kết luận — CI trễ → user test GAS build cũ.
