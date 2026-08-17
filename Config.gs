@@ -147,7 +147,7 @@ const CACHE_KEYS = {
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)
   SETTINGS: 'rc2_settings_v3',  // v3: group lists là JSON array defaults thật (revert 4 cột → JSON 2026-08-11)
   REPORT_INFO: 'rc2_reportInfo_v1',  // StaffInfo map email→Ops
-  REPORTS: 'rc2_reports_v1_',        // prefix + email — báo cáo chấm công theo user (TTL 60s)
+  REPORTS: 'rc2_reports_v2_',        // prefix + email — báo cáo chấm công theo user; 'all_*' = chunked StaffAttendance (TTL 60s)
 };
 
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====

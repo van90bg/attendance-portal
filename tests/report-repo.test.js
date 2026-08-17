@@ -152,3 +152,38 @@ test('getReportsApi wrapper: truyền thẳng kết quả service', () => {
   assert.equal(res.ok, true);
   assert.equal(res.rows.length, 3);
 });
+
+test('readAttendanceRowsAll_: cache CHUNG — Ops khác không đọc lại sheet', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  seedReportSheets(ss);
+  const a = svc.readAttendanceRows_('Ops237511');
+  assert.equal(a.length, 3);
+  // Meta + chunk key tồn tại trong script cache
+  const cache = ctx.CacheService.getScriptCache();
+  assert.ok(cache.get('rc2_reports_v2_all_n'), 'meta chunk count');
+  assert.ok(cache.get('rc2_reports_v2_all_0'), 'chunk 0');
+  // Xóa sheet nguồn — Ops khác vẫn filter từ cache chung (không đọc lại sheet)
+  ss.sheets.StaffAttendance.data = [ss.sheets.StaffAttendance.data[0]];
+  const b = svc.readAttendanceRows_('Ops999999');
+  assert.equal(b.length, 1);
+});
+
+test('readAttendanceRowsAll_: sheet lớn >1 chunk (vượt 100KB/key)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  const att = ss.insertSheet('StaffAttendance');
+  att.appendRow(ATT_HEADER);
+  for (let i = 0; i < 600; i++) {
+    att.appendRow(['2026-08-01', 'Ops' + String(100000 + i), 'SPXVN' + String(i).padStart(5, '0'), 'NV ' + i, 'HN2 SOC', '20SOCH2', '08:00-17:00', '', 8, '07:58', '17:02', '', '8/1/2026', '07:58', '17:02', '', '', 'PMO ' + i, 'LM1']);
+  }
+  const rows = svc.readAttendanceRows_('Ops100005');
+  assert.equal(rows.length, 1);
+  const cache = ctx.CacheService.getScriptCache();
+  const n = parseInt(cache.get('rc2_reports_v2_all_n'), 10);
+  assert.ok(n > 1, 'phải có >1 chunk, thực tế ' + n);
+  // Xóa sheet nguồn — vẫn trả từ cache chunked
+  ss.sheets.StaffAttendance.data = [ss.sheets.StaffAttendance.data[0]];
+  const rows2 = svc.readAttendanceRows_('Ops100005');
+  assert.equal(rows2.length, 1);
+});

@@ -117,15 +117,43 @@ function readStaffInfoMap_() {
   }, CACHE_TTL.REPORT_INFO);
 }
 
-/** Toàn bộ dòng StaffAttendance đã parse — cache CHUNG 60s (mọi user dùng 1 bản,
- * không mỗi user đọc lại full sheet). Sheet ngoài update trong ngày → TTL ngắn.
+/** Toàn bộ dòng StaffAttendance đã parse — cache CHUNG 60s, chia CHUNK theo dung
+ * lượng (CacheService giới hạn 100KB/key — sheet tháng thật vượt 1 key → put fail
+ * âm thầm + đọc lại sheet mỗi request). Meta '_all_n' = số chunk; '_all_i' = dữ liệu.
+ * Mọi user dùng 1 bản — không mỗi user đọc lại full sheet.
  */
 function readAttendanceRowsAll_() {
-  return cachedJson_(CACHE_KEYS.REPORTS + 'all', function () {
-    const sheet = getSpreadsheet_().getSheetByName(SHEETS.REPORT_ATTENDANCE);
-    if (!sheet) return [];
-    return buildAttendanceRowsAll(sheet.getDataRange().getValues());
-  }, CACHE_TTL.REPORTS);
+  const nKey = CACHE_KEYS.REPORTS + 'all_n';
+  const nRaw = cache_().get(nKey);
+  if (nRaw !== null) {
+    try {
+      const n = parseInt(nRaw, 10);
+      let json = '';
+      let ok = n > 0;
+      for (let i = 0; i < n && ok; i++) {
+        const part = cache_().get(CACHE_KEYS.REPORTS + 'all_' + i);
+        if (part === null) { ok = false; break; }
+        json += part;
+      }
+      if (ok) {
+        try { return JSON.parse(json); } catch (e) { /* cache hỏng → rebuild */ }
+      }
+    } catch (e) { /* rơi xuống rebuild */ }
+  }
+  const sheet = getSpreadsheet_().getSheetByName(SHEETS.REPORT_ATTENDANCE);
+  const rows = sheet ? buildAttendanceRowsAll(sheet.getDataRange().getValues()) : [];
+  try {
+    const json = JSON.stringify(rows);
+    const CHUNK = 80000; // byte/key — dưới giới hạn 100KB của CacheService
+    const n = Math.max(1, Math.ceil(json.length / CHUNK));
+    for (let i = 0; i < n; i++) {
+      cache_().put(CACHE_KEYS.REPORTS + 'all_' + i, json.slice(i * CHUNK, (i + 1) * CHUNK), CACHE_TTL.REPORTS);
+    }
+    cache_().put(nKey, String(n), CACHE_TTL.REPORTS);
+  } catch (e) {
+    console.warn('readAttendanceRowsAll_ cache put fail', e && e.message);
+  }
+  return rows;
 }
 
 /** Chấm công của 1 Ops ID — filter từ cache chung (không đọc lại sheet). */
