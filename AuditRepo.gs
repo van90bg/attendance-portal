@@ -27,9 +27,15 @@ function audit_(action, targetId, detail) {
 /** Đọc audit gần nhất — mới nhất trước. limit 1..200, mặc định 50. */
 function getAuditLog_(limit) {
   const sheet = getSheet_(SHEETS.AUDIT_LOG);
-  const values = sheet.getDataRange().getValues();
+  const max = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  // Chỉ đọc cửa sổ max dòng mới nhất — getDataRange full sheet mỗi lần mở
+  // viewAdmin chậm dần khi AuditLog phình (mutation quản trị vẫn tích lũy).
+  const startRow = Math.max(2, lastRow - max + 1);
+  const values = sheet.getRange(startRow, 1, lastRow - startRow + 1, sheet.getLastColumn()).getValues();
   const rows = [];
-  for (let i = 1; i < values.length; i++) {
+  for (let i = 0; i < values.length; i++) {
     rows.push({
       timestamp: String(values[i][AUDIT_LOG_COLS.TIMESTAMP] || ''),
       email: String(values[i][AUDIT_LOG_COLS.EMAIL] || ''),
@@ -39,6 +45,5 @@ function getAuditLog_(limit) {
     });
   }
   rows.reverse();
-  const max = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
   return rows.slice(0, max);
 }

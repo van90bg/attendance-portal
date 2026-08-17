@@ -76,7 +76,7 @@ test('getAllTasksApi: operator bị chặn, manager nhận danh sách task', () 
   assert.equal(res.tasks[0].taskId, 'R2026');
 });
 
-test('scanStaff success ghi audit (action=scan)', () => {
+test('scanStaff KHÔNG ghi audit — bỏ audit tần suất cao (chống phình AuditLog)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'web@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
@@ -84,9 +84,9 @@ test('scanStaff success ghi audit (action=scan)', () => {
   ss.sheets.AttendanceTask.appendRow(['R2026', 'free', 'HN SOC', 'Tự do', '', '', 'attend', '2026-08-17 08:00', 'web@spx.com', '']);
   const res = svc.scanStaff('R2026', 'Ops6219');
   assert.equal(res.ok, true);
+  // AuditLog chỉ còn header — scan không thêm dòng (mutation quản trị vẫn audit)
   const rows = ss.sheets.AuditLog.data;
-  assert.equal(rows[rows.length - 1][2], 'scan');
-  assert.equal(rows[rows.length - 1][3], 'R2026');
+  assert.equal(rows.length, 1);
 });
 
 test('completeTask ghi audit (action=completeTask)', () => {

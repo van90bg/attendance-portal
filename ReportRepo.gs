@@ -50,17 +50,15 @@ function buildStaffInfoMap(values) {
 }
 
 /**
- * Parse StaffAttendance values (2D, dòng 1 = header) → rows cho 1 Ops ID.
+ * Parse toàn bộ StaffAttendance values (2D, dòng 1 = header) → rows (mọi Ops).
  * - Map cột theo tên header (trim) — sheet thêm/bớt cột không vỡ; cột thiếu → ''.
- * - Lọc theo biz_staff_id (norm uppercase; dự phòng so phần số khi 2 nguồn lệch tiền tố).
  * - Sort giảm dần theo report_date (ISO yyyy-MM-dd sort string được).
  * - Trả { reportDate, bizStaffId, employeeId, staffName, station, result, workHour, inTime, outTime, pmo }.
+ * Tách riêng khỏi lọc — readAttendanceRows_ cache bản parse này 1 lần cho mọi user.
  */
-function buildAttendanceRows(values, rawOpsId) {
+function buildAttendanceRowsAll(values) {
   const out = [];
   if (!values || values.length < 2) return out;
-  const want = normOpsId_(rawOpsId);
-  const wantDigits = opsDigits_(want);
   const hdr = {};
   (values[0] || []).forEach(function (h, i) {
     const name = String(h || '').trim();
@@ -74,9 +72,6 @@ function buildAttendanceRows(values, rawOpsId) {
     const row = values[i] || [];
     const bizRaw = cell(row, 'biz_staff_id').trim();
     if (!bizRaw) continue;  // dòng trống
-    const biz = normOpsId_(bizRaw);
-    const bizDigits = opsDigits_(biz);
-    if (biz !== want && (bizDigits !== wantDigits || !wantDigits)) continue;  // không khớp Ops
     out.push({
       reportDate: cell(row, 'report_date'),
       bizStaffId: bizRaw,
@@ -96,6 +91,23 @@ function buildAttendanceRows(values, rawOpsId) {
   return out;
 }
 
+/** Lọc rows theo 1 Ops ID (norm uppercase; dự phòng so phần số khi lệch tiền tố). */
+function filterAttendanceRows(rows, rawOpsId) {
+  const want = normOpsId_(rawOpsId);
+  const wantDigits = opsDigits_(want);
+  return (rows || []).filter(function (r) {
+    const biz = normOpsId_(r.bizStaffId);
+    const bizDigits = opsDigits_(biz);
+    if (biz !== want && (bizDigits !== wantDigits || !wantDigits)) return false;
+    return true;
+  });
+}
+
+/** Parse + lọc theo Ops ID (wrapper — giữ chữ ký cũ cho test/client). */
+function buildAttendanceRows(values, rawOpsId) {
+  return filterAttendanceRows(buildAttendanceRowsAll(values), rawOpsId);
+}
+
 /** StaffInfo map email→Ops (cache 1h — version-key REPORT_INFO). */
 function readStaffInfoMap_() {
   return cachedJson_(CACHE_KEYS.REPORT_INFO, function () {
@@ -105,9 +117,18 @@ function readStaffInfoMap_() {
   }, CACHE_TTL.REPORT_INFO);
 }
 
-/** Chấm công của 1 Ops ID từ StaffAttendance (KHÔNG cache full sheet — cache per-user ở service). */
+/** Toàn bộ dòng StaffAttendance đã parse — cache CHUNG 60s (mọi user dùng 1 bản,
+ * không mỗi user đọc lại full sheet). Sheet ngoài update trong ngày → TTL ngắn.
+ */
+function readAttendanceRowsAll_() {
+  return cachedJson_(CACHE_KEYS.REPORTS + 'all', function () {
+    const sheet = getSpreadsheet_().getSheetByName(SHEETS.REPORT_ATTENDANCE);
+    if (!sheet) return [];
+    return buildAttendanceRowsAll(sheet.getDataRange().getValues());
+  }, CACHE_TTL.REPORTS);
+}
+
+/** Chấm công của 1 Ops ID — filter từ cache chung (không đọc lại sheet). */
 function readAttendanceRows_(opsId) {
-  const sheet = getSpreadsheet_().getSheetByName(SHEETS.REPORT_ATTENDANCE);
-  if (!sheet) return [];
-  return buildAttendanceRows(sheet.getDataRange().getValues(), opsId);
+  return filterAttendanceRows(readAttendanceRowsAll_(), opsId);
 }

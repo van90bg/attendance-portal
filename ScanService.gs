@@ -134,7 +134,6 @@ function scanStaff(taskId, rawStaffId) {
     if (__dt.totalMs > 400 || __dt.readMs > 300 || __dt.writeMs > 300) {
       console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, action: result.action, totalMs: __dt.totalMs, readMs: __dt.readMs, writeMs: __dt.writeMs });
     }
-    audit_('scan', taskId, { staffId: staffId, status: outcome ? outcome.status : result.status });
     return {
       ok: true,
       message: outcome ? outcome.status : result.status,
