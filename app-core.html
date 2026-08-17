@@ -620,8 +620,36 @@
   }
 
   /* ===== Âm thanh phản hồi quét (C1) — Web Audio API, không cần file =====
-     error: buzz thấp 200Hz · scan: beep cao 880Hz — gate bởi SOUND_ON */
+     scan: TING giòn E6→A6 triangle + họa âm (ĐỒNG BỘ tab scanner) · error: trầm sawtooth.
+     vol 0.9 (gần max, decay nhanh nên không clip) — gate bởi SOUND_ON */
   var _audioCtx = null;
+  // iOS Safari: mở khóa AudioContext ở thao tác chạm đầu tiên (autoplay policy).
+  document.addEventListener('pointerdown', function () {
+    if (!SOUND_ON) return;
+    try {
+      if (!_audioCtx) {
+        var AC0 = window.AudioContext || window.webkitAudioContext;
+        if (AC0) _audioCtx = new AC0();
+      }
+      if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+    } catch (e) {}
+  }, { once: true, passive: true });
+  function beepTone_(freq, dur, delay, type, vol) {
+    var ctx = _audioCtx;
+    if (!ctx) return;
+    try {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      var t0 = ctx.currentTime + (delay || 0);
+      var v = (vol === undefined) ? 0.9 : vol;
+      gain.gain.setValueAtTime(v, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.start(t0); osc.stop(t0 + dur + 0.03);
+    } catch (e) { /* thiết bị không hỗ trợ audio — bỏ qua */ }
+  }
   function playBeep(type) {
     if (!SOUND_ON) return;
     try {
@@ -630,24 +658,16 @@
         if (!AC) return;
         _audioCtx = new AC();
       }
-      var ctx = _audioCtx;
-      if (ctx.state === 'suspended') ctx.resume();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
       if (type === 'error') {
-        osc.type = 'square';
-        osc.frequency.value = 200;
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        beepTone_(311, 0.2, 0, 'sawtooth');
+        beepTone_(233, 0.24, 0.18, 'sawtooth');
       } else {
-        osc.type = 'sine';
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        beepTone_(1318, 0.1, 0, 'triangle');
+        beepTone_(2636, 0.08, 0.004, 'sine', 0.22);
+        beepTone_(1760, 0.14, 0.11, 'triangle');
+        beepTone_(3520, 0.1, 0.114, 'sine', 0.22);
       }
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.15);
     } catch (e) { /* thiết bị không hỗ trợ audio — bỏ qua */ }
   }
 
