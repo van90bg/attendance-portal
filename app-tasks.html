@@ -22,9 +22,11 @@
         // Header mới không còn #appTitle — cập nhật brand title nếu có
         var brand = document.getElementById('brandTitle');
         if (brand && meta.appTitle) brand.textContent = meta.appTitle;
-        // Trang Cấu hình (viewConfig) — chỉ hiện mục sidebar khi editor (getMetaApi.isEditor)
+        // Trang Cấu hình (viewConfig) — chỉ hiện mục sidebar + bottom nav mobile khi editor (getMetaApi.isEditor)
         var cfgItem = document.getElementById('sideConfigItem');
         if (cfgItem) cfgItem.style.display = (meta && meta.isEditor) ? '' : 'none';
+        var cfgNav = document.getElementById('bottomConfigItem');
+        if (cfgNav) cfgNav.style.display = (meta && meta.isEditor) ? '' : 'none';
         refreshAll();
         // Prefetch nền StaffData — mở Thống kê/Dữ liệu lần đầu KHÔNG delay
         // (CDP: cold 280ms → warm ~22ms; silent = không toast lúc khởi động; 2026-08-11)
