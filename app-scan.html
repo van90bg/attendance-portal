@@ -51,7 +51,7 @@
     var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
     metaEl.innerHTML =
       esc(TT_LABEL[data.task.taskType] || 'Task') + ' ' + esc(data.task.station) + ' ' + esc(data.task.slotCode) + ' ' + esc(data.task.team) +
-      ' — <b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);  /* FIX(2026-08-14): bỏ dấu · giữa các trường (space phân cách, trước phase dùng —) */
+      ' — <b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);  /* bỏ dấu · giữa các trường (space phân cách, trước phase dùng —) */
     if (skel) skel.style.display = 'none';
     if (tbl) tbl.style.display = '';
     renderScanTable(safeArr(data.log));
@@ -89,7 +89,7 @@
         // nút Chuyển điểm danh/nút paste (không bị logic phase ở trên ghi đè).
         applyScanPermission();
         // Mobile/tablet (pointer:coarse): KHÔNG focus ngay — bàn phím ảo tự bật đè màn hình
-        // khi mở task quét (2026-08-11). Máy tính (chuột/barcode scanner) giữ auto-focus như cũ.
+        // khi mở task quét. Máy tính (chuột/barcode scanner) giữ auto-focus như cũ.
         if (canScan && !scanOwnerLocked && !COARSE_POINTER) {
           scanInput.focus();
         }
@@ -323,13 +323,13 @@
     }
 
   // Mobile (≤700px): thu gọn / mở rộng danh sách NV trong viewScan — mặc định thu gọn
-  // (chỉ counters + ô quét + nút quét + scanCard), mở ra khi cần xem bảng/lọc (2026-08-13).
+  // (chỉ counters + ô quét + nút quét + scanCard), mở ra khi cần xem bảng/lọc.
   function toggleScanList() {
     var card = document.getElementById('scanListCard');
     var btn = document.getElementById('btnScanListToggle');
     if (!card || !btn) return;
     var open = card.classList.toggle('scan-list-open');
-    // FIX(2026-08-14): Mở rộng -> ẩn cột quét (counters + ô nhập + nút Quét + scanCard), danh sách NV đẩy lên full
+    // Mở rộng -> ẩn cột quét (counters + ô nhập + nút Quét + scanCard), danh sách NV đẩy lên full
     document.body.classList.toggle('scan-expanded', open);
     btn.textContent = open ? '▲' : '▼';
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -959,7 +959,7 @@
   }
   function scanCardHTML(status, target) {
     var _st = scanStatusLabel_(status);
-    // FIX(2026-08-14): Agency sau tên NV — vd 'Đoàn Hoàng Phát - SKT' (tra CLIENT_STAFF_INDEX;
+    // Agency sau tên NV — vd 'Đoàn Hoàng Phát - SKT' (tra CLIENT_STAFF_INDEX;
     // mobile ẩn khi card hẹp — container query, đủ không gian mới hiện).
     var _agency = '';
     var _rec = target && target.staffId ? (CLIENT_STAFF_INDEX[String(target.staffId).toUpperCase()] || null) : null;

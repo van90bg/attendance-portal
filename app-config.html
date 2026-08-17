@@ -15,11 +15,11 @@
     { v: 'admin',    l: 'Admin — toàn quyền' },
   ];
   var CFG_LOADED = false;      // đã render 1 lần — mở lại không fetch trùng
-  var CFG_LOADED_AT = 0;      // (2026-08-16) mốc tải thành công — TTL cache (giống STAFF_LOADED_AT)
+  var CFG_LOADED_AT = 0;      // mốc tải thành công — TTL cache (giống STAFF_LOADED_AT)
   var CFG_MAX_AGE_MS = 60 * 60 * 1000; /* 1h — cấu hình ít đổi, không fetch mỗi lần mở view (đồng bộ STAFF_MAX_AGE_MS) */
 
   function loadConfigView(btn, silent) {
-    // Guard (2026-08-13): bấm 'Làm mới' khi còn thay đổi chưa lưu → confirm
+    // Guard bấm 'Làm mới' khi còn thay đổi chưa lưu → confirm
     if (CFG_DIRTY && btn) {
       showConfirm('Chưa lưu cấu hình', 'Hủy bỏ thay đổi sẽ mất toàn bộ thay đổi cấu hình chưa lưu. Tiếp tục?', function () {
         CFG_DIRTY = false;
@@ -39,7 +39,7 @@
     if (wrap) wrap.style.display = 'none';
     if (roleWrap) roleWrap.style.display = 'none';
     if (saveBtn) saveBtn.style.display = 'none';
-    if (sk) sk.style.display = '';  // P2 (2026-08-16): skeleton shimmer thay chữ "Đang tải…" (đồng bộ Task/Staff)
+    if (sk) sk.style.display = '';  // skeleton shimmer thay chữ "Đang tải…" (đồng bộ Task/Staff)
     setBtnBusy_(btn, '⟳ Đang tải…');
     function restore() { restoreBtnLabel_(btn, '⟳ Cập nhật'); syncCfgSaveBtn_(); }
     google.script.run
@@ -54,7 +54,7 @@
           return;
         }
           renderConfigForm(res.settings || {});
-          CFG_LOADED_AT = Date.now();  // (2026-08-16) mốc TTL cache — đồng bộ STAFF_LOADED_AT
+          CFG_LOADED_AT = Date.now();  // mốc TTL cache — đồng bộ STAFF_LOADED_AT
         if (wrap) wrap.style.display = '';
         if (roleWrap) roleWrap.style.display = '';
         if (saveBtn) saveBtn.style.display = '';  // Mẫu B: nút Lưu phân quyền trên view-topbar
@@ -72,7 +72,7 @@
       .getSettingsApi();
   }
 
-  // (2026-08-16) Mở viewConfig: dùng cache nếu còn hạn (TTL 1h — giống ensureStaffData), không fetch trùng.
+  // Mở viewConfig: dùng cache nếu còn hạn (TTL 1h — giống ensureStaffData), không fetch trùng.
   // CFG_DIRTY → KHÔNG reload (đang sửa dở — tránh mất thay đổi). Nút "⟳ Làm mới" gọi loadConfigView trực tiếp = force.
   function ensureConfigData(force, silent) {
     if (CFG_DIRTY) return;  // đang có thay đổi chưa lưu — không reload mất dữ liệu
@@ -81,15 +81,15 @@
   }
 
   // ===== Cấu hình vận hành — danh sách mục; MỌI thao tác = state cục bộ + markCfgDirty_,
-  // gửi server 1 patch duy nhất (diff vs CFG_SNAPSHOT) khi bấm 'Lưu cấu hình' (2026-08-13) =====
-  // Key mặc định theo group — Mặc định (default) gắn liền Danh sách (2026-08-12): chọn trong
+  // gửi server 1 patch duy nhất (diff vs CFG_SNAPSHOT) khi bấm 'Lưu cấu hình' =====
+  // Key mặc định theo group — Mặc định (default) gắn liền Danh sách chọn trong
   // group Station/Team/Slot Code thay vì field đơn tách riêng. departments/agencies không có default.
   var CFG_DEFAULT_KEY = { stations: 'defaultStation', teams: 'defaultTeam', slotcodes: 'defaultSlotCode' };
   var CFG_STATE = {};        // state hiện tại — nguồn render, diff vs snapshot khi Lưu
-  var CFG_SNAPSHOT = null;   // bản sao settings lúc load — so sánh để tạo patch (2026-08-13)
-  var CFG_DIRTY = false;     // có thay đổi chưa lưu → nút Lưu bật sáng + guard rời trang (2026-08-13)
-  var CFG_EDIT_ORIG = null;  // giá trị gốc lúc mở edit group — so sánh khi hủy edit dở (2026-08-14)
-  var ROLE_EDIT = null;      // role đang sửa: { email, isNew } | null (2026-08-13)
+  var CFG_SNAPSHOT = null;   // bản sao settings lúc load — so sánh để tạo patch
+  var CFG_DIRTY = false;     // có thay đổi chưa lưu → nút Lưu bật sáng + guard rời trang
+  var CFG_EDIT_ORIG = null;  // giá trị gốc lúc mở edit group — so sánh khi hủy edit dở
+  var ROLE_EDIT = null;      // role đang sửa: { email, isNew } | null
   // Group lists (Config sheet — 2026-08-11): danh sách lựa chọn cho dropdown tạo task / filter.
   // Mỗi group 1 section: item Sửa/Xoá + nút + Thêm.
   var CFG_GROUPS = [
@@ -98,14 +98,14 @@
     { key: 'slotcodes', label: 'Danh sách Slot Code (Ca)' },
     { key: 'departments', label: 'Danh sách Department' },
     { key: 'agencies', label: 'Danh sách Agency' },
-    { key: 'contractTypes', label: 'Danh sách Contract Type' },  // (2026-08-16): thứ tự chips tạo task + cột Thống kê
+    { key: 'contractTypes', label: 'Danh sách Contract Type' },  // thứ tự chips tạo task + cột Thống kê
   ];
-  // (2026-08-16): trạng thái thu gọn từng group card (▾/▸) — state phiên, không persist, không dirty.
+  // trạng thái thu gọn từng group card (▾/▸) — state phiên, không persist, không dirty.
   var CFG_COLLAPSED = {};
 
   function deepCopyCfg_() { return JSON.parse(JSON.stringify(CFG_STATE)); }
 
-  // P3 (2026-08-16): tóm tắt #configMeta sau khi tải — số group/mục/role thay chữ "Đã tải" trống trơn.
+  // tóm tắt #configMeta sau khi tải — số group/mục/role thay chữ "Đã tải" trống trơn.
   function cfgSummary_() {
     var items = 0;
     CFG_GROUPS.forEach(function (g) { items += safeArr(CFG_STATE[g.key]).length; });
@@ -114,7 +114,7 @@
   }
 
   function renderConfigForm(s) {
-    // Hủy bỏ edit dở (group input + role) khi reload — không commit vào state mới (2026-08-13)
+    // Hủy bỏ edit dở (group input + role) khi reload — không commit vào state mới
     CFG_EDIT_ORIG = null;
     CFG_STATE = s || {};
     CFG_SNAPSHOT = deepCopyCfg_();
@@ -126,7 +126,7 @@
     CFG_LOADED = true;
   }
 
-  // Dirty tracking (2026-08-13): mọi thao tác sửa/xoá/thêm/kéo thả/default/role chỉ đổi state
+  // Dirty tracking mọi thao tác sửa/xoá/thêm/kéo thả/default/role chỉ đổi state
   // cục bộ + đánh dấu dirty → nút 'Lưu cấu hình' bật sáng (CSS .cfg-save-dirty).
   function markCfgDirty_() {
     CFG_DIRTY = true;
@@ -138,12 +138,12 @@
       b.classList.toggle('cfg-save-dirty', !!CFG_DIRTY);
       b.disabled = !CFG_DIRTY;  // nút Lưu tắt khi chưa có thay đổi
     }
-    // P2 (2026-08-16): nút "Hủy thay đổi" RIÊNG khi dirty — thay cơ chế đổi nhãn Làm mới (dễ bỡ ngỡ)
+    // nút "Hủy thay đổi" RIÊNG khi dirty — thay cơ chế đổi nhãn Làm mới (dễ bỡ ngỡ)
     var d = document.getElementById('cfgDiscardBtn');
     if (d) d.style.display = CFG_DIRTY ? '' : 'none';
   }
 
-  // (2026-08-16): hủy bỏ toàn bộ thay đổi chưa lưu → confirm → khôi phục CFG_SNAPSHOT CỤC BỘ.
+  // hủy bỏ toàn bộ thay đổi chưa lưu → confirm → khôi phục CFG_SNAPSHOT CỤC BỘ.
   // KHÔNG gọi loadConfigView (không fetch/skeleton/nhấp nháy) — snapshot luôn = trạng thái server
   // cuối (cập nhật sau mỗi save thành công) → hủy chỉ đổi state + render lại dưới nền, giữ scroll.
   function discardCfgChanges() {
@@ -157,7 +157,7 @@
 
   // renderCfgList: mỗi group 1 section riêng (2026-08-14 — bỏ bảng gộp/thead sticky/cột Nhóm):
   // section = tiêu đề + count + nút + Thêm + bảng nhỏ (Giá trị | Mặc định* | Thao tác).
-  // P1 (2026-08-16): ô tìm kiếm #cfgSearch lọc item theo q — section không khớp ẩn hẳn,
+  // ô tìm kiếm #cfgSearch lọc item theo q — section không khớp ẩn hẳn,
   // không có kết quả nào thì hiện #cfgNoResult. Giữ scroll của #configForm (.card cuộn).
   function renderCfgList() {
     var box = document.getElementById('cfgList');
@@ -186,7 +186,7 @@
   // Render 1 group card (2026-08-16 — bỏ bảng, dùng chip wrap): card riêng viền + collapse ▾/▸ +
   // head (title + count + nút + Thêm) + chips (.cfg-chips flex wrap — 7 mục Slot Code co lại 2 dòng).
   // Chip <span class="cfg-chip cfg-item-group"> giữ class/selector cho editCfgGroupItem/drag*/delete.
-  // P1 (2026-08-16): q != '' → chỉ render chip khớp (data-idx vẫn là index THẬT trong CFG_STATE);
+  // q != '' → chỉ render chip khớp (data-idx vẫn là index THẬT trong CFG_STATE);
   // group không khớp nào thì trả '' (ẩn hẳn section). Search → luôn mở (bỏ qua collapse).
   function cfgGroupHtml_(g, q) {
     var list = safeArr(CFG_STATE[g.key]);
@@ -205,7 +205,7 @@
       if (q) return '';  // đang tìm — ẩn section không có kết quả
       chips.push('<span class="cfg-empty-val">(chưa có)</span>');
     }
-    // Mockup (2026-08-16): cả head click được để collapse — chevron ▾ xoay -90° khi đóng,
+    // Mockup cả head click được để collapse — chevron ▾ xoay -90° khi đóng,
     // count badge pill cạnh title; nút + Thêm là dashed pill cuối hàng chips (không còn nút ở head).
     return '<div class="cfg-group-card' + (collapsed ? ' is-collapsed' : '') + '" data-group="' + g.key + '">'
       + '<div class="cfg-card-head" role="button" tabindex="0" aria-expanded="' + (!collapsed) + '"'
@@ -222,7 +222,7 @@
       + '</div>'
     + '</div>';
   }
-  // Chip 1 item (2026-08-16): value + star ★/☆ (default) + icon ✎/✕ — ôm sát nội dung, wrap tự nhiên.
+  // Chip 1 item value + star ★/☆ (default) + icon ✎/✕ — ôm sát nội dung, wrap tự nhiên.
   function cfgItemChipHtml_(g, v, i, hasDef) {
     var def = isDefault_(g.key, v);
     return '<span class="cfg-chip cfg-item-group' + (def ? ' is-default' : '') + '" data-group="' + g.key + '" data-idx="' + i + '" draggable="true"'
@@ -245,7 +245,7 @@
     return '<button type="button" class="cfg-star-btn' + (def ? ' cfg-star-on' : '') + '" onclick="toggleCfgDefault(\'' + g.key + '\',\'' + escAttr(String(v)) + '\')" title="' + (def ? 'Bỏ mặc định' : 'Đặt mặc định') + '" aria-label="' + (def ? 'Bỏ mặc định ' : 'Đặt mặc định ') + esc(String(v)) + '">' + (def ? '★' : '☆') + '</button>';
   }
 
-  // (2026-08-16): thu gọn/mở rộng group card — chỉ đổi hiển thị, không dirty (không phải thay đổi cấu hình).
+  // thu gọn/mở rộng group card — chỉ đổi hiển thị, không dirty (không phải thay đổi cấu hình).
   function toggleCfgGroupCollapse(group) {
     CFG_COLLAPSED[group] = !CFG_COLLAPSED[group];
     renderCfgList();
@@ -255,9 +255,9 @@
     var dk = CFG_DEFAULT_KEY[group];
     return dk ? CFG_STATE[dk] === val : false;
   }
-  // Mặc định (default) inline — thay select riêng (2026-08-12): mỗi item có nút "Mặc định" + badge
+  // Mặc định (default) inline — thay select riêng mỗi item có nút "Mặc định" + badge
   function toggleCfgDefault(group, val) {
-    cancelPendingGroupEdit_();  // (2026-08-14): hủy edit dở — chỉ nút Lưu dòng mới chốt
+    cancelPendingGroupEdit_();  // hủy edit dở — chỉ nút Lưu dòng mới chốt
     var dk = CFG_DEFAULT_KEY[group];
     if (!dk) return;
     CFG_STATE[dk] = (CFG_STATE[dk] === val) ? '' : val;
@@ -267,7 +267,7 @@
 
   // Kéo thả sắp xếp item trong group (HTML5 DnD — 2026-08-12): thứ tự list = thứ tự Config
   // dùng cho Thống kê (orderedByCfg_) và dropdown tạo task.
-  // P0 (2026-08-16): HTML5 DnD không fire dragstart trên cảm ứng → thêm pointer fallback từ
+  // HTML5 DnD không fire dragstart trên cảm ứng → thêm pointer fallback từ
   // handle ⋮⋮ (mouse giữ nguyên HTML5 DnD) + sắp xếp bằng bàn phím ↑↓/Home/End (P2).
   var CFG_DRAG = null;        // trạng thái HTML5 DnD (mouse/desktop)
   var CFG_TOUCH_DRAG = null;  // trạng thái pointer-drag (touch/pen)
@@ -275,7 +275,7 @@
 
   // Di chuyển item group from → to (dùng chung: drop HTML5, drop touch, phím ↑↓) — CỤC BỘ + dirty.
   function moveCfgItem_(group, from, to) {
-    cancelPendingGroupEdit_();  // (2026-08-14): hủy edit dở — chỉ nút Lưu dòng mới chốt
+    cancelPendingGroupEdit_();  // hủy edit dở — chỉ nút Lưu dòng mới chốt
     var list = safeArr(CFG_STATE[group]).slice();
     var v = list.splice(from, 1)[0];
     list.splice(to, 0, v);
@@ -285,7 +285,7 @@
   }
 
   function dragCfgStart(ev, group, idx) {
-    if (cfgSearchQ_()) return;  // P2 (2026-08-16): đang lọc — kéo theo index thật khó hình dung, tắt tạm
+    if (cfgSearchQ_()) return;  // đang lọc — kéo theo index thật khó hình dung, tắt tạm
     CFG_DRAG = { group: group, from: idx };
     try { ev.dataTransfer.setData('text/plain', String(idx)); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { /* ignore */ }
     if (ev.currentTarget) ev.currentTarget.classList.add('cfg-dragging');
@@ -317,11 +317,11 @@
     for (var i = 0; i < els.length; i++) els[i].classList.remove('cfg-drop-target');
   }
 
-  // ===== Pointer drag (P0 2026-08-16): HTML5 DnD không fire dragstart trên cảm ứng — thêm
+  // ===== Pointer drag : HTML5 DnD không fire dragstart trên cảm ứng — thêm
   // pointer fallback từ handle ⋮⋮ (pointerType khác mouse = touch/pen). Mouse giữ nguyên HTML5 DnD.
   function cfgDragPtrDown(ev, group, idx) {
     if (ev.pointerType === 'mouse') return;  // mouse dùng HTML5 DnD
-    if (cfgSearchQ_()) return;  // P2 (2026-08-16): đang lọc — không kéo touch
+    if (cfgSearchQ_()) return;  // đang lọc — không kéo touch
     ev.preventDefault();
     try { ev.target.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
     CFG_TOUCH_DRAG = { group: group, from: idx, x: ev.clientX, y: ev.clientY, startX: ev.clientX, startY: ev.clientY, moved: false, to: undefined };
@@ -384,9 +384,9 @@
     return box ? box.querySelector('.cfg-item-group[data-group="' + group + '"][data-idx="' + idx + '"]') : null;
   }
 
-  // P2 (2026-08-16): sắp xếp bằng bàn phím — handle focus được, ↑↓/Home/End di chuyển item (a11y).
+  // sắp xếp bằng bàn phím — handle focus được, ↑↓/Home/End di chuyển item (a11y).
   function cfgDragHandleKeydown(ev, group, idx) {
-    if (cfgSearchQ_()) return;  // P2 (2026-08-16): đang lọc — không sắp xếp bằng phím
+    if (cfgSearchQ_()) return;  // đang lọc — không sắp xếp bằng phím
     var list = safeArr(CFG_STATE[group]);
     var to = -1;
     if (ev.key === 'ArrowUp') to = idx - 1;
@@ -401,7 +401,7 @@
     if (h) h.focus();  // giữ focus trên handle sau khi di chuyển — bấm ↑↓ liên tiếp được
   }
 
-  // Sửa item group (2026-08-14): input + nút Lưu/Huỷ RÕ RÀNG — chỉ Lưu/Enter mới chốt vào state
+  // Sửa item group input + nút Lưu/Huỷ RÕ RÀNG — chỉ Lưu/Enter mới chốt vào state
   // (bỏ commit-on-blur 180ms — blur không làm gì, không mất chữ bất ngờ). Hành động khác
   // (Sửa/Thêm/Xoá/Default/Drop/Role/Lưu cấu hình...) → cancelPendingGroupEdit_ hủy edit dở.
   function editCfgGroupItem(group, idx) {
@@ -414,7 +414,7 @@
     if (!item) return;
     CFG_EDIT_ORIG = String(cur);
     item.classList.add('cfg-chip-editing');
-    // Mockup (2026-08-16): chip edit = input transparent liền chip (viền primary ở chip) + icon ✓/✕ —
+    // Mockup chip edit = input transparent liền chip (viền primary ở chip) + icon ✓/✕ —
     // gọn hơn nút chữ Lưu/Huỷ; placeholder "Giá trị mới" chỉ khi Thêm mới (cur rỗng).
     item.innerHTML = '<span class="cfg-drag-handle">⋮⋮</span>'
         + '<input class="cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="' + (cur === '' ? 'Giá trị mới' : '') + '" autocomplete="off">'
@@ -431,14 +431,14 @@
     }
   }
 
-  // (2026-08-14): bỏ edit dở — Thêm (row '' cuối) → pop; Sửa → giữ giá trị cũ (state chưa đổi)
+  // bỏ edit dở — Thêm (row '' cuối) → pop; Sửa → giữ giá trị cũ (state chưa đổi)
   function discardCfgGroupEdit_(group) {
     var list = safeArr(CFG_STATE[group]);
     if (list.length && String(list[list.length - 1] || '').trim() === '') list.pop();
     renderCfgList();
   }
 
-  // (2026-08-14): giá trị trùng trong cùng group (khác dòng, case-insensitive) — chặn thêm/sửa trùng
+  // giá trị trùng trong cùng group (khác dòng, case-insensitive) — chặn thêm/sửa trùng
   function isDupCfgValue_(group, idx, v) {
     var list = safeArr(CFG_STATE[group]);
     var lv = String(v || '').trim().toLowerCase();
@@ -459,13 +459,13 @@
     var inp = document.getElementById('cfgGroupEditInput');
     var v = inp ? inp.value.trim() : '';
     CFG_EDIT_ORIG = null;
-    if (!v) { discardCfgGroupEdit_(group); return true; }  // (2026-08-14): commit rỗng = hủy row — KHÔNG phải lỗi, save vẫn tiếp tục
-    if (isDupCfgValue_(group, idx, v)) { showToast('"' + v + '" đã có trong danh sách', true); discardCfgGroupEdit_(group); return false; }  // (2026-08-14): chặn trùng
+    if (!v) { discardCfgGroupEdit_(group); return true; }  // commit rỗng = hủy row — KHÔNG phải lỗi, save vẫn tiếp tục
+    if (isDupCfgValue_(group, idx, v)) { showToast('"' + v + '" đã có trong danh sách', true); discardCfgGroupEdit_(group); return false; }  // chặn trùng
     var list = safeArr(CFG_STATE[group]).slice();
     var orig = String(list[idx] === undefined ? '' : list[idx]);
     list[idx] = v;
     CFG_STATE[group] = list;
-    // P1 (2026-08-16): đổi tên item đang là Mặc định → cập nhật default theo (trước đây default "mồ côi" — không row nào hiện trạng thái mặc định)
+    // đổi tên item đang là Mặc định → cập nhật default theo (trước đây default "mồ côi" — không row nào hiện trạng thái mặc định)
     var dk = CFG_DEFAULT_KEY[group];
     if (dk && CFG_STATE[dk] === orig) CFG_STATE[dk] = v;
     renderCfgList();
@@ -475,7 +475,7 @@
     return true;
   }
 
-  // (2026-08-14): hủy edit group đang mở — gọi trước mọi hành động khác (Sửa/Thêm/Xoá/Default/
+  // hủy edit group đang mở — gọi trước mọi hành động khác (Sửa/Thêm/Xoá/Default/
   // Drop/Role) vì chỉ nút Lưu dòng mới chốt. Toast nếu đang gõ dở có thay đổi (không mất chữ lặng lẽ).
   function cancelPendingGroupEdit_() {
     var inp = document.getElementById('cfgGroupEditInput');
@@ -489,8 +489,8 @@
     if (changed) showToast('Đã hủy thay đổi dòng chưa lưu', false);
   }
 
-  // (2026-08-14): chốt dòng group đang sửa — chỉ gọi từ saveConfig ('Lưu cấu hình' = lưu mọi thay đổi)
-  // P1 (2026-08-16): trả về false khi không chốt được (trùng giá trị) → saveConfig ABORT
+  // chốt dòng group đang sửa — chỉ gọi từ saveConfig ('Lưu cấu hình' = lưu mọi thay đổi)
+  // trả về false khi không chốt được (trùng giá trị) → saveConfig ABORT
   function commitPendingGroupEdit_() {
     var inp = document.getElementById('cfgGroupEditInput');
     if (!inp) return true;
@@ -499,9 +499,9 @@
     return commitCfgGroupItem(item.getAttribute('data-group'), parseInt(item.getAttribute('data-idx'), 10), true);
   }
 
-  // B4 (2026-08-13): xoá mục đang là Mặc định → cảnh báo trong confirm + xoá luôn default theo.
+  // B4 xoá mục đang là Mặc định → cảnh báo trong confirm + xoá luôn default theo.
   function deleteCfgGroupItem(group, idx) {
-    cancelPendingGroupEdit_();  // (2026-08-14): hủy edit dở — chỉ nút Lưu dòng mới chốt
+    cancelPendingGroupEdit_();  // hủy edit dở — chỉ nút Lưu dòng mới chốt
     var list = safeArr(CFG_STATE[group]);
     var val = String(list[idx] === undefined ? '' : list[idx]);
     var isDef = isDefault_(group, val);
@@ -519,8 +519,8 @@
     // KHÔNG gọi server: append '' cục bộ + mở ô nhập ngay (server lọc item rỗng → gọi server
     // rồi reload sẽ không thấy row mới — UX hỏng). User nhập giá trị → blur/Enter → commit.
     var s = document.getElementById('cfgSearch');
-    if (s && s.value) s.value = '';  // P1 (2026-08-16): bỏ tìm kiếm — row mới không bị filter ẩn
-    CFG_COLLAPSED[group] = false;  // (2026-08-16): group đang thu gọn → mở ra — chip mới phải thấy
+    if (s && s.value) s.value = '';  // bỏ tìm kiếm — row mới không bị filter ẩn
+    CFG_COLLAPSED[group] = false;  // group đang thu gọn → mở ra — chip mới phải thấy
     var list = safeArr(CFG_STATE[group]).slice();
     list.push('');
     CFG_STATE[group] = list;
@@ -534,7 +534,7 @@
   }
 
   // ===== Phân quyền — mỗi role = 1 card (email + role) với nút Sửa / Xoá (confirm)
-  // y hệt item vận hành (2026-08-13): Sửa → input email + select role + Huỷ, commit khi
+  // y hệt item vận hành Sửa → input email + select role + Huỷ, commit khi
   // blur/Enter (email trống → xoá role). Mọi đổi chỉ state cục bộ + dirty.
   function roleLabel_(r) {
     for (var i = 0; i < CFG_ROLES.length; i++) { if (CFG_ROLES[i].v === r) return CFG_ROLES[i].l; }
@@ -548,7 +548,7 @@
     if (!box) return;
     var map = (CFG_STATE.roleMap && typeof CFG_STATE.roleMap === 'object') ? CFG_STATE.roleMap : {};
     var keys = Object.keys(map);
-    // Mockup (2026-08-16): role = card rows (không bảng) — email + badge + icon ✎/✕; + Thêm role = dashed pill.
+    // Mockup role = card rows (không bảng) — email + badge + icon ✎/✕; + Thêm role = dashed pill.
     var html = '<div class="cfg-group-card" data-group="roleMap">'
       + '<div class="cfg-card-head" style="cursor:default;">'
         + '<span class="cfg-group-title">Phân quyền (roleMap)</span>'
@@ -596,7 +596,7 @@
 
   // Xoá 1 role (inline onclick — thay closure cũ khi chuyển sang HTML-string, 2026-08-13).
   function deleteRoleRow(email) {
-    cancelPendingGroupEdit_(); cancelPendingRoleEdit_();  // (2026-08-14): hủy edit dở trước khi hỏi xoá
+    cancelPendingGroupEdit_(); cancelPendingRoleEdit_();  // hủy edit dở trước khi hỏi xoá
     showConfirm('Xoá role', 'Xoá role của "' + (email || '(trống)') + '"?', function () {
       var map = CFG_STATE.roleMap || {};
       delete map[email];
@@ -623,7 +623,7 @@
   }
 
   function startRoleEdit(email) {
-    cancelPendingGroupEdit_();  // (2026-08-14): hủy edit dở — chỉ nút Lưu mới chốt
+    cancelPendingGroupEdit_();  // hủy edit dở — chỉ nút Lưu mới chốt
     if (ROLE_EDIT) cancelPendingRoleEdit_();
     ROLE_EDIT = { email: email, isNew: false };
     renderRoleRows();
@@ -638,7 +638,7 @@
     ROLE_EDIT = null;
     renderRoleRows();
   }
-  // (2026-08-14): hủy role edit đang mở khi bấm hành động khác (toast nếu đang sửa dở — không mất chữ lặng lẽ)
+  // hủy role edit đang mở khi bấm hành động khác (toast nếu đang sửa dở — không mất chữ lặng lẽ)
   function cancelPendingRoleEdit_() {
     if (!ROLE_EDIT) return;
     var row = document.querySelector('.cfg-role-editing');
@@ -649,7 +649,7 @@
     if (changed) showToast('Đã hủy thay đổi role chưa lưu', false);
   }
   // Commit role đang sửa (nút Lưu/Enter): email trống → xoá role; đổi email → xoá key cũ.
-  // P1 (2026-08-16): trả về false khi không chốt được (email trùng/hợp lệ sai) — saveConfig ABORT
+  // trả về false khi không chốt được (email trùng/hợp lệ sai) — saveConfig ABORT
   function commitRoleEdit(silent) {
     if (!ROLE_EDIT) return true;
     var row = document.querySelector('.cfg-role-editing');
@@ -657,7 +657,7 @@
     var sel = row ? row.querySelector('.cfg-role-select') : null;
     if (!em || !sel) { ROLE_EDIT = null; renderRoleRows(); return true; }
     var email = em.value.trim().toLowerCase();
-    // P2 (2026-08-16): validate định dạng email — roleMap khớp chính xác string, gõ lệch = mất quyền âm thầm
+    // validate định dạng email — roleMap khớp chính xác string, gõ lệch = mất quyền âm thầm
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       showToast('Email không hợp lệ: "' + email + '"', true);
       if (em) em.focus();
@@ -665,7 +665,7 @@
     }
     var map = CFG_STATE.roleMap || {};
     var old = ROLE_EDIT.email || '';
-    // P0 (2026-08-16): email mới đã có role (key khác) → CHẶN ghi đè âm thầm — trước đây xoá
+    // email mới đã có role (key khác) → CHẶN ghi đè âm thầm — trước đây xoá
     // mất phân quyền của người khác không cảnh báo.
     if (email && email !== old && map[email] !== undefined) {
       showToast('Email "' + email + '" đã có role "' + roleLabel_(map[email]) + '" — không ghi đè. Xoá role cũ trước nếu muốn thay.', true);
@@ -680,20 +680,20 @@
     renderRoleRows();
     var firstDirty = !CFG_DIRTY;
     markCfgDirty_();
-    if (firstDirty && !silent) showToast('Đã chốt — chưa lưu. Bấm “Lưu cấu hình” khi xong', false);  // B5 (2026-08-13)
+    if (firstDirty && !silent) showToast('Đã chốt — chưa lưu. Bấm “Lưu cấu hình” khi xong', false);  // B5
     return true;
   }
-  // (2026-08-14): chốt role đang sửa — chỉ gọi từ saveConfig ('Lưu cấu hình' = lưu mọi thay đổi)
-  // P1 (2026-08-16): trả về false khi không chốt được → saveConfig ABORT (không lưu thiếu âm thầm)
+  // chốt role đang sửa — chỉ gọi từ saveConfig ('Lưu cấu hình' = lưu mọi thay đổi)
+  // trả về false khi không chốt được → saveConfig ABORT (không lưu thiếu âm thầm)
   function commitPendingRoleEdit_() {
     if (ROLE_EDIT) return commitRoleEdit(true);
     return true;
   }
 
-  // Lưu toàn bộ cấu hình: diff CFG_STATE vs CFG_SNAPSHOT → 1 patch duy nhất (2026-08-13).
+  // Lưu toàn bộ cấu hình: diff CFG_STATE vs CFG_SNAPSHOT → 1 patch duy nhất.
   // Không reload — giữ scroll; success → cập nhật snapshot + tắt dirty (nút Lưu hết sáng).
   function saveConfig(btn) {
-    // P1 (2026-08-16): edit dở (group/role) không chốt được (trùng/hợp lệ sai) → ABORT cả lần lưu —
+    // edit dở (group/role) không chốt được (trùng/hợp lệ sai) → ABORT cả lần lưu —
     // trước đây lưu tiếp phần khác, dòng lỗi bị bỏ lặng lẽ, user tưởng đã lưu hết.
     if (!commitPendingGroupEdit_() || !commitPendingRoleEdit_()) {
       showToast('Chưa lưu — dòng đang sửa không hợp lệ, kiểm tra lại', true);
@@ -734,7 +734,7 @@
     return patch;
   }
 
-  // Guard (2026-08-13): đóng tab / F5 khi còn thay đổi cấu hình chưa lưu → confirm trình duyệt
+  // Guard đóng tab / F5 khi còn thay đổi cấu hình chưa lưu → confirm trình duyệt
   window.addEventListener('beforeunload', function (e) {
     if (CFG_DIRTY) { e.preventDefault(); e.returnValue = ''; }
   });

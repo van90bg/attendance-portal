@@ -53,7 +53,7 @@
   // Task type — khớp TASK_TYPE trong Config.gs (phân biệt quét tự do / đối chiếu)
   var TASK_TYPE_C = { RECONCILE: 'reconcile', FREE: 'free' };
   // Label task type (scan task meta) — 1 nguồn chung; trước đây khai trùng 2 nơi
-  // (openTask + transition handler) → dễ lệch. FIX(2026-08-11).
+  // (openTask + transition handler) → dễ lệch. FIX.
   var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
   // Magic Ca 'Tự do' — KHỚP SLOT_FREE_MAGIC (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
   var SLOT_FREE_MAGIC = 'Tự do';
@@ -250,7 +250,7 @@
     });
   }
 
-  // FIX(2026-08-09): đồng bộ --header-h = chiều cao header THẬT — token tĩnh 59px lệch khi
+  // đồng bộ --header-h = chiều cao header THẬT — token tĩnh 59px lệch khi
   // header wrap (font/zoom/màn hẹp) → doc cao hơn viewport → scroll dọc vĩnh viễn +
   // sidebar/view-topbar sticky bị ẩn sau header. Chạy khi DOM sẵn sàng + load + resize.
   function syncHeaderH() {
@@ -270,7 +270,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     startupOverlayWatchdog();  // P2: an toàn — ẩn overlay sau 8s nếu RPC khởi động treo
-    syncHeaderH();  // FIX(2026-08-09): đo chiều cao header THẬT sau khi DOM sẵn sàng
+    syncHeaderH();  // đo chiều cao header THẬT sau khi DOM sẵn sàng
     repairViewParents();
     loadMetaAndOptions();
     document.getElementById('scanInput').addEventListener('keydown', function (e) {
@@ -368,7 +368,7 @@
   function updateStuckBars() {
     var bars = document.querySelectorAll('.view-topbar');
     if (!bars.length) return;
-    // FIX(2026-08-09): đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
+    // đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
     var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
     bars.forEach(function (bar) {
       // bỏ qua topbar của view đang ẩn (rect = 0 → không đánh dấu stuck sai)
@@ -383,7 +383,7 @@
   }
 
   /* Mobile/tablet (pointer: coarse): KHÔNG tự focus scan input — bàn phím ảo tự bật đè nửa
-     màn hình khi mở task quét. Máy tính (chuột/barcode scanner) vẫn auto-focus như cũ. (2026-08-11) */
+     màn hình khi mở task quét. Máy tính (chuột/barcode scanner) vẫn auto-focus như cũ. */
   // R3 (audit 2026-08-11): pointer:coarse có thể đổi runtime (hybrid — gắn/tháo bàn phím rời)
   // → theo dõi change thay vì đóng băng lúc startup, tránh auto-focus bật bàn phím ảo sai.
   // Cache MQ 1 lần (media query là singleton per document — không gọi matchMedia 2 lần).
@@ -717,7 +717,7 @@
   var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', reports: 'viewReports', about: 'viewAbout' };
   var ACTIVE_PAGE = 'home';
 
-  /* Đồng bộ active cho cả sidebar lẫn bottom nav mobile (2026-08-11) */
+  /* Đồng bộ active cho cả sidebar lẫn bottom nav mobile */
   function setActiveNav_(page) {
     var items = document.querySelectorAll('.side-item, .bottom-nav .nav-item');
     for (var i = 0; i < items.length; i++) {
@@ -730,7 +730,7 @@
   function selectPage(page) {
     var target = PAGE_VIEWS[page];
     if (!target || !document.getElementById(target)) return;
-    // Guard (2026-08-13): rời trang Cấu hình khi còn thay đổi chưa lưu → confirm
+    // Guard rời trang Cấu hình khi còn thay đổi chưa lưu → confirm
     if (page !== 'config' && ACTIVE_PAGE === 'config' && CFG_DIRTY) {
       showConfirm('Chưa lưu cấu hình', 'Có thay đổi cấu hình chưa lưu — rời trang sẽ mất thay đổi này. Tiếp tục?', function () {
         CFG_DIRTY = false;
@@ -762,7 +762,7 @@
 
   /* Đồng hồ + ngày trang chủ — realtime Asia/Ho_Chi_Minh (khớp fmtDate) */
   var CLOCK_TIMER = null;
-  // Finding#2 (2026-08-12): hoist formatter — trước đây tạo 2 Intl.DateTimeFormat MỖI tick 1s
+  // Finding#2 hoist formatter — trước đây tạo 2 Intl.DateTimeFormat MỖI tick 1s
   // (thiết bị ở home 24/7 = ~172k allocation/ngày). Giờ format TÁI DÙNG _fmtTZ (đã hoisted ở UTILITIES);
   // chỉ thêm 1 formatter ngày — cùng pattern _fmtTZ (IIFE + try/catch).
   var _clockFmtD = (function () {

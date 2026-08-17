@@ -150,7 +150,7 @@
             <div class="list-search" role="search" aria-label="Tìm nhân viên">
               <input type="search" id="scanSearch" placeholder="Tìm mã NV, tên…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false">
             </div>
-            <!-- FIX(2026-08-14): nút Mở rộng/Thu gọn = mũi tên tam giác ▼/▲ ở góc phải scanListCard (cuối toolbar, sau search) -->
+            <!-- nút Mở rộng/Thu gọn = mũi tên tam giác ▼/▲ ở góc phải scanListCard (cuối toolbar, sau search) -->
             <button type="button" class="btn btn-ghost btn-sm" id="btnScanListToggle" onclick="toggleScanList()" aria-expanded="false" aria-label="Mở rộng danh sách NV" title="Mở rộng danh sách NV">▼</button>
             <select id="scanStatusFilter" aria-label="Lọc theo trạng thái">
               <option value="">Tất cả trạng thái</option>
@@ -199,7 +199,7 @@
       <p class="home-sub">Quản lý thông tin chấm công · điểm danh</p>
       <div class="home-clock" id="homeClock" role="timer" aria-live="off">--:--:--</div>
       <div class="home-date" id="homeDate"></div>
-      <!-- P2 (2026-08-16): truy cập nhanh — 3 card mềm (ngôn ngữ mockup: tương tác = primary xanh) -->
+      <!-- truy cập nhanh — 3 card mềm (ngôn ngữ mockup: tương tác = primary xanh) -->
       <div class="home-shortcuts" role="group" aria-label="Truy cập nhanh">
         <button type="button" class="home-shortcut" onclick="selectPage('attendance')" aria-label="Điểm danh">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10M7 8h6M7 16h8"/></svg>
@@ -279,7 +279,7 @@
         </div>
   </section>
 
-  <!-- Panel filter phễu viewStaff (2026-08-11): fixed theo header th, đóng khi click ngoài -->
+  <!-- Panel filter phễu viewStaff fixed theo header th, đóng khi click ngoài -->
   <div id="staffFilterPanel" class="staff-filter-panel" style="display:none;" role="dialog" aria-label="Lọc dữ liệu">
     <div class="sfp-head"><b id="sfpTitle"></b><button type="button" class="btn btn-ghost btn-sm" id="sfpClear" onclick="clearFunnel()">Xoá lọc</button></div>
     <div class="sfp-body" id="sfpBody"></div>
@@ -304,14 +304,14 @@
     </div>
 
     <form id="configForm" onsubmit="return false;" class="card cfg-card">
-      <!-- P2 (2026-08-16): skeleton shimmer lúc tải — đồng bộ Task/Staff (bỏ chữ "Đang tải…" trống trơn) -->
+      <!-- skeleton shimmer lúc tải — đồng bộ Task/Staff (bỏ chữ "Đang tải…" trống trơn) -->
       <div class="skeleton-wrap" id="cfgSkeleton">
         <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
         <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
         <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
       </div>
       <div id="configWrap" style="display:none;">
-        <!-- P1 (2026-08-16): ô tìm kiếm cố định trên cùng card — đồng bộ .task-list-toolbar Task/Staff/Scan;
+        <!-- ô tìm kiếm cố định trên cùng card — đồng bộ .task-list-toolbar Task/Staff/Scan;
              toolbar đứng NGOÀI vùng cuộn (cfg-list-wrap) nên luôn thấy khi list cuộn — KHÔNG sticky (v1 gây đè/treo) -->
         <div class="task-list-toolbar">
           <h2 class="section-heading">CẤU HÌNH VẬN HÀNH <span class="cfg-hint">Sửa / Xoá / kéo thả — thay đổi tạm, bấm “Lưu cấu hình” khi xong</span></h2>

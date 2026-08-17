@@ -13,19 +13,19 @@
       --card-err-bg: #fce8e6;
       --card-extra-bg: #fef7e0;
       --header-h: 59px;  /* chiều cao header 1 hàng (padding 10×2 + nội dung ~39) — 1 nguồn cho topbar sticky + #viewTasks height.
-                           FIX(2026-08-09): JS syncHeaderH() đo header THẬT (DOMContentLoaded/load/resize/meta-load) và ghi đè token —
+                           JS syncHeaderH() đo header THẬT (DOMContentLoaded/load/resize/meta-load) và ghi đè token —
                            header wrap (font/zoom/màn hẹp) làm token tĩnh lệch → doc cao hơn viewport → scroll dọc luôn bật. */
       --border: #d9dce1;
       --text: #1f1f1f;
       --muted: #5f6368;
-      --bottom-nav-h: 60px;        /* bottom nav mobile — 1 nguồn cho height + main padding (2026-08-11) */
+      --bottom-nav-h: 60px;        /* bottom nav mobile — 1 nguồn cho height + main padding */
       /* Design tokens (doc #2: token-driven — không magic numbers) */
       --amber: #e85d04;            /* accent v1 — header/toolbar/focus */
       --header-bg: #0d111a;        /* header command center v1 */
       --header-text: #f4f7fb;
       --header-border: #3a4a66;
       --surface-muted: #f1f3f4;    /* badge pending, counter lbl, th */
-      --focus-ring: rgba(11, 87, 208, .45);  /* focus = primary (P1 2026-08-16: nhất quán 1 accent tương tác — hết cam) */
+      --focus-ring: rgba(11, 87, 208, .45);  /* focus = primary (nhất quán 1 accent tương tác — hết cam) */
       --primary-bright: #1a73e8;         /* primary sáng trên nền dark (sidebar/bottom-nav active — P1 2026-08-16) */
       --accent: var(--amber);          /* accent chung — dùng amber làm chuẩn */
       --surface: #f5f6f8;              /* surface hover nhẹ (list-search .btn-icon:hover) — khớp --bg */
@@ -52,6 +52,37 @@
       --text-xl: 1.25rem;
       --text-2xl: 1.5rem;
       --text-3xl: 2rem;
+      --amber-solid: #b3530a;
+  --amber-text: #b45309;
+  --amber-hover: #d45504;
+  --amber-deep: #b84500;
+  --danger-strong: #b3261e;
+  --primary-active: #4d8fe8;
+  --primary-soft: #eaf1fe;
+  --toast-bg: #202124;
+  --gray-soft: #e9ecf2;
+  --gray-track: #e6eaf0;
+  --gray-hover-th: #e3e6ea;
+  --gray-hover-btn: #e4e7ea;
+  --skeleton-a: #f0f0f0;
+  --skeleton-b: #e6e6e6;
+  --text-field: #1a1a1a;
+  --text-soft: #3a3a3a;
+  --muted-2: #6b7280;
+  --field-disabled-bg: #f4f2ee;
+  --field-disabled-text: #b0a99e;
+  --row-extra-hover: #fdf0cd;
+  --free-bg: #f3e8fd;
+  --free-text: #7c3aed;
+  --free-on-bg: #e8f6ec;
+  --free-on-border: #b3d9bc;
+  --free-on-text: #1f7a3d;
+  --net-err: #ef4444;
+  --net-err-border: #fecaca;
+  --free-dark-bg: #2a1f3d;
+  --free-dark-text: #c9a2f2;
+  --reconcile-dark-bg: #1b2b4a;
+  --reconcile-dark-text: #8ab4f8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -62,9 +93,9 @@
       line-height: 1.5;
       display: flex;
       flex-direction: column;
-      height: 100vh; height: 100dvh; overflow: hidden;  /* khóa 1 màn hình: nội dung dài cuộn TRONG card, trang không cuộn (2026-08-11) */
+      height: 100vh; height: 100dvh; overflow: hidden;  /* khóa 1 màn hình: nội dung dài cuộn TRONG card, trang không cuộn */
     }
-    /* Scrollbar mỏng toàn app (P3 2026-08-16) — thumb = border, hover = muted, track trong suốt */
+    /* Scrollbar mỏng toàn app  — thumb = border, hover = muted, track trong suốt */
     * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
     *::-webkit-scrollbar { width: 8px; height: 8px; }
     *::-webkit-scrollbar-track { background: transparent; }
@@ -109,19 +140,19 @@
       color: var(--primary);
       border: 1px solid var(--primary);
     }
-    .btn-outline:hover { background: #eaf1fe; }
-    /* FIX(2026-08-14): nút Xem xám nhẹ — phân biệt với Quét (primary) ở cột Thao tác */
+    .btn-outline:hover { background: var(--primary-soft); }
+    /* nút Xem xám nhẹ — phân biệt với Quét (primary) ở cột Thao tác */
     .btn-view { background: var(--surface-muted); color: var(--text); border: 1px solid var(--border); }
-    .btn-view:hover { background: #e4e7ea; }
+    .btn-view:hover { background: var(--gray-hover-btn); }
     .btn-danger {
           background: var(--danger);
         }
-        .btn-danger:hover { background: #b3261e; }
+        .btn-danger:hover { background: var(--danger-strong); }
         .btn-amber {
           background: var(--amber);
           color: #fff;
         }
-        .btn-amber:hover { background: #d45504; }
+        .btn-amber:hover { background: var(--amber-hover); }
         .btn-ghost {
       background: transparent;
       color: var(--muted);
@@ -135,7 +166,7 @@
       max-width: 1920px; margin: 0 auto; padding: var(--space-4);
       flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0;
     }  /* wide-screen: tận dụng màn lớn cho nhiều cột */
-    /* View active giãn full chiều cao — card chạm đáy viewport (2026-08-11) */
+    /* View active giãn full chiều cao — card chạm đáy viewport */
     main > section { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
     main > section > .card { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .card {
@@ -170,15 +201,15 @@
       box-shadow: 0 2px 10px rgba(0,0,0,.10);
     }
     .view-topbar-title { flex: 1; text-align: left; }
-    .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height (2026-08-11) */
+    .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height */
 
-    /* Toolbar chung các view (2026-08-11): List/Scan/Stats/Staff/Config — 1 class dùng chung */
+    /* Toolbar chung các view List/Scan/Stats/Staff/Config — 1 class dùng chung */
     .scan-layout {
       display: flex;
       gap: 16px;
       align-items: flex-start;
       flex: 1 1 auto;
-      min-height: 0;  /* card bảng scan giãn chạm đáy viewport (2026-08-11) */
+      min-height: 0;  /* card bảng scan giãn chạm đáy viewport */
     }
     .scan-col-left {
       flex: 0 0 480px;
@@ -190,7 +221,7 @@
     .scan-col-right {
       flex: 1 1 auto;
       min-width: 0;
-      min-height: 0;  /* column-mode (≤991px): co được để card bảng cuộn trong — trước tràn bị clip (2026-08-11) */
+      min-height: 0;  /* column-mode (≤991px): co được để card bảng cuộn trong — trước tràn bị clip */
       align-self: stretch;  /* giãn full chiều cao scan-layout — card bảng chạm đáy */
       display: flex;
       flex-direction: column;
@@ -226,7 +257,7 @@
       .card { padding: 10px; }  /* trên màn hẹp tiết diện — vẫn giữ var(--card-radius) */
     }
 
-    /* ===== Form controls chung (2026-08-11): modal tạo task / paste + form Cấu hình ===== */
+    /* ===== Form controls chung modal tạo task / paste + form Cấu hình ===== */
     /* Card tự cao theo nội dung — ít task không trắng 600px; nhiều task → table-wrap scroll trong (max-height viewport). */
     label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
     select, input[type="text"] {
@@ -271,30 +302,30 @@
         .create-form { display: grid; gap: 10px; margin-top: 10px; }
         .create-form .frow { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 8px; }
         .create-form .chips.disabled { opacity: .45; pointer-events: none; }
-        .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: var(--muted); }  /* P1 (2026-08-16): label = muted — mockup label xám nhạt */
+        .create-form .frow .flabel { font-size: 12px; font-weight: 700; color: var(--muted); }  /* label = muted — mockup label xám nhạt */
     .create-form .frow .fnote { display: block; font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.3; }
     select.field-select {
       width: 100%; padding: 8px 30px 8px 10px; border: 1px solid var(--border, #e2e5ea); border-radius: 8px;
-      background: #fff; font-size: 13px; appearance: none; cursor: pointer; color: #1a1a1a;
+      background: #fff; font-size: 13px; appearance: none; cursor: pointer; color: var(--text-field);
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%236b655c' stroke-width='2' fill='none' stroke-linecap='round'/></svg>");
       background-repeat: no-repeat; background-position: right 10px center;
     }
     select.field-select:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
-    select.field-select:disabled { background-color: #f4f2ee; color: #b0a99e; cursor: not-allowed; }
+    select.field-select:disabled { background-color: var(--field-disabled-bg); color: var(--field-disabled-text); cursor: not-allowed; }
     .chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
     .pick {
-      border: 1px solid var(--border, #e2e5ea); background: #fff; color: #3a3a3a;
+      border: 1px solid var(--border, #e2e5ea); background: #fff; color: var(--text-soft);
       border-radius: 999px; font-size: 12px; padding: 4px 10px; cursor: pointer; font-weight: 500;
       line-height: 1.4; transition: background .12s, border-color .12s, color .12s;
     }
     .pick:hover { background: var(--surface-muted); }
-    .pick.on { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); font-weight: 700; }  /* P1 (2026-08-16): selected = primary (mockup chip default) */
-    .pick.free.on { background: #e8f6ec; border-color: #b3d9bc; color: #1f7a3d; }
+    .pick.on { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); font-weight: 700; }  /* selected = primary (mockup chip default) */
+    .pick.free.on { background: var(--free-on-bg); border-color: var(--free-on-border); color: var(--free-on-text); }
     /* Chip 'Tất cả' — nét đứt + chữ đậm nhẹ để phân biệt chip giá trị; on = đang áp dụng */
-    .pick.all { border-style: dashed; color: #6b7280; }
+    .pick.all { border-style: dashed; color: var(--muted-2); }
     .pick.all.on { background: var(--primary-bg); border-color: var(--primary); border-style: solid; color: var(--primary-dark); font-weight: 700; }
     .pick:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-    /* Audit UI (2026-08-07): modal cao ~850px (3 hàng filter) từng bị CẮT nút Tạo task trên
+    /* Audit UI modal cao ~850px (3 hàng filter) từng bị CẮT nút Tạo task trên
        màn <900px — overlay không cuộn + dialog không max-height. Fix: dialog scroll trong +
        margin:auto (căn giữa khi vừa, không kẹt top khi cao) + overlay cuộn dự phòng. */
     #createModal.about-overlay { overflow-y: auto; scrollbar-gutter: stable; }
@@ -313,7 +344,7 @@
     }
     #createModal.about-overlay .about-dialog { transform: scale(.95); transition: transform .2s ease-out; }
     #createModal.about-overlay.open .about-dialog { transform: scale(1); }
-    /* Touch target modal chung (2026-08-11): paste/create/confirm — 44px touch, font 14px gọn */
+    /* Touch target modal chung paste/create/confirm — 44px touch, font 14px gọn */
     .about-dialog .btn { min-height: 44px; font-size: 14px; font-weight: 600; }
     @media (max-width: 719px) {
       #createModal .about-dialog {
@@ -368,7 +399,7 @@
     .counter.waiting .num { color: var(--primary); }
     .counter.extra .num { color: var(--amber-dark); }  /* đồng bộ scanCard.extra/.warn (--amber-dark) */
 
-    /* ===== Toolbar bảng NV chung (2026-08-11): viewScan + viewStaff ===== */
+    /* ===== Toolbar bảng NV chung viewScan + viewStaff ===== */
     .att-toolbar {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       margin-bottom: 10px;
@@ -392,7 +423,7 @@
     .cfg-role-actions { display: flex; gap: 6px; flex-shrink: 0; }
     .cfg-role-card input[type=text], .cfg-role-card select { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: #fff; color: var(--text); }
     .cfg-role-card input[type=text] { flex: 1 1 auto; min-width: 0; }
-    /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá (2026-08-11) */
+    /* viewConfig: danh sách mục vận hành + nút Sửa/Xoá */
     .cfg-list { display: flex; flex-direction: column; gap: 18px; }  /* 2026-08-14: sections xếp dọc, tự cao — card cuộn */
 
     /* 2026-08-16: group = CARD riêng theo MOCKUP (ngôn ngữ giao diện): head clickable (chevron ▾ xoay -90°
@@ -433,11 +464,11 @@
     .cfg-empty-val { color: var(--muted); font-style: italic; }
     #cfgNoResult { padding: 8px 2px; }
     .tid-cell { font-family: Consolas, "Courier New", monospace; font-weight: 600; }  /* mã task mono — kết quả tìm kiếm */
-    .task-open-link { color: var(--primary-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }  /* FIX(2026-08-14): link mở task ở Mã task (thay nút Xem/Quét mobile) */
+    .task-open-link { color: var(--primary-dark); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }  /* link mở task ở Mã task (thay nút Xem/Quét mobile) */
     .task-open-link:hover { color: var(--primary); }
     .cfg-save-dirty { background: var(--amber); border-color: var(--amber); animation: cfgSavePulse 1.4s ease-in-out infinite; }
     @keyframes cfgSavePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232, 93, 4, .30); } 50% { box-shadow: 0 0 0 6px rgba(232, 93, 4, 0); } }
-    .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; touch-action: none; }  /* P0 (2026-08-16): touch-action:none — kéo touch không bị scroll ngắt; P2: tabindex + ↑↓ sắp xếp */
+    .cfg-drag-handle { color: var(--muted); cursor: grab; font-size: 12px; letter-spacing: -1px; user-select: none; flex: 0 0 auto; touch-action: none; }  /* touch-action:none — kéo touch không bị scroll ngắt; P2: tabindex + ↑↓ sắp xếp */
     .cfg-drag-handle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 3px; }
     .cfg-chip[draggable="true"] { cursor: grab; }
     .cfg-chip.cfg-dragging { opacity: .45; }
@@ -452,7 +483,7 @@
     #scanTable th.sortable {
       cursor: pointer; user-select: none; white-space: nowrap;
     }
-    #scanTable th.sortable:hover { background: #e3e6ea; }
+    #scanTable th.sortable:hover { background: var(--gray-hover-th); }
     #scanTable th.sortable.sort-asc::after { content: ' \25B2'; font-size: 10px; color: var(--warning); }
     #scanTable th.sortable.sort-desc::after { content: ' \25BC'; font-size: 10px; color: var(--warning); }
 
@@ -463,7 +494,7 @@
       min-height: 0;  /* cuộn trong theo card giãn đáy — thead sticky giữ header */
     }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    /* Đồng bộ 3 bảng dữ liệu (2026-08-11): staff/task/scan cùng font 13px + nền cell đặc —
+    /* Đồng bộ 3 bảng dữ liệu staff/task/scan cùng font 13px + nền cell đặc —
        trước staff 13px vs task/scan 14px + bg transparent → nhìn lệch style giữa view.
        Fix (audit 2026-08-11): bọc :where() để specificity = 0 — tr:hover td (row-hover) thắng lại,
        không mất hover highlight 3 bảng (trước: #xxxTable td (1,0,1) > tr:hover td (0,1,2)). */
@@ -474,7 +505,7 @@
     tr:hover td { background: var(--row-hover); }
     /* C4: dòng NV Dư — nền cam nhạt nổi bật giữa bảng */
     #scanTable tr.extra-row td { background: var(--card-extra-bg); }
-    #scanTable tr.extra-row:hover td { background: #fdf0cd; }
+    #scanTable tr.extra-row:hover td { background: var(--row-extra-hover); }
 
     .badge {
       display: inline-block;
@@ -484,14 +515,14 @@
       font-weight: 700;
     }
     .badge.pending { background: var(--surface-muted); color: var(--muted); }
-    .badge.present { background: var(--card-ok-bg); color: var(--success-dark); }  /* P2 (2026-08-16): hợp nhất xanh badge present/attend — 1 token */
-    .badge.absent  { background: var(--card-err-bg); color: #b3261e; }
+    .badge.present { background: var(--card-ok-bg); color: var(--success-dark); }  /* hợp nhất xanh badge present/attend — 1 token */
+    .badge.absent  { background: var(--card-err-bg); color: var(--danger-strong); }
     /* C3 (review 2026-08-11): --danger #d93025 = 4.05:1 trên #fce8e6 fail AA — dùng #b3261e (btn-danger hover ~5.4:1) */
-    .badge.extra   { background: var(--card-extra-bg); color: #b45309; }
+    .badge.extra   { background: var(--card-extra-bg); color: var(--amber-text); }
     .badge.open    { background: var(--primary-bg); color: var(--primary); }
     .badge.attend { background: var(--card-ok-bg); color: var(--success-dark); }
-    .badge.done    { background: #e9ecf2; color: var(--muted); }
-    .badge.badge-free      { background: #f3e8fd; color: #7c3aed; }
+    .badge.done    { background: var(--gray-soft); color: var(--muted); }
+    .badge.badge-free      { background: var(--free-bg); color: var(--free-text); }
     .badge.badge-reconcile { background: var(--primary-bg); color: var(--primary); }
 
     /* ===== Scan input ===== */
@@ -531,7 +562,7 @@
       box-shadow: 0 0 0 4px rgba(232, 93, 4, .18);
     }
     /* Nút Quét chỉ hiển thị trên mobile (<992px); desktop máy quét tự Enter */
-    #btnScan { min-width: 64px; min-height: 44px; margin: 4px 0; } /* touch target ≥44×44; FIX(2026-08-14): flex stretch làm nút cao hơn ô input 8px (padding wrap 4px×2) → margin 4px 0 cân bằng */
+    #btnScan { min-width: 64px; min-height: 44px; margin: 4px 0; } /* touch target ≥44×44; flex stretch làm nút cao hơn ô input 8px (padding wrap 4px×2) → margin 4px 0 cân bằng */
     @media (min-width: 992px) {
       #btnScan { display: none; }
     }
@@ -558,7 +589,7 @@
     .scan-card {
       border-radius: var(--card-radius);
       padding: 16px 20px;
-      container-type: inline-size;  /* FIX(2026-08-14): container cho @container — Agency sau tên NV ẩn khi card hẹp */
+      container-type: inline-size;  /* container cho @container — Agency sau tên NV ẩn khi card hẹp */
       margin-top: 14px;
       border: 2px solid var(--border);
       background: var(--card);
@@ -574,16 +605,16 @@
       font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted);
     }
     .scan-card.ok .sc-status { color: var(--success-dark); }
-    .scan-card.err .sc-status { color: #b3261e; }
+    .scan-card.err .sc-status { color: var(--danger-strong); }
     .scan-card.extra .sc-status { color: var(--amber-dark); }
     .scan-card.warn .sc-status { color: var(--amber-dark); }
     /* FREE phase1: NV mới quét lần 1 = 'Chưa điểm danh' (chưa phải lỗi/cảnh báo) → xanh dương. */
     .scan-card.pending .sc-status { color: var(--primary); }
     .scan-card.pending { border-color: var(--primary); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
     .scan-card .sc-name { font-size: 30px; font-weight: 800; line-height: 1.25; margin-top: 2px; }
-    .scan-card .sc-agency { display: block; font-size: 18px; font-weight: 400; color: var(--muted); margin-top: 2px; }  /* FIX(2026-08-16): Agency xuống dòng riêng — vd 'Đoàn Hoàng Phát' + dòng 'SKT' */
+    .scan-card .sc-agency { display: block; font-size: 18px; font-weight: 400; color: var(--muted); margin-top: 2px; }  /* Agency xuống dòng riêng — vd 'Đoàn Hoàng Phát' + dòng 'SKT' */
     .scan-card .sc-meta { font-size: 14px; color: var(--muted); margin-top: 4px; }
-    /* FIX(2026-08-14): đủ không gian mới hiện Agency — card hẹp (điện thoại nhỏ) ẩn để tên không ôm/tràn */
+    /* đủ không gian mới hiện Agency — card hẹp (điện thoại nhỏ) ẩn để tên không ôm/tràn */
     @container (max-width: 300px) {
       .scan-card .sc-agency { display: none; }
     }
@@ -595,7 +626,7 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: #202124;
+      background: var(--toast-bg);
       color: #fff;
       padding: 12px 20px;
       border-radius: 8px;
@@ -609,7 +640,7 @@
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     #toast.ok { background: var(--success); }
     #toast.err { background: var(--danger); }
-    #toast.warn { background: #b3530a; }  /* a11y (2026-08-12): #e37400 quá sáng — trắng 15px 3.10:1 → #b3530a 5.05:1 (toast Dư mỗi lần quét) */
+    #toast.warn { background: var(--amber-solid); }  /* a11y #e37400 quá sáng — trắng 15px 3.10:1 → #b3530a 5.05:1 (toast Dư mỗi lần quét) */
     #toast .toast-text { display: inline-block; }
     #toast .toast-close {
       background: transparent; border: none; color: #fff; opacity: .8;
@@ -643,9 +674,9 @@
         .pag-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
         .pag-ellipsis { padding: 3px 4px; color: var(--muted); letter-spacing: 1px; }
     .muted { color: var(--muted); font-size: 13px; }
-    .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; color: var(--text); }  /* P1 (2026-08-16): heading view = text đậm — hết amber hệ */
+    .task-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; color: var(--text); }  /* heading view = text đậm — hết amber hệ */
     .task-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-    /* FIX(2026-08-09): .hidden dùng !important — phải thắng mọi rule hiển thị khác,
+    /* .hidden dùng !important — phải thắng mọi rule hiển thị khác,
        nếu không section không bao giờ ẩn (chồng view). */
     /* U5 (review 2026-08-11): screen-reader-only — announce kết quả lọc ngắn gọn
      * (thay aria-live cỡ grid — screen reader đọc lại cả bảng pivot khi chip click) */
@@ -703,7 +734,7 @@
       font-size: 18px; font-weight: 800; letter-spacing: 1px;
       color: var(--header-text); text-transform: uppercase;
       text-shadow: 0 1px 2px rgba(0,0,0,.35);
-      white-space: nowrap;  /* FIX(2026-08-09): title không wrap thành 2 dòng khi header hẹp */
+      white-space: nowrap;  /* title không wrap thành 2 dòng khi header hẹp */
     }
     header .brand .title .brand-accent { color: var(--amber); font-weight: 800; }
     header .header-right {
@@ -717,7 +748,7 @@
     header #netText { color: var(--side-text-muted); font-size: 12px; font-weight: 600; }
 
     /* ===== Background task indicator (header) ===== */
-    /* Bổ sung (2026-08-09): spinner + count khi có tác vụ nền đang chạy (scan queue /
+    /* Bổ sung spinner + count khi có tác vụ nền đang chạy (scan queue /
        RPC pending / silent reload). Nhắc không thoát giữa chừng; thay vì màn "yên lặng" khi queue còn. */
     .bg-task-indicator {
       display: inline-flex;
@@ -751,7 +782,7 @@
       .bg-task-indicator .bg-task-count { display: none; }
       .bg-task-indicator { padding: 2px 7px; }
     }
-    /* Ô tìm kiếm chung (2026-08-11): task list toolbar (viewTasks) + staff toolbar (viewStaff) */
+    /* Ô tìm kiếm chung task list toolbar (viewTasks) + staff toolbar (viewStaff) */
     .list-search {
       display: flex; align-items: center; gap: 4px;
       background: var(--surface-muted);
@@ -787,7 +818,7 @@
       transition: border-color .12s, color .12s, background .12s;
       display: inline-flex; align-items: center; justify-content: center;
       min-height: 32px;
-      white-space: nowrap;  /* FIX(2026-08-09): nút không wrap chữ ("⟳ Làm mới" 2 dòng → header phình cao) */
+      white-space: nowrap;  /* nút không wrap chữ ("⟳ Làm mới" 2 dòng → header phình cao) */
     }
     header .btn-icon-dark:hover {
       border-color: var(--warning); color: var(--warning);
@@ -800,9 +831,9 @@
       height: 26px; width: auto; display: block;
       filter: brightness(0) invert(1);
     }
-    header .btn-icon-dark.muted { color: #ef4444; border-color: #fecaca; }
+    header .btn-icon-dark.muted { color: var(--net-err); border-color: var(--net-err-border); }
 
-    /* FIX(2026-08-09): header luôn 1 hàng (desktop >=601px) — trước đây wrap làm header cao hơn
+    /* header luôn 1 hàng (desktop >=601px) — trước đây wrap làm header cao hơn
        --header-h:59px (75px@1024, 129px@768, 170px@375) → doc cao hơn viewport → scroll dọc
        luôn bật + sidebar/view-topbar sticky bị ẩn sau header. */
     @media (min-width: 601px) {
@@ -812,7 +843,7 @@
       header #netText { display: none; }        /* tiết ngang — net-dot đã đủ */
     }
 
-    /* ===== Heading + search bảng chung (2026-08-11): viewTasks (task-list-toolbar) · viewScan/viewStaff (att-toolbar) ===== */
+    /* ===== Heading + search bảng chung viewTasks (task-list-toolbar) · viewScan/viewStaff (att-toolbar) ===== */
     .task-list-toolbar {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       margin-bottom: 10px; flex-wrap: wrap;
@@ -822,15 +853,15 @@
       text-transform: uppercase; letter-spacing: .5px;
       display: flex; align-items: center; gap: 8px;
     }
-    /* Search ép phải — kể cả khi wrap xuống dòng riêng trên màn hẹp (2026-08-11) */
+    /* Search ép phải — kể cả khi wrap xuống dòng riêng trên màn hẹp */
     .task-list-toolbar .list-search,
     .att-toolbar .list-search { margin-left: auto; }
     .task-count-badge {
       font-family: Consolas, 'Courier New', monospace;
       font-size: 13px; font-weight: 600; color: var(--muted);
-      background: #e9ecf2; padding: 2px 10px; border-radius: 20px; line-height: 1.5;
+      background: var(--gray-soft); padding: 2px 10px; border-radius: 20px; line-height: 1.5;
     }
-    /* Cột Ca nhiều lựa chọn — giới hạn độ rộng, dấu "..." + tooltip (2026-08-10) */
+    /* Cột Ca nhiều lựa chọn — giới hạn độ rộng, dấu "..." + tooltip */
     .td-slot { max-width: 150px; }
     .slot-ellipsis {
       display: inline-block; max-width: 150px;
@@ -853,21 +884,21 @@
     #loadingOverlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
     #loadingOverlay .spin-big {
       width: 48px; height: 48px;
-      border: 4px solid #e6eaf0; border-top-color: var(--warning);
+      border: 4px solid var(--gray-track); border-top-color: var(--warning);
       border-radius: 50%;
       animation: spin .7s linear infinite;
     }
     /* F6: modal spin cho nút chuyển trạng thái (spinner dùng chung loadingOverlay + spinModal) */
     .spin-big {
       width: 40px; height: 40px;
-      border: 4px solid #e6eaf0; border-top-color: var(--warning);
+      border: 4px solid var(--gray-track); border-top-color: var(--warning);
       border-radius: 50%;
       animation: spin .7s linear infinite;
       margin: 0 auto;
     }
     #loadingOverlay p { margin-top: 16px; color: var(--muted); font-size: 15px; font-weight: 500; }
 
-    /* ===== Modal chung (2026-08-11): paste / create / confirm / spin — tái dùng overlay + dialog ===== */
+    /* ===== Modal chung paste / create / confirm / spin — tái dùng overlay + dialog ===== */
     .about-overlay {
       position: fixed; inset: 0; z-index: 9998;
       background: rgba(0,0,0,.4);
@@ -913,12 +944,12 @@
       .badge.pending { background: #000; color: #fff; }
       .badge.present { background: var(--success); color: #fff; }
       .badge.absent  { background: var(--danger); color: #fff; }
-      .badge.extra   { background: #b3530a; color: #fff; }  /* a11y (2026-08-12): #e37400 quá sáng — trắng 3.10:1 → #b3530a 5.05:1 */
+      .badge.extra   { background: var(--amber-solid); color: #fff; }  /* a11y #e37400 quá sáng — trắng 3.10:1 → #b3530a 5.05:1 */
       .badge.open    { background: var(--primary); color: #fff; }
       .badge.attend { background: var(--success-dark); color: #fff; }
       .badge.done    { background: #000; color: #fff; }
-      .badge.badge-free      { background: #2a1f3d; color: #c9a2f2; }
-      .badge.badge-reconcile { background: #1b2b4a; color: #8ab4f8; }
+      .badge.badge-free      { background: var(--free-dark-bg); color: var(--free-dark-text); }
+      .badge.badge-reconcile { background: var(--reconcile-dark-bg); color: var(--reconcile-dark-text); }
       .counter { border-width: 2px; }
     }
 
@@ -929,7 +960,7 @@
     }
     .skeleton-cell {
       flex: 1; height: 16px; margin-right: 14px;
-      background: linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%);
+      background: linear-gradient(90deg, var(--skeleton-a) 25%, var(--skeleton-b) 50%, var(--skeleton-a) 75%);
       background-size: 200% 100%;
       border-radius: 4px;
       animation: skeleton-shimmer 1.5s infinite;
@@ -966,22 +997,22 @@
        ẩn Loại/Tạo lúc/Người tạo/Dư (chi tiết có ở màn quét) */
     @media (max-width: 640px) {
       #taskListTable thead { display: none; }
-      #taskListTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }  /* FIX(2026-08-16): 2 cột đồng bộ scan/reports */
+      #taskListTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }  /* 2 cột đồng bộ scan/reports */
       #taskListTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }  #staffTable td { font-size: 15px; }  /* #staffTable td specificity (1,1,0) thắng base (1,0,0) */
       /* Chỉ còn dữ liệu — giữ nhãn ngắn 'Tổng'/'Đã quét' cho 2 số (số trần khó đoán) */
       #taskListTable tbody td[data-label="Mã task"]::before, #taskListTable tbody td[data-label="Trạng thái"]::before, #taskListTable tbody td[data-label="Điểm danh"]::before { content: none; }  /* tiêu đề + badge không nhãn */
       #taskListTable tbody td[data-label="Station"]::before { content: 'Station: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #taskListTable tbody td[data-label="Team"]::before { content: 'Team: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Ca"]::before { content: 'Ca: '; font-weight: 600; color: var(--muted); font-size: 12px; }
-      #taskListTable tbody td[data-label="Mã NV"]::before { content: 'Mã NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tên NV"]::before { content: 'Tên NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tổng NV"]::before, #taskListTable tbody td[data-label="Đã quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }  /* FIX(2026-08-16): nhãn đầy đủ đồng bộ scan/reports */
+      #taskListTable tbody td[data-label="Mã NV"]::before { content: 'Mã NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tên NV"]::before { content: 'Tên NV: '; font-weight: 600; color: var(--muted); font-size: 12px; }  #taskListTable tbody td[data-label="Tổng NV"]::before, #taskListTable tbody td[data-label="Đã quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }  /* nhãn đầy đủ đồng bộ scan/reports */
       /* Ẩn trên mobile: STT + Loại + Tạo lúc + Người tạo + Dư (xem nhanh không cần — chi tiết có ở màn quét) */
       #taskListTable tbody td[data-label="STT"],
       #taskListTable tbody td[data-label="Loại"],
       #taskListTable tbody td[data-label="Tạo lúc"],
       #taskListTable tbody td[data-label="Người tạo"],
       #taskListTable tbody td[data-label="Dư"] { display: none; }
-      /* FIX(2026-08-16): card 2 cột — dòng 1 Mã task (16px) | Trạng thái; dòng 2 Station | Ca; dòng 3 Team | Tổng NV; dòng 4 — | Đã quét */
+      /* card 2 cột — dòng 1 Mã task (16px) | Trạng thái; dòng 2 Station | Ca; dòng 3 Team | Tổng NV; dòng 4 — | Đã quét */
       #taskListTable tbody td[data-label="Mã task"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--primary-dark); font-size: 16px; }
-      #taskListTable tbody td[data-label="Thao tác"] { display: none; }  /* FIX(2026-08-14): bỏ nút Xem/Quét mobile — dùng link ở Mã task */
+      #taskListTable tbody td[data-label="Thao tác"] { display: none; }  /* bỏ nút Xem/Quét mobile — dùng link ở Mã task */
       #taskListTable tbody td[data-label="Station"] { grid-column: 1; grid-row: 2; }
       #taskListTable tbody td[data-label="Team"] { grid-column: 1; grid-row: 3; }
       #taskListTable tbody td[data-label="Ca"] { grid-column: 2; grid-row: 2; }
@@ -991,7 +1022,7 @@
       /* F-search: cột khác — Điểm danh thay chỗ Trạng thái (dòng 1 cạnh Mã task), Mã NV + Tên NV dòng 3 */
       #taskListTable tbody td[data-label="Mã NV"] { grid-column: 2; grid-row: 3; }  /* F-search: Mã NV + Tên NV cột 2 — cột 1 Team r3 trống r4 (không đụng Station/Ca) */
       #taskListTable tbody td[data-label="Tên NV"] { grid-column: 2; grid-row: 4; }
-      #taskListTable tbody td[data-label="Điểm danh"] { grid-column: 2; grid-row: 1; justify-self: start; }  /* FIX(2026-08-14): dời cột 3 (search mode — Thao tác ẩn) */  .pag-buttons .pag-btn:nth-child(n+3):nth-last-child(n+3), .pag-buttons .pag-ellipsis { display: none; }  /* FIX(2026-08-16): mobile chỉ giữ « ‹ › » + info — 11 nút số (~416px) > content 355px gây xuống dòng */
+      #taskListTable tbody td[data-label="Điểm danh"] { grid-column: 2; grid-row: 1; justify-self: start; }  /* dời cột 3 (search mode — Thao tác ẩn) */  .pag-buttons .pag-btn:nth-child(n+3):nth-last-child(n+3), .pag-buttons .pag-ellipsis { display: none; }  /* mobile chỉ giữ « ‹ › » + info — 11 nút số (~416px) > content 355px gây xuống dòng */
     }
     /* Mobile viewScan (≤640px, 2026-08-16): danh sách NV thành thẻ 2 cột — cột 1 = Tên NV - Agency / OpsID / Team;
        cột 2 = Ca / Giờ có mặt / Giờ quét; Trạng thái gắn cuối dòng Tên NV. Cỡ chữ mobile nâng 13→15px. */
@@ -1001,7 +1032,7 @@
       #scanTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: 15px; line-height: 1.35; }
       #scanTable tbody td[data-label="STT"], #scanTable tbody td[data-label="Station"],
       #scanTable tbody td[data-label="Ngày"] { display: none; }
-      /* FIX(2026-08-16): thẻ NV 2 cột — cột 1 Tên NV / Agency / OpsID / Team · cột 2 Trạng thái / Ca / Giờ có mặt / Giờ quét (Agency = hàng riêng, wrap đủ) */
+      /* thẻ NV 2 cột — cột 1 Tên NV / Agency / OpsID / Team · cột 2 Trạng thái / Ca / Giờ có mặt / Giờ quét (Agency = hàng riêng, wrap đủ) */
       #scanTable tbody td[data-label="Tên NV"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--text); font-size: 16px; }
       #scanTable tbody td[data-label="Trạng thái"] { grid-column: 2; grid-row: 1; justify-self: start; }  #scanTable tbody td[data-label="Trạng thái"] .badge { font-size: 13px; }
       #scanTable tbody td[data-label="Agency"] { grid-column: 1; grid-row: 2; white-space: normal; }  #scanTable tbody td[data-label="Agency"]:empty::before { content: none; }
@@ -1010,19 +1041,19 @@
       #scanTable tbody td[data-label="Ca"] { grid-column: 2; grid-row: 2; }
       #scanTable tbody td[data-label="Giờ có mặt"] { grid-column: 2; grid-row: 3; }
       #scanTable tbody td[data-label="Giờ quét"] { grid-column: 2; grid-row: 4; }
-      /* FIX(2026-08-14): nhãn đầy đủ hàng 2 + 3 trước thông tin — "OpsID: 12345" "Team: A" "Ca: 08:00-17:00" "Giờ có mặt: 19:10:13" "Giờ quét: 19:15:05" */
+      /* nhãn đầy đủ hàng 2 + 3 trước thông tin — "OpsID: 12345" "Team: A" "Ca: 08:00-17:00" "Giờ có mặt: 19:10:13" "Giờ quét: 19:15:05" */
       #scanTable tbody td[data-label="Mã NV"]::before { content: 'OpsID: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody td[data-label="Agency"]::before { content: 'Agency: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody td[data-label="Team"]::before { content: 'Team: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody td[data-label="Ca"]::before { content: 'Ca: '; font-weight: 600; color: var(--muted); font-size: 12px; }
       #scanTable tbody td[data-label="Giờ có mặt"]::before,
       #scanTable tbody td[data-label="Giờ quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }
-      #scanTable tbody tr.extra-row td { background: transparent; }  #scanTable tbody tr.extra-row { background: var(--card-extra-bg); }  /* FIX(2026-08-16): thẻ extra mobile — nền cam giữ trên tr (td transparent, tr grid mặc định var(--card)) */
+      #scanTable tbody tr.extra-row td { background: transparent; }  #scanTable tbody tr.extra-row { background: var(--card-extra-bg); }  /* thẻ extra mobile — nền cam giữ trên tr (td transparent, tr grid mặc định var(--card)) */
     }
     #btnScanListToggle { display: none; min-width: 36px; padding: 6px 10px; font-size: 14px; line-height: 1; margin-left: auto; }  /* desktop ẩn — mobile: nút ▼/▲ góc phải card (margin-left:auto ép phải) */
-    /* FIX(2026-08-14): Mở rộng danh sách → ẩn cột quét (counters + ô nhập + nút Quét + scanCard) — danh sách NV đẩy lên full */
+    /* Mở rộng danh sách → ẩn cột quét (counters + ô nhập + nút Quét + scanCard) — danh sách NV đẩy lên full */
     body.scan-expanded .scan-col-left { display: none; }
-    /* Mobile viewScan (≤700px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard; bấm Mở rộng mới hiện bảng + tìm/lọc (2026-08-13) */
+    /* Mobile viewScan (≤700px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard; bấm Mở rộng mới hiện bảng + tìm/lọc */
     @media (max-width: 700px) {
       #btnScanListToggle { display: inline-flex; }
       #scanListCard .list-search, #scanListCard #scanStatusFilter, #scanListCard #scanClearFilter, #scanListCard .table-wrap { display: none; }
@@ -1037,7 +1068,7 @@
     }
     .stats-table td.total {
       background: var(--primary-bg); font-weight: 800; color: var(--primary-dark);
-    }  /* P1 (2026-08-16): cột Tổng = primary (khớp chip default mockup) */
+    }  /* cột Tổng = primary (khớp chip default mockup) */
     .stats-table tr:hover td { background: var(--row-hover); }
     .stats-table tr:hover td.row-head { background: var(--surface-muted); }
 
@@ -1059,7 +1090,7 @@
        ≥1200px giữ 2 cột (desktop, mỗi cột ~470px đủ thoải). */
     @media (max-width: 1199px) {
       .stats-grid { grid-template-columns: 1fr; }
-      /* PA1 (2026-08-12): màn nhỏ → bảng giãn theo nội dung (hết cắt cụt fixed-layout),
+      /* PA1 màn nhỏ → bảng giãn theo nội dung (hết cắt cụt fixed-layout),
          wrap cuộn ngang + sticky cột nhãn trái. Desktop ≥1200 giữ nguyên fixed layout. */
       .stats-table { width: max-content; min-width: 100%; table-layout: auto; }
       .stats-table th, .stats-table td { overflow: visible; text-overflow: clip; }
@@ -1073,9 +1104,9 @@
     #staffTable td { white-space: nowrap; }
     /* Cố định 4 cột đầu (No, Date, Staff ID, Staff Name) khi cuộn ngang */
     #staffTable thead th { position: sticky; top: 0; z-index: 2; }
-    #taskListTable thead th { position: sticky; top: 0; z-index: 2; }  /* nền th chung var(--surface-muted) — đồng bộ staffTable/scanTable (2026-08-11) */
+    #taskListTable thead th { position: sticky; top: 0; z-index: 2; }  /* nền th chung var(--surface-muted) — đồng bộ staffTable/scanTable */
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
-    #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }    /* ===== Báo cáo (viewReports) — chấm công tháng theo email đăng nhập (2026-08-16) ===== */
+    #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }    /* ===== Báo cáo (viewReports) — chấm công tháng theo email đăng nhập ===== */
     /* Topbar meta: tên NV đậm màu primary + email muted — to rõ hơn task-meta mặc định */
     #reportsMeta { font-size: 15px; font-weight: 600; color: var(--primary-dark); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     #reportsMeta .reports-user-email, #reportsMeta .reports-user-count { font-weight: 400; font-size: 13px; color: var(--muted); }
@@ -1098,10 +1129,10 @@
     #reportsTable td:nth-child(5), #reportsTable td:nth-child(6), #reportsTable td:nth-child(7),
     #reportsTable td:nth-child(8), #reportsTable td:nth-child(9) { text-align: center; }
     #reportsTable td:nth-child(4) { white-space: normal; word-break: break-word; }  /* Tên NV wrap thay vì cắt */
-    #reportsTable td:nth-child(10) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* PMO 1 dòng desktop/tablet — ellipsis thay wrap (2026-08-16) */
-    #reportsTable td.has-pmo { background: var(--card-extra-bg); color: #b45309; font-weight: 600; }  /* highlight PMO — tint cam nhạt (đồng bộ badge.extra), chỉ khi có giá trị */
+    #reportsTable td:nth-child(10) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* PMO 1 dòng desktop/tablet — ellipsis thay wrap */
+    #reportsTable td.has-pmo { background: var(--card-extra-bg); color: var(--amber-text); font-weight: 600; }  /* highlight PMO — tint cam nhạt (đồng bộ badge.extra), chỉ khi có giá trị */
     .reports-num { font-variant-numeric: tabular-nums; }
-    .reports-off { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--card-err-bg); color: #b3261e; font-size: 12px; font-weight: 700; white-space: nowrap; }  /* OFF = đỏ (đồng bộ badge.absent) */
+    .reports-off { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--card-err-bg); color: var(--danger-strong); font-size: 12px; font-weight: 700; white-space: nowrap; }  /* OFF = đỏ (đồng bộ badge.absent) */
     /* Mobile ≤640px: bảng → card (mỗi dòng 1 thẻ), nhãn ::before ': ' từ data-label, ẩn Mã Ops/Mã NV/Tên NV */
     @media (max-width: 640px) {
       #reportsTable thead { display: none; }
@@ -1112,8 +1143,8 @@
       #reportsTable tbody td[data-label="Giờ công"]::before,
       #reportsTable tbody td[data-label="Giờ vào"]::before,
       #reportsTable tbody td[data-label="Giờ ra"]::before,
-      #reportsTable tbody td[data-label="PMO"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }  /* FIX(2026-08-16): nhãn ': ' phân cách — đồng bộ scan/task, hết dính value */
-      /* FIX(2026-08-16): card 2 cột — dòng 1 Ngày (16px đậm) | Kết quả (không nhãn, khớp màn quét);
+      #reportsTable tbody td[data-label="PMO"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: 12px; }  /* nhãn ': ' phân cách — đồng bộ scan/task, hết dính value */
+      /* card 2 cột — dòng 1 Ngày (16px đậm) | Kết quả (không nhãn, khớp màn quét);
          dòng 2 Giờ vào | Giờ công; dòng 3 Giờ ra | Station; PMO full-width cuối. Ẩn Tên NV/Mã Ops/Mã NV
          (trùng user đăng nhập). Cỡ chữ mobile 13→15px. */
       #reportsTable tbody td:nth-child(2), #reportsTable tbody td:nth-child(3),
@@ -1126,7 +1157,7 @@
       #reportsTable tbody td:nth-child(9) { grid-column: 1; grid-row: 3; }  /* Giờ ra */
       #reportsTable tbody td:nth-child(5) { grid-column: 2; grid-row: 3; }  /* Station */
       #reportsTable tbody td:nth-child(10) { grid-column: 1 / -1; grid-row: 4; white-space: normal; word-break: break-word; } /* PMO full-width dài — wrap như Agency scan */
-      #reportsTable tbody td.has-pmo { background: var(--card-extra-bg); color: #b45309; font-weight: 600; }  /* highlight PMO mobile — cùng tint cam nhạt, band full-width */
+      #reportsTable tbody td.has-pmo { background: var(--card-extra-bg); color: var(--amber-text); font-weight: 600; }  /* highlight PMO mobile — cùng tint cam nhạt, band full-width */
       #reportsTable tbody .reports-off { font-size: 13px; }  /* pill OFF khớp badge 13px */
       .stats-table td { font-size: 15px; padding: 6px 8px; }  .stats-table th { font-size: 15px; }  .stats-col-title { font-size: 15px; }  #staffTable th { font-size: 15px; }  #viewAbout .about-body { font-size: 15px; }  #viewAbout .about-table { font-size: 15px; }
     }
@@ -1169,10 +1200,10 @@
       #staffTable tbody td[data-label="Team"] { grid-column: 1; grid-row: 6; }
       #staffTable tbody td[data-label="Station"] { grid-column: 2; grid-row: 6; }
     }
-    /* Filter phễu Excel viewStaff (2026-08-11): funnel icon header + dropdown checkbox */
+    /* Filter phễu Excel viewStaff funnel icon header + dropdown checkbox */
     /* th-filter dùng chung staffTable + taskListTable (funnel phễu) */
     th.th-filter { position: relative; }
-    .th-label { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; }  /* label trong header bảng th (2026-08-12) */
+    .th-label { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; }  /* label trong header bảng th */
     .th-funnel {
       display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
       background: transparent; border: none; color: var(--muted); cursor: pointer;
@@ -1202,7 +1233,7 @@
     .stats-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .stats-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .stats-filter-row .flabel { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 56px; }
-    .create-form .frow .flabel { min-width: 56px; }  /* đồng bộ cột label với stats-filters (2026-08-11) */
+    .create-form .frow .flabel { min-width: 56px; }  /* đồng bộ cột label với stats-filters */
     .stats-filters .pick { font-size: 12px; }
 
     /* Màn hẹp: cột trái full-width, bảng thống kê cuộn theo chiều cao viewport */
@@ -1237,7 +1268,7 @@
       transition: background .15s, color .15s;
     }
     .side-item:hover { background: rgba(255,255,255,.08); color: #fff; }
-    .side-item.active { background: var(--primary-bright); color: #fff; }  /* P1 (2026-08-16): active = primary sáng trên nền dark */
+    .side-item.active { background: var(--primary-bright); color: #fff; }  /* active = primary sáng trên nền dark */
     .side-ico { font-size: 17px; line-height: 1; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; }
     .side-ico svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .side-lbl { overflow: hidden; text-overflow: ellipsis; }
@@ -1255,7 +1286,7 @@
     body.side-collapsed .side-lbl { display: none; }
     body.side-collapsed .side-item { justify-content: center; padding: 8px 0; }
 
-    /* ===== Bottom nav — thay sidebar trái trên màn ≤700px (2026-08-11) ===== */
+    /* ===== Bottom nav — thay sidebar trái trên màn ≤700px ===== */
     .bottom-nav {
       display: none;
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
@@ -1277,9 +1308,9 @@
     }
     .nav-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
-    .nav-item.active { color: #4d8fe8; }  /* tab active trên nền dark — #1a73e8 4.19:1 < AA 4.5; #4d8fe8 5.76:1 */
+    .nav-item.active { color: var(--primary-active); }  /* tab active trên nền dark — #1a73e8 4.19:1 < AA 4.5; #4d8fe8 5.76:1 */
 
-    /* Mobile ≤700px: ẩn sidebar trái, hiện bottom nav (2026-08-11) */
+    /* Mobile ≤700px: ẩn sidebar trái, hiện bottom nav */
     @media (max-width: 700px) {
       #sidebar { display: none; }
       .bottom-nav { display: flex; }
@@ -1289,18 +1320,18 @@
       .view-topbar { row-gap: 6px; }
       .view-topbar .btn { padding: 8px 14px; min-height: 40px; font-size: 13px; }  /* touch 40px (audit 375px: trước 29px) */
       .view-topbar .task-title { font-size: 16px; }
-      #viewConfig .view-topbar-title { flex: 0 1 auto; min-width: 0; }  /* FIX(2026-08-16): title co lại — nhường chỗ cho nút dirty */
-      #viewConfig .topbar-actions { flex-shrink: 1; flex-wrap: wrap; gap: 6px 6px; justify-content: flex-end; }  /* FIX(2026-08-16): 3 nút dirty = 349px > content 315px (390/375) → tràn ngang; wrap trong topbar, hết vỡ */
-      #viewConfig .topbar-actions .btn { padding: 8px 8px; }  /* FIX(2026-08-16): co đệm — 3 nút vừa 1 hàng (309px < 315px) — topbar 2 hàng thay 3 */
+      #viewConfig .view-topbar-title { flex: 0 1 auto; min-width: 0; }  /* title co lại — nhường chỗ cho nút dirty */
+      #viewConfig .topbar-actions { flex-shrink: 1; flex-wrap: wrap; gap: 6px 6px; justify-content: flex-end; }  /* 3 nút dirty = 349px > content 315px (390/375) → tràn ngang; wrap trong topbar, hết vỡ */
+      #viewConfig .topbar-actions .btn { padding: 8px 8px; }  /* co đệm — 3 nút vừa 1 hàng (309px < 315px) — topbar 2 hàng thay 3 */
       .view-topbar .task-meta { font-size: 11px; }
       /* viewScan: topbar + counters + input + bảng xếp chồng vượt viewport → cuộn TRONG section,
          topbar sticky giữ nút hành động luôn thấy (CDP: wrap 0-1px bị bóp — 2026-08-11) */
       #viewScan { overflow-y: auto; }
-      #viewScan .scan-layout { flex: 1 1 auto; min-height: 0; }  /* FIX(2026-08-14): giãn đầy section — nội dung ngắn card vừa màn hình (trước trống 113px cuối section, audit gap 185); nội dung cao vẫn cuộn trong section + bảng cuộn trong wrap */
+      #viewScan .scan-layout { flex: 1 1 auto; min-height: 0; }  /* giãn đầy section — nội dung ngắn card vừa màn hình (trước trống 113px cuối section, audit gap 185); nội dung cao vẫn cuộn trong section + bảng cuộn trong wrap */
       .view-topbar { top: 0; }
       .scan-input-wrap input { font-size: 20px; padding: 10px 14px; }
       .scan-card { padding: 12px 16px; margin-top: 10px; }
-      /* Chips (chọn Station/Ca/Team/Hình thức/Ngày — create modal + stats filter): touch ~36px thay 27px (2026-08-11) */
+      /* Chips (chọn Station/Ca/Team/Hình thức/Ngày — create modal + stats filter): touch ~36px thay 27px */
       .pick { padding: 8px 14px; font-size: 13px; min-height: 44px; display: inline-flex; align-items: center; }  /* U6: touch ≥44px (ngoài bảng) */
       /* Filter phễu mobile: option + funnel icon touch ≥33px (audit 375px — 2026-08-11) */
       .staff-filter-panel .sfp-opt { padding: 9px 8px; min-height: 44px; align-items: center; }  /* U6: touch ≥44px */
@@ -1345,7 +1376,7 @@
       text-align: center;
     }
     .home-logo { height: 96px; width: auto; margin-bottom: 18px; }
-    /* P2 (2026-08-16): shortcut nhanh — card mềm, hover primary (ngôn ngữ mockup: tương tác = xanh) */
+    /* shortcut nhanh — card mềm, hover primary (ngôn ngữ mockup: tương tác = xanh) */
     .home-shortcuts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 34px; }
     .home-shortcut {
       display: inline-flex; align-items: center; gap: 9px;
@@ -1363,7 +1394,7 @@
       font-size: 72px; font-weight: 800; line-height: 1;
       font-variant-numeric: tabular-nums;
       color: var(--amber); letter-spacing: 2px;
-      background: linear-gradient(180deg, var(--amber), #b84500);
+      background: linear-gradient(180deg, var(--amber), var(--amber-deep));
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -1376,7 +1407,7 @@
     /* ===== Class dùng chung theo view/modal (gom inline style, 2026-08-11) ===== */
     .about-cell { padding: 8px; border: 1px solid var(--border); text-align: left; }
     /* viewTasks hint */
-    /* viewReports (2026-08-16): bảng chấm công — dùng .empty + .table-wrap chung, bỏ class placeholder cũ */
+    /* viewReports bảng chấm công — dùng .empty + .table-wrap chung, bỏ class placeholder cũ */
     /* viewAbout */
     .about-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .about-title { margin: 0; font-size: 20px; font-weight: 700; }

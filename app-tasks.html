@@ -36,7 +36,7 @@
         // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
         // khi quét đầu thay vì về sau. KHÔNG block UI — chỉ warm cache.
         try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) { /* ignore */ }
-        syncHeaderH();  // FIX(2026-08-09): title/user đã render xong — đo lại header thật (--header-h)
+        syncHeaderH();  // title/user đã render xong — đo lại header thật (--header-h)
       })
       .withFailureHandler(function (err) {
         markServerFail();
@@ -67,7 +67,7 @@
     showModalSpin('Đang làm mới…');  // ẩn ở _releaseRefreshLock
     _refreshLock = true;
     _refreshPending = 2;  // loadFilterOptions + loadTaskList
-    // Finding#1 (2026-08-12): stats/data — refreshAll còn fire RPC thứ 3 loadStaffView.
+    // Finding#1 stats/data — refreshAll còn fire RPC thứ 3 loadStaffView.
     // Đếm đủ 3 và cho loadStaffView nhả lock qua cờ 'refresh' (chỉ khi GỌI TỪ refreshAll).
     // Prefetch ensureStaffData (startup/silent) gọi loadStaffView độc lập → KHÔNG đụng lock,
     // tránh nhả lock sớm khi mới 1/2 RPC refresh xong.
@@ -276,7 +276,7 @@
   function renderSelContract() {
     var c = document.getElementById('chipsContract');
     if (!c) return;
-    var opts = mergeOpts_(CFG_LISTS.contractTypes, selContractOptions());  // (2026-08-16): thứ tự Config trước, giá trị lệch xếp sau
+    var opts = mergeOpts_(CFG_LISTS.contractTypes, selContractOptions());  // thứ tự Config trước, giá trị lệch xếp sau
     if (!SEL.station) { c.innerHTML = ''; return; }
     var allOn = opts.length > 0 && opts.every(function (v) { return SEL.contractTypes.indexOf(v) !== -1; });
     var html = '<button type="button" class="pick all' + (allOn ? ' on' : '') + '" data-col="contract" data-val="__ALL__" aria-pressed="' + allOn + '">Tất cả</button>';
@@ -447,7 +447,7 @@
       var empty = document.getElementById('taskEmpty');
       var body = document.getElementById('taskListBody');
       var cnt = document.getElementById('taskCount');
-      // Filter phễu viewTasks (2026-08-11): lọc theo TASK_FILTERS trước khi phân trang
+      // Filter phễu viewTasks lọc theo TASK_FILTERS trước khi phân trang
       var all = safeArr(tasks).filter(function (t) { return funnelMatches_(TASK_FILTERS, t); });
       // thead động (funnel icon + trạng thái .on) — chỉ chế độ danh sách, không phải search NV
       var head = document.getElementById('taskListHead');
