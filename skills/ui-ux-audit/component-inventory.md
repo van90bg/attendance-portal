@@ -2,7 +2,7 @@
 
 Kiểm kê toàn bộ thành phần UI của app, gom 6 nhóm. Mỗi nhóm có **audit đúng cho nó** — dùng làm checklist khi audit UI/UX (Phase 1 của skill) và khi thêm tính năng mới phải đối chiếu.
 
-Nguồn sự thật: `index.html` (shell + 8 view + 5 modal) · 8 module `app-*.html` · `styles.html` (1450 dòng).
+Nguồn sự thật: `index.html` (shell + 9 view + 5 modal) · 9 module `app-*.html` · `styles.html` (1478 dòng).
 
 ## Nhóm 1 — Shell & điều hướng
 
@@ -16,7 +16,7 @@ Nguồn sự thật: `index.html` (shell + 8 view + 5 modal) · 8 module `app-*.
 | Nút âm thanh | `#btnSound` `.btn-icon-dark` (2 SVG on/off) | aria-pressed |
 | Nút làm mới | `#btnRefresh` `.btn-icon-dark` + `.btn-refresh-label` | |
 | Sidebar trái | `#sidebar` → `.side-nav` 7× `.side-item` (`.side-ico` + `.side-lbl`) + `.side-foot`/`.side-compact` | ≥701px; thu gọn 240↔48px; icon SVG currentColor |
-| Bottom nav | `.bottom-nav` 5× `.nav-item` | ≤700px; `.nav-item.active` #4d8fe8 (AA) |
+| Bottom nav | `.bottom-nav` 6× `.nav-item` (config + admin ẩn theo role) | ≤700px; `.nav-item.active` #4d8fe8 (AA) |
 | Skip link | `.skip-link` | focus-visible |
 
 **Audit đúng**: sidebar collapse 240↔48 không vỡ; bottom-nav 5 mục vừa 375px; header 1 hàng; icon đơn sắc (không emoji); nav.active contrast ≥4.5; focus-visible đủ.
