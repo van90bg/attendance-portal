@@ -618,6 +618,17 @@
       // F5: optimistic status = target.status đã cập nhật (giữ EXTRA nếu dòng Dư) — khớp server.
       item.optimisticStatus = target.status;
     }
+    // ---- Phản hồi 2-pha về tab scanner: kết quả DỰ ĐOÁN gửi NGAY (0ms, không chờ server) —
+    // scanner hiện tên NV + beep tức thì; server trả sau (~300-800ms) ghi đè, chỉ beep lại nếu khác. ----
+    var optName = (item.target.staffName && item.target.staffName !== '…') ? item.target.staffName : staffId;
+    notifyExternalScanner({
+      code: staffId,
+      ok: true,
+      optimistic: true,
+      name: optName,
+      status: item.optimisticStatus,
+      time: phase2 ? (item.target.timeScanText || '') : (item.target.timeRefText || '')
+    });
     // Toast optimistic: NV lạ (chưa có tên) hiện mã NV thay vì dấu '-' (PENDING) gây
     // hiểu lầm "trống". Server sẽ toast lại status thật nếu khác.
     // Toast: không hiện dấu '-' (PENDING) — thay bằng label rõ nghĩa 'Chưa điểm danh'.
@@ -774,14 +785,19 @@
           rollback();
           playBeep('error');
           showToast(res.message, true);
+          // Phản hồi 2-pha: server từ chối (task đóng race / quyền) → báo scanner sửa
+          // kết quả dự đoán — đỏ + beep lỗi thay vì giữ xanh optimistic.
+          notifyExternalScanner({ code: item.staffId, ok: false, message: res.message || 'Không điểm danh được' });
         }
-        notifyExternalScanner({
-          code: item.staffId,
-          ok: true,
-          name: res.staffName || (item.target && item.target.staffName) || item.staffId,
-          status: res.status || item.optimisticStatus || '',
-          time: res.timeScanText || res.timeRefText || ''
-        });
+        if (res.ok) {
+          notifyExternalScanner({
+            code: item.staffId,
+            ok: true,
+            name: res.staffName || (item.target && item.target.staffName) || item.staffId,
+            status: res.status || item.optimisticStatus || '',
+            time: res.timeScanText || res.timeRefText || ''
+          });
+        }
         syncCounters(res.counters);
         renderScanTable(CURRENT_LOG);
         updateFinishBtnState();

@@ -64,6 +64,9 @@
   #sent .badge.ok { background: rgba(74, 222, 128, .15); color: #4ade80; }
   #sent .badge.warn { background: rgba(251, 146, 60, .15); color: #fb923c; }
   #sent .badge.err { background: rgba(248, 113, 113, .15); color: #f87171; }
+  /* Phản hồi 2-pha: kết quả DỰ ĐOÁN từ app (chưa có xác nhận server) — tông vàng + viền nét đứt */
+  #status.pending { color: #fbbf24; }
+  #sent .badge.pending { outline: 1px dashed rgba(148, 163, 184, .55); opacity: .9; }
   @media (prefers-reduced-motion: reduce) {
     .reticle::after { animation: none; }
   }
@@ -177,26 +180,56 @@
       var msg = String(r.message || '').trim();
       var time = String(r.time || '').trim();
       var ok = !!r.ok;
+      var opt = !!r.optimistic;   // kết quả DỰ ĐOÁN từ app — chưa có xác nhận server
       var badgeText = ok ? status : (msg || 'Lỗi');
       var badgeCls = ok ? (status === 'Dư' ? 'warn' : 'ok') : 'err';
-      if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
-      else { beepErr(); }
+      var rows = sentEl.children;
+      var row = null;
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].getAttribute('data-code') === code) { row = rows[i]; break; }
+      }
+      // Pha 1 — kết quả dự đoán: hiện + beep NGAY (không chờ server). Dòng đánh dấu
+      // data-opt để pha 2 chỉ beep lại nếu server trả khác (tránh beep đúp).
+      if (opt) {
+        if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
+        else { beepErr(); }
+        if (ok) {
+          setStatus((name ? name + ' — ' : '') + status + (time ? ' · ' + time : ''), 'ok pending');
+        } else {
+          setStatus(msg || 'Không điểm danh được', 'err');
+        }
+        if (row) {
+          var nm0 = row.querySelector('.name');
+          var bd0 = row.querySelector('.badge');
+          if (nm0 && name) nm0.textContent = name;
+          if (bd0) { bd0.textContent = badgeText; bd0.className = 'badge ' + badgeCls + ' pending'; }
+        } else {
+          addRow(code, name, badgeText, badgeCls, time);
+          row = sentEl.firstChild;
+        }
+        if (row) { row.setAttribute('data-opt', badgeText); }
+        return;
+      }
+      // Pha 2 — kết quả chuẩn từ server: ghi đè dòng; chỉ beep nếu KHÁC dự đoán.
+      var prev = row ? row.getAttribute('data-opt') : null;
+      if (!prev || prev !== badgeText) {
+        if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
+        else { beepErr(); }
+      }
       if (ok) {
         setStatus((name ? name + ' — ' : '') + (status || 'Đã điểm danh') + (time ? ' · ' + time : ''), 'ok');
       } else {
         setStatus(msg || 'Không điểm danh được', 'err');
       }
-      var rows = sentEl.children;
-      for (var i = 0; i < rows.length; i++) {
-        if (rows[i].getAttribute('data-code') === code) {
-          var nm = rows[i].querySelector('.name');
-          var bd = rows[i].querySelector('.badge');
-          if (nm && name) nm.textContent = name;
-          if (bd) { bd.textContent = badgeText; bd.className = 'badge ' + badgeCls; }
-          return;
-        }
+      if (row) {
+        var nm = row.querySelector('.name');
+        var bd = row.querySelector('.badge');
+        if (nm && name) nm.textContent = name;
+        if (bd) { bd.textContent = badgeText; bd.className = 'badge ' + badgeCls; }
+        row.removeAttribute('data-opt');
+      } else {
+        addRow(code, name, badgeText, badgeCls, time);
       }
-      addRow(code, name, badgeText, badgeCls, time);
     }
     window.addEventListener('message', function (e) {
       if (e.source !== window.opener) return;
