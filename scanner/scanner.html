@@ -217,6 +217,10 @@
       var meta = 'Mã: ' + code + (time ? ' · ' + time : '');
       var badgeText = ok ? status : (msg || 'Lỗi');
       var badgeCls = ok ? (status === 'Dư' ? 'warn' : 'ok') : 'err';
+      // Card chỉ hiện kết quả của mã QUÉT MỚI NHẤT (mirror guard scanSeq của app) —
+      // server trả hàng đợi lệch thứ tự: kết quả mã cũ đến sau không được ghi đè card
+      // (người quét vừa quét mã khác, card nhảy về NV cũ → hiểu nhầm).
+      var isLatest = (code === LAST_CODE);
       var rows = sentEl.children;
       var row = null;
       for (var i = 0; i < rows.length; i++) {
@@ -241,12 +245,15 @@
         return;
       }
       // Pha 2 — kết quả chuẩn từ server: ghi đè dòng; chỉ beep nếu KHÁC dự đoán.
+      // Kết quả mã KHÔNG còn mới nhất: cập nhật dòng lịch sử nhưng KHÔNG đụng card/beep.
       var prev = row ? row.getAttribute('data-opt') : null;
-      if (!prev || prev !== badgeText) {
+      if (isLatest && (!prev || prev !== badgeText)) {
         if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
         else { beepErr(); }
       }
-      showCard(statusText, name || code, meta, stateCls, false);
+      if (isLatest) {
+        showCard(statusText, name || code, meta, stateCls, false);
+      }
       if (row) {
         var nm = row.querySelector('.name');
         var bd = row.querySelector('.badge');
