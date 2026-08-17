@@ -506,7 +506,7 @@ Modal: tạo task · confirm dùng chung · pasteModal · vềAbout không phả
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
 | Files | **17 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **138/138 pass** |
+| **Kết quả** | **144/144 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
@@ -597,7 +597,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 138/138 (17 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 144/144 (17 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 10 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin manager+ (2026-08-17) |
@@ -630,7 +630,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ viewReports (báo cáo chấm công tháng theo email) + viewStats (pivot) + viewStaff (20 cột)
 ✅ viewAdmin — nhật ký hoạt động AuditLog (manager+, lọc ngày); bỏ bảng task trùng viewTasks (2026-08-17)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
-✅ Test Node 138/138 (17 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
+✅ Test Node 144/144 (17 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
 
 **Rủi ro đã chấp nhận (biết rõ, cố tình bỏ qua):**

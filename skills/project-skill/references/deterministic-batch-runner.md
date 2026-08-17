@@ -1,7 +1,7 @@
 # Deterministic multi-file patch runner (known-good shape)
 
 Session: 2026-08-08 simplify pass F1–F6. Context: batch-edit 5 CRLF GAS files
-(Database.gs ×3 modules, Config.gs, ScanService.gs, tests, index.html) with
+(TaskRepo.gs, Config.gs, ScanService.gs, tests, index.html) with
 zero fuzzy patching. The first runner design had a plan-per-module overwrite bug;
 this is the shape that works.
 
@@ -38,10 +38,10 @@ this is the shape that works.
 
 ## Symptoms that already bit us (check for these)
 
-- `grep -c "symbol" Database.gs` = N call sites but `grep -n "function symbol"` = 0
+- `grep -c "symbol" TaskRepo.gs` = N call sites but `grep -n "function symbol"` = 0
   → a linked module was dropped by the write-last-wins bug. Recover with an undo
   module (old = broken text, next = original) then re-run the collapsed batch.
-- `npm run test` green ≠ patch complete: tests don't load Database.gs, so a
+- `npm run test` green ≠ patch complete: tests don't load TaskRepo.gs, so a
   missing server helper (ReferenceError) is invisible. Always the
   call-site ↔ definition grep reconciliation.
 
@@ -90,7 +90,7 @@ for(const s of plans){fs.writeFileSync(s.p,s.out,'utf8');console.log('WROTE '+s.
 
 ```js
 // each module file exports either:
-module.exports={ file:'Database.gs', reps:[{label,old,next}, ...] };
+module.exports={ file:'TaskRepo.gs', reps:[{label,old,next}, ...] };
 // or (batch of independent files) an ARRAY of such objects.
 // rep keys must be `next` (not `new`), label is what MISS prints.
 ```

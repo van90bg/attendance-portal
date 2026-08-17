@@ -21,7 +21,7 @@ const isFree   = !!(input && input.noList) || slotFree;   // dual-source during 
 - `status: isFree ? TASK_STATUS.OPEN : TASK_STATUS.ATTEND` (unchanged)
 - `if (!isFree)` → filter+dedupe+`CREATE_FAILED_EMPTY` guard (unchanged — FREE must SKIP the empty-list guard)
 
-**Do NOT touch:** `classifyScan` (ScanLogic.gs:68 already reads `task.taskType`), `pasteCodes` gate (ScanService.gs:246), `taskFromRow_` (Database.gs:237), client badge `taskTypeBadge`, the 4 test files (they construct `taskType` fixtures directly). They all key off stored `taskType`, which is still written.
+**Do NOT touch:** `classifyScan` (ScanLogic.gs:74 already reads `task.taskType`), `pasteCodes` gate (ScanService.gs:195), `taskFromRow_` (TaskRepo.gs:11), client badge `taskTypeBadge`, the test files (they construct `taskType` fixtures directly). They all key off stored `taskType`, which is still written.
 
 ## Client-side (index.html — the real work)
 - Remove `#tabReconcile`/`#tabFree` mode switching + `setCreateMode(`, `chkNoList` (noLonger needed), and the noList branch of `onNoListChange()`.

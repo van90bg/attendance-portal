@@ -101,7 +101,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 138 unit tests node --test
+├── tests/                 # 144 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
@@ -112,7 +112,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 138/138 unit tests (node:test)
+npm test                        # 144/144 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -152,7 +152,7 @@ clasp deploy
 - ✅ Portal shell: sidebar 8 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile); viewAdmin — nhật ký hoạt động (manager+, lọc ngày).
 - ✅ Tách frontend (index/styles + 9 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 138/138 unit tests + 11/11 CDP local mock.
+- ✅ 144/144 unit tests + 11/11 CDP local mock.
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 
 ---
