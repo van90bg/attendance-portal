@@ -65,11 +65,11 @@
       var btn = '';
       if (phase === 'attend') btn = '<button class="btn btn-sm" onclick="adminCompleteTask(\'' + taskId + '\')">Kết thúc</button>';
       if (phase === 'done') btn = '<button class="btn btn-sm btn-outline" onclick="adminReopenTask(\'' + taskId + '\')">Mở lại</button>';
-      return '<tr><td>' + taskId + '</td><td>' + esc(t.taskType === 'free' ? 'Tự do' : 'Đối chiếu') + '</td>'
-        + '<td>' + esc((t.slotCode || '') + (t.team ? ' / ' + t.team : '')) + '</td>'
-        + '<td>' + esc(t.createdBy || '') + '</td>'
-        + '<td>' + phaseLabel_(phase) + '</td>'
-        + '<td>' + btn + '</td></tr>';
+      return '<tr><td data-label="Task">' + taskId + '</td><td data-label="Loại">' + esc(t.taskType === 'free' ? 'Tự do' : 'Đối chiếu') + '</td>'
+        + '<td data-label="Ca / Team">' + esc((t.slotCode || '') + (t.team ? ' / ' + t.team : '')) + '</td>'
+        + '<td data-label="Người tạo">' + esc(t.createdBy || '') + '</td>'
+        + '<td data-label="Trạng thái">' + phaseLabel_(phase) + '</td>'
+        + '<td data-label="Thao tác">' + btn + '</td></tr>';
     }).join('');
     tb.tBodies[0].innerHTML = html || '<tr><td colspan="6">Chưa có task</td></tr>';
   }
@@ -78,9 +78,9 @@
     var tb = document.getElementById('auditTable');
     if (!tb || !tb.tBodies[0]) return;
     var html = rows.map(function (r) {
-      return '<tr><td>' + esc(fmtAuditTime_(r.timestamp)) + '</td><td>' + esc(r.email || '') + '</td>'
-        + '<td>' + esc(adminActionLabel_(r.action)) + '</td>'
-        + '<td>' + esc(r.targetId || (r.detail || '').slice(0, 60)) + '</td></tr>';
+      return '<tr><td data-label="Thời gian">' + esc(fmtAuditTime_(r.timestamp)) + '</td><td data-label="Email">' + esc(r.email || '') + '</td>'
+        + '<td data-label="Thao tác">' + esc(adminActionLabel_(r.action)) + '</td>'
+        + '<td data-label="Đối tượng">' + esc(r.targetId || (r.detail || '').slice(0, 60)) + '</td></tr>';
     }).join('');
     tb.tBodies[0].innerHTML = html || '<tr><td colspan="4">Chưa có hoạt động nào</td></tr>';
   }
