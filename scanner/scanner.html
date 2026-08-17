@@ -73,7 +73,7 @@
 <header>
   <h1>Quét điểm danh — SPX</h1>
   <span id="count">0 mã</span>
-  <button id="btnDone" type="button" onclick="closeSelf()">Xong</button>
+  <button id="btnDone" type="button">Xong</button>
 </header>
 <main>
   <div id="reader"></div>
@@ -225,6 +225,8 @@
         try { location.replace('about:blank'); } catch (e) {}
       }, 250);
     }
+    // closeSelf ở scope IIFE — inline onclick không thấy được, gắn listener qua JS.
+    document.getElementById('btnDone').addEventListener('click', closeSelf);
     function start() {
       if (!window.Html5Qrcode) { setStatus('Không tải được thư viện quét (kiểm tra mạng)', 'err'); return; }
       if (!window.opener) {
