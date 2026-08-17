@@ -1445,7 +1445,7 @@
       .home-logo { height: 64px; }
     }
     /* ===== Class dùng chung theo view/modal (gom inline style, 2026-08-11) ===== */
-    .about-cell { padding: var(--space-2); border: 1px solid var(--border); text-align: left; }
+    .about-cell { padding: var(--space-2); border: 1px solid var(--border); text-align: left; white-space: normal; overflow-wrap: break-word; }  /* wrap trên mobile — th, td base nowrap (line 525) ép mọi cell */
     /* viewTasks hint */
     /* viewReports bảng chấm công — dùng .empty + .table-wrap chung, bỏ class placeholder cũ */
     /* viewAbout */
