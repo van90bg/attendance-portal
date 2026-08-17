@@ -8,6 +8,31 @@
    * Tách từ app-reports.html 2026-08-17 — viewReports giờ chỉ còn Báo cáo.
    * ============================================================ */
   var ADMIN_LOADED = false;
+  var ADMIN_TASKS = [];
+  var ADMIN_TASK_LIMIT = 100;
+
+  // Ngày task = prefix taskId RyyyyMMdd-HHmm (+suffix -2/-3) → yyyy-MM-dd cho input[type=date].
+  function adminTaskDate_(taskId) {
+    var m = /^R(\d{4})(\d{2})(\d{2})/.exec(String(taskId || ''));
+    return m ? m[1] + '-' + m[2] + '-' + m[3] : '';
+  }
+  function fillAdminSelect_(id, values, allLabel) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">' + esc(allLabel) + '</option>'
+      + values.map(function (v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+    if (cur && values.indexOf(cur) !== -1) sel.value = cur;  // giữ lựa chọn còn hợp lệ sau reload
+  }
+  function populateAdminFilterOptions_() {
+    var stations = {}, slots = {};
+    ADMIN_TASKS.forEach(function (t) {
+      if (t.station) stations[t.station] = 1;
+      if (t.slotCode) slots[t.slotCode] = 1;
+    });
+    fillAdminSelect_('adminStationFilter', Object.keys(stations).sort(), 'Tất cả kho');
+    fillAdminSelect_('adminSlotFilter', Object.keys(slots).sort(), 'Tất cả ca');
+  }
 
   var ADMIN_ACTIONS = {
     scan: 'Quét', createTask: 'Tạo task', transitionToAttend: 'Chuyển điểm danh',
@@ -41,7 +66,7 @@
       .withSuccessHandler(function (res) {
         restore();
         if (!tb || !tb.tBodies[0]) return;
-        if (res && res.ok && Array.isArray(res.tasks)) { renderAdminTasks(res.tasks); return; }
+        if (res && res.ok && Array.isArray(res.tasks)) { ADMIN_TASKS = res.tasks; populateAdminFilterOptions_(); renderAdminTasksFiltered(); return; }
         tb.tBodies[0].innerHTML = '<tr><td colspan="6">' + esc((res && res.message) || 'Không tải được task') + '</td></tr>';
       })
       .withFailureHandler(function (err) { restore(); showToast('Lỗi tải task: ' + err.message, true); })
@@ -56,10 +81,48 @@
       .getAuditLogApi(100);
   }
 
+  // Bộ lọc task: ngày / kho (station) / ca (slotCode) — lọc client trên ADMIN_TASKS (đã fetch toàn bộ).
+  function applyAdminFilters() {
+    var clearBtn = document.getElementById('adminClearFilter');
+    if (clearBtn) {
+      var active = (document.getElementById('adminDateFilter') || {}).value
+        || (document.getElementById('adminStationFilter') || {}).value
+        || (document.getElementById('adminSlotFilter') || {}).value;
+      clearBtn.style.display = active ? '' : 'none';
+    }
+    renderAdminTasksFiltered();
+  }
+  function clearAdminFilters() {
+    var d = document.getElementById('adminDateFilter'); if (d) d.value = '';
+    var s = document.getElementById('adminStationFilter'); if (s) s.value = '';
+    var c = document.getElementById('adminSlotFilter'); if (c) c.value = '';
+    applyAdminFilters();
+  }
+  function renderAdminTasksFiltered() {
+    var d = (document.getElementById('adminDateFilter') || {}).value || '';
+    var st = (document.getElementById('adminStationFilter') || {}).value || '';
+    var sl = (document.getElementById('adminSlotFilter') || {}).value || '';
+    var rows = ADMIN_TASKS.filter(function (t) {
+      if (d && adminTaskDate_(t.taskId) !== d) return false;
+      if (st && t.station !== st) return false;
+      if (sl && t.slotCode !== sl) return false;
+      return true;
+    });
+    var countEl = document.getElementById('adminTaskCount');
+    if (countEl) {
+      if (d || st || sl) countEl.textContent = rows.length + '/' + ADMIN_TASKS.length + ' task';
+      else countEl.textContent = ADMIN_TASKS.length > ADMIN_TASK_LIMIT
+        ? ADMIN_TASK_LIMIT + '/' + ADMIN_TASKS.length + ' mới nhất — dùng bộ lọc để thu gọn'
+        : ADMIN_TASKS.length + ' task';
+    }
+    renderAdminTasks(rows.slice(0, ADMIN_TASK_LIMIT));
+  }
+
   function renderAdminTasks(tasks) {
+
     var tb = document.getElementById('adminTaskTable');
     if (!tb || !tb.tBodies[0]) return;
-    var html = tasks.slice(0, 50).map(function (t) {
+    var html = tasks.map(function (t) {
       var phase = t.phase === 'done' ? 'done' : (t.phase === 'attend' ? 'attend' : 'open');
       var taskId = esc(t.taskId || '');
       var btn = '';
@@ -71,7 +134,7 @@
         + '<td data-label="Trạng thái">' + phaseLabel_(phase) + '</td>'
         + '<td data-label="Thao tác">' + btn + '</td></tr>';
     }).join('');
-    tb.tBodies[0].innerHTML = html || '<tr><td colspan="6">Chưa có task</td></tr>';
+    tb.tBodies[0].innerHTML = html || '<tr><td colspan="6">' + (ADMIN_TASKS.length ? 'Không có task phù hợp bộ lọc' : 'Chưa có task') + '</td></tr>';
   }
 
   function renderAuditRows(rows) {

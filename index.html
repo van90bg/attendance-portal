@@ -402,6 +402,17 @@
   </div>
   <div class="card" id="adminPanel">
     <div class="task-title">Toàn bộ task</div>
+    <div class="att-toolbar" id="adminFilters" role="group" aria-label="Lọc task theo ngày / kho / ca">
+      <input type="date" id="adminDateFilter" aria-label="Lọc theo ngày" onchange="applyAdminFilters()">
+      <select id="adminStationFilter" class="field-select" aria-label="Lọc theo kho" onchange="applyAdminFilters()">
+        <option value="">Tất cả kho</option>
+      </select>
+      <select id="adminSlotFilter" class="field-select" aria-label="Lọc theo ca" onchange="applyAdminFilters()">
+        <option value="">Tất cả ca</option>
+      </select>
+      <button class="btn-clear-filter" id="adminClearFilter" onclick="clearAdminFilters()" style="display:none;" aria-label="Xóa bộ lọc" title="Xóa bộ lọc">✕ Xóa lọc</button>
+      <span class="admin-task-count" id="adminTaskCount" role="status"></span>
+    </div>
     <div class="table-wrap" style="max-height:280px;" id="adminTaskWrap">
       <table id="adminTaskTable">
         <thead><tr>
