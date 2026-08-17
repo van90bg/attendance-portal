@@ -67,8 +67,30 @@
   /* Phản hồi 2-pha: kết quả DỰ ĐOÁN từ app (chưa có xác nhận server) — tông vàng + viền nét đứt */
   #status.pending { color: #fbbf24; }
   #sent .badge.pending { outline: 1px dashed rgba(148, 163, 184, .55); opacity: .9; }
+  /* Kết quả quét TO — đồng bộ scanCard của app (status in hoa + tên 30px + meta), nhìn từ 1-2m */
+  #resultCard {
+    flex-shrink: 0; margin: 10px 14px 0; padding: 14px 18px;
+    border: 2px solid #334155; border-radius: 12px; background: #1e293b;
+    min-height: 100px;
+  }
+  #resultCard.ok { border-color: #4ade80; background: rgba(74, 222, 128, .10); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
+  #resultCard.warn { border-color: #fb923c; background: rgba(251, 146, 60, .10); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
+  #resultCard.err { border-color: #f87171; background: rgba(248, 113, 113, .10); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
+  #resultCard.pending { border-color: #60a5fa; background: rgba(96, 165, 250, .10); animation: stampIn .38s cubic-bezier(.22, 1, .36, 1); }
+  #resultCard .rc-status { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #94a3b8; }
+  #resultCard.ok .rc-status { color: #4ade80; }
+  #resultCard.warn .rc-status { color: #fb923c; }
+  #resultCard.err .rc-status { color: #f87171; }
+  #resultCard.pending .rc-status { color: #60a5fa; }
+  #resultCard .rc-name { font-size: 30px; font-weight: 800; line-height: 1.25; margin-top: 2px; color: #e2e8f0; }
+  #resultCard .rc-meta { font-size: 15px; color: #94a3b8; margin-top: 4px; }
+  #resultCard .rc-empty { color: #64748b; font-size: 14px; }
+  /* Pha 1 — đang chờ xác nhận server: viền nét đứt */
+  #resultCard.opt { outline: 2px dashed rgba(148, 163, 184, .55); outline-offset: -6px; }
+  @keyframes stampIn { from { transform: scale(.94); opacity: .4; } to { transform: scale(1); opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
     .reticle::after { animation: none; }
+    #resultCard.ok, #resultCard.warn, #resultCard.err, #resultCard.pending { animation: none; }
   }
 </style>
 </head>
@@ -83,6 +105,7 @@
   <div class="reticle" aria-hidden="true"></div>
   <div id="status" role="status" aria-live="polite">Đang mở camera…</div>
 </main>
+<div id="resultCard"><div class="rc-empty">Chưa có lượt quét</div></div>
 <div id="sent" aria-live="polite"></div>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -100,6 +123,7 @@
     var statusEl = document.getElementById('status');
     var countEl = document.getElementById('count');
     var sentEl = document.getElementById('sent');
+    var cardEl = document.getElementById('resultCard');
 
     function esc(s) {
       return String(s).replace(/[&<>"']/g, function (c) {
@@ -153,7 +177,6 @@
       target.postMessage({ source: 'spx-scan', code: code }, '*');
       SENT_COUNT++;
       countEl.textContent = SENT_COUNT + ' mã';
-      setStatus('Đã gửi: ' + code, 'ok');
       addRow(code, '', '…', '', '');
     }
     function fmtTime(d) {
@@ -168,9 +191,17 @@
         '<span class="badge ' + (cls || '') + '">' + esc(statusText || '…') + '</span>' +
         '<span class="time">' + esc(time || fmtTime(new Date())) + '</span>';
       sentEl.insertBefore(row, sentEl.firstChild);
-      if (sentEl.children.length > 40) sentEl.removeChild(sentEl.lastChild);
+      // Danh sách gần đây chỉ cần vài dòng — thông tin chính nằm ở card to phía trên.
+      if (sentEl.children.length > 5) sentEl.removeChild(sentEl.lastChild);
     }
-    // Nhận kết quả từ app (sau khi server xử lý): tên NV + trạng thái — cập nhật banner + dòng.
+    // Card kết quả TO — đồng bộ scanCard của app: status in hoa + tên 30px + meta mã/giờ.
+    function showCard(statusText, name, meta, stateCls, opt) {
+      cardEl.className = (opt ? 'opt ' : '') + stateCls;
+      cardEl.innerHTML = '<div class="rc-status">' + esc(statusText) + '</div>' +
+        '<div class="rc-name">' + esc(name || '…') + '</div>' +
+        (meta ? '<div class="rc-meta">' + esc(meta) + '</div>' : '');
+    }
+    // Nhận kết quả từ app (sau khi server xử lý): tên NV + trạng thái — cập nhật card + dòng.
     // Chỉ tin message từ window.opener (chính app đã mở tab này).
     function showResult(r) {
       var code = String(r.code || '').trim();
@@ -181,6 +212,9 @@
       var time = String(r.time || '').trim();
       var ok = !!r.ok;
       var opt = !!r.optimistic;   // kết quả DỰ ĐOÁN từ app — chưa có xác nhận server
+      var statusText = ok ? (status || 'Đã điểm danh') : (msg || 'Không điểm danh được');
+      var stateCls = ok ? (status === 'Dư' ? 'warn' : (status === 'Chưa điểm danh' ? 'pending' : 'ok')) : 'err';
+      var meta = 'Mã: ' + code + (time ? ' · ' + time : '');
       var badgeText = ok ? status : (msg || 'Lỗi');
       var badgeCls = ok ? (status === 'Dư' ? 'warn' : 'ok') : 'err';
       var rows = sentEl.children;
@@ -193,11 +227,7 @@
       if (opt) {
         if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
         else { beepErr(); }
-        if (ok) {
-          setStatus((name ? name + ' — ' : '') + status + (time ? ' · ' + time : ''), 'ok pending');
-        } else {
-          setStatus(msg || 'Không điểm danh được', 'err');
-        }
+        showCard(statusText, name || code, meta, stateCls, true);
         if (row) {
           var nm0 = row.querySelector('.name');
           var bd0 = row.querySelector('.badge');
@@ -216,11 +246,7 @@
         if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
         else { beepErr(); }
       }
-      if (ok) {
-        setStatus((name ? name + ' — ' : '') + (status || 'Đã điểm danh') + (time ? ' · ' + time : ''), 'ok');
-      } else {
-        setStatus(msg || 'Không điểm danh được', 'err');
-      }
+      showCard(statusText, name || code, meta, stateCls, false);
       if (row) {
         var nm = row.querySelector('.name');
         var bd = row.querySelector('.badge');
@@ -281,14 +307,16 @@
       function onSuccess(text) { sendCode(String(text || '').trim()); }
       function onError() { /* gọi liên tục khi chưa thấy mã */ }
       scanner = new Html5Qrcode('reader');
-      scanner.start({ facingMode: 'environment' }, config, onSuccess, onError).catch(function (err) {
-        var msg = (err && err.message) ? String(err.message) : '';
-        if (/permission|denied|not ?allowed/i.test(msg)) {
-          setStatus('Quyền camera bị từ chối — vào Cài đặt trình duyệt → Quyền → Camera → Cho phép trang này, rồi thử lại', 'err');
-        } else {
-          setStatus('Không mở được camera: ' + msg, 'err');
-        }
-      });
+      scanner.start({ facingMode: 'environment' }, config, onSuccess, onError)
+        .then(function () { setStatus(''); })  // camera đã chạy — bỏ 'Đang mở camera…'
+        .catch(function (err) {
+          var msg = (err && err.message) ? String(err.message) : '';
+          if (/permission|denied|not ?allowed/i.test(msg)) {
+            setStatus('Quyền camera bị từ chối — vào Cài đặt trình duyệt → Quyền → Camera → Cho phép trang này, rồi thử lại', 'err');
+          } else {
+            setStatus('Không mở được camera: ' + msg, 'err');
+          }
+        });
     }
     // Tắt camera khi rời trang (đèn tắt, không tốn pin)
     window.addEventListener('pagehide', function () {
