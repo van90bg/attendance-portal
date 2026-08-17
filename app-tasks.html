@@ -27,15 +27,27 @@
         if (cfgItem) cfgItem.style.display = (meta && meta.isEditor) ? '' : 'none';
         var cfgNav = document.getElementById('bottomConfigItem');
         if (cfgNav) cfgNav.style.display = (meta && meta.isEditor) ? '' : 'none';
-        // Trang Quản trị (viewAdmin) — chỉ hiện mục sidebar + bottom nav mobile khi manager+ (canManager_)
+        // Trang Quản trị (viewAdmin) — chỉ hiện khi admin (canAdmin_; getAuditLogApi gate admin)
         var admItem = document.getElementById('sideAdminItem');
-        if (admItem) admItem.style.display = canManager_() ? '' : 'none';
+        if (admItem) admItem.style.display = canAdmin_() ? '' : 'none';
         var admNav = document.getElementById('bottomAdminItem');
-        if (admNav) admNav.style.display = canManager_() ? '' : 'none';
+        if (admNav) admNav.style.display = canAdmin_() ? '' : 'none';
+        // viewStats/viewStaff/viewReports — chỉ hiện khi manager+ (getStaffStatsApi/getReports gate manager)
+        var mgrPages = { stats: 'sideStatsItem', data: 'sideDataItem', reports: 'sideReportsItem' };
+        for (var pg in mgrPages) {
+          var it = document.getElementById(mgrPages[pg]);
+          if (it) it.style.display = canManager_() ? '' : 'none';
+        }
+        var navMap = { stats: 'bottomStatsItem', attendance: 'bottomAttendanceItem', data: 'bottomDataItem', reports: 'bottomReportsItem' };
+        for (var pg2 in navMap) {
+          var it2 = navMap[pg2] ? document.getElementById(navMap[pg2]) : null;
+          if (it2) it2.style.display = canManager_() ? '' : 'none';
+        }
         refreshAll();
         // Prefetch nền StaffData — mở Thống kê/Dữ liệu lần đầu KHÔNG delay
         // (CDP: cold 280ms → warm ~22ms; silent = không toast lúc khởi động; 2026-08-11)
-        if (typeof ensureStaffData === 'function') { ensureStaffData(false, true); }
+        // viewStats/viewStaff giờ manager+ (getStaffStatsApi) — prefetch chỉ khi đủ quyền
+        if (canManager_() && typeof ensureStaffData === 'function') { ensureStaffData(false, true); }
         // Prefetch nền Cấu hình (editor-only) — mở viewConfig lần đầu KHÔNG delay (giống StaffData; silent = không toast lỗi lúc khởi động)
         if (meta && meta.isEditor && typeof ensureConfigData === 'function') { ensureConfigData(false, true); }
         // Fix #1: preload staffIndex cache sớm (fire-and-forget) → tên NV lạ hiện NGAY
@@ -533,6 +545,11 @@
   function canManager_() {
     var r = META && META.role ? String(META.role).toLowerCase() : '';
     return ROLE_RANK[r] !== undefined && ROLE_RANK[r] >= ROLE_RANK.manager;
+  }
+  // role = admin (khớp server requireRole_('admin') — viewAdmin).
+  function canAdmin_() {
+    var r = META && META.role ? String(META.role).toLowerCase() : '';
+    return ROLE_RANK[r] !== undefined && ROLE_RANK[r] >= ROLE_RANK.admin;
   }
   // Gợi ý tìm theo role — manager+ mới nhắc tìm NV (searchLogsByStaff gate manager).
   // 1 nguồn duy nhất: dùng cho placeholder #listSearch + toast rỗng runListSearch.

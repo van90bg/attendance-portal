@@ -1,8 +1,8 @@
 /**
  * tests/admin-audit.test.js — Audit log + Admin console (mở rộng phân quyền).
  *
- * Cover: audit_ ghi row AuditLog đúng cột; getAuditLogApi gate (operator chặn /
- * manager nhận rows, mới nhất trước); scanStaff + completeTask ghi audit vào sheet.
+ * Cover: audit_ ghi row AuditLog đúng cột; getAuditLogApi gate (operator/manager chặn /
+ * admin nhận rows, mới nhất trước); scanStaff + completeTask ghi audit vào sheet.
  *
  * Mock GAS + loader dùng chung: tests/gas-sandbox.js (loadAll: toàn bộ .gs).
  */
@@ -24,7 +24,7 @@ test('audit_: ghi row AuditLog đúng cột (timestamp/email/action/targetId/det
   assert.ok(rows[1][4].includes('absentCount')); // detail JSON
 });
 
-test('getAuditLogApi: operator bị chặn (ok:false) — gate manager+', () => {
+test('getAuditLogApi: operator bị chặn (ok:false) — gate admin', () => {
   const { ctx } = makeSandbox({ activeEmail: 'op@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
@@ -33,11 +33,11 @@ test('getAuditLogApi: operator bị chặn (ok:false) — gate manager+', () => 
   assert.equal(blocked.ok, false);
 });
 
-test('getAuditLogApi: manager nhận rows, mới nhất trước', () => {
+test('getAuditLogApi: admin nhận rows, mới nhất trước', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'mgr@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'mgr@spx.com': 'manager' })]);
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'mgr@spx.com': 'admin' })]);
   svc.audit_('scan', 'R2026', { staffId: 'Ops1' });
   svc.audit_('createTask', 'R2027', {});
   const res = svc.getAuditLogApi(50);
@@ -47,13 +47,13 @@ test('getAuditLogApi: manager nhận rows, mới nhất trước', () => {
   assert.equal(res.rows[0].email, 'mgr@spx.com');
 });
 
-test('getAuditLogApi: nâng role operator→manager giữa phiên vẫn qua (invalidate cache)', () => {
+test('getAuditLogApi: nâng role operator→admin giữa phiên vẫn qua (invalidate cache)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   svc.audit_('settings', '', { saved: ['roleMap'] });
   assert.equal(svc.getAuditLogApi(50).ok, false); // operator — cache settings (chưa có roleMap)
-  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'op@spx.com': 'manager' })]);
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'op@spx.com': 'admin' })]);
   svc.invalidateSettingsCache_();                 // cache 60s — bỏ để đọc roleMap mới
   const res = svc.getAuditLogApi(50);
   assert.equal(res.ok, true);

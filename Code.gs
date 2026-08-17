@@ -110,15 +110,15 @@ function previewStaffApi(input) {
 }
 
 /** View StaffData: trả toàn bộ StaffData (full 20 field) cho bảng danh sách + thống kê.
- * Gate: requireRole_('operator') — viewer (role P1) bị chặn. Hiện tại mọi user là
- * operator+ (mặc định) nên KHÔNG đổi hành vi. Chỉ đọc — cache 30s (STAFF_STATS). */
+ * Gate: requireRole_('manager') — viewStats/viewStaff chỉ cho manager+ (2026-08-17).
+ * Chỉ đọc — cache 30s (STAFF_STATS). */
 function getStaffStatsApi() {
   // Gate requireRole_('operator') đặt TRONG try (pattern DEFENSE như pasteCodes):
   // nếu requireRole_ → getSetting_ → getSheet_/getSpreadsheet_ throw (chưa cấu hình)
   // thì trả ok:false thay vì ném ra client.
   try {
-    if (!requireRole_('operator')) {
-      return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
+    if (!requireRole_('manager')) {
+      return { ok: false, message: 'Không đủ quyền (cần role manager trở lên)' };
     }
     return { ok: true, staff: readStaffFullList_() };
   } catch (e) {
@@ -147,10 +147,10 @@ function saveSettingsApi(patch) {
   }
 }
 
-/** Nhật ký hoạt động (audit). Gate manager+ TRONG try (DEFENSE). */
+/** Nhật ký hoạt động (audit). Gate admin TRONG try (DEFENSE). */
 function getAuditLogApi(limit) {
   try {
-    if (!requireRole_('manager')) return { ok: false, rows: [], message: 'Không đủ quyền (cần role manager trở lên)' };
+    if (!requireRole_('admin')) return { ok: false, rows: [], message: 'Không đủ quyền (cần role admin)' };
     return { ok: true, rows: getAuditLog_(limit), message: '' };
   } catch (e) {
     return { ok: false, rows: [], message: e && e.message ? e.message : 'getAuditLog fail' };

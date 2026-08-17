@@ -49,7 +49,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | **Thống kê** | Pivot StaffData theo Team × Contract × Ca (Inbound/Outbound), tab lọc BPO / OS — fullscreen |
 | **Điểm danh** | Danh sách task đối chiếu — tạo task, quét giờ có mặt, điểm danh, bàn giao, kết thúc |
 | **Báo cáo** | Báo cáo chấm công tháng theo email đăng nhập — bảng 10 cột (desktop/tablet), thẻ card mobile |
-| **Quản trị** | Nhật ký hoạt động (AuditLog, manager+) — lọc theo ngày; danh sách task mọi owner đã gộp vào Điểm danh (2026-08-17) |
+| **Quản trị** | Nhật ký hoạt động (AuditLog, chỉ admin) — lọc theo ngày; danh sách task mọi owner đã gộp vào Điểm danh (2026-08-17) |
 | **Dữ liệu chấm công** | Toàn bộ StaffData — 20 cột khớp tên sheet, Clock In/Out định dạng `H:mm:ss`, tìm mã/tên/agency |
 | **Cấu hình** | Trang Config Admin (chỉ editor) — đọc/ghi settings qua SettingsService: Station/Ca/Team/Department mặc định + roleMap phân quyền |
 | **Giới thiệu** | Hướng dẫn sử dụng và thông tin kỹ thuật |
@@ -62,7 +62,20 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
   - Task FREE: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
-  - `searchLogsByStaffApi` (lịch sử chấm công cá nhân) + `getAuditLogApi` (nhật ký hoạt động) chỉ manager+; `getStaffStatsApi` operator+; settings editor-only.
+  - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
+  - **Phân quyền theo view (2026-08-17):**
+
+| View | viewer | operator | manager | admin |
+| :--- | :----: | :------: | :-----: | :---: |
+| viewTasks (Điểm danh) | ✅ | ✅ | ✅ | ✅ |
+| viewScan (Quét) | ✅ | ✅ | ✅ | ✅ |
+| viewHome (Trang chủ) | ✅ | ✅ | ✅ | ✅ |
+| viewAbout (Giới thiệu) | ✅ | ✅ | ✅ | ✅ |
+| viewStats (Thống kê) | | | ✅ | ✅ |
+| viewStaff (Dữ liệu chấm công) | | | ✅ | ✅ |
+| viewReports (Báo cáo) | | | ✅ | ✅ |
+| viewConfig (Cấu hình) | | | | ✅ (editor) |
+| viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 1000, báo mã lỗi.
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.

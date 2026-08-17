@@ -26,6 +26,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - viewHome: hero logo SPX — URL remote `https://spx.vn/new_static/assets/images/sea-logo.svg` (`onerror` ẩn khi không tải được, KHÔNG dùng file svg local — đã xóa 2026-08-11) + tên + đồng hồ realtime (`renderHomeClock`, Intl Asia/Ho_Chi_Minh).
 - viewStats: pivot fullscreen — 2 bảng Contract×Ca + Agency×Ca, MỖI TEAM 1 bảng (Ca dọc), filter Station · Ngày · Department. viewStaff (page key `data`): bảng StaffData fullscreen (search `#staffSearch` + count `#staffCount`).
 - View mới phải vào mảng `repairViewParents()` — `['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig','viewReports','viewAdmin']`.
+- **Phân quyền view (2026-08-17)**: viewer+ = viewTasks/viewScan/viewHome/viewAbout; manager+ = viewStats/viewStaff/viewReports (`getStaffStatsApi`/`getReportsApi` gate manager — nav ẩn theo `canManager_`); admin = viewAdmin (`getAuditLogApi` gate admin — `canAdmin_`); editor = viewConfig. Server gate `requireRole_` là nguồn quyết định cuối.
 
 ## 3. Architecture mental model (đọc TRƯỚC mọi fix)
 

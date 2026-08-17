@@ -4,7 +4,7 @@
  * Cover: buildStaffInfoMap (email → Ops ID, bỏ dòng thiếu); buildAttendanceRows (map cột
  * theo TÊN header — sheet thật có cột trống + "PMO formula" có khoảng trắng; lọc theo Ops ID
  * không phân biệt hoa thường + dự phòng phần số; "None"/rỗng → ''; sort giảm dần theo ngày);
- * getReports (operator+ gate, email chưa khai StaffInfo → rows rỗng + message, anonymous → rỗng);
+ * getReports (manager+ gate, email chưa khai StaffInfo → rows rỗng + message, anonymous → rỗng);
  * getReportsApi wrapper.
  *
  * Mock GAS + loader dùng chung: tests/gas-sandbox.js.
@@ -100,9 +100,11 @@ test('buildAttendanceRows: sheet trống / chỉ header → []', () => {
   assert.deepEqual(clone(svc.buildAttendanceRows(values, 'Ops237511')), []);
 });
 
-test('getReports: operator+ — email khớp StaffInfo → rows đúng của mình', () => {
+test('getReports: manager+ — email khớp StaffInfo → rows đúng của mình', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
   const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'manager' })]);
   seedReportSheets(ss);
   const res = svc.getReports();
   assert.equal(res.ok, true);
@@ -116,6 +118,8 @@ test('getReports: operator+ — email khớp StaffInfo → rows đúng của mì
 test('getReports: email chưa khai StaffInfo → ok + rows rỗng + message hướng dẫn', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'unknown@spx.com' });
   const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'unknown@spx.com': 'manager' })]);
   seedReportSheets(ss);
   const res = svc.getReports();
   assert.equal(res.ok, true);
@@ -123,16 +127,18 @@ test('getReports: email chưa khai StaffInfo → ok + rows rỗng + message hư�
   assert.match(res.message, /StaffInfo/);
 });
 
-test('getReports: anonymous (email rỗng) → ok + rows rỗng, không lộ dữ liệu', () => {
+test('getReports: email rỗng (anonymous) → chặn gate (không lộ dữ liệu)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: '' });
   const svc = loadAll(ctx);
+  svc.ensureSheets_();
   seedReportSheets(ss);
+  // anonymous luôn operator (Auth.gs: getRole_ rỗng → DEFAULT) — manager+ gate chặn
   const res = svc.getReports();
-  assert.equal(res.ok, true);
+  assert.equal(res.ok, false);
   assert.deepEqual(clone(res.rows), []);
 });
 
-test('getReports: viewer bị chặn (gate operator+ fail-closed)', () => {
+test('getReports: viewer bị chặn (gate manager+ fail-closed)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();  // tạo Config sheet trước khi ghi roleMap
@@ -147,6 +153,8 @@ test('getReports: viewer bị chặn (gate operator+ fail-closed)', () => {
 test('getReportsApi wrapper: truyền thẳng kết quả service', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
   const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'manager' })]);
   seedReportSheets(ss);
   const res = svc.getReportsApi();
   assert.equal(res.ok, true);

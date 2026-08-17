@@ -1,8 +1,8 @@
 /**
  * ReportService.gs — Service viewReports (Báo cáo chấm công tháng theo email đăng nhập).
  *
- * - Gate requireRole_('operator') TRONG service (pattern DEFENSE — google.script.run
- *   gọi được hàm global trực tiếp, gate ở wrapper *Api bị bypass).
+ * - Gate requireRole_('manager') TRONG service (pattern DEFENSE — google.script.run
+ *   gọi được hàm global trực tiếp, gate ở wrapper *Api bị bypass). viewReports manager+ (2026-08-17).
  * - user = email đăng nhập (getActiveEmail_) → StaffInfo map email→Ops ID →
  *   lọc StaffAttendance theo Ops ID → rows cache per-user 60s (REPORTS + email).
  * - KHÔNG trả dữ liệu người khác: thiếu email / chưa khai StaffInfo → rows rỗng + message.
@@ -10,8 +10,8 @@
  */
 function getReports() {
   try {
-    if (!requireRole_('operator')) {
-      return { ok: false, rows: [], message: 'Không đủ quyền (cần role operator trở lên)' };
+    if (!requireRole_('manager')) {
+      return { ok: false, rows: [], message: 'Không đủ quyền (cần role manager trở lên)' };
     }
     const email = String(getActiveEmail_() || '').trim().toLowerCase();
     if (!email) {

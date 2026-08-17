@@ -540,6 +540,20 @@
 
 
   function loadStaffView(btn, silent, fromRefresh) {
+    // viewStats/viewStaff manager+ (getStaffStatsApi gate manager) — chặn sớm trước RPC
+    if (typeof canManager_ === 'function' && !canManager_()) {
+      if (btn) restoreBtnLabel_(btn, '⟳ Cập nhật');
+      if (!silent) showToast('Không đủ quyền — cần role manager', true);
+      var metaEl = document.getElementById('staffMeta');
+      if (metaEl) metaEl.textContent = 'Không đủ quyền — cần role manager';
+      var skelEl = document.getElementById('staffSkeleton');
+      if (skelEl) skelEl.style.display = 'none';
+      var tblEl = document.getElementById('staffTable');
+      if (tblEl) tblEl.style.display = 'none';
+      var emptyEl = document.getElementById('staffEmpty');
+      if (emptyEl) { emptyEl.style.display = ''; emptyEl.textContent = 'Không đủ quyền — cần role manager'; }
+      return;
+    }
     var skel = document.getElementById('staffSkeleton');
     var tbl = document.getElementById('staffTable');
     var empty = document.getElementById('staffEmpty');

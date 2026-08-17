@@ -74,17 +74,23 @@ test('getCurrentUser trả { email, role, isAdmin } — operator mặc định, 
   assert.equal(svc2.getCurrentUser().role, 'admin');
 });
 
-test('getStaffStatsApi gate: operator OK, viewer (role P1) bị chặn', () => {
+test('getStaffStatsApi gate: viewer + operator bị chặn, manager OK (viewStats/viewStaff manager+)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'viewer@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'viewer@spx.com': 'viewer' })]);
   assert.equal(svc.getStaffStatsApi().ok, false);
-  // operator (mặc định) vẫn xem được — không đổi hành vi hiện tại
+  // operator (mặc định) giờ CŨNG bị chặn — viewStats/viewStaff chỉ manager+ (2026-08-17)
   const { ctx: ctx2 } = makeSandbox({ activeEmail: 'staff@spx.com' });
   const svc2 = loadAll(ctx2);
   svc2.ensureSheets_();
-  assert.equal(svc2.getStaffStatsApi().ok, true);
+  assert.equal(svc2.getStaffStatsApi().ok, false);
+  // manager được phép
+  const { ctx: ctx3, ss: ss3 } = makeSandbox({ activeEmail: 'mgr@spx.com' });
+  const svc3 = loadAll(ctx3);
+  svc3.ensureSheets_();
+  ss3.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'mgr@spx.com': 'manager' })]);
+  assert.equal(svc3.getStaffStatsApi().ok, true);
 });
 
 test('getCurrentUser anonymous: role operator, isAdmin false (anonymous)', () => {

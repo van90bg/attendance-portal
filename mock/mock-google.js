@@ -15,6 +15,7 @@
       ok: true,
       appTitle: 'Điểm Danh [LOCAL MOCK]',
       userEmail: 'nv001.demo@spxexpress.com',  // demo viewReports — khớp MOCK_REPORT_INFO bên dưới
+      role: 'admin',  // local mock: full quyền (admin) — để mọi view hiện khi test UI (audit-ui/audit-style)
       // Khớp server getMetaApi: { ok, appTitle, userEmail } — KHÔNG labels/tableHeaders
       // (client không dùng, server không trả — drift đã xóa 2026-08-11).
     },

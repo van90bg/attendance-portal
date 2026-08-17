@@ -23,8 +23,20 @@
     return out;
   }
 
-  // Tải báo cáo của user đang đăng nhập (getReportsApi — gate operator+ TRONG server).
+  // Tải báo cáo của user đang đăng nhập (getReportsApi — gate manager+ TRONG server).
   function loadReportsView(btn) {
+    // viewReports manager+ (getReports gate manager) — chặn sớm trước RPC
+    if (typeof canManager_ === 'function' && !canManager_()) {
+      if (btn) restoreBtnLabel_(btn, '⟳ Cập nhật');
+      showToast('Không đủ quyền — cần role manager', true);
+      var metaEl0 = document.getElementById('reportsMeta');
+      if (metaEl0) metaEl0.textContent = 'Không đủ quyền — cần role manager';
+      var skelEl0 = document.getElementById('reportsSkeleton');
+      if (skelEl0) skelEl0.style.display = 'none';
+      var emptyEl0 = document.getElementById('reportsEmpty');
+      if (emptyEl0) { emptyEl0.style.display = ''; emptyEl0.textContent = 'Không đủ quyền — cần role manager'; }
+      return;
+    }
     var skel = document.getElementById('reportsSkeleton');
     var metaEl = document.getElementById('reportsMeta');
     var tbl = document.getElementById('reportsTableWrap');

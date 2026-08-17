@@ -1,7 +1,7 @@
 <script>
   /* ============================================================
    * MODULE: app-admin.html — viewAdmin (Quản trị) — nhật ký hoạt động (AuditLog).
-   * Chỉ manager+ (server tự gate requireRole_ TRONG getAuditLogApi — DEFENSE).
+   * Chỉ admin (server tự gate requireRole_ TRONG getAuditLogApi — DEFENSE).
    * Bảng task mọi owner đã bỏ 2026-08-17: viewTasks đã có toàn bộ task +
    * nút Kết thúc/Mở lại (gate operator) nên bảng admin là trùng lặp.
    * Nạp qua index.html (directive include app-admin) — script block riêng,
@@ -24,9 +24,9 @@
     if (btn) setBtnBusy_(btn, '⟳ Đang tải…');
     function restore() { if (btn) restoreBtnLabel_(btn, '⟳ Cập nhật'); }
     var ab = document.getElementById('auditTable');
-    if (!(typeof canManager_ === 'function' && canManager_())) {
+    if (!(typeof canAdmin_ === 'function' && canAdmin_())) {
       restore();
-      if (ab && ab.tBodies[0]) ab.tBodies[0].innerHTML = '<tr><td colspan="4">Không đủ quyền — cần role manager</td></tr>';
+      if (ab && ab.tBodies[0]) ab.tBodies[0].innerHTML = '<tr><td colspan="4">Không đủ quyền — cần role admin</td></tr>';
       return;
     }
     ADMIN_LOADED = true;

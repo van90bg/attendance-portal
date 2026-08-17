@@ -10,7 +10,7 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 - Backend: `Code.gs` `Config.gs` `CsvUtil.gs` `Spreadsheet.gs` `Cache.gs` `StaffDataRepo.gs` `TaskRepo.gs` `LogRepo.gs` `ScanLogic.gs` `ScanService.gs` `TaskService.gs` `Auth.gs` `Debug.gs` `SettingsService.gs` `AuditRepo.gs` `ReportRepo.gs` `ReportService.gs` (Database.gs đã tách thành 5 repo file 2026-08-11).
 - Dữ liệu: 4 sheet — Config · StaffData (HR, 20 cột tên tiếng Anh) · AttendanceTask · AttendanceLog.
 
-**Shell UI (sidebar 8 trang):** Trang chủ (viewHome) · Thống kê (viewStats) · Điểm danh (viewTasks + viewScan từ nút Quét) · Báo cáo (viewReports) · Quản trị (viewAdmin — manager+, ẩn theo meta.role) · Dữ liệu chấm công (viewStaff) · Cấu hình (viewConfig — chỉ editor, ẩn theo meta.isEditor) · Giới thiệu (viewAbout). Toolbar đầu MỌI view dùng chung 1 class `.view-topbar` (+ `.view-topbar-title`) — List/Scan/Stats/Staff/Config/Reports/Admin (rename 2026-08-11, hết `.scan-topbar`/`.view-toolbar`). Ô tìm NV/task (mã Ops/R2026) nằm TRONG viewTasks: `#listSearch` + `runListSearch()` (đã rời header). Sidebar trái collapsible `240px ↔ 48px`, icon đơn sắc SVG, bỏ side-head, nút thu gọn `☰`. Header giữ userEmail · net-dot · âm thanh · Làm mới. Đã bỏ nút 📋/ⓘ cũ khỏi header.
+**Shell UI (sidebar 8 trang):** Trang chủ (viewHome) · Thống kê (viewStats) · Điểm danh (viewTasks + viewScan từ nút Quét) · Báo cáo (viewReports) · Quản trị (viewAdmin — chỉ admin, ẩn theo meta.role) · Dữ liệu chấm công (viewStaff) · Cấu hình (viewConfig — chỉ editor, ẩn theo meta.isEditor) · Giới thiệu (viewAbout). **Phân quyền view (2026-08-17):** viewer+ = viewTasks/viewScan/viewHome/viewAbout; manager+ = viewStats/viewStaff/viewReports; admin = viewAdmin; editor = viewConfig (bảng đầy đủ ở README §Phân quyền + Spec §5.6). Toolbar đầu MỌI view dùng chung 1 class `.view-topbar` (+ `.view-topbar-title`) — List/Scan/Stats/Staff/Config/Reports/Admin (rename 2026-08-11, hết `.scan-topbar`/`.view-toolbar`). Ô tìm NV/task (mã Ops/R2026) nằm TRONG viewTasks: `#listSearch` + `runListSearch()` (đã rời header). Sidebar trái collapsible `240px ↔ 48px`, icon đơn sắc SVG, bỏ side-head, nút thu gọn `☰`. Header giữ userEmail · net-dot · âm thanh · Làm mới. Đã bỏ nút 📋/ⓘ cũ khỏi header.
 
 ## 2. Quy tắc bất biến (KHÔNG bao giờ vi phạm)
 
@@ -29,6 +29,9 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
    (92 token: màu semantic · `--space-1..8` 4pt grid · `--text-3xs..8xl` px-exact · `--radius-2xs..full`).
    Ngoại lệ chủ đích: micro 1-3px trong component · `#fff`/`#000` · fallback `var(--x, #hex)` · px đo runtime (width/scroll).
    Thêm màu/spacing mới = thêm token vào `:root`, KHÔNG hardcode. (Audit 2026-08-17: 0 hex/px rời rạc còn lại.)
+9. **MỌI thay đổi (code/UI/API/flow) phải cập nhật README.md + `Spec — RollCall v2.md` trong CÙNG commit** — số liệu
+   (test count, file count, API, sheets), bảng phân quyền, tên view/API, flow. Đừng để docs drift khỏi code (tiền lệ
+   audit 2026-08-17: 138→144 tests, 9 view, 19 API, 7 sheets — đã đồng bộ).
 
 ## 3. Cách edit deterministic (BẮT BUỘC)
 

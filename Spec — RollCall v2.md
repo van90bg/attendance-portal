@@ -4,7 +4,7 @@
 >
 > **Ghi chú viết lại:** Spec viết lại **hoàn toàn theo codebase thực tế**.
 > v2.2 (2026-08-07): thêm **2 loại task (reconcile — đối chiếu, free — quét tự do)**, **3 trạng thái `open`/`attend`/`done` (2-phase quét)**, **role owner** cho scan phase Mở, **pasteCodesApi (dán danh sách mã)**, **view Giới thiệu (`viewAbout`)**.
-> v2.3 (2026-08-17): **shell UI 9 view** (viewHome/Stats/Tasks/Scan/Staff/Config/Reports/Admin/About — tách module `app-*.html`), **role 4 bậc viewer<operator<manager<admin** (roleMap qua Config sheet, gate `requireRole_` ở service layer), **viewReports** (báo cáo chấm công tháng theo email), **viewAdmin** (nhật ký hoạt động AuditLog — manager+; bảng task mọi owner đã bỏ vì trùng viewTasks), **viewStats** (pivot StaffData), **AuditRepo/ReportRepo/ReportService**, **cache chunk StaffAttendance ≤100KB/key**.
+> v2.3 (2026-08-17): **shell UI 9 view** (viewHome/Stats/Tasks/Scan/Staff/Config/Reports/Admin/About — tách module `app-*.html`), **role 4 bậc viewer<operator<manager<admin** (roleMap qua Config sheet, gate `requireRole_` ở service layer), **viewReports** (báo cáo chấm công tháng theo email), **viewAdmin** (nhật ký hoạt động AuditLog — chỉ admin; bảng task mọi owner đã bỏ vì trùng viewTasks), **viewStats** (pivot StaffData), **AuditRepo/ReportRepo/ReportService**, **cache chunk StaffAttendance ≤100KB/key**.
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -50,7 +50,7 @@ ReportService.gs  — báo cáo chấm công tháng (getReports — StaffAttenda
 StaffDataRepo.gs  — đọc/ghi StaffData (index/list/overwrite)
 TaskRepo.gs       — đọc/ghi AttendanceTask + cache task
 LogRepo.gs        — đọc/ghi AttendanceLog + cache log (batch)
-AuditRepo.gs      — nhật ký hoạt động (audit_/getAuditLog_) — viewAdmin (manager+)
+AuditRepo.gs      — nhật ký hoạt động (audit_/getAuditLog_) — viewAdmin (admin)
 ReportRepo.gs     — đọc StaffAttendance/StaffInfo cho báo cáo
 Spreadsheet.gs    — getSheet_/getSpreadsheet_/ensureSheets_ (bootstrap)
 Cache.gs          — cache wrapper version-key + format thời gian
@@ -146,7 +146,7 @@ Giữ **nguyên header chuẩn Att.csv** (ánh xạ header → field tại `CSV_
 
 ### 3.5 AuditLog (5 cột)
 
-Nhật ký hoạt động quản trị (viewAdmin — manager+): mọi mutation quan trọng ghi 1 dòng (`audit_` trong AuditRepo).
+Nhật ký hoạt động quản trị (viewAdmin — chỉ admin): mọi mutation quan trọng ghi 1 dòng (`audit_` trong AuditRepo).
 
 | Cột | Field | Ghi chú |
 | :-- | :---- | :------ |
@@ -318,7 +318,10 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 Bậc quyền `ROLES` (Config.gs), role thật lưu Config sheet key `roleMap` (`{ email: role }`) qua SettingsService; đọc qua `getRole_` (Auth.gs), gate chuẩn `requireRole_(min)`:
 
 - `admin` — `isEditor_` (email trùng `DEPLOYER_EMAIL` Script Properties): mọi thứ (settings/sync/debug).
-- `manager` — xem StaffData + nhật ký hoạt động (`getAuditLogApi`) + tìm lịch sử chấm công NV (`searchLogsByStaffApi`).
+- `manager` — xem StaffData/Thống kê (`getStaffStatsApi` viewStats/viewStaff) + Báo cáo (`getReportsApi` viewReports) + tìm lịch sử chấm công NV (`searchLogsByStaffApi`).
+- `admin` — mọi view: thêm viewAdmin (nhật ký hoạt động `getAuditLogApi`) + viewConfig (editor).
+
+**Phân quyền theo view (2026-08-17):** viewer+ = viewTasks/viewScan/viewHome/viewAbout; manager+ = viewStats/viewStaff/viewReports; admin = viewAdmin; editor = viewConfig. Client ẩn mục nav theo `meta.role` (canManager_/canAdmin_), server gate `requireRole_` là nguồn quyết định cuối.
 - `operator` — vận hành điểm danh (quét/tạo task) — **MẶC ĐỊNH**: anonymous/logged-in chưa cấu hình đều operator → không phá luồng quét.
 - `viewer` — chỉ xem (gate `requireRole_('operator')` cắn role này).
 
@@ -379,10 +382,10 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `getMetaApi()` | `{ ok, appTitle, userEmail, role, isEditor }` | — |
 | `getFilterOptionsApi()` | `{ ok, stationGroups, defaults, lists }` — cây Station→Ca→Team + defaults/lists Config | — |
 | `previewStaffApi(input)` | `{ ok, count }` — số NV khớp tổ hợp (đã dedupe, khớp count tạo task thật) — không tạo gì | operator (service) |
-| `getStaffStatsApi()` | `{ ok, staff[] }` — StaffData full (viewStaff/viewStats) | operator (TRONG try) |
+| `getStaffStatsApi()` | `{ ok, staff[] }` — StaffData full (viewStaff/viewStats) | **manager+** (TRONG try) |
 | `getSettingsApi()` | `{ ok, settings }` — toàn bộ cấu hình (viewConfig) | editor |
 | `saveSettingsApi(patch)` | `{ ok, saved, ignored, message }` — whitelist key | editor (saveSettings_) |
-| `getAuditLogApi(limit)` | `{ ok, rows[{timestamp, email, action, targetId, detail}] }` — nhật ký hoạt động viewAdmin | **manager+** (TRONG try) |
+| `getAuditLogApi(limit)` | `{ ok, rows[{timestamp, email, action, targetId, detail}] }` — nhật ký hoạt động viewAdmin | **admin** (TRONG try) |
 | `createReconcileTaskApi(input)` | `{ ok, taskId, count, message }` | operator (service) |
 | `getTaskListApi()` | `[{ taskId, station, slotCode, team, status, total, scanned, extra, createdAtText, createdBy }]` | — |
 | `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` — `task.permission = {isAdmin, isOwner, canScanOpen}` (§5.5) | — |
@@ -393,7 +396,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 200 | operator (service) |
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
 | `searchTasksByQueryApi(q)` | `{ ok, rows }` — tìm task theo mã NV / mã task | — |
-| `getReportsApi()` | `{ ok, rows, email, opsId, staffName }` — báo cáo chấm công tháng theo email đăng nhập (viewReports) | operator (service) |
+| `getReportsApi()` | `{ ok, rows, email, opsId, staffName }` — báo cáo chấm công tháng theo email đăng nhập (viewReports) | **manager+** (service) |
 | `warmStaffCacheApi()` | `{ ok, index }` — preload staffIndex cache + trả index slim cho client | — |
 
 > `google.script.run` **không trả `Date`** (serialize → null) → server trả text đã format; client check cả `xxx` + `xxxText`.
@@ -436,13 +439,13 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 
 **viewHome — Trang chủ:** logo + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chiếu/điểm danh.
 
-**viewStats — Thống kê:** pivot StaffData theo Team × Contract × Ca; tab lọc BPO/OS; `ensureStaffData` nền (cache 1h) — fullscreen.
+**viewStats — Thống kê (manager+):** pivot StaffData theo Team × Contract × Ca; tab lọc BPO/OS; `ensureStaffData` nền (cache 1h) — fullscreen.
 
-**viewStaff — Dữ liệu chấm công:** bảng StaffData 20 cột khớp `STAFF_TABLE_HEAD` (tiếng Anh), Clock In/Out `H:mm:ss`, tìm mã/tên/agency, funnel + phân trang 100 NV.
+**viewStaff — Dữ liệu chấm công (manager+):** bảng StaffData 20 cột khớp `STAFF_TABLE_HEAD` (tiếng Anh), Clock In/Out `H:mm:ss`, tìm mã/tên/agency, funnel + phân trang 100 NV.
 
-**viewReports — Báo cáo:** chấm công tháng theo email đăng nhập (StaffInfo → StaffAttendance, §3.6) — bảng 10 cột desktop/tablet, thẻ card mobile; gate operator.
+**viewReports — Báo cáo (manager+):** chấm công tháng theo email đăng nhập (StaffInfo → StaffAttendance, §3.6) — bảng 10 cột desktop/tablet, thẻ card mobile; gate manager (service).
 
-**viewAdmin — Quản trị (manager+):** nhật ký hoạt động AuditLog — bảng Thời gian / Email / Thao tác / Đối tượng + lọc theo ngày (`#auditFilters`). Lazy-load qua `selectPage('admin')`; nút ⟳ Cập nhật gọi lại `loadAdminView`. (Bảng task mọi owner đã bỏ 2026-08-17 — trùng viewTasks, cùng `listTasks()`.)
+**viewAdmin — Quản trị (chỉ admin):** nhật ký hoạt động AuditLog — bảng Thời gian / Email / Thao tác / Đối tượng + lọc theo ngày (`#auditFilters`). Lazy-load qua `selectPage('admin')`; nút ⟳ Cập nhật gọi lại `loadAdminView`. (Bảng task mọi owner đã bỏ 2026-08-17 — trùng viewTasks, cùng `listTasks()`.)
 
 **viewConfig — Cấu hình (chỉ editor):** SettingsService đọc/ghi — defaults (Station/Ca/Team), roleMap phân quyền, danh sách lựa chọn (stations/teams/slotcodes/departments/agencies/contractTypes); nhóm card kéo thả + nút Lưu (dirty badge).
 
@@ -573,7 +576,7 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 | Dán mã > 200 dòng | Clamp 200 dòng đầu (cả client lẫn server — A4) |
 | Dán mã sai prefix | `invalid-format` — liệt kê lỗi nhưng KHÔNG dừng batch |
 | Escape trong view Giới thiệu (viewAbout — không phải modal) | Quay về view trước (`lastViewBeforeAbout`), không tắt modal |
-| Non-manager gọi `getAuditLogApi`/`searchLogsByStaffApi` | Gate `requireRole_('manager')` TRONG try → `{ok:false}` (DEFENSE — sheet chưa cấu hình cũng không ném) |
+| Non-admin gọi `getAuditLogApi` / non-manager gọi `searchLogsByStaffApi` | Gate `requireRole_` ('admin'/'manager') TRONG try → `{ok:false}` (DEFENSE — sheet chưa cấu hình cũng không ném) |
 | Non-operator gọi quét/tạo/complete/reopen/paste | Gate `requireRole_('operator')` ở service layer (M1 — chống bypass qua google.script.run) |
 | StaffAttendance >100KB | Cache chunked (`all_*` nhiều key ≤100KB) — đọc gộp lại khi render báo cáo |
 | Scan/Create RPC chồng nhau (bấm ⟳ liên tục) | `_refreshLock` + đếm `_refreshPending` — nhả khi CẢ 2 RPC xong; timeout 5s bảo hiểm |
@@ -600,7 +603,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 144/144 (17 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 10 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
-| Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin manager+ (2026-08-17) |
+| Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |
 | Cooldown 15s | Có | **Không có** (chỉ chặn duplicate scan) |
 | URL deep-linking / bottom nav | Có | **Có bottom nav mobile** (`#bottomNav` — Trang chủ/Điểm danh/Quản trị/Cấu hình theo role); KHÔNG có URL deep-linking |
 | Pipeline 5 bước | Validate→cooldown→Find→Execute→Flush | `classifyScan` 3 nhánh (update/append/reject) 2-phase + LockService + owner gate |
@@ -626,9 +629,9 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ Bảng NV: tìm kiếm, lọc trạng thái, sort theo epoch
 ✅ Cache versioned (13 keys) + LockService + batch read/write
 ✅ Gate editor-only cho debug/sync/setup (fail-closed)
-✅ Role 4 bậc + roleMap Config + gate service layer (M1) + gate-bypass test
+✅ Role 4 bậc + roleMap Config + gate service layer (M1) + gate-bypass test; phân quyền view: viewer+ (Tasks/Scan/Home/About) · manager+ (Stats/Staff/Reports) · admin (Admin) · editor (Config) — 2026-08-17
 ✅ viewReports (báo cáo chấm công tháng theo email) + viewStats (pivot) + viewStaff (20 cột)
-✅ viewAdmin — nhật ký hoạt động AuditLog (manager+, lọc ngày); bỏ bảng task trùng viewTasks (2026-08-17)
+✅ viewAdmin — nhật ký hoạt động AuditLog (chỉ admin, lọc ngày); bỏ bảng task trùng viewTasks (2026-08-17)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
 ✅ Test Node 144/144 (17 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
