@@ -216,16 +216,19 @@
       var code = String(r.code || '').trim();
       var name = String(r.name || '').trim();
       var status = String(r.status || '').trim();
-      if (status === '-') status = 'Chưa điểm danh';
+      var label = String(r.statusLabel || '').trim();
+      // label từ app (statusLabel) là nguồn hiển thị — app đã phân giải
+      // FREE phase1 PENDING → 'Có mặt'; chỉ fallback sang raw status khi thiếu.
+      var disp = label || (status === '-' ? 'Chưa điểm danh' : status);
       var msg = String(r.message || '').trim();
       var time = String(r.time || '').trim();
       var ok = !!r.ok;
       var opt = !!r.optimistic;   // kết quả DỰ ĐOÁN từ app — chưa có xác nhận server
-      var statusText = ok ? (status || 'Đã điểm danh') : (msg || 'Không điểm danh được');
-      var stateCls = ok ? (status === 'Dư' ? 'warn' : (status === 'Chưa điểm danh' ? 'pending' : 'ok')) : 'err';
+      var statusText = ok ? (disp || 'Đã điểm danh') : (msg || 'Không điểm danh được');
+      var stateCls = ok ? (disp === 'Dư' ? 'warn' : (disp === 'Chưa điểm danh' ? 'pending' : 'ok')) : 'err';
       var meta = 'Mã: ' + code + (time ? ' · ' + time : '');
-      var badgeText = ok ? status : (msg || 'Lỗi');
-      var badgeCls = ok ? (status === 'Dư' ? 'warn' : 'ok') : 'err';
+      var badgeText = ok ? disp : (msg || 'Lỗi');
+      var badgeCls = ok ? (disp === 'Dư' ? 'warn' : 'ok') : 'err';
       // Card chỉ hiện kết quả của mã QUÉT MỚI NHẤT (mirror guard scanSeq của app) —
       // server trả hàng đợi lệch thứ tự: kết quả mã cũ đến sau không được ghi đè card
       // (người quét vừa quét mã khác, card nhảy về NV cũ → hiểu nhầm).
@@ -238,7 +241,7 @@
       // Pha 1 — kết quả dự đoán: hiện + beep NGAY (không chờ server). Dòng đánh dấu
       // data-opt để pha 2 chỉ beep lại nếu server trả khác (tránh beep đúp).
       if (opt) {
-        if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
+        if (ok) { if (disp === 'Dư') beepWarn(); else beepOk(); }
         else { beepErr(); }
         showCard(statusText, name || code, meta, stateCls, true);
         if (row) {
@@ -257,7 +260,7 @@
       // Kết quả mã KHÔNG còn mới nhất: cập nhật dòng lịch sử nhưng KHÔNG đụng card/beep.
       var prev = row ? row.getAttribute('data-opt') : null;
       if (isLatest && (!prev || prev !== badgeText)) {
-        if (ok) { if (status === 'Dư') beepWarn(); else beepOk(); }
+        if (ok) { if (disp === 'Dư') beepWarn(); else beepOk(); }
         else { beepErr(); }
       }
       if (isLatest) {

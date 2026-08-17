@@ -1,4 +1,4 @@
-﻿/**
+/**
  * scripts/test-local-mock.js — Tự động test UI trên LOCAL MOCK (file://) qua CDP.
  *
  * Usage:
@@ -175,11 +175,12 @@ async function main() {
   const VS = vs.err ? null : JSON.parse(vs.value);
   check('openScan → viewScan hiển thị', !!(VS && VS.visible), open.value || open.err);
   check('scanTable có dòng log', !!(VS && VS.rows >= 1), VS ? VS.rows + ' rows' : vs.err);
-  // Client phase OPEN: counter giữa hiển thị presentAt (số NV có Giờ có mặt, label "Chưa điểm danh")
-  // — KHÔNG phải absent. scanned đếm MỌI row timeScanEpoch>0 kể cả Dư phase 2 (khớp server
-  // computeCounters) → scanned = 2 NV + 1 Dư = 3. Mock: presentAt=2, extra=1.
-  check('Counter ban đầu (mock 6 dòng log: 2 quét / 3 chưa / 1 dư) → S:3 A:2 E:1',
-    !!(VS && VS.cScanned === '3' && VS.cAbsent === '2' && VS.cExtra === '1'),
+  // Client phase OPEN: counter 1 = 'Có mặt' (presentAt), counter 2 = 'Chưa có mặt'
+  // (roster chưa tới = total - presentAt - extra — FREE không roster → 0). scanned đếm MỌI
+  // row timeScanEpoch>0 kể cả Dư phase 2 (khớp server computeCounters) → scanned = 2 NV + 1 Dư = 3.
+  // Mock: total=6, presentAt=2, extra=1 → cAbsent = 6-2-1 = 3.
+  check('Counter ban đầu (mock 6 dòng log: 2 quét / 3 chưa / 1 dư) → S:3 A:3 E:1',
+    !!(VS && VS.cScanned === '3' && VS.cAbsent === '3' && VS.cExtra === '1'),
     VS ? 'S:' + VS.cScanned + ' A:' + VS.cAbsent + ' E:' + VS.cExtra : vs.err);
 
   // 5. Quét NV chưa có mặt (Ops229444) → Có mặt, counter 2→3

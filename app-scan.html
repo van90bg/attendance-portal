@@ -167,21 +167,30 @@
       // phase2 chưa kết thúc → "Chưa điểm danh" = absent; DONE → "Vắng" (đỏ).
       var absentCounter = document.querySelector('.counter.absent');
       var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
+      var scannedCounter = document.querySelector('.counter.scanned');
+      var scannedLbl = scannedCounter ? scannedCounter.querySelector('.lbl') : null;
       if (lbl && CURRENT_TASK) {
         // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chưa điểm danh'.
         var isDone = CURRENT_TASK.status === TASK_STATUS_C.DONE || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
         if (isDone) {
+          if (scannedLbl) scannedLbl.textContent = 'Đã quét';
+          document.getElementById('cScanned').textContent = c.scanned || 0;
           lbl.textContent = 'Vắng';
           absentCounter.classList.add('absent');
           absentCounter.classList.remove('waiting');
         } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
-          // phase OPEN: counter giữa = presentAt (đã quét Giờ có mặt, đang chờ Giờ quét) — label khớp scanCard "Chưa điểm danh".
+          // Phase 1 (Mở): counter 1 = 'Có mặt' (presentAt — đã ghi Giờ có mặt, xanh);
+          // counter 2 = 'Chưa có mặt' (roster chưa đến; FREE không roster → 0).
           var presentAt = c.presentAt || 0;
-          document.getElementById('cAbsent').textContent = presentAt;
-          lbl.textContent = 'Chưa điểm danh';
+          document.getElementById('cScanned').textContent = presentAt;
+          document.getElementById('cAbsent').textContent = Math.max(0, (c.total || 0) - presentAt - (c.extra || 0));
+          if (scannedLbl) scannedLbl.textContent = 'Có mặt';
+          lbl.textContent = 'Chưa có mặt';
           absentCounter.classList.add('waiting');
           absentCounter.classList.remove('absent');
         } else { // ATTEND (phase) — chưa kết thúc
+          if (scannedLbl) scannedLbl.textContent = 'Đã quét';
+          document.getElementById('cScanned').textContent = c.scanned || 0;
           lbl.textContent = 'Chưa điểm danh';
           absentCounter.classList.add('absent');
           absentCounter.classList.remove('waiting');
@@ -338,7 +347,7 @@
   }
 
   function scanRowCells(r, idx) {
-    var badge = badgeFor(r.status);
+    var badge = badgeFor(r.status, r);
     var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
     return [
       '<td class="stt" data-label="STT">' + (idx + 1) + '</td>',
@@ -369,8 +378,14 @@
     }
   }
 
-  function badgeFor(status) {
-    if (status === STATUS_C.PENDING || !status) return '<span class="badge pending">Chưa điểm danh</span>';
+  function badgeFor(status, row) {
+    if (status === STATUS_C.PENDING || !status) {
+      // Phase 1 (Mở) + đã ghi Giờ có mặt → 'Có mặt' (xanh) — khớp scanCard/counter.
+      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && row && Number(row.timeRefEpoch) > 0) {
+        return '<span class="badge present">Có mặt</span>';
+      }
+      return '<span class="badge pending">Chưa điểm danh</span>';
+    }
     if (status === STATUS_C.PRESENT) return '<span class="badge present">Có mặt</span>';
     if (status === STATUS_C.ABSENT) return '<span class="badge absent">Vắng</span>';
     if (status === STATUS_C.EXTRA) return '<span class="badge extra">Dư</span>';
@@ -438,7 +453,7 @@
     });
     // D2 (review 2026-08-11): presentAt đủ shape như server computeCounters —
     // trước thiếu → 'Chưa điểm danh' counter = 0 trong phase OPEN đến khi server trả res.counters.
-    CURRENT_COUNTERS = { scanned: s, absent: a, extra: e, presentAt: p };
+    CURRENT_COUNTERS = { scanned: s, absent: a, extra: e, presentAt: p, total: (CURRENT_LOG || []).length };
     renderCounters(CURRENT_COUNTERS);
   }
 
@@ -627,6 +642,7 @@
       optimistic: true,
       name: optName,
       status: item.optimisticStatus,
+      statusLabel: scanStatusLabel_(item.optimisticStatus, item.target),
       time: phase2 ? (item.target.timeScanText || '') : (item.target.timeRefText || '')
     });
     // Toast optimistic: NV lạ (chưa có tên) hiện mã NV thay vì dấu '-' (PENDING) gây
@@ -795,6 +811,7 @@
             ok: true,
             name: res.staffName || (item.target && item.target.staffName) || item.staffId,
             status: res.status || item.optimisticStatus || '',
+            statusLabel: scanStatusLabel_(res.status || item.optimisticStatus || '', item.target),
             time: res.timeScanText || res.timeRefText || ''
           });
         }
@@ -953,12 +970,20 @@
   // ===== Helpers =====
   // D1: HTML scan card dùng chung — showScanCard/restoreScanCard chỉ lo className.
   // Label trạng thái scan — 1 nguồn chung (scanCardHTML + setScanLiveMsg_), tránh lệch sau này.
-  function scanStatusLabel_(status) {
-    // PENDING lưu '-' (STATUS_C.PENDING) — hiển thị 'Chưa điểm danh' cho dễ đọc.
-    return (status === STATUS_C.PENDING || !status) ? 'Chưa điểm danh' : status;
+  function scanStatusLabel_(status, target) {
+    if (status === STATUS_C.PENDING || !status) {
+      // Phase 1 (Mở) + đã ghi Giờ có mặt → 'Có mặt' — quét phase1 = ghi nhận có mặt,
+      // 'Chưa điểm danh' ngay sau quét gây hiểu lầm. Chưa quét gì /
+      // phase 2 chưa quét lần 2 → vẫn 'Chưa điểm danh'.
+      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.timeRefEpoch) > 0) {
+        return 'Có mặt';
+      }
+      return 'Chưa điểm danh';
+    }
+    return status;
   }
   function scanCardHTML(status, target) {
-    var _st = scanStatusLabel_(status);
+    var _st = scanStatusLabel_(status, target);
     // Agency sau tên NV — vd 'Đoàn Hoàng Phát - SKT' (tra CLIENT_STAFF_INDEX;
     // mobile ẩn khi card hẹp — container query, đủ không gian mới hiện).
     var _agency = '';
@@ -976,7 +1001,7 @@
   function setScanLiveMsg_(status, target, mode) {
     var live = document.getElementById('scanLiveMsg');
     if (!live) return;
-    var _st = scanStatusLabel_(status);
+    var _st = scanStatusLabel_(status, target);
     live.textContent = mode === 'err' ? 'Lỗi: ' + (status || '')
       : _st + (target && target.staffName ? ' — ' + target.staffName : '');
   }
@@ -988,8 +1013,12 @@
     // C2: Dư = cam (extra), đã điểm danh/đã có mặt = cam (warn, không phải lỗi), lỗi = đỏ, ok = xanh.
     // FREE phase1: status PENDING ('Chưa điểm danh') → xanh (primary) — chưa phải lỗi/cảnh báo.
     // C4 (review 2026-08-11): wire value PENDING = '-' — so 'Chưa điểm danh' là dead arm
-    var cls = (status === STATUS_C.PENDING) ? 'pending'
-      : (mode === 'err' ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok')));
+    // Phase 1 (Mở): quét = ghi Giờ có mặt → 'Có mặt' (ok xanh), không 'pending'.
+    var phase1Arrival = status === STATUS_C.PENDING && CURRENT_TASK
+      && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.timeRefEpoch) > 0;
+    var cls = phase1Arrival ? 'ok'
+      : ((status === STATUS_C.PENDING) ? 'pending'
+      : (mode === 'err' ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok'))));
     card.className = 'scan-card ' + cls;
     card.innerHTML = scanCardHTML(status, target);
     setScanLiveMsg_(status, target, mode);
@@ -1022,8 +1051,11 @@
     // EXTRA→extra (cam), còn lại→ok. Trước đây chỉ phân biệt EXTRA vs ok nên mở lại
     // task có lượt quét phase1 (PENDING) sẽ bị tô xanh ok thay vì pending.
     // C4 (review 2026-08-11): wire value PENDING = '-' — so 'Chưa điểm danh' là dead arm
-    var cls = (last.status === STATUS_C.PENDING) ? 'scan-card pending'
-      : (last.status === STATUS_C.EXTRA ? 'scan-card extra' : 'scan-card ok');
+    var phase1Arrival = last.status === STATUS_C.PENDING && CURRENT_TASK
+      && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && Number(last.timeRefEpoch) > 0;
+    var cls = phase1Arrival ? 'scan-card ok'
+      : ((last.status === STATUS_C.PENDING) ? 'scan-card pending'
+      : (last.status === STATUS_C.EXTRA ? 'scan-card extra' : 'scan-card ok'));
     card.className = cls;
     card.innerHTML = scanCardHTML(last.status || STATUS_C.PRESENT, last);
     setScanLiveMsg_(last.status || STATUS_C.PRESENT, last, null);
