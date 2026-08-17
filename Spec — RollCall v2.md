@@ -37,21 +37,31 @@
 ## 2. Kiến trúc
 
 ```
-index.html (toàn bộ UI, 1 file)
+index.html + styles.html + 9 module app-*.html (GAS template, include tuần tự)
     │  google.script.run (async, callback-based)
     ▼
-Code.gs        — doGet (WebApp) + API endpoints + isEditor_() + syncFromCsv/setupSheets + debugState
-TaskService.gs — nghiệp vụ task: createTask (reconcile/free) / transitionToAttend / completeTask / reopenTask / listTasks / getTaskDetail (+permission)
-ScanService.gs — nghiệp vụ quét: scanStaff (guard Ops + owner gate + LockService + update/append + benchmark) + pasteCodes (dán danh sách mã)
-Database.gs    — truy cập GAS: SpreadsheetApp + CacheService (wrapper cache, batch read/write)
-ScanLogic.gs   — logic THUẦN: classifyScan 2-phase + computeCounters + canScanOpen_ (owner gate) + planBatchScans (paste) — KHÔNG gọi GAS API → test Node được
-CsvUtil.gs     — logic THUẦN parse/normalize CSV + lọc/dedupe/distinct + isValidBarcodeId
-Config.gs      — mọi hằng số: sheet names, cột, trạng thái, cache keys/TTL, UI labels
+Code.gs           — doGet (WebApp) + 19 API endpoint *Api + editor tools (syncFromCsv/setupSheets)
+Auth.gs           — getActiveEmail_/isEditor_/getRole_ — MỌI email/quyền qua đây
+SettingsService.gs— đọc/ghi Config sheet (versioned cache) — nền trang Cấu hình Admin
+TaskService.gs    — nghiệp vụ task: createTask (reconcile/free) / transitionToAttend / completeTask / reopenTask / listTasks / getTaskDetail (+permission)
+ScanService.gs    — nghiệp vụ quét: scanStaff (guard Ops + owner gate + LockService + update/append + benchmark) + pasteCodes (dán danh sách mã)
+ReportService.gs  — báo cáo chấm công tháng (getReports — StaffAttendance × StaffInfo)
+StaffDataRepo.gs  — đọc/ghi StaffData (index/list/overwrite)
+TaskRepo.gs       — đọc/ghi AttendanceTask + cache task
+LogRepo.gs        — đọc/ghi AttendanceLog + cache log (batch)
+AuditRepo.gs      — nhật ký hoạt động (audit_/getAuditLog_) — viewAdmin (manager+)
+ReportRepo.gs     — đọc StaffAttendance/StaffInfo cho báo cáo
+Spreadsheet.gs    — getSheet_/getSpreadsheet_/ensureSheets_ (bootstrap)
+Cache.gs          — cache wrapper version-key + format thời gian
+Debug.gs          — ?debug=1 (editor-gated)
+ScanLogic.gs      — logic THUẦN: classifyScan 2-phase + computeCounters + canScanOpen_ (owner gate) + planBatchScans (paste) — KHÔNG gọi GAS API → test Node được
+CsvUtil.gs        — logic THUẦN parse/normalize CSV + lọc/dedupe/distinct + isValidBarcodeId
+Config.gs         — mọi hằng số: sheet names, cột, trạng thái, cache keys/TTL, UI labels
 ```
 
 **Nguyên tắc kiến trúc:**
 
-- **Tách logic thuần khỏi GAS API**: `ScanLogic.gs` + `CsvUtil.gs` không gọi `SpreadsheetApp`/`CacheService`/`Session` — chạy được trên Node (`node --test`). Các wrapper (`Database`/`ScanService`/`TaskService`/`Code`) mỏng, chỉ lo GAS side-effects.
+- **Tách logic thuần khỏi GAS API**: `ScanLogic.gs` + `CsvUtil.gs` không gọi `SpreadsheetApp`/`CacheService`/`Session` — chạy được trên Node (`node --test`). Các wrapper (`*Repo`/`*Service`/`Code`) mỏng, chỉ lo GAS side-effects.
 - **Batch read/write**: `getValues()`/`setValues()` theo khối; không `getValue()`/`setValue()`/`appendRow()` trong loop.
 - **Hằng số tập trung tại `Config.gs`** — không hardcode rải rác; client mirror `STATUS_C`/`TASK_STATUS_C` trong `index.html` (1 nguồn mỗi phía).
 
@@ -332,8 +342,10 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 | `completeTaskApi(taskId)` | `{ ok, message }` |
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` |
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 1000 |
+| `getAuditLogApi(limit)` | `{ ok, rows[{timestamp, email, action, targetId, detail}] }` — nhật ký hoạt động viewAdmin, **manager+** (gate TRONG try) |
 
 > `google.script.run` **không trả `Date`** (serialize → null) → server trả text đã format; client check cả `xxx` + `xxxText`.
+> **`getAllTasksApi` đã bỏ (2026-08-17)** — bảng task mọi owner trong viewAdmin trùng với viewTasks (cùng `listTasks()`, nút Kết thúc/Mở lại gate operator) → viewAdmin chỉ còn AuditLog; xem task qua `getTaskListApi()`/`searchTasksByQueryApi()`.
 
 ### 8.2 Debug URL (QA/verify — KHÔNG dùng production)
 
@@ -371,6 +383,10 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 **View 3 — Giới thiệu (`#aboutView`, thay modal cũ — T-3):**
 - Mở từ nút **ⓘ** (header) — `showSection('aboutView')` quản 3 view (`viewList` / `viewScan` / `aboutView`) + lưu `lastViewBeforeAbout` để nút `← Quay lại` trả đúng view trước.
 - Nội dung 3 mục: **Giới thiệu** (2 chế độ RECONCILE / FREE) · **Hướng dẫn từng bước** (7 bước) · **Quy tắc phân quyền (Role)** (bảng Owner/Admin/Khác theo rule §5.5 + ghi chú task legacy `web` không áp dụng gate).
+
+**View 4 — Quản trị (`#viewAdmin`, 2026-08-17 — manager+):**
+- Chỉ còn **Nhật ký hoạt động (AuditLog)** — bảng Thời gian / Email / Thao tác / Đối tượng + thanh lọc theo ngày (`#auditFilters`). Lazy-load qua `selectPage('admin')`; nút ⟳ Cập nhật gọi lại `loadAdminView`.
+- Bảng task mọi owner **đã bỏ** — trùng với viewTasks (cùng `listTasks()` không lọc owner, nút Kết thúc/Mở lại gate operator) nên xoá cả `getAllTasksApi`; thao tác task quay về viewTasks/viewScan.
 
 Modal còn lại: tạo task · confirm dùng chung · **pasteModal** (dán danh sách mã, T-2) — tất cả dùng lớp `.about-overlay` + `anyModalOpen()` (Escape/focus trap/autofocus loop).
 

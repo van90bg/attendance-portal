@@ -3,13 +3,14 @@
  * Debug URL (?debug=1 / ?debug=createTask) xử lý trong Debug.gs (editor-gated);
  * quyền/định danh trong Auth.gs.
  *
- * API (gọi từ client index.html — 18 endpoint, tên chuẩn hậu tố *Api):
+ * API (gọi từ client index.html — 19 endpoint, tên chuẩn hậu tố *Api):
  *   getMetaApi()                 → { ok, appTitle, userEmail }
  *   getFilterOptionsApi()        → { ok, stationGroups }
  *   previewStaffApi(input)       → { ok, matched, missing, count } — preview tạo task
  *   getStaffStatsApi()           → { ok, counts } — thống kê StaffData
  *   getSettingsApi()             → { ok, settings } — editor-only (trang Config Admin)
  *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
+ *   getAuditLogApi(limit)        → { ok, rows } — nhật ký hoạt động viewAdmin (manager+)
  *   createReconcileTaskApi(input) → { ok, taskId, count, message }
  *   getTaskListApi()             → [{ taskId, station, slotCode, team, status, createdAt }]
  *   getTaskDetailApi(taskId)     → { ok, task, log, counters }
