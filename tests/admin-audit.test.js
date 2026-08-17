@@ -2,8 +2,7 @@
  * tests/admin-audit.test.js — Audit log + Admin console (mở rộng phân quyền).
  *
  * Cover: audit_ ghi row AuditLog đúng cột; getAuditLogApi gate (operator chặn /
- * manager nhận rows, mới nhất trước); getAllTasksApi gate (operator chặn /
- * manager nhận tasks); scanStaff + completeTask ghi audit vào sheet.
+ * manager nhận rows, mới nhất trước); scanStaff + completeTask ghi audit vào sheet.
  *
  * Mock GAS + loader dùng chung: tests/gas-sandbox.js (loadAll: toàn bộ .gs).
  */
@@ -59,21 +58,6 @@ test('getAuditLogApi: nâng role operator→manager giữa phiên vẫn qua (inv
   const res = svc.getAuditLogApi(50);
   assert.equal(res.ok, true);
   assert.equal(res.rows.length, 1);
-});
-
-test('getAllTasksApi: operator bị chặn, manager nhận danh sách task', () => {
-  const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });
-  const svc = loadAll(ctx);
-  svc.ensureSheets_();
-  ss.sheets.AttendanceTask.appendRow(['R2026', 'reconcile', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'open', '2026-08-17 08:00', 'owner@spx.com', '']);
-  assert.equal(svc.getAllTasksApi().ok, false);   // operator
-  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'op@spx.com': 'manager' })]);
-  svc.invalidateSettingsCache_();
-  const res = svc.getAllTasksApi();
-  assert.equal(res.ok, true);
-  assert.ok(Array.isArray(res.tasks));
-  assert.equal(res.tasks.length, 1);
-  assert.equal(res.tasks[0].taskId, 'R2026');
 });
 
 test('scanStaff KHÔNG ghi audit — bỏ audit tần suất cao (chống phình AuditLog)', () => {

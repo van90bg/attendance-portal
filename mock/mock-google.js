@@ -202,9 +202,6 @@
     getAuditLogApi: function (limit) {
       return { ok: true, rows: (MOCK_DATA.audit || []).slice(0, limit || 50) };
     },
-    getAllTasksApi: function () {
-      return { ok: true, tasks: MOCK_DATA.tasks.slice() };
-    },
     getTaskDetailApi: function (taskId) {
       var task = null;
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });

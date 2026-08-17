@@ -489,13 +489,12 @@
     .cfg-chip[draggable="true"] { cursor: grab; }
     .cfg-chip.cfg-dragging { opacity: .45; }
     .cfg-chip.cfg-drop-target { outline: 2px dashed var(--primary); outline-offset: -2px; border-radius: var(--radius-full); }
-    /* viewAdmin — bộ lọc task ngày/kho/ca (2026-08-17) */
-    #adminFilters select.field-select { width: auto; min-width: 110px; }
-    #adminFilters input[type="date"] {
+    /* viewAdmin — lọc nhật ký hoạt động theo ngày (2026-08-17) */
+    #auditFilters input[type="date"] {
       padding: var(--space-2) var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
       background: #fff; font-size: var(--text-sm); color: var(--input-text); cursor: pointer; font-family: inherit; min-height: 36px;
     }
-    .admin-task-count { font-size: var(--text-sm); color: var(--muted); margin-left: auto; white-space: nowrap; }
+    .filter-count { font-size: var(--text-sm); color: var(--muted); margin-left: auto; white-space: nowrap; }
     .btn-clear-filter {
       background: transparent; border: 1px solid var(--border); color: var(--muted);
       border-radius: var(--radius-sm); padding: var(--space-2) var(--space-2); font-size: var(--text-base); cursor: pointer;
@@ -1073,18 +1072,10 @@
       #scanTable tbody td[data-label="Giờ quét"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: var(--text-xs); }
       #scanTable tbody tr.extra-row td { background: transparent; }  #scanTable tbody tr.extra-row { background: var(--card-extra-bg); }  /* thẻ extra mobile — nền cam giữ trên tr (td transparent, tr grid mặc định var(--card)) */
       /* Quản trị mobile — card 2 cột đồng bộ task/scan/reports (2026-08-17) */
-      #adminTaskTable thead, #auditTable thead { display: none; }
-      #adminTaskTable tbody tr, #auditTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-2); background: var(--card); }
-      #adminTaskTable tbody td, #auditTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: var(--text-md); line-height: 1.35; }
-      #adminTaskTable tbody td[data-label="Loại"]::before, #adminTaskTable tbody td[data-label="Ca / Team"]::before, #adminTaskTable tbody td[data-label="Người tạo"]::before,
+      #auditTable thead { display: none; }
+      #auditTable tbody tr { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 3px var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-2); background: var(--card); }
+      #auditTable tbody td { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; padding: 3px 0; font-size: var(--text-md); line-height: 1.35; }
       #auditTable tbody td[data-label="Email"]::before, #auditTable tbody td[data-label="Đối tượng"]::before { content: attr(data-label) ': '; font-weight: 600; color: var(--muted); font-size: var(--text-xs); }
-      /* Task: dòng 1 Task (16px đậm) | Trạng thái (badge); dòng 2 Ca/Team | Loại; dòng 3 Người tạo | Thao tác (giữ nút Kết thúc/Mở lại — mobile không có link thay thế) */
-      #adminTaskTable tbody td[data-label="Task"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--primary-dark); font-size: var(--text-lg); }
-      #adminTaskTable tbody td[data-label="Trạng thái"] { grid-column: 2; grid-row: 1; justify-self: start; }  #adminTaskTable tbody .badge { font-size: var(--text-sm); }
-      #adminTaskTable tbody td[data-label="Ca / Team"] { grid-column: 1; grid-row: 2; }
-      #adminTaskTable tbody td[data-label="Loại"] { grid-column: 2; grid-row: 2; }
-      #adminTaskTable tbody td[data-label="Người tạo"] { grid-column: 1; grid-row: 3; }
-      #adminTaskTable tbody td[data-label="Thao tác"] { grid-column: 2; grid-row: 3; justify-self: start; }
       /* Audit: dòng 1 Thời gian | Thao tác; dòng 2 Email | Đối tượng */
       #auditTable tbody td[data-label="Thời gian"] { grid-column: 1; grid-row: 1; font-weight: 700; color: var(--primary-dark); font-size: var(--text-md); }
       #auditTable tbody td[data-label="Thao tác"] { grid-column: 2; grid-row: 1; justify-self: start; font-weight: 600; }

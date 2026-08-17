@@ -1,38 +1,15 @@
 <script>
   /* ============================================================
-   * MODULE: app-admin.html — viewAdmin (Quản trị) — toàn bộ task mọi owner
-   * + nhật ký hoạt động (AuditLog). Chỉ manager+ (server tự gate requireRole_
-   * TRONG getAuditLogApi/getAllTasksApi/completeTaskApi/reopenTaskApi — DEFENSE).
+   * MODULE: app-admin.html — viewAdmin (Quản trị) — nhật ký hoạt động (AuditLog).
+   * Chỉ manager+ (server tự gate requireRole_ TRONG getAuditLogApi — DEFENSE).
+   * Bảng task mọi owner đã bỏ 2026-08-17: viewTasks đã có toàn bộ task +
+   * nút Kết thúc/Mở lại (gate operator) nên bảng admin là trùng lặp.
    * Nạp qua index.html (directive include app-admin) — script block riêng,
    * chung global scope (thứ tự include quan trọng: sau app-reports).
    * Tách từ app-reports.html 2026-08-17 — viewReports giờ chỉ còn Báo cáo.
    * ============================================================ */
   var ADMIN_LOADED = false;
-  var ADMIN_TASKS = [];
-  var ADMIN_TASK_LIMIT = 100;
-
-  // Ngày task = prefix taskId RyyyyMMdd-HHmm (+suffix -2/-3) → yyyy-MM-dd cho input[type=date].
-  function adminTaskDate_(taskId) {
-    var m = /^R(\d{4})(\d{2})(\d{2})/.exec(String(taskId || ''));
-    return m ? m[1] + '-' + m[2] + '-' + m[3] : '';
-  }
-  function fillAdminSelect_(id, values, allLabel) {
-    var sel = document.getElementById(id);
-    if (!sel) return;
-    var cur = sel.value;
-    sel.innerHTML = '<option value="">' + esc(allLabel) + '</option>'
-      + values.map(function (v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
-    if (cur && values.indexOf(cur) !== -1) sel.value = cur;  // giữ lựa chọn còn hợp lệ sau reload
-  }
-  function populateAdminFilterOptions_() {
-    var stations = {}, slots = {};
-    ADMIN_TASKS.forEach(function (t) {
-      if (t.station) stations[t.station] = 1;
-      if (t.slotCode) slots[t.slotCode] = 1;
-    });
-    fillAdminSelect_('adminStationFilter', Object.keys(stations).sort(), 'Tất cả kho');
-    fillAdminSelect_('adminSlotFilter', Object.keys(slots).sort(), 'Tất cả ca');
-  }
+  var AUDIT_ROWS = [];   // rows nhật ký mới tải — lọc client theo ngày
 
   var ADMIN_ACTIONS = {
     scan: 'Quét', createTask: 'Tạo task', transitionToAttend: 'Chuyển điểm danh',
@@ -41,23 +18,14 @@
   };
   function adminActionLabel_(a) { return ADMIN_ACTIONS[a] || a; }
 
-  // Phase badge dùng variant chuẩn (.badge open/attend/done) — không class lạ.
-  function phaseLabel_(ph) {
-    if (ph === 'done') return '<span class="badge done">Xong</span>';
-    if (ph === 'attend') return '<span class="badge attend">Điểm danh</span>';
-    return '<span class="badge open">Mở</span>';
-  }
-
   // Entry page — lazy-load qua selectPage('admin'); nút ⟳ Cập nhật gọi lại.
   // Page hiện cả khi thiếu quyền nhưng hiển thị message (nav item đã ẩn non-manager).
   function loadAdminView(btn) {
     if (btn) setBtnBusy_(btn, '⟳ Đang tải…');
     function restore() { if (btn) restoreBtnLabel_(btn, '⟳ Cập nhật'); }
-    var tb = document.getElementById('adminTaskTable');
     var ab = document.getElementById('auditTable');
     if (!(typeof canManager_ === 'function' && canManager_())) {
       restore();
-      if (tb && tb.tBodies[0]) tb.tBodies[0].innerHTML = '<tr><td colspan="6">Không đủ quyền — cần role manager</td></tr>';
       if (ab && ab.tBodies[0]) ab.tBodies[0].innerHTML = '<tr><td colspan="4">Không đủ quyền — cần role manager</td></tr>';
       return;
     }
@@ -65,76 +33,43 @@
     google.script.run
       .withSuccessHandler(function (res) {
         restore();
-        if (!tb || !tb.tBodies[0]) return;
-        if (res && res.ok && Array.isArray(res.tasks)) { ADMIN_TASKS = res.tasks; populateAdminFilterOptions_(); renderAdminTasksFiltered(); return; }
-        tb.tBodies[0].innerHTML = '<tr><td colspan="6">' + esc((res && res.message) || 'Không tải được task') + '</td></tr>';
-      })
-      .withFailureHandler(function (err) { restore(); showToast('Lỗi tải task: ' + err.message, true); })
-      .getAllTasksApi();
-    google.script.run
-      .withSuccessHandler(function (res) {
         if (!ab || !ab.tBodies[0]) return;
-        if (res && res.ok && Array.isArray(res.rows)) { renderAuditRows(res.rows); return; }
+        if (res && res.ok && Array.isArray(res.rows)) { AUDIT_ROWS = res.rows; renderAuditFiltered(); return; }
         ab.tBodies[0].innerHTML = '<tr><td colspan="4">' + esc((res && res.message) || 'Không tải được nhật ký') + '</td></tr>';
       })
-      .withFailureHandler(function (err) { showToast('Lỗi tải nhật ký: ' + err.message, true); })
+      .withFailureHandler(function (err) { restore(); showToast('Lỗi tải nhật ký: ' + err.message, true); })
       .getAuditLogApi(100);
   }
 
-  // Bộ lọc task: ngày / kho (station) / ca (slotCode) — lọc client trên ADMIN_TASKS (đã fetch toàn bộ).
-  function applyAdminFilters() {
-    var clearBtn = document.getElementById('adminClearFilter');
+  // Lọc nhật ký theo ngày (yyyy-MM-dd từ timestamp ISO) — lọc client trên AUDIT_ROWS đã tải.
+  function applyAuditFilters() {
+    var clearBtn = document.getElementById('auditClearFilter');
     if (clearBtn) {
-      var active = (document.getElementById('adminDateFilter') || {}).value
-        || (document.getElementById('adminStationFilter') || {}).value
-        || (document.getElementById('adminSlotFilter') || {}).value;
+      var active = (document.getElementById('auditDateFilter') || {}).value || '';
       clearBtn.style.display = active ? '' : 'none';
     }
-    renderAdminTasksFiltered();
+    renderAuditFiltered();
   }
-  function clearAdminFilters() {
-    var d = document.getElementById('adminDateFilter'); if (d) d.value = '';
-    var s = document.getElementById('adminStationFilter'); if (s) s.value = '';
-    var c = document.getElementById('adminSlotFilter'); if (c) c.value = '';
-    applyAdminFilters();
+  function clearAuditFilters() {
+    var d = document.getElementById('auditDateFilter'); if (d) d.value = '';
+    applyAuditFilters();
   }
-  function renderAdminTasksFiltered() {
-    var d = (document.getElementById('adminDateFilter') || {}).value || '';
-    var st = (document.getElementById('adminStationFilter') || {}).value || '';
-    var sl = (document.getElementById('adminSlotFilter') || {}).value || '';
-    var rows = ADMIN_TASKS.filter(function (t) {
-      if (d && adminTaskDate_(t.taskId) !== d) return false;
-      if (st && t.station !== st) return false;
-      if (sl && t.slotCode !== sl) return false;
-      return true;
+  function renderAuditFiltered() {
+    var d = (document.getElementById('auditDateFilter') || {}).value || '';
+    var rows = AUDIT_ROWS.filter(function (r) {
+      if (!d) return true;
+      return auditRowDate_(r.timestamp) === d;
     });
-    var countEl = document.getElementById('adminTaskCount');
-    if (countEl) {
-      if (d || st || sl) countEl.textContent = rows.length + '/' + ADMIN_TASKS.length + ' task';
-      else countEl.textContent = ADMIN_TASKS.length > ADMIN_TASK_LIMIT
-        ? ADMIN_TASK_LIMIT + '/' + ADMIN_TASKS.length + ' mới nhất — dùng bộ lọc để thu gọn'
-        : ADMIN_TASKS.length + ' task';
-    }
-    renderAdminTasks(rows.slice(0, ADMIN_TASK_LIMIT));
+    var countEl = document.getElementById('auditRowCount');
+    if (countEl) countEl.textContent = d ? rows.length + '/' + AUDIT_ROWS.length + ' dòng' : AUDIT_ROWS.length + ' dòng';
+    renderAuditRows(rows);
   }
-
-  function renderAdminTasks(tasks) {
-
-    var tb = document.getElementById('adminTaskTable');
-    if (!tb || !tb.tBodies[0]) return;
-    var html = tasks.map(function (t) {
-      var phase = t.phase === 'done' ? 'done' : (t.phase === 'attend' ? 'attend' : 'open');
-      var taskId = esc(t.taskId || '');
-      var btn = '';
-      if (phase === 'attend') btn = '<button class="btn btn-sm" onclick="adminCompleteTask(\'' + taskId + '\')">Kết thúc</button>';
-      if (phase === 'done') btn = '<button class="btn btn-sm btn-outline" onclick="adminReopenTask(\'' + taskId + '\')">Mở lại</button>';
-      return '<tr><td data-label="Task">' + taskId + '</td><td data-label="Loại">' + esc(t.taskType === 'free' ? 'Tự do' : 'Đối chiếu') + '</td>'
-        + '<td data-label="Ca / Team">' + esc((t.slotCode || '') + (t.team ? ' / ' + t.team : '')) + '</td>'
-        + '<td data-label="Người tạo">' + esc(t.createdBy || '') + '</td>'
-        + '<td data-label="Trạng thái">' + phaseLabel_(phase) + '</td>'
-        + '<td data-label="Thao tác">' + btn + '</td></tr>';
-    }).join('');
-    tb.tBodies[0].innerHTML = html || '<tr><td colspan="6">' + (ADMIN_TASKS.length ? 'Không có task phù hợp bộ lọc' : 'Chưa có task') + '</td></tr>';
+  // Ngày từ timestamp ISO — dùng new Date (local, KHỚP fmtAuditTime_) chứ không cắt chuỗi UTC:
+  // ISO lưu UTC, sát nửa đêm giờ VN (UTC+7) cắt chuỗi sẽ lệch ngày với ngày hiển thị.
+  function auditRowDate_(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
   function renderAuditRows(rows) {
@@ -154,23 +89,5 @@
     if (isNaN(d.getTime())) return iso;
     return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' '
       + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-  }
-
-  function adminCompleteTask(taskId) {
-    showConfirm('Kết thúc task', 'Kết thúc task ' + taskId + '?', function () {
-      google.script.run
-        .withSuccessHandler(function (res) { showToast((res && res.message) || 'Xong', !(res && res.ok)); loadAdminView(); })
-        .withFailureHandler(function (err) { showToast('Lỗi: ' + err.message, true); })
-        .completeTaskApi(taskId);
-    });
-  }
-
-  function adminReopenTask(taskId) {
-    showConfirm('Mở lại task', 'Mở lại task ' + taskId + '?', function () {
-      google.script.run
-        .withSuccessHandler(function (res) { showToast((res && res.message) || 'Xong', !(res && res.ok)); loadAdminView(); })
-        .withFailureHandler(function (err) { showToast('Lỗi: ' + err.message, true); })
-        .reopenTaskApi(taskId);
-    });
   }
 </script>
