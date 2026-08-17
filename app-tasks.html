@@ -27,6 +27,11 @@
         if (cfgItem) cfgItem.style.display = (meta && meta.isEditor) ? '' : 'none';
         var cfgNav = document.getElementById('bottomConfigItem');
         if (cfgNav) cfgNav.style.display = (meta && meta.isEditor) ? '' : 'none';
+        // Trang Quản trị (viewAdmin) — chỉ hiện mục sidebar + bottom nav mobile khi manager+ (canManager_)
+        var admItem = document.getElementById('sideAdminItem');
+        if (admItem) admItem.style.display = canManager_() ? '' : 'none';
+        var admNav = document.getElementById('bottomAdminItem');
+        if (admNav) admNav.style.display = canManager_() ? '' : 'none';
         refreshAll();
         // Prefetch nền StaffData — mở Thống kê/Dữ liệu lần đầu KHÔNG delay
         // (CDP: cold 280ms → warm ~22ms; silent = không toast lúc khởi động; 2026-08-11)

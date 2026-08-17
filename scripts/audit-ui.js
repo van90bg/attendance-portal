@@ -167,7 +167,7 @@ async function runViewport(ws, vp) {
   await send(ws, 'Page.navigate', { url: INDEX_FILE });
   await sleep(2500);
 
-  const pages = ['home', 'attendance', 'scan', 'stats', 'data', 'config', 'reports', 'about'];  // viewAbout — đủ 8 view (inventory nhóm 4)
+  const pages = ['home', 'attendance', 'scan', 'stats', 'data', 'config', 'reports', 'admin', 'about'];  // đủ 9 view (inventory nhóm 4)
   const openScan = `(() => {
     if (typeof openScan === 'function') {
       var tr = document.querySelector('#taskListTable tbody tr');
@@ -198,7 +198,7 @@ async function runViewport(ws, vp) {
         check(`${n}: card vừa màn hình`, ok, `gap=${v.cardBottomGap} card=${v.cardRef}`);
       }
     }
-    if (['viewTasks', 'viewScan', 'viewStaff', 'viewStats', 'viewReports', 'viewAbout'].indexOf(v.id) !== -1) {
+    if (['viewTasks', 'viewScan', 'viewStaff', 'viewStats', 'viewReports', 'viewAdmin', 'viewAbout'].indexOf(v.id) !== -1) {
       check(`${n}: bảng có dữ liệu`, v.tblRows > 0, `rows=${v.tblRows} cols=${v.tblCols}`);
     }
   }

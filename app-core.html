@@ -242,7 +242,7 @@
   function repairViewParents() {
     var main = document.getElementById('main-content');
     if (!main) return;
-    ['viewHome', 'viewStats', 'viewStaff', 'viewAbout', 'viewScan', 'viewTasks', 'viewConfig', 'viewReports'].forEach(function (id) {
+    ['viewHome', 'viewStats', 'viewStaff', 'viewAbout', 'viewScan', 'viewTasks', 'viewConfig', 'viewReports', 'viewAdmin'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el && el.parentElement !== main) {
         main.appendChild(el);  // di chuyển (appendChild tự gỡ khỏi cha cũ + xếp cuối main)
@@ -692,6 +692,7 @@
     document.getElementById('viewAbout').classList.add('hidden');
     document.getElementById('viewConfig').classList.add('hidden');
     document.getElementById('viewReports').classList.add('hidden');
+    document.getElementById('viewAdmin').classList.add('hidden');
     // Stop auto-focus loop when leaving scan view
     stopAutoFocusLoop();
     // m3 (audit 2026-08-11): rời trang chủ → dừng đồng hồ 1Hz (đối xứng stopAutoFocusLoop).
@@ -714,7 +715,7 @@
   try { SIDEBAR_COMPACT = localStorage.getItem('ap2_sidebar_compact') === '1'; } catch (e) {}
 
   // Ánh xạ page → section id hiển thị
-  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', reports: 'viewReports', about: 'viewAbout' };
+  var PAGE_VIEWS = { home: 'viewHome', stats: 'viewStats', attendance: 'viewTasks', data: 'viewStaff', config: 'viewConfig', reports: 'viewReports', admin: 'viewAdmin', about: 'viewAbout' };
   var ACTIVE_PAGE = 'home';
 
   /* Đồng bộ active cho cả sidebar lẫn bottom nav mobile */
@@ -748,6 +749,7 @@
     if ((page === 'stats' || page === 'data') && typeof ensureStaffData === 'function') { ensureStaffData(false); }
     if (page === 'config' && typeof ensureConfigData === 'function') { ensureConfigData(false); }
     if (page === 'reports' && typeof loadReportsView === 'function' && !REPORTS_LOADED) { loadReportsView(); }
+    if (page === 'admin' && typeof loadAdminView === 'function' && !ADMIN_LOADED) { loadAdminView(); }
   }
 
   function toggleSidebarCompact() {

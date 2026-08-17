@@ -48,7 +48,7 @@ Nguồn sự thật: `index.html` (shell + 8 view + 5 modal) · 8 module `app-*.
 
 **Audit đúng**: touch 44/36/33px; focus-visible; contrast AA từng token; badge màu theo ngữ nghĩa; hover row đồng nhất 4 bảng (ngoại lệ: extra-row cam có chủ đích); sticky-left không rò rỉ xuống card mobile.
 
-## Nhóm 4 — 8 view (mỗi view = topbar chung + card + phần riêng)
+## Nhóm 4 — 9 view (mỗi view = topbar chung + card + phần riêng)
 
 | View | Thành phần riêng |
 |---|---|
@@ -58,10 +58,11 @@ Nguồn sự thật: `index.html` (shell + 8 view + 5 modal) · 8 module `app-*.
 | viewStats | `.stats-filters` 3× `.stats-filter-row` (flabel + `.chips`), `#statsTableWrap` `.stats-table-wrap` (grid 2 cột), `#statsA11yMsg` sr-only |
 | viewStaff | `.att-toolbar` + search, `#staffTable` **20 cột** (thead động từ STAFF_TABLE_HEAD, 4 cột đầu sticky-left), `#staffFilterPanel` funnel (`.staff-filter-panel` role=dialog: `.sfp-head/.sfp-body/.sfp-foot`), `#staffPagination` |
 | viewConfig | form `.card.cfg-card`, `#cfgSkeleton`, `.task-list-toolbar` + `#cfgSearch`, `.cfg-list-wrap` → `#cfgList` (`.cfg-item` dòng), `#cfgNoResult`, `#roleWrap`/`#cfgRoleRows` (role editor), topbar `#cfgDiscardBtn`/`#cfgRefreshBtn`/`#cfgSaveBtn` (dirty) |
-| viewReports | `#reportsMeta`, `#reportsSkeleton`, `.task-list-toolbar` + `#reportsSearch`, `#reportsTable` **10 cột** (fixed layout, PMO ellipsis desktop / full-width wrap mobile), `.reports-off` pill, `.has-pmo` tint, empty; **adminPanel (manager+)**: `#adminTaskTable` (task mọi owner + Kết thúc/Mở lại) + `#auditTable` (nhật ký hoạt động) |
+| viewReports | `#reportsMeta`, `#reportsSkeleton`, `.task-list-toolbar` + `#reportsSearch`, `#reportsTable` **10 cột** (fixed layout, PMO ellipsis desktop / full-width wrap mobile), `.reports-off` pill, `.has-pmo` tint, empty (tách admin ra viewAdmin 2026-08-17) |
+| viewAdmin | Quản trị (manager+ — nav ẩn theo `canManager_`): topbar riêng, `#adminPanel` → `#adminTaskTable` (task mọi owner + Kết thúc/Mở lại) + `#auditTable` (nhật ký hoạt động). Module `app-admin.html` (tách từ app-reports 2026-08-17) |
 | viewAbout | `.about-head`/`.about-title`, `.about-body` (`.about-h3`, `.about-list`, `.about-table`/`.about-thead`/`.about-cell`) |
 
-**Audit đúng**: topbar đồng bộ (`.view-topbar` + title + actions) 6/8 view; desktop 4 bảng: data-table auto-fit + table-wrap scroll, fixed-layout chỉ reports; mobile ≤640px: bảng → **card 2 cột đồng bộ** (grid `minmax(0,1.2fr) minmax(0,1fr)` gap `3px 10px`, td block nowrap+ellipsis 15px, nhãn `::before attr(data-label) ': '` 12px/600/muted, title 16px/700, badge 13px, MỌI cell `text-align:left` — rule desktop `td:nth-child(5-9)` center rò rỉ là gotcha đã đóng); phễu/select/sort hoạt động trên mobile.
+**Audit đúng**: topbar đồng bộ (`.view-topbar` + title + actions) 7/9 view; desktop 4 bảng: data-table auto-fit + table-wrap scroll, fixed-layout chỉ reports; mobile ≤640px: bảng → **card 2 cột đồng bộ** (grid `minmax(0,1.2fr) minmax(0,1fr)` gap `3px 10px`, td block nowrap+ellipsis 15px, nhãn `::before attr(data-label) ': '` 12px/600/muted, title 16px/700, badge 13px, MỌI cell `text-align:left` — rule desktop `td:nth-child(5-9)` center rò rỉ là gotcha đã đóng); phễu/select/sort hoạt động trên mobile.
 
 ## Nhóm 5 — Modals & dialog (4 + 1)
 

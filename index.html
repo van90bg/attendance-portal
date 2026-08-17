@@ -40,6 +40,7 @@
       <button class="side-item" data-page="attendance" onclick="selectPage('attendance')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span><span class="side-lbl">Điểm danh</span></button>
       <button class="side-item" data-page="data" onclick="selectPage('data')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><span class="side-lbl">Dữ liệu</span></button>
       <button class="side-item" data-page="reports" onclick="selectPage('reports')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg></span><span class="side-lbl">Báo cáo</span></button>
+      <button class="side-item" data-page="admin" id="sideAdminItem" onclick="selectPage('admin')" style="display:none;" title="Quản trị (chỉ manager)"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.2-7 10-4-1.8-7-5.4-7-10V6z"/><path d="M9.5 12l1.8 1.8 3.2-3.6"/></svg></span><span class="side-lbl">Quản trị</span></button>
       <button class="side-item" data-page="config" id="sideConfigItem" onclick="selectPage('config')" style="display:none;" title="Cấu hình (chỉ editor)"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="side-lbl">Cấu hình</span></button>
       <button class="side-item" data-page="about" onclick="selectPage('about')"><span class="side-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg></span><span class="side-lbl">Giới thiệu</span></button>
     </nav>
@@ -339,6 +340,7 @@
   <button class="nav-item" data-page="attendance" onclick="selectPage('attendance')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg><span>Điểm danh</span></button>
   <button class="nav-item" data-page="config" id="bottomConfigItem" onclick="selectPage('config')" style="display:none;" title="Cấu hình (chỉ editor)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Cấu hình</span></button>
   <button class="nav-item" data-page="reports" onclick="selectPage('reports')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>Báo cáo</span></button>
+  <button class="nav-item" data-page="admin" id="bottomAdminItem" onclick="selectPage('admin')" style="display:none;" title="Quản trị (chỉ manager)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.2-7 10-4-1.8-7-5.4-7-10V6z"/><path d="M9.5 12l1.8 1.8 3.2-3.6"/></svg><span>Quản trị</span></button>
   <button class="nav-item" data-page="about" onclick="selectPage('about')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg><span>Giới thiệu</span></button>
 </nav>
 
@@ -385,9 +387,21 @@
     </div>
     <div class="empty" id="reportsEmpty" style="display:none;"></div>
   </div>
-  <!-- Admin (manager+): toàn bộ task + nhật ký hoạt động — ẩn cho operator/viewer (client canManager_) -->
-  <div class="card" id="adminPanel" style="display:none;">
-    <div class="task-title">Quản trị — toàn bộ task</div>
+</section>
+
+<!-- Quản trị (viewAdmin) — manager+: toàn bộ task + nhật ký hoạt động (tách khỏi viewReports 2026-08-17) -->
+<section id="viewAdmin" class="hidden">
+  <div class="view-topbar">
+    <div class="view-topbar-title">
+      <div class="task-title">Quản trị</div>
+      <div class="task-meta">Toàn bộ task mọi owner + nhật ký hoạt động — manager+</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="loadAdminView(this)" aria-label="Cập nhật dữ liệu quản trị" title="Cập nhật">⟳ Cập nhật</button>
+    </div>
+  </div>
+  <div class="card" id="adminPanel">
+    <div class="task-title">Toàn bộ task</div>
     <div class="table-wrap" style="max-height:280px;" id="adminTaskWrap">
       <table id="adminTaskTable">
         <thead><tr>
@@ -568,4 +582,5 @@
 <?!= include('app-tasks') ?>
 <?!= include('app-scan') ?>
 <?!= include('app-reports') ?>
+<?!= include('app-admin') ?>
 
