@@ -184,7 +184,7 @@
           // counter 2 = 'Chưa có mặt' (roster chưa đến; FREE không roster → 0).
           var presentAt = c.presentAt || 0;
           document.getElementById('cScanned').textContent = presentAt;
-          document.getElementById('cAbsent').textContent = c.absent || 0;
+          document.getElementById('cAbsent').textContent = Math.max(0, (c.total || 0) - presentAt - (c.extra || 0));
           if (scannedLbl) scannedLbl.textContent = 'Có mặt';
           lbl.textContent = 'Chưa có mặt';
           absentCounter.classList.add('waiting');
