@@ -166,9 +166,12 @@
       document.getElementById('cExtra').textContent = c.extra || 0;
       // Label counter theo phase: OPEN → 'Có mặt'/'Chưa có mặt'; ATTEND → 'Đã điểm danh'/'Chưa điểm danh';
       // DONE → 'Đã điểm danh'/'Vắng' (đỏ).
-      var absentCounter = document.querySelector('.counter.absent');
+      // Neo bằng ID cha — KHÔNG dùng '.counter.absent': nhánh OPEN tự swap class
+      // absent→waiting nên querySelector('.counter.absent') về null ở lần render kế
+      // → bỏ qua cả khối phase-aware → counter hiện số raw sai phase.
+      var absentCounter = document.getElementById('cAbsent') ? document.getElementById('cAbsent').parentElement : null;
       var lbl = absentCounter ? absentCounter.querySelector('.lbl') : null;
-      var scannedCounter = document.querySelector('.counter.scanned');
+      var scannedCounter = document.getElementById('cScanned') ? document.getElementById('cScanned').parentElement : null;
       var scannedLbl = scannedCounter ? scannedCounter.querySelector('.lbl') : null;
       if (lbl && CURRENT_TASK) {
         // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chưa điểm danh'.
@@ -919,6 +922,12 @@
             scanInput.placeholder = 'Quét mã nhân viên…';
             updateScanFilterLabel_();
             updateFinishBtnState();
+            // Re-render UI phụ thuộc phase NGAY — badge cột Trạng thái + label/giá trị
+            // counter + sort cột Giờ quét. Trước đây phải mở lại task mới cập nhật
+            // (user thấy 'Có mặt'/'Chưa có mặt' stale cho tới khi reload).
+            renderScanTable(CURRENT_LOG);
+            recountFromLog();
+            updateSortIndicators();
             // T-1: Re-apply permission after phase transition
             applyScanPermission();
             scanInput.focus();

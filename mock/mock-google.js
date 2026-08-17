@@ -226,18 +226,39 @@
       return { ok: true, taskId: taskId, count: log.length, message: 'Tạo task thành công: ' + taskId };
     },
     scanStaffApi: function (taskId, staffId) {
+      // Mock 2-pha khớp server scanStaff (ScanService.gs + classifyScan):
+      // open = ghi Giờ có mặt (timeRef, giữ status '-'); attend = ghi Giờ quét (timeScan).
       var log = getLog(taskId);
+      var task = null;
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
+      var phase2 = !!(task && task.status === 'attend');
       var hit = null;
       log.forEach(function (r) { if (r.staffId.toLowerCase() === staffId.toLowerCase()) hit = r; });
       var nowMs = Date.now();  // timeScanEpoch: sort key thật (QA sort "mới nhất lên đầu")
       var d = new Date(nowMs);
       var ts = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
-      if (hit && (hit.status === 'Có mặt' || hit.status === 'Dư')) {
-        return { ok: false, message: 'Đã điểm danh', status: null, timeScanText: '', timeScanEpoch: 0, staffName: null, counters: counters(log) };
+      if (hit) {
+        var done = phase2 ? (Number(hit.timeScanEpoch) > 0) : (Number(hit.timeRefEpoch) > 0);
+        if (done) {
+          return { ok: false, message: phase2 ? 'Đã điểm danh' : 'Đã có mặt', status: null, timeScanText: '', timeScanEpoch: 0, timeRefText: '', timeRefEpoch: 0, staffName: null, counters: counters(log) };
+        }
+        if (phase2) { hit.status = 'Có mặt'; hit.timeScanText = ts; hit.timeScanEpoch = nowMs; }
+        else { hit.timeRefText = ts; hit.timeRefEpoch = nowMs; }  // giữ status '-'​ (PENDING)
+        return { ok: true, message: 'Có mặt', status: hit.status, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'timeScan' : 'timeRef',
+          timeScanText: hit.timeScanText || '', timeScanEpoch: hit.timeScanEpoch || 0,
+          timeRefText: hit.timeRefText || '', timeRefEpoch: hit.timeRefEpoch || 0,
+          staffName: hit.staffName, counters: counters(log) };
       }
-      if (hit) { hit.status = 'Có mặt'; hit.timeScanText = ts; hit.timeScanEpoch = nowMs; }
-      else { log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '', timeRefText: '', timeScanText: ts, timeScanEpoch: nowMs, status: 'Dư' }); }
-      return { ok: true, message: 'Có mặt', status: 'Có mặt', timeScanText: ts, timeScanEpoch: nowMs, staffName: hit ? hit.staffName : 'NV LẠ', counters: counters(log) };
+      // NV lạ: FREE phase1 = '-' (PENDING); FREE phase2 / RECONCILE = Dư.
+      var isFree = !!(task && task.taskType === 'free');
+      var st = (isFree && !phase2) ? '-' : 'Dư';
+      log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '',
+        timeRefText: phase2 ? '' : ts, timeRefEpoch: phase2 ? 0 : nowMs,
+        timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0, status: st });
+      return { ok: true, message: st, status: st, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'timeScan' : 'timeRef',
+        timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0,
+        timeRefText: phase2 ? '' : ts, timeRefEpoch: phase2 ? 0 : nowMs,
+        staffName: 'NV LẠ', counters: counters(log) };
     },
     pasteCodesApi: function (taskId, rawLines) {
       // Khớp server pasteCodes: { ok, message, total, success, failed, results, counters }

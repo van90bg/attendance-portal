@@ -176,14 +176,14 @@ async function main() {
   check('openScan → viewScan hiển thị', !!(VS && VS.visible), open.value || open.err);
   check('scanTable có dòng log', !!(VS && VS.rows >= 1), VS ? VS.rows + ' rows' : vs.err);
   // Client phase OPEN: counter 1 = 'Có mặt' (presentAt), counter 2 = 'Chưa có mặt'
-  // (roster chưa tới = total - presentAt - extra — FREE không roster → 0). scanned đếm MỌI
-  // row timeScanEpoch>0 kể cả Dư phase 2 (khớp server computeCounters) → scanned = 2 NV + 1 Dư = 3.
+  // (roster chưa tới = total - presentAt - extra — FREE không roster → 0).
   // Mock: total=6, presentAt=2, extra=1 → cAbsent = 6-2-1 = 3.
-  check('Counter ban đầu (mock 6 dòng log: 2 quét / 3 chưa / 1 dư) → S:3 A:3 E:1',
-    !!(VS && VS.cScanned === '3' && VS.cAbsent === '3' && VS.cExtra === '1'),
+  check('Counter ban đầu (mock 6 dòng log: 2 có mặt / 3 chưa / 1 dư) → S:2 A:3 E:1',
+    !!(VS && VS.cScanned === '2' && VS.cAbsent === '3' && VS.cExtra === '1'),
     VS ? 'S:' + VS.cScanned + ' A:' + VS.cAbsent + ' E:' + VS.cExtra : vs.err);
 
-  // 5. Quét NV chưa có mặt (Ops229444) → Có mặt, counter 2→3
+  // 5. Quét NV chưa có mặt (Ops229444) → Có mặt, counter 1 (presentAt) 2→3,
+  // counter 2 (chưa có mặt) 3→2 — dòng vừa quét KHÔNG bị đếm nhầm vào 'Chưa có mặt'.
   const scan1 = await evalIn(ws, `(function(){
     var input = document.getElementById('scanInput');
     input.value = 'Ops229444';
@@ -193,10 +193,12 @@ async function main() {
   await sleep(SETTLE_MS);
   const s1 = await evalIn(ws, `JSON.stringify({
     cScanned: document.getElementById('cScanned').innerText,
+    cAbsent: document.getElementById('cAbsent').innerText,
     toast: document.getElementById('toast') ? document.getElementById('toast').innerText : '',
   })`);
   const S1 = s1.err ? null : JSON.parse(s1.value);
-  check('Quét Ops229444 → Đã quét 3→4', !!(S1 && S1.cScanned === '4'), S1 ? 'cScanned=' + S1.cScanned : s1.err);
+  check('Quét Ops229444 (phase 1) → Có mặt 2→3, Chưa có mặt 3→2',
+    !!(S1 && S1.cScanned === '3' && S1.cAbsent === '2'), S1 ? 'cScanned=' + S1.cScanned + ' cAbsent=' + S1.cAbsent : s1.err);
 
   // 6. Quét trùng (Ops237511 đã có mặt) → không tăng counter
   const scan2 = await evalIn(ws, `(function(){
@@ -211,7 +213,7 @@ async function main() {
     toast: document.getElementById('toast') ? document.getElementById('toast').innerText : '',
   })`);
   const S2 = s2.err ? null : JSON.parse(s2.value);
-  check('Quét trùng Ops237511 → vẫn 4 (mock reject)', !!(S2 && S2.cScanned === '4'), S2 ? 'cScanned=' + S2.cScanned + ' toast=' + S2.toast : s2.err);
+  check('Quét trùng Ops237511 → vẫn 3 (mock reject)', !!(S2 && S2.cScanned === '3'), S2 ? 'cScanned=' + S2.cScanned + ' toast=' + S2.toast : s2.err);
 
   // 7. Quét NV lạ (Ops777777) → Dư, counter extra 1→2
   const scan3 = await evalIn(ws, `(function(){
@@ -227,6 +229,43 @@ async function main() {
   })`);
   const S3 = s3.err ? null : JSON.parse(s3.value);
   check('Quét NV lạ Ops777777 → Dư 1→2', !!(S3 && S3.cExtra === '2'), S3 ? 'cExtra=' + S3.cExtra + ' toast=' + S3.toast : s3.err);
+
+  // 7b. Chuyển điểm danh → phase 2: badge cột Trạng thái đổi NGAY (không mở lại task),
+  // counter label 'Đã điểm danh'/'Chưa điểm danh' + giá trị phase 2.
+  const tr = await evalIn(ws, `(function(){
+    var b = document.getElementById('btnToAttend');
+    if (!b || b.style.display === 'none') return 'no-btn';
+    b.click();
+    return 'clicked';
+  })()`);
+  await sleep(SETTLE_MS);
+  const tv = await evalIn(ws, `JSON.stringify((function(){
+    var rows = Array.prototype.slice.call(document.querySelectorAll('#scanTableBody tr'));
+    var badges = {};
+    rows.forEach(function (tr) {
+      var st = tr.querySelector('.badge');
+      if (st) badges[st.innerText] = (badges[st.innerText] || 0) + 1;
+    });
+    return {
+      phase: window.CURRENT_TASK ? window.CURRENT_TASK.phase : null,
+      cScanned: document.getElementById('cScanned').innerText,
+      cAbsent: document.getElementById('cAbsent').innerText,
+      scannedLbl: (document.getElementById('cScanned').parentElement.querySelector('.lbl') || {}).innerText,
+      absentLbl: (document.getElementById('cAbsent').parentElement.querySelector('.lbl') || {}).innerText,
+      badges: badges,
+      btnToAttend: (document.getElementById('btnToAttend') || {}).style ? document.getElementById('btnToAttend').style.display : null,
+    };
+  })())`);
+  const TV = tv.err ? null : JSON.parse(tv.value);
+  check('Transition → phase attend: counter Đã điểm danh/Chưa điểm danh + badge cập nhật ngay',
+    !!(TV && TV.phase === 'attend'
+      && TV.scannedLbl.toUpperCase() === 'ĐÃ ĐIỂM DANH' && TV.absentLbl.toUpperCase() === 'CHƯA ĐIỂM DANH'
+      && TV.cScanned === '3' && TV.cAbsent === '3'
+      && TV.badges['Chưa điểm danh'] === 3
+      && TV.badges['Có mặt'] === 2
+      && TV.badges['Dư'] === 2
+      && TV.btnToAttend === 'none'),
+    TV ? 'phase=' + TV.phase + ' S:' + TV.cScanned + ' A:' + TV.cAbsent + ' lbl=' + TV.scannedLbl + '/' + TV.absentLbl + ' badges=' + JSON.stringify(TV.badges) : tv.err);
 
   // 8. F-search (searchLogsByStaffApi mock) — kết quả render vào #taskListTable (viewTasks),
   // KHÔNG còn #globalSearchResults (element cũ đã xóa khi F-search chuyển sang taskListTable).
