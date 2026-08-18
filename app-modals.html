@@ -352,9 +352,17 @@
     if (num) num.textContent = '0';
     var submitBtn = document.getElementById('btnRosterSubmit');
     if (submitBtn) submitBtn.disabled = true;
-    // Pre-fill Station từ task hiện tại — task luôn 1 Station, không chọn lại;
-    // Date giữ rỗng — user chọn nếu muốn lọc ngày cụ thể.
-    ROSTER_FILTER = { station: (CURRENT_TASK && CURRENT_TASK.station) || '', slotCode: [], team: [], contractType: [], department: [] };
+    // Pre-fill Station/Team/Date từ task hiện tại (đã chọn khi tạo task).
+    var _taskTeam = (CURRENT_TASK && CURRENT_TASK.team) || '';
+    var _taskDate = (CURRENT_TASK && CURRENT_TASK.date) || '';
+    ROSTER_FILTER = {
+      station: (CURRENT_TASK && CURRENT_TASK.station) || '',
+      slotCode: [],
+      team: _taskTeam ? _taskTeam.split(', ').filter(Boolean) : [],
+      contractType: [],
+      department: [],
+      date: _taskDate ? [_taskDate] : [],
+    };
     var _hasStation = !!ROSTER_FILTER.station;
     if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); if (_hasStation) refreshRosterPreview(); return; }
     google.script.run
@@ -412,6 +420,14 @@
     });
     return depts;
   }
+  // Ngày — options từ stationGroups (distinct dates theo station) + task.date.
+  function rosterDateOptions_() {
+    var dates = [];
+    (ROSTER_OPTS && ROSTER_OPTS.stationGroups || []).forEach(function (g) {
+      (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
+    });
+    return dates;
+  }
   function renderRosterChips_() {
     var slotEl = document.getElementById('rosterChipsSlot');
     var ctEl = document.getElementById('rosterChipsContract');
@@ -421,6 +437,8 @@
     slotEl.innerHTML = chipsHtml_(slots, ROSTER_FILTER.slotCode);
     if (ctEl) ctEl.innerHTML = chipsHtml_(rosterContractOptions_(), ROSTER_FILTER.contractType);
     if (deptEl) deptEl.innerHTML = chipsHtml_(rosterDeptOptions_(), ROSTER_FILTER.department);
+    var dateEl = document.getElementById('rosterChipsDate');
+    if (dateEl) dateEl.innerHTML = chipsHtml_(rosterDateOptions_(), ROSTER_FILTER.date);
   }
   function chipsHtml_(opts, selectedArr) {
     var html = '<button type="button" class="pick all' + (selectedArr.length === 0 ? ' on' : '') + '" data-col="roster-all" aria-pressed="' + (selectedArr.length === 0) + '">Tất cả</button>';
@@ -470,7 +488,7 @@
         if (submitBtn) submitBtn.disabled = !(n > 0);
       })
       .withFailureHandler(function () { if (num) num.textContent = '0'; })
-      .previewStaffApi({ station: ROSTER_FILTER.station, slotCode: slot, team: ROSTER_FILTER.team, contractType: ROSTER_FILTER.contractType, department: ROSTER_FILTER.department });
+      .previewStaffApi({ station: ROSTER_FILTER.station, slotCode: slot, team: ROSTER_FILTER.team, contractType: ROSTER_FILTER.contractType, department: ROSTER_FILTER.department, date: ROSTER_FILTER.date.length === 1 ? ROSTER_FILTER.date[0] : '' });
   }
   // Roster modal: delegate click chip Ca/Team + change station/date → preview.
   function initRosterEvents() {
@@ -486,8 +504,9 @@
       var isSlot = chip.closest('#rosterChipsSlot') !== null;
       var isContract = chip.closest('#rosterChipsContract') !== null;
       var isDept = chip.closest('#rosterChipsDept') !== null;
+      var isDate = chip.closest('#rosterChipsDate') !== null;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
-      var arr = isSlot ? ROSTER_FILTER.slotCode : (isDept ? ROSTER_FILTER.department : ROSTER_FILTER.contractType);
+      var arr = isSlot ? ROSTER_FILTER.slotCode : (isDept ? ROSTER_FILTER.department : (isDate ? ROSTER_FILTER.date : ROSTER_FILTER.contractType));
       if (chip.getAttribute('data-col') === 'roster-all') {
         arr.length = 0;  // Tất cả = rỗng (không lọc)
       } else {

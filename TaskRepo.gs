@@ -18,6 +18,7 @@ function taskFromRow_(row) {
     team: String(row[TASK_COLS.TEAM] || ''),
     contractType: String(row[TASK_COLS.CONTRACT_TYPE] || ''),
     status: String(row[TASK_COLS.STATUS] || ''),
+    date: String(row[TASK_COLS.DATE] || ''),
     // phase derived từ status cho client dễ render UI (Mở/Điểm danh/Xong).
     // open=phase1 (ghi LISTED_AT), attend=phase2 (ghi SCANNED_AT), done=Xong.
     phase: (function (st) {
@@ -82,6 +83,7 @@ function insertTask_(task) {
   getSheet_(SHEETS.ATTENDANCE_TASK).appendRow([
     task.taskId, task.station, task.slotCode, task.team,
     task.contractType || '', task.status, task.createdAt, task.createdBy, task.completedAt || '',
+    task.date || '',
   ]);
   // F5 + m3: phá negative cache (readTaskDetailCached_/readTaskCached_ cache null 15s/60s
   // nếu RPC đọc trước khi task tồn tại — taskId dạng giờ-tạo có thể trùng giữa 2 create).

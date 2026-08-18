@@ -101,6 +101,7 @@ function createReconcileTask(input) {
       createdAt: now,
       createdBy: createdBy,
       completedAt: null,
+      date: date,  // ngày vào làm — pre-fill roster modal
     };
     // Legacy pre-fill (A1 — KHÔNG chạy từ A2 vì noList luôn true): TIME_REF = LISTED_AT
     // ghi ngay giờ tạo task cho mọi NV trong list. S2 (idempotency): ghi log TRƯỚC

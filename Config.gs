@@ -57,8 +57,9 @@ const TASK_COLS = {
   CREATED_AT: 6,
   CREATED_BY: 7,
   COMPLETED_AT: 8,
+  DATE: 9,         // ngày vào làm (copy từ modal tạo task) — pre-fill roster modal
 };
-const TASK_COL_COUNT = 9;
+const TASK_COL_COUNT = 10;
 
 // ===== Cột AttendanceLog (1 dòng / NV) =====
 // Lưu ý: bỏ cardIn/cardOut (2026-08-03) — StaffData GIỮ NGUYÊN; log không copy 2 cột này nữa.
