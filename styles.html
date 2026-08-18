@@ -223,6 +223,7 @@
     .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height */
     /* Menu "⋯" viewScan — gom Dán danh sách mã + Lấy danh sách theo ca (P2-4: topbar mobile khỏi chồng 2 nút dài) */
     .topbar-more { position: relative; flex-shrink: 0; }
+    .topbar-more-menu[hidden] { display: none; }  /* hidden attribute phải thắng display:flex bên dưới — nếu không menu "⋯" hiện thị mở sẵn */
     .topbar-more-menu {
       position: absolute; top: calc(100% + var(--space-2)); right: 0; z-index: 35;
       min-width: 220px; padding: var(--space-2);

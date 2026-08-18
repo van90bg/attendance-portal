@@ -516,12 +516,12 @@
         <select id="rosterStation" class="field-select" aria-label="Station"></select>
       </div>
       <div class="frow">
-        <span class="flabel">Ca</span>
-        <select id="rosterSlot" class="field-select" aria-label="Ca"></select>
+        <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
+        <div class="chips" id="rosterChipsSlot" role="group" aria-label="Ca"></div>
       </div>
       <div class="frow">
-        <span class="flabel">Team</span>
-        <select id="rosterTeam" class="field-select" aria-label="Team"></select>
+        <span class="flabel">Team <span class="fnote">chọn nhiều</span></span>
+        <div class="chips" id="rosterChipsTeam" role="group" aria-label="Team"></div>
       </div>
       <div class="frow">
         <span class="flabel">Ngày</span>
@@ -550,15 +550,15 @@
         <span class="flabel">Station <span class="fnote">chọn 1</span></span>
         <div class="chips" id="chipsStation" role="group" aria-label="Station"></div>
       </div>
-      <div class="frow">
+      <div class="frow" style="display:none">
         <span class="flabel">Team <span class="fnote">chọn nhiều</span></span>
         <div class="chips" id="chipsTeam" role="group" aria-label="Team"></div>
       </div>
-      <div class="frow">
+      <div class="frow" style="display:none">
         <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
         <div class="chips" id="chipsSlot" role="group" aria-label="Ca"></div>
       </div>
-      <div class="frow" id="rowContract">
+      <div class="frow" style="display:none" id="rowContract">
         <span class="flabel">Hình thức <span class="fnote">chọn nhiều</span></span>
         <div class="chips" id="chipsContract" role="group" aria-label="Hình thức"></div>
       </div>
@@ -569,7 +569,7 @@
       </div>
     </div>
     <div class="create-footer">
-      <div class="create-total"><b id="createTotalNum">0</b> <span>nhân viên</span></div>
+      <div class="create-total"><span>Tạo task rỗng — nạp danh sách theo ca sau trong màn quét (nút ⋯)</span></div>
       <div class="create-actions">
         <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
         <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Task mới</button>

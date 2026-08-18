@@ -130,20 +130,18 @@
   function isFreeSel() {
     return SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
   }
+  // A1-A2 (2026-08-18): modal tạo task rút gọn — task mới LUÔN quét tự do (không roster),
+  // danh sách nạp sau qua nút "⋯" trong màn quét. Team/Ca/Hình thức ẩn trong HTML.
   function refreshModeUI() {
-    var free = isFreeSel();
     var desc = document.getElementById('modeDesc');
     if (desc) {
-      desc.innerHTML = free
-        ? 'Task <b>quét tự do</b> — không danh sách chốt.'
-        : 'Task <b>đối chiếu</b> theo danh sách nhân viên đã chọn.';
+      desc.innerHTML = 'Tạo task, quét giờ có mặt trước — nạp danh sách theo ca sau qua nút <b>⋯</b> trong màn quét.';
     }
-    var rowC = document.getElementById('rowContract');
-    if (rowC) rowC.style.display = free ? 'none' : '';
+    // Ca luôn = Tự do (free) — selDate/chipsDate KHÔNG disabled nữa (ngày vẫn là filter nạp roster sau).
     var d = document.getElementById('selDate');
-    if (d) d.disabled = free;
+    if (d) d.disabled = false;
     var cd = document.getElementById('chipsDate');
-    if (cd) cd.classList.toggle('disabled', free);
+    if (cd) cd.classList.remove('disabled');
   }
 
   // n1 (audit): focus trap createModal do document-level Tab handler chung xử lý
@@ -154,6 +152,8 @@
     if (!m) return;
     // P2: reset lựa chọn 4 cột mỗi lần mở — không giữ giá trị cũ (tránh tạo nhầm task)
     resetSel();
+    // A2: task mới luôn free — ca = Tự do (magic), không cần chọn
+    SEL.slots = [SLOT_FREE_MAGIC];
     renderAllSelects();
     refreshModeUI();
     m.setAttribute('aria-hidden', 'false');  // I10
@@ -260,6 +260,15 @@
     if (confirmOpener && document.contains(confirmOpener)) confirmOpener.focus();
     confirmOpener = null;
   }
+  // Roster modal events — init sau DOM sẵn sàng (giống initSelEvents của create modal).
+  (function initRoster() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initRosterEvents);
+    } else {
+      initRosterEvents();
+    }
+  })();
+
   document.addEventListener('keydown', function (e) {
     // P3: Escape đóng modal (focus trap cơ bản)
     if (e.key === 'Escape') {
@@ -317,6 +326,7 @@
     if (num) num.textContent = '0';
     var submitBtn = document.getElementById('btnRosterSubmit');
     if (submitBtn) submitBtn.disabled = true;
+    ROSTER_FILTER = { station: '', slotCode: [], team: [], date: '' };
     if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); return; }
     google.script.run
       .withSuccessHandler(function (res) { ROSTER_OPTS = res; fillRosterOptions(res); focusRosterStation_(); })
@@ -345,16 +355,69 @@
     (res.stationGroups || []).forEach(function (g) {
       if (stations.indexOf(g.station) === -1) stations.push(g.station);
     });
-    var teams = ((res.lists && res.lists.teams) || []).slice();
-    var slots = ((res.lists && res.lists.slotcodes) || []).slice();
     var dates = [];
     (res.stationGroups || []).forEach(function (g) {
       (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
     });
     fillRosterSelect_('rosterStation', stations, ROSTER_FILTER.station, true);
-    fillRosterSelect_('rosterSlot', slots, ROSTER_FILTER.slotCode, false);
-    fillRosterSelect_('rosterTeam', teams, ROSTER_FILTER.team, false);
     fillRosterSelect_('rosterDate', dates, ROSTER_FILTER.date, false);
+    renderRosterChips_();
+  }
+  // Ca/Team đa chọn — chips toggle (Tất cả = rỗng, server bỏ lọc mảng rỗng).
+  // Cascade: slot options phụ thuộc station + team đã chọn (giống create modal).
+  function rosterSlotOptions_() {
+    if (!ROSTER_FILTER.station) return [];
+    var slots = [];
+    (ROSTER_OPTS && ROSTER_OPTS.lists && ROSTER_OPTS.lists.slotcodes || []).forEach(function (s) { if (slots.indexOf(s) === -1) slots.push(s); });
+    (ROSTER_OPTS && ROSTER_OPTS.stationGroups || []).forEach(function (g) {
+      if (g.station !== ROSTER_FILTER.station) return;
+      (g.slotCodes || []).forEach(function (sc) {
+        if (!sc || !sc.slotCode || sc.slotCode === SLOT_FREE_MAGIC) return;
+        var teams = sc.teams || [];
+        if (ROSTER_FILTER.team.length && !teams.some(function (t) { return ROSTER_FILTER.team.indexOf(t) !== -1; })) return;
+        if (slots.indexOf(sc.slotCode) === -1) slots.push(sc.slotCode);
+      });
+    });
+    return slots;
+  }
+  function rosterTeamOptions_() {
+    if (!ROSTER_FILTER.station) return [];
+    var teams = [];
+    (ROSTER_OPTS && ROSTER_OPTS.lists && ROSTER_OPTS.lists.teams || []).forEach(function (t) { if (teams.indexOf(t) === -1) teams.push(t); });
+    (ROSTER_OPTS && ROSTER_OPTS.stationGroups || []).forEach(function (g) {
+      if (g.station !== ROSTER_FILTER.station) return;
+      (g.slotCodes || []).forEach(function (sc) {
+        (sc.teams || []).forEach(function (t) { if (teams.indexOf(t) === -1) teams.push(t); });
+      });
+    });
+    return teams.sort();
+  }
+  function renderRosterChips_() {
+    var slotEl = document.getElementById('rosterChipsSlot');
+    var teamEl = document.getElementById('rosterChipsTeam');
+    if (!slotEl || !teamEl) return;
+    var slots = rosterSlotOptions_();
+    var teams = rosterTeamOptions_();
+    slotEl.innerHTML = chipsHtml_(slots, ROSTER_FILTER.slotCode);
+    teamEl.innerHTML = chipsHtml_(teams, ROSTER_FILTER.team);
+  }
+  function chipsHtml_(opts, selectedArr) {
+    var html = '<button type="button" class="pick all' + (selectedArr.length === 0 ? ' on' : '') + '" data-col="roster-all" aria-pressed="' + (selectedArr.length === 0) + '">Tất cả</button>';
+    opts.forEach(function (v) {
+      var on = selectedArr.indexOf(v) !== -1;
+      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="roster-val" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
+    });
+    return html;
+  }
+  // Đa chọn helper — lọc Ca hợp lệ theo team đã chọn (bỏ slot không còn khớp).
+  function toggleRosterArr_(arr, val, on, isSlot) {
+    var i = arr.indexOf(val);
+    if (on && i === -1) arr.push(val);
+    if (!on && i !== -1) arr.splice(i, 1);
+    if (isSlot) {
+      var avail = rosterSlotOptions_();
+      ROSTER_FILTER.slotCode = ROSTER_FILTER.slotCode.filter(function (s) { return avail.indexOf(s) !== -1; });
+    }
   }
   function fillRosterSelect_(id, options, selected, isStation) {
     var sel = document.getElementById(id);
@@ -370,10 +433,12 @@
     var submitBtn = document.getElementById('btnRosterSubmit');
     if (submitBtn) submitBtn.disabled = true;
     var station = document.getElementById('rosterStation').value;
-    var slot = document.getElementById('rosterSlot').value;
-    var team = document.getElementById('rosterTeam').value;
+    var slot = ROSTER_FILTER.slotCode;
+    var team = ROSTER_FILTER.team;
     var date = document.getElementById('rosterDate').value;
-    ROSTER_FILTER = { station: station, slotCode: slot, team: team, date: date };
+    ROSTER_FILTER.station = station;
+    ROSTER_FILTER.date = date;
+    renderRosterChips_();
     var num = document.getElementById('rosterTotalNum');
     if (num) num.textContent = '0';
     if (!station) return;
@@ -384,7 +449,30 @@
         if (submitBtn) submitBtn.disabled = !(n > 0);
       })
       .withFailureHandler(function () { if (num) num.textContent = '0'; })
-      .previewStaffApi({ station: station, slotCode: slot ? [slot] : [], team: team ? [team] : [], contractType: [], date: date });
+      .previewStaffApi({ station: station, slotCode: slot, team: team, contractType: [], date: date });
+  }
+  // Roster modal: delegate click chip Ca/Team + change station/date → preview.
+  function initRosterEvents() {
+    var form = document.getElementById('rosterForm');
+    if (!form) return;
+    form.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.id === 'rosterStation' || t.id === 'rosterDate') refreshRosterPreview();
+    });
+    form.addEventListener('click', function (e) {
+      var chip = e.target && e.target.closest ? e.target.closest('.pick') : null;
+      if (!chip || !chip.getAttribute('data-col')) return;
+      var isSlot = chip.closest('#rosterChipsSlot') !== null;
+      var pressed = chip.getAttribute('aria-pressed') === 'true';
+      var arr = isSlot ? ROSTER_FILTER.slotCode : ROSTER_FILTER.team;
+      if (chip.getAttribute('data-col') === 'roster-all') {
+        arr.length = 0;  // Tất cả = rỗng (không lọc)
+      } else {
+        toggleRosterArr_(arr, chip.getAttribute('data-val'), !pressed, isSlot);
+      }
+      renderRosterChips_();
+      refreshRosterPreview();
+    });
   }
   function submitRoster() {
     var submitBtn = document.getElementById('btnRosterSubmit');

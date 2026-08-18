@@ -138,6 +138,10 @@
     var team = groupSelectedTeams();
     var contractType = SEL.contractTypes;
     var date = SEL.date;
+    // A2: task mới luôn free → không preview roster (log rỗng khi tạo; nạp danh sách sau qua "⋯")
+    _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0);
+    return;
+    // (đoạn dưới giữ nguyên cho luồng cũ — không còn chạy)
     if (isFreeSel()) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal('—'); return; }
     // Cascade: đếm theo filter hiện có — station bắt buộc; team/slot rỗng = 'Tất cả' (không lọc)
     if (!station) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0); return; }
