@@ -25,8 +25,8 @@
 Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình điểm danh trong ngày:
 
 1. **Tạo task** (luôn mở phase 1) — chọn Station / Ca / Team để nạp sẵn danh sách NV, hoặc Ca 'Tự do' để tạo rỗng rồi nạp sau.
-2. **Quét Giờ có mặt** (pha Mở) — ghi nhận nhân viên vào ca.
-3. **Chuyển điểm danh** (pha Điểm danh) — quét lần 2 ghi Giờ quét.
+2. **Quét LISTED_AT** (pha Mở) — ghi nhận nhân viên vào ca.
+3. **Chuyển điểm danh** (pha Điểm danh) — quét lần 2 ghi SCANNED_AT.
 4. **Kết thúc** — nhân viên chưa quét lần 2 tự tính là Vắng; có thể Mở lại để quét bổ sung.
 
 Mọi luồng thao tác được trên máy tính, máy tính bảng và điện thoại — không cần thiết bị chuyên dụng.
@@ -57,9 +57,9 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 ## Tính năng
 
 - **Tạo task 1 luồng (A2)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): bấm **+ Task mới** → vào task ngay; danh sách nạp sau qua nút **Thêm** (Lấy danh sách theo ca) hoặc quét / dán.
-- **Quy trình 2 pha** — pha **Mở** ghi Giờ có mặt (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi Giờ quét:
+- **Quy trình 2 pha** — pha **Mở** ghi LISTED_AT (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi SCANNED_AT:
   - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Chuyển điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
-  - Nạp roster theo ca (nút **Thêm**): append PENDING + Giờ có mặt = lúc nạp; quét phase 2 = Có mặt / Dư.
+  - Nạp roster theo ca (nút **Thêm**): append PENDING + LISTED_AT = lúc nạp; quét phase 2 = Có mặt / Dư.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
   - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
@@ -78,7 +78,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 200, báo mã lỗi.
-- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING + Giờ có mặt = lúc nạp, **bỏ qua NV đã có** (idempotent).
+- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING + LISTED_AT = lúc nạp, **bỏ qua NV đã có** (idempotent).
 - **Thời gian quét WYSIWYG** — app gửi epoch chụp lúc quét (`scanStaffApi(..., clientEpoch)`): sheet ghi đúng giờ hiển thị trên app, server không đè giờ riêng → hết nhảy giờ sau ~1s khi đồng hồ thiết bị lệch / queue xử lý chậm.
 - **Cột Ngày bảng quét** — hiện ngay khi quét (optimistic từ staffIndex + response `dateText`), không chờ reload; `getFilterOptionsApi` cache 60s → modal tạo task mở nhanh.
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.

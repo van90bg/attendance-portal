@@ -106,7 +106,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     }
     // scanNow = epoch client chụp lúc quét (WYSIWYG — user thấy giờ nào, sheet ghi giờ đó;
     // trước đây server ghi giờ XỬ LÝ, queue 2.5s/item + đồng hồ thiết bị lệch → sau ~1s
-    // silent reload, cột Giờ có mặt/Giờ quét nhảy về giờ server). Fallback giờ server khi
+    // silent reload, cột LISTED_AT/SCANNED_AT nhảy về giờ server). Fallback giờ server khi
     // client không gửi (thiết bị cũ / gọi tay) — chấp nhận epoch client vì gate operator+.
     const scanNow = (typeof clientEpoch === 'number' && isFinite(clientEpoch) && clientEpoch > 0)
       ? (Math.abs(clientEpoch - Date.now()) > 900000 ? new Date() : new Date(clientEpoch))
@@ -126,10 +126,10 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
       });
     }
     const outcome = commit.outcomes[String(staffId).toUpperCase()];
-    const timeScanText = outcome ? outcome.timeScanText : '';
-    const timeScanEpoch = outcome ? outcome.timeScanEpoch : 0;
-    const timeRefText = outcome ? outcome.timeRefText : '';
-    const timeRefEpoch = outcome ? outcome.timeRefEpoch : 0;
+    const scannedAtText = outcome ? outcome.scannedAtText : '';
+    const scannedAtEpoch = outcome ? outcome.scannedAtEpoch : 0;
+    const listedAtText = outcome ? outcome.listedAtText : '';
+    const listedAtEpoch = outcome ? outcome.listedAtEpoch : 0;
     const scannedName = outcome ? outcome.staffName : null;
     const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));
     // P2 benchmark: tổng + tách giai đoạn — QA prod đọc Stackdriver biết ngay
@@ -149,10 +149,10 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
       status: outcome ? outcome.status : result.status,
       phase: result.phase,
       field: field,
-      timeScanText: timeScanText,
-      timeScanEpoch: timeScanEpoch,
-      timeRefText: timeRefText,
-      timeRefEpoch: timeRefEpoch,
+      scannedAtText: scannedAtText,
+      scannedAtEpoch: scannedAtEpoch,
+      listedAtText: listedAtText,
+      listedAtEpoch: listedAtEpoch,
       staffName: scannedName,
       slotCode: outcome ? outcome.slotCode : '',
       station: outcome ? outcome.station : '',

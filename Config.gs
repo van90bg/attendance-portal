@@ -70,9 +70,8 @@ const LOG_COLS = {
   STATION: 4,
   TEAM: 5,
   WORKSTATION: 6,
-  TIME_REF: 7,    // GIỜ CÓ MẶT (breaking 2026-08-05): luồng có list = giờ tạo task;
-                   // luồng không list = giờ quét lần 1. Tái dùng cột cũ (trước = pre-fill time).
-  TIME_SCAN: 8,   // GIỜ QUÉT — điểm danh (quét lần 2, hoặc lần 1 với list có sẵn)
+  LISTED_AT: 7,   // THỜI ĐIỂM VÀO DANH SÁCH (phase 1): load roster / chọn NV / quét barcode
+  SCANNED_AT: 8,  // THỜI ĐIỂM ĐIỂM DANH (phase 2): quét barcode
   STATUS: 9,
   DATE: 10,       // ngày vào làm (copy từ StaffData) — hiển thị cột Date, khác TIME_REF (ngày task)
 };
@@ -98,13 +97,13 @@ const STATUS = {
 };
 
 // ===== Trạng thái task (state machine 2-phase attendance) =====
-// MỞ (open): phase 1 — quét Giờ có mặt. Có list: roster sẵn, TIME_REF đã ghi giờ tạo.
-//                         Không list: quét lần 1 ghi TIME_REF + tạo dòng.
-// ĐIỂM DANH (attend): phase 2 — quét Giờ quét (TIME_SCAN). Nút "Kết thúc" chỉ hiện ở đây.
-// XONG (done): đã kết thúc — NV chưa quét (TIME_SCAN rỗng) đánh Vắng.
+// MỞ (open): phase 1 — NV vào danh sách. Có list: roster sẵn, LISTED_AT đã ghi giờ tạo.
+//                         Không list: quét lần 1 ghi LISTED_AT + tạo dòng.
+// ĐIỂM DANH (attend): phase 2 — quét SCANNED_AT. Nút "Kết thúc" chỉ hiện ở đây.
+// XONG (done): đã kết thúc — NV chưa quét (SCANNED_AT rỗng) đánh Vắng.
 const TASK_STATUS = {
-  OPEN: 'open',       // phase 1: chờ điểm danh / ghi Giờ có mặt
-  ATTEND: 'attend',   // phase 2: đang điểm danh (quét Giờ quét)
+  OPEN: 'open',       // phase 1: chờ điểm danh / ghi LISTED_AT
+  ATTEND: 'attend',   // phase 2: đang điểm danh (quét SCANNED_AT)
   DONE: 'done',       // đã kết thúc
 };
 

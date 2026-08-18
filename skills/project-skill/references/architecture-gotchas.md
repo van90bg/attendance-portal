@@ -1,9 +1,9 @@
 # RollCall — architecture gotchas & bug timeline
 
 ## 2-phase attendance model (source of truth)
-- Per task: `open` (phase1: write timeRef = Giờ có mặt) → `attend` (phase2: write timeScan = Giờ quét) → `done`.
+- Per task: `open` (phase1: write timeRef = LISTED_AT) → `attend` (phase2: write timeScan = SCANNED_AT) → `done`.
 - Per log row status: `PENDING` ('-'), `PRESENT`, `ABSENT`, `EXTRA` (Dư).
-- **Epochs are truth.** `timeRefEpoch`/`timeScanEpoch` drive counters (`computeCounters`) and sort. NEVER rely on text time columns for logic — text "HH:mm:ss" loses the date across midnight.
+- **Epochs are truth.** `listedAtEpoch`/`scannedAtEpoch` drive counters (`computeCounters`) and sort. NEVER rely on text time columns for logic — text "HH:mm:ss" loses the date across midnight.
 - `classifyScan(cfg, task, logRows, staffId)` is the pure decision function (Node-testable). Server just applies its result.
 
 ## The "Dư / extraRow" saga (do not regress)

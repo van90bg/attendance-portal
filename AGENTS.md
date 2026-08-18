@@ -61,9 +61,9 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 
 ## 4. Kiến trúc lõi (đọc trước khi sửa scan/logic)
 
-- **Task 2 phase**: `task.status` = `open` (ghi Giờ có mặt/timeRef) → `attend` (ghi Giờ quét/timeScan) → `done`.
+- **Task 2 phase**: `task.status` = `open` (ghi LISTED_AT/timeRef) → `attend` (ghi SCANNED_AT/timeScan) → `done`.
 - `logRow.status`: `PENDING`(-/Chưa điểm danh) · `PRESENT`(Có mặt) · `ABSENT`(Vắng) · `EXTRA`(Dư).
-- **Epoch là nguồn sự thật** cho counters/sort (`timeRefEpoch`/`timeScanEpoch` — text "HH:mm:ss" mất ngày qua đêm).
+- **Epoch là nguồn sự thật** cho counters/sort (`listedAtEpoch`/`scannedAtEpoch` — text "HH:mm:ss" mất ngày qua đêm).
 - `classifyScan` xử lý mọi lane (roster/free) — xem `skills/project-skill/SKILL.md` §"Architecture mental model".
 - **Không ghi đè cột lệch trong setValues** — LOG_COLS phải đồng bộ hệt nhau giữa ensureSheets_, methods, migration.
 - Dư (EXTRA): NV lạ phase 2 → Dư (KHÔNG phải Có mặt). `optimistic` client phải y hệt server.

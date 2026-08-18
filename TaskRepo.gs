@@ -19,7 +19,7 @@ function taskFromRow_(row) {
     contractType: String(row[TASK_COLS.CONTRACT_TYPE] || ''),
     status: String(row[TASK_COLS.STATUS] || ''),
     // phase derived từ status cho client dễ render UI (Mở/Điểm danh/Xong).
-    // open=phase1 (ghi Giờ có mặt), attend=phase2 (ghi Giờ quét), done=Xong.
+    // open=phase1 (ghi LISTED_AT), attend=phase2 (ghi SCANNED_AT), done=Xong.
     phase: (function (st) {
       if (st === TASK_STATUS.ATTEND) return 'attend';
       if (st === TASK_STATUS.DONE) return 'done';
@@ -160,9 +160,9 @@ function taskCountersForList_() {
       if (!taskId) continue;
       const st = String(row[LOG_COLS.STATUS] || '');
       // S3/D1 (review 2026-08-11): epoch là nguồn sự thật — khớp computeCounters
-      // (Number(timeScanEpoch)>0, ScanLogic.gs:124). Trước dùng !!cell — cell junk/
+      // (Number(scannedAtEpoch)>0, ScanLogic.gs:124). Trước dùng !!cell — cell junk/
       // string legacy (safeDate_ parse fail) vẫn tính scanned → list lệch detail.
-      const dScan = safeDate_(row[LOG_COLS.TIME_SCAN]);
+      const dScan = safeDate_(row[LOG_COLS.SCANNED_AT]);
       const hasScan = dScan ? dScan.getTime() > 0 : false;
       if (!out[taskId]) out[taskId] = { total: 0, scanned: 0, extra: 0 };
       out[taskId].total++;

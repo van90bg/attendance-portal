@@ -1,8 +1,8 @@
 /**
  * TaskService.gs — Nghiệp vụ task (tạo/đóng/chuyển phase) + nạp roster (pre-fill log qua loadRoster).
  *
- * 2-phase attendance: tạo task → phase1 (Mở, quét Giờ có mặt) → phase2 (Điểm danh,
- * quét Giờ quét) → Xong.
+ * 2-phase attendance: tạo task → phase1 (Mở, quét LISTED_AT) → phase2 (Điểm danh,
+ * quét SCANNED_AT) → Xong.
  * A2 (docs/roster-load-design.md): mọi task mới = FREE + OPEN (phase 1) + log RỖNG —
  * KHÔNG pre-fill roster khi tạo (kể cả khi client gửi ca thật); danh sách nạp sau qua
  * loadRosterApi (nút "Lấy danh sách theo ca" trong màn quét). Phase 1 KHÔNG có Dư —
@@ -66,8 +66,8 @@ function createReconcileTask(input) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    // noList: KHÔNG đọc StaffData, log rỗng — mọi quét sau là Dư (phase1 Giờ có mặt,
-    // phase2 Giờ quét). Dùng trực tiếp staffList rỗng để skip filter + dedupe + guard.
+    // noList: KHÔNG đọc StaffData, log rỗng — mọi quét sau là Dư (phase1 LISTED_AT,
+    // phase2 SCANNED_AT). Dùng trực tiếp staffList rỗng để skip filter + dedupe + guard.
     let deduped = [];
     if (!noList) {
       const staffList = filterStaffByGroup(readStaffList_(), { station: station, slotCode: filterSlots, team: filterTeams, contractType: filterContractTypes, date: date });
@@ -102,7 +102,7 @@ function createReconcileTask(input) {
       createdBy: createdBy,
       completedAt: null,
     };
-    // Legacy pre-fill (A1 — KHÔNG chạy từ A2 vì noList luôn true): TIME_REF = Giờ có mặt
+    // Legacy pre-fill (A1 — KHÔNG chạy từ A2 vì noList luôn true): TIME_REF = LISTED_AT
     // ghi ngay giờ tạo task cho mọi NV trong list. S2 (idempotency): ghi log TRƯỚC
     // insertTask_ — batchInsert fail → không để lại task ATTEND rỗng.
     const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
@@ -241,8 +241,8 @@ function completeTask(taskId) {
 
 /**
  * Chuyển task từ phase1 (Mở) sang phase2 (Điểm danh).
- * Mở nút "Kết thúc". Sau bước này, quét sẽ ghi Giờ quét (TIME_SCAN) thay vì Giờ có mặt.
- * Không sửa log — NV đã có Giờ có mặt giữ nguyên; NV quét tiếp theo (lần 2) ghi Giờ quét.
+ * Mở nút "Kết thúc". Sau bước này, quét sẽ ghi SCANNED_AT (TIME_SCAN) thay vì LISTED_AT.
+ * Không sửa log — NV đã có LISTED_AT giữ nguyên; NV quét tiếp theo (lần 2) ghi SCANNED_AT.
  * @param {string} taskId
  * @returns {{ok: boolean, message: string}}
  */
@@ -263,7 +263,7 @@ function transitionToAttend(taskId) {
     }
     updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
     audit_('transitionToAttend', taskId, {});
-    return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét Giờ quét' };
+    return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét SCANNED_AT' };
   } finally {
     lock.releaseLock();
   }
@@ -294,7 +294,7 @@ function reopenTask(taskId) {
     // Reset Vắng → Chưa điểm danh TRƯỚC (batch 1 lần), sau đó mở status task.
     // Thứ tự fail-safe giống completeTask: reset fail → task vẫn DONE, retry được.
     const resetCount = resetAbsentToPending_(taskId);
-    // F4: mở lại → Điểm danh (phase2, ghi Giờ quét) để quét tiếp luôn — KHÔNG về OPEN.
+    // F4: mở lại → Điểm danh (phase2, ghi SCANNED_AT) để quét tiếp luôn — KHÔNG về OPEN.
     updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
     audit_('reopenTask', taskId, { resetCount: resetCount });
     return {

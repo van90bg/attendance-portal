@@ -28,7 +28,7 @@
 ```
 [Tạo task (A2): Station + Ngày → task FREE + Mở + log RỖNG (KHÔNG pre-fill khi tạo)
  | Danh sách xây sau ở phase 1: quét / dán / nạp roster theo ca (nút **Thêm**, loadRosterApi)]
-→ Quét barcode NV → phase Mở: ghi Giờ có mặt · phase Điểm danh: ghi Giờ quét (Có mặt / Dư / reject)
+→ Quét barcode NV → phase Mở: ghi LISTED_AT · phase Điểm danh: ghi SCANNED_AT (Có mặt / Dư / reject)
 → Chuyển điểm danh (FREE) → Kết thúc task → NV chưa quét gán Vắng
 → (tuỳ chọn) Mở lại task (về Điểm danh) → quét tiếp
 ```
@@ -137,7 +137,7 @@ Giữ **nguyên header chuẩn Att.csv** (ánh xạ header → field tại `CSV_
 | 5 | `station` | |
 | 6 | `team` | |
 | 7 | `workstation` | |
-| 8 | `timeRef` | **Giờ có mặt** — ghi khi quét phase 1 / dán / nạp roster theo ca (thời điểm ghi dòng) |
+| 8 | `timeRef` | **LISTED_AT** — ghi khi quét phase 1 / dán / nạp roster theo ca (thời điểm ghi dòng) |
 | 9 | `timeScan` | giờ quét đối chiếu (rỗng = chưa quét) |
 | 10 | `status` | `-` (PENDING) / `Có mặt` (PRESENT) / `Vắng` (ABSENT) / `Dư` (EXTRA) |
 | 11 | `date` | **ngày vào làm** (copy từ StaffData) — hiển thị cột Date; khác `timeRef` (ngày task) |
@@ -171,7 +171,7 @@ Nhật ký hoạt động quản trị (viewAdmin — chỉ admin): mọi mutati
 
 **A2 (docs/roster-load-design.md, 2026-08-18):** mọi task mới = **Mở** (`open`) + **log RỖNG** — KHÔNG pre-fill roster khi tạo. TaskType đã xóa — không còn phân biệt `reconcile`/`free`.
 
-- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Thêm**, append PENDING + `timeRef = lúc nạp`). Bấm **Chuyển điểm danh** rồi quét lần 2 (Giờ quét); NV lạ phase 2 = Dư.
+- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Thêm**, append PENDING + `timeRef = lúc nạp`). Bấm **Chuyển điểm danh** rồi quét lần 2 (SCANNED_AT); NV lạ phase 2 = Dư.
 - **Phase 1 KHÔNG có Dư** — Dư (EXTRA) chỉ khi quét phase 2 mà NV không có dòng PENDING trong log (bất kể nguồn: quét phase 1 · dán · roster).
 
 ### 4.2 Task ID
@@ -191,13 +191,13 @@ open  →  attend  →  done
 ```
 | Status | Phase | Ý nghĩa |
 | :----- | :---- | :------ |
-| `open` | 1 — Mở | Quét ghi **Giờ có mặt** (TIME_REF); **chỉ owner/admin** quét được (§5.5) |
-| `attend` | 2 — Điểm danh | Quét ghi **Giờ quét** (TIME_SCAN); mọi người quét được |
+| `open` | 1 — Mở | Quét ghi **LISTED_AT** (TIME_REF); **chỉ owner/admin** quét được (§5.5) |
+| `attend` | 2 — Điểm danh | Quét ghi **SCANNED_AT** (TIME_SCAN); mọi người quét được |
 | `done` | — | Đã kết thúc — quét reject `task-closed` |
 
 Đặc điểm tạo task (A2): **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (nút **Thêm**); bấm **Chuyển điểm danh** (cảnh báo nếu log rỗng) để sang `attend`.
 
-`transitionToAttend(taskId)` — `open → attend`, guard `status === OPEN`; không sửa log (NV đã có Giờ có mặt giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` (M1 — mọi user mặc định là operator nên không đổi hành vi quét).
+`transitionToAttend(taskId)` — `open → attend`, guard `status === OPEN`; không sửa log (NV đã có LISTED_AT giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` (M1 — mọi user mặc định là operator nên không đổi hành vi quét).
 
 ### 4.4 Tạo task (`createReconcileTask`)
 
@@ -246,7 +246,7 @@ normalizeStaffId (trim + UPPERCASE)
   → classifyScan (ScanLogic — thuần, 2-phase theo task.status)
   → planScanCommits (B 2026-08-12 — seam thuần gom: re-check race + enrich staffIndex + gom batch)
   → ghi: batchUpdateLogRows_ (nếu có updates) + batchAppendLogRows_ (nếu có appends, 1 setValues N dòng)
-  → computeCounters → return {ok, message, status, phase, timeScanText, timeScanEpoch, timeRefText, timeRefEpoch, staffName, counters}
+  → computeCounters → return {ok, message, status, phase, scannedAtText, scannedAtEpoch, listedAtText, listedAtEpoch, staffName, counters}
   → finally: lock.releaseLock()  (DEFENSE: catch mọi lỗi → ok:false)
 ```
 
@@ -267,8 +267,8 @@ pasteCodesApi(taskId, lines) → clamp 200 dòng (A4 — ScanService `slice(0, 2
 | :-------- | :-------- | :----- | :----- | :------ |
 | `staffId` rỗng | — (mọi phase) | `reject` | — | `empty-staff-id` |
 | task không `open`/`attend` | — | `reject` | — | `task-closed` |
-| `open` — Mở | NV trong log + chưa có Giờ có mặt | `update` | `-` (PENDING) | ghi TIME_REF (Giờ có mặt) |
-| | NV trong log + đã có Giờ có mặt | `reject` | — | `already-present` |
+| `open` — Mở | NV trong log + chưa có LISTED_AT | `update` | `-` (PENDING) | ghi TIME_REF (LISTED_AT) |
+| | NV trong log + đã có LISTED_AT | `reject` | — | `already-present` |
 | | NV không trong log | `append` | `Dư` | ghi TIME_REF |
 | | NV không trong log (free) | `append` | `-` (PENDING) | hợp lệ — xây danh sách, KHÔNG Dư |
 | `attend` — Điểm danh | NV trong log + chưa quét (PENDING) | `update` | `Có mặt` | ghi TIME_SCAN |
@@ -285,14 +285,14 @@ pasteCodesApi(taskId, lines) → clamp 200 dòng (A4 — ScanService `slice(0, 2
 
 | Counter | Công thức |
 | :------ | :-------- |
-| `scanned` (Đã quét) | số dòng `timeScanEpoch > 0` (gồm PRESENT + EXTRA) |
-| `presentAt` (Có mặt) | số dòng `timeRefEpoch > 0` — Giờ có mặt phase1 (thêm 2026-08-17) |
-| `absent` (Chưa điểm danh / Vắng) | số dòng `timeScanEpoch == 0` và status ≠ EXTRA |
+| `scanned` (Đã quét) | số dòng `scannedAtEpoch > 0` (gồm PRESENT + EXTRA) |
+| `presentAt` (Có mặt) | số dòng `listedAtEpoch > 0` — LISTED_AT phase1 (thêm 2026-08-17) |
+| `absent` (Chưa điểm danh / Vắng) | số dòng `scannedAtEpoch == 0` và status ≠ EXTRA |
 | `extra` (Dư) | số dòng status = EXTRA |
 | `total` | tổng số dòng log |
 
-> **`timeScanEpoch` là nguồn sự thật** cho `scanned`/`absent` + sort (text `HH:mm:ss` mất ngày — sort sai khi task xuyên nửa đêm). Client mirror đúng quy ước này (optimistic bump / rollback / sync đều recount theo epoch).
-> 2-phase: `timeRefEpoch` = Giờ có mặt (phase Mở) — dùng ghi/nhận diện `already-present` + counter `presentAt`; `scanned`/`absent` đếm theo `timeScanEpoch` (Giờ quét).
+> **`scannedAtEpoch` là nguồn sự thật** cho `scanned`/`absent` + sort (text `HH:mm:ss` mất ngày — sort sai khi task xuyên nửa đêm). Client mirror đúng quy ước này (optimistic bump / rollback / sync đều recount theo epoch).
+> 2-phase: `listedAtEpoch` = LISTED_AT (phase Mở) — dùng ghi/nhận diện `already-present` + counter `presentAt`; `scanned`/`absent` đếm theo `scannedAtEpoch` (SCANNED_AT).
 
 ### 5.5 Role — quyền quét phase Mở & paste (T-1, T-2)
 
@@ -334,7 +334,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `ABSENT` | `Vắng` | **chỉ khi kết thúc task** (dòng chưa quét) |
 | `EXTRA` | `Dư` | quét NV không có trong log |
 
-- Label **phase-aware** (đồng bộ counter/badge/filter — 2026-08-17): task `open` (FREE phase1) → `-` hiển thị "Có mặt" (đã ghi Giờ có mặt); task `attend` → `-` hiển thị "Chưa điểm danh" (chưa quét lần 2 **≠** vắng); task kết thúc → label counter đổi thành "Vắng".
+- Label **phase-aware** (đồng bộ counter/badge/filter — 2026-08-17): task `open` (FREE phase1) → `-` hiển thị "Có mặt" (đã ghi LISTED_AT); task `attend` → `-` hiển thị "Chưa điểm danh" (chưa quét lần 2 **≠** vắng); task kết thúc → label counter đổi thành "Vắng".
 - UI chỉ đổi label, không đổi logic (dùng `STATUS_C` mirror — đổi chuỗi hiển thị không vỡ logic).
 
 ---
@@ -385,7 +385,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `createReconcileTaskApi(input)` | `{ ok, taskId, count, message }` | operator (service) |
 | `getTaskListApi()` | `[{ taskId, station, slotCode, team, status, total, scanned, extra, createdAtText, createdBy }]` | — |
 | `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` — `task.permission = {isAdmin, isOwner, canScanOpen}` (§5.5) | — |
-| `scanStaffApi(taskId, staffId, clientEpoch?)` | `{ ok, message, status, phase, timeScanText, timeScanEpoch, timeRefText, timeRefEpoch, staffName, dateText, counters }` — **clientEpoch**: thời gian quét = giờ client chụp lúc quét (WYSIWYG — sheet ghi đúng giờ app hiển thị; fallback giờ server nếu thiếu/rác) | operator (service) |
+| `scanStaffApi(taskId, staffId, clientEpoch?)` | `{ ok, message, status, phase, scannedAtText, scannedAtEpoch, listedAtText, listedAtEpoch, staffName, dateText, counters }` — **clientEpoch**: thời gian quét = giờ client chụp lúc quét (WYSIWYG — sheet ghi đúng giờ app hiển thị; fallback giờ server nếu thiếu/rác) | operator (service) |
 | `transitionToAttendApi(taskId)` | `{ ok, message }` — `open → attend` | operator (service) |
 | `completeTaskApi(taskId)` | `{ ok, message }` | operator (service) |
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator (service) |
@@ -431,7 +431,7 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 **viewScan — Màn quét:**
 - Topbar: `← Danh sách task` · tiêu đề taskId + meta · nút **Chuyển điểm danh** (chỉ phase open) + **Kết thúc** (chỉ phase attend) + **Mở lại** (chỉ done) + menu **Thêm** gom **Dán danh sách mã** (open + owner) + **Lấy danh sách theo ca** (open + owner).
 - Cột trái (480px): 4 counter (Có mặt / Đã quét / Chưa điểm danh / Dư — phase-aware) · ô quét to (laser-line khi focus) · scan card projector · nút Quét (mobile).
-- Cột phải: bảng NV — tìm kiếm + lọc trạng thái + sort theo epoch; cột Giờ có mặt / Giờ quét theo phase; dòng Dư nền cam; row-diff chống flicker.
+- Cột phải: bảng NV — tìm kiếm + lọc trạng thái + sort theo epoch; cột LISTED_AT / SCANNED_AT theo phase; dòng Dư nền cam; row-diff chống flicker.
 - Khoá theo role (T-1): `!canScanOpen` + phase Mở → input disabled + banner cam + ẩn nút Chuyển điểm danh / Dán mã.
 
 **viewHome — Trang chủ:** logo + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chiếu/điểm danh.
@@ -568,7 +568,7 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 | Response scan của task cũ về muộn | Guard `item.taskId === CURRENT_TASK.taskId` + `SCAN_CARD_SEQ` |
 | RPC fail (mất mạng) | `markServerFail` → netDot "Server lỗi"; rollback optimistic; **không có offline queue bền** (chỉ trong-bộ-nhớ client) |
 | Queue đầy (50) | Chặn scan + viền đỏ pulse + disable input |
-| Task xuyên nửa đêm | Sort/count theo `timeScanEpoch` (số) — không theo text |
+| Task xuyên nửa đêm | Sort/count theo `scannedAtEpoch` (số) — không theo text |
 | Kết thúc / quay lại khi còn scan đang xử lý | Chặn bằng `scanBusy()` (queue + processing) |
 | Mở lại task | ABSENT → PENDING (quét tiếp); PRESENT giữ nguyên |
 | Anonymous gọi `syncFromCsv`/`setupSheets`/`debug` | Gate `isEditor_()` fail-closed (chỉ deployer) |
@@ -593,7 +593,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 
 | Mục | Spec 2.0.0 (cũ — ảo) | Thực tế (code) |
 | :-- | :-------------------- | :------------- |
-| Attendance | Check-in + Check-out (2 lần quét riêng) | **2-phase quét** — Mở: Giờ có mặt (TIME_REF) · Điểm danh: Giờ quét (TIME_SCAN); mỗi phase quét 1 lần / NV |
+| Attendance | Check-in + Check-out (2 lần quét riêng) | **2-phase quét** — Mở: LISTED_AT (TIME_REF) · Điểm danh: SCANNED_AT (TIME_SCAN); mỗi phase quét 1 lần / NV |
 | Task state | 4 states `Created→CheckIn→CheckOut→Closed` + phase restriction | **3 states `open`/`attend`/`done`** + `transitionToAttend` (`open→attend`) + `reopen` (`done→attend`) |
 | Loại task | Handover + Attendance | **FREE** (mọi task — không còn reconcile) |
 | Task ID | `T-YYYYMMDD-XXXX` (random 4 số) | `RYYYYMMDD-HHMM` (+ `-2` nếu trùng phút) |
@@ -620,10 +620,10 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ```plain
 ✅ Tạo task (A2): luôn FREE + Mở + log RỖNG — modal chỉ Station + Ngày; quét / dán / nạp roster xây danh sách
 ✅ A2 (2026-08-18): task mới KHÔNG pre-fill roster khi tạo (kể cả ca thật — server ép noList); nút "Lấy danh sách theo ca" (loadRosterApi — idempotent, phase 1 + owner); phase 1 không Dư; cảnh báo chuyển phase khi log rỗng
-✅ Nạp roster theo ca: append AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = Giờ có mặt = lúc nạp
+✅ Nạp roster theo ca: append AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = LISTED_AT = lúc nạp
 ✅ Thời gian quét WYSIWYG (2026-08-18): client gửi epoch lúc quét → sheet ghi đúng giờ hiển thị trên app (server không đè giờ xử lý — hết nhảy giờ sau ~1s); bảng quét cột Ngày hiện ngay (dateText từ response + staffIndex); roster modal thêm lọc Hình thức; getFilterOptionsApi cache 60s
-✅ 2-phase: Mở (Giờ có mặt, FREE) → Chuyển điểm danh → Điểm danh (Giờ quét) → Kết thúc
-✅ Quét barcode Ops (case-insensitive): Có mặt / Đã điểm danh / Đã ghi Giờ có mặt / Dư / Task đã kết thúc
+✅ 2-phase: Mở (LISTED_AT, FREE) → Chuyển điểm danh → Điểm danh (SCANNED_AT) → Kết thúc
+✅ Quét barcode Ops (case-insensitive): Có mặt / Đã điểm danh / Đã ghi LISTED_AT / Dư / Task đã kết thúc
 ✅ Kết thúc task → NV chưa quét gán Vắng (batch 1 lần); Mở lại task → về Điểm danh, reset Vắng
 ✅ Role owner phase Mở (T-1): server gate `canScanOpen_` + permission tươi + client khoá input/banner
 ✅ Paste danh sách mã (T-2): pasteCodesApi batch (1 setValues + cache 1 put), clamp 200, dedupe trong batch

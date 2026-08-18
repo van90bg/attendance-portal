@@ -43,22 +43,22 @@
       return {
         taskId: taskId, staffId: s.staffId, staffName: s.staffName,
         slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation,
-        // timeRefEpoch CHỈ cho NV đã quét (scanned) — presentAt đếm đúng 2.
+        // listedAtEpoch CHỈ cho NV đã quét (scanned) — presentAt đếm đúng 2.
         // NV chưa quét: timeRef rỗng → client phase OPEN không chặn 'Đã có mặt' khi quét họ.
-        timeRefText: scanned ? '09:00:00' : '',
-        timeRefEpoch: scanned ? 1783072800000 : 0,  // 09:00:00 — Giờ có mặt (presentAt; khớp server computeCounters)
-        timeScanText: scanned ? (i === 0 ? '09:02:15' : '09:03:40') : '',
-        timeScanEpoch: scanned ? 1783072800000 + (i === 0 ? 135000 : 220000) : 0,  // 09:02:15 / 09:03:40 — sort key
+        listedAtText: scanned ? '09:00:00' : '',
+        listedAtEpoch: scanned ? 1783072800000 : 0,  // 09:00:00 — LISTED_AT (presentAt; khớp server computeCounters)
+        scannedAtText: scanned ? (i === 0 ? '09:02:15' : '09:03:40') : '',
+        scannedAtEpoch: scanned ? 1783072800000 + (i === 0 ? 135000 : 220000) : 0,  // 09:02:15 / 09:03:40 — sort key
         status: scanned ? 'Có mặt' : '-',
         dateText: '2026-08-01',  // ngày vào làm (StaffData Date) — khớp server yyyy-MM-dd
       };
     });
-    // Dư row: NV lạ phase 2 → Dư ghi Giờ quét (ScanLogic) — CÓ timeScanEpoch như scanStaffApi push.
-    // Khớp server computeCounters: scanned đếm mọi row timeScanEpoch>0 kể cả Dư.
-    // timeScanEpoch khớp timeScanText '09:05:00' (= 09:02:15 + 165s).
+    // Dư row: NV lạ phase 2 → Dư ghi SCANNED_AT (ScanLogic) — CÓ scannedAtEpoch như scanStaffApi push.
+    // Khớp server computeCounters: scanned đếm mọi row scannedAtEpoch>0 kể cả Dư.
+    // scannedAtEpoch khớp scannedAtText '09:05:00' (= 09:02:15 + 165s).
     log.push({
       taskId: taskId, staffId: 'Ops999999', staffName: 'NV-DU', slotCode: '', station: '', team: '',
-      workstation: '', timeRefText: '', timeScanText: '09:05:00', timeScanEpoch: 1783073100000, status: 'Dư',
+      workstation: '', listedAtText: '', scannedAtText: '09:05:00', scannedAtEpoch: 1783073100000, status: 'Dư',
     });
     return log;
   }
@@ -68,8 +68,8 @@
     // Epoch > 0 là nguồn sự thật duy nhất (text mất ngày xuyên nửa đêm).
     var c = { scanned: 0, presentAt: 0, absent: 0, extra: 0, total: log.length };
     log.forEach(function (r) {
-      var hasScan = Number(r.timeScanEpoch) > 0;
-      var hasRef = Number(r.timeRefEpoch) > 0;
+      var hasScan = Number(r.scannedAtEpoch) > 0;
+      var hasRef = Number(r.listedAtEpoch) > 0;
       if (hasScan) c.scanned++;
       if (hasRef) c.presentAt++;
       if (r.status === 'Dư') c.extra++;
@@ -228,7 +228,7 @@
     },
     scanStaffApi: function (taskId, staffId, clientEpoch) {
       // Mock 2-pha khớp server scanStaff (ScanService.gs + classifyScan):
-      // open = ghi Giờ có mặt (timeRef, giữ status '-'); attend = ghi Giờ quét (timeScan).
+      // open = ghi LISTED_AT (timeRef, giữ status '-'); attend = ghi SCANNED_AT (timeScan).
       var log = getLog(taskId);
       var task = null;
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
@@ -241,25 +241,25 @@
       var d = new Date(nowMs);
       var ts = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
       if (hit) {
-        var done = phase2 ? (Number(hit.timeScanEpoch) > 0) : (Number(hit.timeRefEpoch) > 0);
+        var done = phase2 ? (Number(hit.scannedAtEpoch) > 0) : (Number(hit.listedAtEpoch) > 0);
         if (done) {
-          return { ok: false, message: phase2 ? 'Đã điểm danh' : 'Đã có mặt', status: null, timeScanText: '', timeScanEpoch: 0, timeRefText: '', timeRefEpoch: 0, staffName: null, counters: counters(log) };
+          return { ok: false, message: phase2 ? 'Đã điểm danh' : 'Đã có mặt', status: null, scannedAtText: '', scannedAtEpoch: 0, listedAtText: '', listedAtEpoch: 0, staffName: null, counters: counters(log) };
         }
-        if (phase2) { hit.status = 'Có mặt'; hit.timeScanText = ts; hit.timeScanEpoch = nowMs; }
-        else { hit.timeRefText = ts; hit.timeRefEpoch = nowMs; }  // giữ status '-'​ (PENDING)
-        return { ok: true, message: 'Có mặt', status: hit.status, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'timeScan' : 'timeRef',
-          timeScanText: hit.timeScanText || '', timeScanEpoch: hit.timeScanEpoch || 0,
-          timeRefText: hit.timeRefText || '', timeRefEpoch: hit.timeRefEpoch || 0,
+        if (phase2) { hit.status = 'Có mặt'; hit.scannedAtText = ts; hit.scannedAtEpoch = nowMs; }
+        else { hit.listedAtText = ts; hit.listedAtEpoch = nowMs; }  // giữ status '-'​ (PENDING)
+        return { ok: true, message: 'Có mặt', status: hit.status, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'scannedAt' : 'listedAt',
+          scannedAtText: hit.scannedAtText || '', scannedAtEpoch: hit.scannedAtEpoch || 0,
+          listedAtText: hit.listedAtText || '', listedAtEpoch: hit.listedAtEpoch || 0,
           staffName: hit.staffName, dateText: (hit && hit.dateText) || '', counters: counters(log) };
       }
       // NV lạ: phase1 = PENDING (thuệc danh sách); phase2 = Dư (ngoài danh sách).
       var st = !phase2 ? '-' : 'Dư';
       log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '',
-        timeRefText: phase2 ? '' : ts, timeRefEpoch: phase2 ? 0 : nowMs,
-        timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0, status: st, dateText: '' });
-      return { ok: true, message: st, status: st, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'timeScan' : 'timeRef',
-        timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0,
-        timeRefText: phase2 ? '' : ts, timeRefEpoch: phase2 ? 0 : nowMs,
+        listedAtText: phase2 ? '' : ts, listedAtEpoch: phase2 ? 0 : nowMs,
+        scannedAtText: phase2 ? ts : '', scannedAtEpoch: phase2 ? nowMs : 0, status: st, dateText: '' });
+      return { ok: true, message: st, status: st, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'scannedAt' : 'listedAt',
+        scannedAtText: phase2 ? ts : '', scannedAtEpoch: phase2 ? nowMs : 0,
+        listedAtText: phase2 ? '' : ts, listedAtEpoch: phase2 ? 0 : nowMs,
         staffName: 'NV LẠ', dateText: '', counters: counters(log) };
     },
     pasteCodesApi: function (taskId, rawLines) {
@@ -290,8 +290,8 @@
         var hit = null;
         log.forEach(function (r) { if (r.staffId.toLowerCase() === c.toLowerCase()) hit = r; });
         if (hit && hit.status !== '-') { failed++; results.push({ code: c, ok: false, reason: 'already-present' }); return; }
-        if (hit) { hit.timeRefText = ts; hit.timeRefEpoch = nowMs; }
-        else { log.push({ taskId: taskId, staffId: c.toUpperCase(), staffName: 'NV DÁN', slotCode: '', station: '', team: '', workstation: '', timeRefText: ts, timeRefEpoch: nowMs, timeScanText: '', timeScanEpoch: 0, status: '-', dateText: '' }); }
+        if (hit) { hit.listedAtText = ts; hit.listedAtEpoch = nowMs; }
+        else { log.push({ taskId: taskId, staffId: c.toUpperCase(), staffName: 'NV DÁN', slotCode: '', station: '', team: '', workstation: '', listedAtText: ts, listedAtEpoch: nowMs, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: '' }); }
         success++; results.push({ code: c, ok: true, action: 'append' });
       });
       return { ok: true, message: 'Dán ' + success + '/' + lines.length + ' mã thành công', total: lines.length, success: success, failed: failed, results: results, counters: counters(log) };
@@ -322,7 +322,7 @@
         var hit = null;
         log.forEach(function (r) { if (r.staffId.toLowerCase() === s.staffId.toLowerCase()) hit = r; });
         if (hit) { skipped++; return; }
-        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', timeRefText: ts, timeRefEpoch: nowMs, timeScanText: '', timeScanEpoch: 0, status: '-', dateText: s.date || '' });
+        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: ts, listedAtEpoch: nowMs, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' });
         added++;
       });
       return { ok: true, total: deduped.length, added: added, skipped: skipped, counters: counters(log), message: added ? ('Đã nạp ' + added + ' NV' + (skipped ? ' — bỏ qua ' + skipped + ' đã có' : '')) : ('Tất cả ' + skipped + ' NV đã có trong danh sách') };
@@ -341,7 +341,7 @@
             taskId: t.taskId, staffId: r.staffId, staffName: r.staffName, status: r.status,
             station: t.station, team: t.team, slotCode: t.slotCode,
             taskStatus: t.status, createdAtText: t.createdAtText, createdBy: t.createdBy,
-            timeRefText: r.timeRefText, timeScanText: r.timeScanText,
+            listedAtText: r.listedAtText, scannedAtText: r.scannedAtText,
           });
         });
       });
@@ -355,7 +355,7 @@
             taskId: t.taskId, staffId: s.staffId, staffName: s.staffName, status: '-',
             station: t.station, team: t.team, slotCode: t.slotCode,
             taskStatus: t.status, createdAtText: t.createdAtText, createdBy: t.createdBy,
-            timeRefText: '', timeScanText: '',
+            listedAtText: '', scannedAtText: '',
           });
         });
       });
@@ -377,7 +377,7 @@
       if (!task) return { ok: false, message: 'Không tìm thấy task' };
       if (task.status !== 'open') return { ok: false, message: 'Chỉ chuyển sang điểm danh khi task đang ở trạng thái Mở' };
       task.status = 'attend';
-      return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét Giờ quét' };
+      return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét SCANNED_AT' };
     },
     reopenTaskApi: function (taskId) {
       // F3: mirror server reopenTask — resetAbsentToPending_ (ABSENT->PENDING) trước,

@@ -23,9 +23,9 @@ function makeRow(overrides) {
     workstation: 'OBLoading',
     cardIn: '7:57:01',
     cardOut: '',
-    timeRef: new Date('2026-08-02T07:30:00'),
-    timeScan: null,
-    timeScanEpoch: 0,   // P2: epoch là nguồn sự thật — scanned khi >0
+    listedAt: new Date('2026-08-02T07:30:00'),
+    scannedAt: null,
+    scannedAtEpoch: 0,   // P2: epoch là nguồn sự thật — scanned khi >0
     status: CFG.STATUS.ABSENT,
   }, overrides || {});
 }
@@ -48,14 +48,14 @@ test('classifyScan (phase2): NV trong log + chưa quét → update PRESENT', () 
   const task = { taskId: 'R1', status: CFG.TASK_STATUS.ATTEND };
   const res = ScanLogic.classifyScan(CFG, task, [makeRow()], 'ops000001');
   assert.equal(res.action, 'update');
-  assert.equal(res.field, 'timeScan');
+  assert.equal(res.field, 'scannedAt');
   assert.equal(res.status, CFG.STATUS.PRESENT);
   assert.equal(res.row.staffId, 'OPS000001');
 });
 
 test('classifyScan (phase2): NV trong log + đã quét → reject already-scanned', () => {
   const task = { taskId: 'R1', status: CFG.TASK_STATUS.ATTEND };
-  const scanned = makeRow({ timeScan: new Date('2026-08-02T07:45:00'), timeScanEpoch: 1783082700000, status: CFG.STATUS.PRESENT });
+  const scanned = makeRow({ scannedAt: new Date('2026-08-02T07:45:00'), scannedAtEpoch: 1783082700000, status: CFG.STATUS.PRESENT });
   const res = ScanLogic.classifyScan(CFG, task, [scanned], 'OPS000001');
   assert.equal(res.action, 'reject');
   assert.equal(res.reason, 'already-scanned');
@@ -85,10 +85,10 @@ test('findLogRow: case-insensitive', () => {
 
 test('computeCounters: quy ước đã chốt', () => {
   const rows = [
-    makeRow({ staffId: 'OPS000001', timeScanEpoch: 1700000000000, status: CFG.STATUS.PRESENT }), // scanned
-    makeRow({ staffId: 'OPS000002', timeScanEpoch: 0, status: CFG.STATUS.ABSENT }),       // absent
-    makeRow({ staffId: 'OPS000003', timeScanEpoch: 1700000000001, status: CFG.STATUS.EXTRA }), // scanned + extra
-    makeRow({ staffId: 'OPS000004', timeScanEpoch: 0, status: CFG.STATUS.ABSENT }),       // absent
+    makeRow({ staffId: 'OPS000001', scannedAtEpoch: 1700000000000, status: CFG.STATUS.PRESENT }), // scanned
+    makeRow({ staffId: 'OPS000002', scannedAtEpoch: 0, status: CFG.STATUS.ABSENT }),       // absent
+    makeRow({ staffId: 'OPS000003', scannedAtEpoch: 1700000000001, status: CFG.STATUS.EXTRA }), // scanned + extra
+    makeRow({ staffId: 'OPS000004', scannedAtEpoch: 0, status: CFG.STATUS.ABSENT }),       // absent
   ];
   const c = ScanLogic.computeCounters(CFG, rows);
   assert.equal(c.scanned, 2);   // Có mặt + Dư
@@ -100,10 +100,10 @@ test('computeCounters: quy ước đã chốt', () => {
 test('computeCounters: PENDING + có timeScan (data-repair) → đếm scanned, KHÔNG absent', () => {
   // Insurance path (markUnscannedAbsent_): dòng có timeScan nhưng status còn '-'
   // (data legacy/sửa tay) → chuẩn hóa thành Có mặt, KHÔNG đánh Vắng.
-  // computeCounters dùng timeScanEpoch > 0 làm nguồn sự thật duy nhất.
+  // computeCounters dùng scannedAtEpoch > 0 làm nguồn sự thật duy nhất.
   const rows = [
-    makeRow({ staffId: 'OPS000001', timeScanEpoch: 1700000000000, status: CFG.STATUS.PENDING }), // quét rồi nhưng status chưa cập nhật
-    makeRow({ staffId: 'OPS000002', timeScanEpoch: 0, status: CFG.STATUS.PENDING }),       // chưa quét (đúng)
+    makeRow({ staffId: 'OPS000001', scannedAtEpoch: 1700000000000, status: CFG.STATUS.PENDING }), // quét rồi nhưng status chưa cập nhật
+    makeRow({ staffId: 'OPS000002', scannedAtEpoch: 0, status: CFG.STATUS.PENDING }),       // chưa quét (đúng)
   ];
   const c = ScanLogic.computeCounters(CFG, rows);
   assert.equal(c.scanned, 1);   // chỉ dòng có timeScan

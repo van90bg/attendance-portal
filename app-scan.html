@@ -48,7 +48,7 @@
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
     var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
-    var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
+    var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi LISTED_AT)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi SCANNED_AT)' : '');
     // Hiển thị meta dạng hàng: Station | Ca | Team — Phase
     var parts = [];
     if (data.task.station) parts.push(esc(data.task.station));
@@ -79,8 +79,8 @@
     }
     updateScanMoreBtn_();
 
-    // Quét được khi: phase2 (Điểm danh) — phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét.
-        // Phải bấm "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
+    // Quét được khi: phase2 (Điểm danh) — phase1 ghi LISTED_AT, chuyển Điểm danh, phase2 ghi SCANNED_AT.
+        // Phải bấm "Chuyển điểm danh" (phase2) mới quét được (tránh ghi LISTED_AT mà sheet thiếu SCANNED_AT).
         // P1: canScan chỉ dựa trên phase — source of truth.
         // task DONE (status DONE hoặc phase DONE) => canScan = false. applyScanPermission() sẽ gộp owner-gate + queue-full.
         var isDone = data.task.phase === TASK_STATUS_C.DONE || data.task.status === TASK_STATUS_C.DONE;
@@ -100,7 +100,7 @@
         // nút Chuyển điểm danh + disabled state, updateFinishBtnState phải đọc state mới nhất.
         applyScanPermission();
         updateFinishBtnState();
-        // F: đồng bộ indicator sort với phase vừa render (phase2 → cột Giờ quét)
+        // F: đồng bộ indicator sort với phase vừa render (phase2 → cột SCANNED_AT)
         updateSortIndicators();
         // Mobile/tablet (pointer:coarse): KHÔNG focus ngay — bàn phím ảo tự bật đè màn hình
         // khi mở task quét. Máy tính (chuột/barcode scanner) giữ auto-focus như cũ.
@@ -196,7 +196,7 @@
           absentCounter.classList.add('absent');
           absentCounter.classList.remove('waiting');
         } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
-          // Phase 1 (Mở): counter 1 = 'Có mặt' (presentAt — đã ghi Giờ có mặt, xanh);
+          // Phase 1 (Mở): counter 1 = 'Có mặt' (presentAt — đã ghi LISTED_AT, xanh);
           // counter 2 = 'Chưa có mặt' (roster chưa đến; FREE không roster → 0).
           var presentAt = c.presentAt || 0;
           document.getElementById('cScanned').textContent = presentAt;
@@ -226,7 +226,7 @@
   }
 
   // C3: state lọc + sort bảng scan — mặc định sort theo phase:
-  // phase1 (Mở) → Giờ có mặt (col 7) mới nhất; phase2 (Điểm danh) → Giờ quét (col 8).
+  // phase1 (Mở) → LISTED_AT (col 7) mới nhất; phase2 (Điểm danh) → SCANNED_AT (col 8).
   var SCAN_FILTER = { q: '', status: '' };
   var SCAN_SORT = { col: 7, asc: false, userSet: false };  // userSet=true khi user chọn cột; false=mặc định theo phase
   var STATUS_ORDER = {};  // P3: dựng từ STATUS_C — tránh hardcode label
@@ -244,7 +244,7 @@
   function filterAndSortScan(log) {
     var q = SCAN_FILTER.q.trim().toLowerCase();
     var st = SCAN_FILTER.status;
-    // 2-phase: sort mặc định theo phase — phase1 Giờ có mặt (col7), phase2 Giờ quét (col8)
+    // 2-phase: sort mặc định theo phase — phase1 LISTED_AT (col7), phase2 SCANNED_AT (col8)
     var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 8 : 7;
     // F: nếu user chưa chọn sort riêng (userSet=false mặc định) → ép theo phaseCol;
     // nếu đã chọn cột → tôn trọng cột user chọn (kể cả 7/8) — KHÔNG ép ngược lại.
@@ -271,12 +271,12 @@
       else if (col === 4) { va = String(a.team || ''); vb = String(b.team || ''); }
       else if (col === 5) { va = String(a.slotCode || ''); vb = String(b.slotCode || ''); }
       else if (col === 6) { va = String(a.dateText || ''); vb = String(b.dateText || ''); }
-      else if (col === 7) { va = String(a.timeRefText || ''); vb = String(b.timeRefText || ''); }
+      else if (col === 7) { va = String(a.listedAtText || ''); vb = String(b.listedAtText || ''); }
       else {
-        // col 8 = Giờ quét — sort theo epoch (số) CHÍNH XÁC cả khi xuyên nửa đêm;
-        // timeScanText "HH:mm:ss" mất ngày → sort chuỗi sai. Chưa quét = epoch 0.
-        va = Number(a.timeScanEpoch) || 0;
-        vb = Number(b.timeScanEpoch) || 0;
+        // col 8 = SCANNED_AT — sort theo epoch (số) CHÍNH XÁC cả khi xuyên nửa đêm;
+        // scannedAtText "HH:mm:ss" mất ngày → sort chuỗi sai. Chưa quét = epoch 0.
+        va = Number(a.scannedAtEpoch) || 0;
+        vb = Number(b.scannedAtEpoch) || 0;
       }
       if (va === vb) return 0;
       var cmp = va < vb ? -1 : 1;
@@ -385,8 +385,8 @@
       '<td data-label="Team">' + esc(r.team || '') + '</td>',
       '<td data-label="Ca">' + esc(r.slotCode || '') + '</td>',
       '<td data-label="Ngày">' + esc(r.dateText || '') + '</td>',
-      '<td data-label="Giờ có mặt">' + esc(r.timeRefText || '') + '</td>',
-      '<td data-label="Giờ quét">' + esc(r.timeScanText || '') + '</td>',
+      '<td data-label="LISTED_AT">' + esc(r.listedAtText || '') + '</td>',
+      '<td data-label="SCANNED_AT">' + esc(r.scannedAtText || '') + '</td>',
       '<td data-label="Trạng thái">' + badge + '</td>'
     ];
   }
@@ -407,8 +407,8 @@
 
   function badgeFor(status, row) {
     if (status === STATUS_C.PENDING || !status) {
-      // Phase 1 (Mở) + đã ghi Giờ có mặt → 'Có mặt' (xanh) — khớp scanCard/counter.
-      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && row && Number(row.timeRefEpoch) > 0) {
+      // Phase 1 (Mở) + đã ghi LISTED_AT → 'Có mặt' (xanh) — khớp scanCard/counter.
+      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && row && Number(row.listedAtEpoch) > 0) {
         return '<span class="badge present">Có mặt</span>';
       }
       return '<span class="badge pending">' + (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN ? 'Chưa có mặt' : 'Chưa điểm danh') + '</span>';
@@ -470,8 +470,8 @@
     var s = 0, e = 0, a = 0, p = 0;
     (CURRENT_LOG || []).forEach(function (r) {
       // P2: epoch là nguồn sự thật duy nhất (khớp server computeCounters)
-      var hasScan = Number(r.timeScanEpoch) > 0;
-      var hasRef = Number(r.timeRefEpoch) > 0;
+      var hasScan = Number(r.scannedAtEpoch) > 0;
+      var hasRef = Number(r.listedAtEpoch) > 0;
       if (hasScan) s++;
       if (hasRef) p++;
       if (r.status === STATUS_C.EXTRA) e++;
@@ -532,8 +532,8 @@
     }
     // P2 (audit): chặn sớm khi task đã đóng (tab khác kết thúc task giữa chừng) —
     // tránh optimistic rồi rollback; server vẫn reject nếu race.
-    // 2-phase: chặn chỉ khi task DONE (Xong). Phase OPEN (ghi Giờ có mặt) và
-    // ATTEND (ghi Giờ quét) đều cho quét. Tab khác kết thúc task giữa chừng → server reject.
+    // 2-phase: chặn chỉ khi task DONE (Xong). Phase OPEN (ghi LISTED_AT) và
+    // ATTEND (ghi SCANNED_AT) đều cho quét. Tab khác kết thúc task giữa chừng → server reject.
     if (CURRENT_TASK.phase === TASK_STATUS_C.DONE) {
       notifyExternalScanner({ code: (input.value || '').trim(), ok: false, message: 'Task đã kết thúc' });
       showToast('Task đã kết thúc', true);
@@ -578,11 +578,11 @@
     });
 
     // 2-phase: chặn NGAY ở client theo phase hiện tại (tránh toast lặp + gọi server).
-    // phase1 (Mở): đã có Giờ có mặt (timeRefEpoch>0) → 'Đã có mặt'.
-    // phase2 (Điểm danh): đã quét (timeScanEpoch>0) → 'Đã điểm danh'.
+    // phase1 (Mở): đã có LISTED_AT (listedAtEpoch>0) → 'Đã có mặt'.
+    // phase2 (Điểm danh): đã quét (scannedAtEpoch>0) → 'Đã điểm danh'.
     if (target) {
       if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
-        if (Number(target.timeScanEpoch) > 0) {
+        if (Number(target.scannedAtEpoch) > 0) {
           notifyExternalScanner({ code: staffId, ok: false, message: 'Đã điểm danh rồi' });
           showToast('Đã điểm danh rồi', true);
           playBeep('error');
@@ -590,7 +590,7 @@
           return;
         }
       } else {
-        if (Number(target.timeRefEpoch) > 0) {
+        if (Number(target.listedAtEpoch) > 0) {
           notifyExternalScanner({ code: staffId, ok: false, message: 'Đã có mặt' });
           showToast('Đã có mặt', true);
           playBeep('error');
@@ -616,18 +616,18 @@
         };  // scanSeq gán sau khi enqueue (2990) — tránh dead assignment (review 2026-08-11)
       if (target) {
       item.oldStatus = target.status;
-      item.oldTimeRefText = target.timeRefText; item.oldTimeRefEpoch = target.timeRefEpoch;
-      item.oldTimeScanText = target.timeScanText; item.oldTimeScanEpoch = target.timeScanEpoch;
+      item.oldListedAtText = target.listedAtText; item.oldListedAtEpoch = target.listedAtEpoch;
+      item.oldScannedAtText = target.scannedAtText; item.oldScannedAtEpoch = target.scannedAtEpoch;
       if (phase2) {
         // F5: NV đã Dư (EXTRA) quét lại phase2 → giữ EXTRA (khớp server classifyScan),
         // KHÔNG đổi thành Có mặt rồi nhảy về Dư (flicker). Chỉ dòng PENDING → PRESENT.
         target.status = (target.status === STATUS_C.EXTRA) ? STATUS_C.EXTRA : STATUS_C.PRESENT;
-        target.timeScanText = fmtDate(now);
-        target.timeScanEpoch = now.getTime();      // sort key — quét tức thì nhảy lên đầu
+        target.scannedAtText = fmtDate(now);
+        target.scannedAtEpoch = now.getTime();      // sort key — quét tức thì nhảy lên đầu
       } else {
-        target.status = STATUS_C.PENDING;          // Giờ có mặt → chưa điểm danh
-        target.timeRefText = fmtDate(now);
-        target.timeRefEpoch = now.getTime();
+        target.status = STATUS_C.PENDING;          // LISTED_AT → chưa điểm danh
+        target.listedAtText = fmtDate(now);
+        target.listedAtEpoch = now.getTime();
       }
     } else {
       item.optimisticNew = true;
@@ -643,8 +643,8 @@
                  station: staffRec ? (staffRec.station || '') : '',
                  team: staffRec ? (staffRec.team || '') : '',
                  dateText: staffRec ? (staffRec.date || '') : '',  // cột Ngày hiện NGAY (không chờ reload)
-                 timeRefText: phase2 ? '' : fmtDate(now), timeRefEpoch: phase2 ? 0 : now.getTime(),
-                 timeScanText: phase2 ? fmtDate(now) : '', timeScanEpoch: phase2 ? now.getTime() : 0,
+                 listedAtText: phase2 ? '' : fmtDate(now), listedAtEpoch: phase2 ? 0 : now.getTime(),
+                 scannedAtText: phase2 ? fmtDate(now) : '', scannedAtEpoch: phase2 ? now.getTime() : 0,
                  status: optimisticStatusNew };
       item.target = target;
       item.optimisticStatus = optimisticStatusNew;
@@ -667,7 +667,7 @@
       name: optName,
       status: item.optimisticStatus,
       statusLabel: scanStatusLabel_(item.optimisticStatus, item.target),
-      time: phase2 ? (item.target.timeScanText || '') : (item.target.timeRefText || '')
+      time: phase2 ? (item.target.scannedAtText || '') : (item.target.listedAtText || '')
     });
     // Toast optimistic: NV lạ (chưa có tên) hiện mã NV thay vì dấu '-' (PENDING) gây
     // hiểu lầm "trống". Server sẽ toast lại status thật nếu khác.
@@ -796,13 +796,13 @@
     function rollback() {
       if (item.target && !item.optimisticNew) {
         item.target.status = item.oldStatus;
-        // Khôi phục cả Giờ có mặt (timeRef) và Giờ quét (timeScan) theo phase.
+        // Khôi phục cả LISTED_AT (timeRef) và SCANNED_AT (timeScan) theo phase.
         if (item.phase2) {
-          item.target.timeScanText = item.oldTimeScanText || '';
-          item.target.timeScanEpoch = item.oldTimeScanEpoch || 0;
+          item.target.scannedAtText = item.oldScannedAtText || '';
+          item.target.scannedAtEpoch = item.oldScannedAtEpoch || 0;
         } else {
-          item.target.timeRefText = item.oldTimeRefText || '';
-          item.target.timeRefEpoch = item.oldTimeRefEpoch || 0;
+          item.target.listedAtText = item.oldListedAtText || '';
+          item.target.listedAtEpoch = item.oldListedAtEpoch || 0;
         }
       } else if (item.target && item.optimisticNew) {
         // P1: splice theo index — KHÔNG pop() (pop xóa row CUỐI, sai khi queue
@@ -839,13 +839,13 @@
           if (item.target) {
             item.target.status = res.status;
             item.target.staffName = res.staffName || item.target.staffName;
-            // 2-phase: cập nhật đúng cột theo res.field (timeRef=Giờ có mặt / timeScan=Giờ quét).
-            if (res.phase === 'attend' || res.field === 'timeScan') {
-              if (res.timeScanText) item.target.timeScanText = res.timeScanText;
-              if (res.timeScanEpoch) item.target.timeScanEpoch = res.timeScanEpoch;  // sort key chính xác từ server
+            // 2-phase: cập nhật đúng cột theo res.field (timeRef=LISTED_AT / timeScan=SCANNED_AT).
+            if (res.phase === 'attend' || res.field === 'scannedAt') {
+              if (res.scannedAtText) item.target.scannedAtText = res.scannedAtText;
+              if (res.scannedAtEpoch) item.target.scannedAtEpoch = res.scannedAtEpoch;  // sort key chính xác từ server
             } else {
-              if (res.timeRefText) item.target.timeRefText = res.timeRefText;
-              if (res.timeRefEpoch) item.target.timeRefEpoch = res.timeRefEpoch;
+              if (res.listedAtText) item.target.listedAtText = res.listedAtText;
+              if (res.listedAtEpoch) item.target.listedAtEpoch = res.listedAtEpoch;
             }
             // slotCode/station/team từ server (NV lạ có thể tra được staffIndex)
             if (res.slotCode !== undefined) item.target.slotCode = res.slotCode || '';
@@ -878,7 +878,7 @@
             name: res.staffName || (item.target && item.target.staffName) || item.staffId,
             status: res.status || item.optimisticStatus || '',
             statusLabel: scanStatusLabel_(res.status || item.optimisticStatus || '', item.target),
-            time: res.timeScanText || res.timeRefText || ''
+            time: res.scannedAtText || res.listedAtText || ''
           });
         }
         syncCounters(res.counters);
@@ -940,7 +940,7 @@
     );
   }
 
-  // 2-phase: chuyển task Mở (phase1, ghi Giờ có mặt) → Điểm danh (phase2, ghi Giờ quét).
+  // 2-phase: chuyển task Mở (phase1, ghi LISTED_AT) → Điểm danh (phase2, ghi SCANNED_AT).
   // A1 (docs/roster-load-design.md): confirm trước khi chuyển nếu log rỗng (chưa quét /
   // chưa nạp roster) — NV quét phase Điểm danh ngoài danh sách sẽ tính Dư.
   function transitionToAttend(taskId) {
@@ -979,7 +979,7 @@
             CURRENT_TASK.status = TASK_STATUS_C.ATTEND;
             var metaEl = document.getElementById('scanTaskMeta');
             if (metaEl) {
-              var phaseHint = ' (ghi Giờ quét)';
+              var phaseHint = ' (ghi SCANNED_AT)';
               var parts2 = [];
               if (CURRENT_TASK.station) parts2.push(esc(CURRENT_TASK.station));
               if (CURRENT_TASK.slotCode && CURRENT_TASK.slotCode !== SLOT_FREE_MAGIC) parts2.push(esc(CURRENT_TASK.slotCode));
@@ -993,7 +993,7 @@
             updateScanFilterLabel_();
             updateFinishBtnState();
             // Re-render UI phụ thuộc phase NGAY — badge cột Trạng thái + label/giá trị
-            // counter + sort cột Giờ quét. Trước đây phải mở lại task mới cập nhật
+            // counter + sort cột SCANNED_AT. Trước đây phải mở lại task mới cập nhật
             // (user thấy 'Có mặt'/'Chưa có mặt' stale cho tới khi reload).
             renderScanTable(CURRENT_LOG);
             recountFromLog();
@@ -1063,10 +1063,10 @@
   // Label trạng thái scan — 1 nguồn chung (scanCardHTML + setScanLiveMsg_), tránh lệch sau này.
   function scanStatusLabel_(status, target) {
     if (status === STATUS_C.PENDING || !status) {
-      // Phase 1 (Mở) + đã ghi Giờ có mặt → 'Có mặt' — quét phase1 = ghi nhận có mặt,
+      // Phase 1 (Mở) + đã ghi LISTED_AT → 'Có mặt' — quét phase1 = ghi nhận có mặt,
       // 'Chưa điểm danh' ngay sau quét gây hiểu lầm. Chưa quét gì /
       // phase 2 chưa quét lần 2 → vẫn 'Chưa điểm danh'.
-      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.timeRefEpoch) > 0) {
+      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.listedAtEpoch) > 0) {
         return 'Có mặt';
       }
       return (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa có mặt' : 'Chưa điểm danh';
@@ -1104,9 +1104,9 @@
     // C2: Dư = cam (extra), đã điểm danh/đã có mặt = cam (warn, không phải lỗi), lỗi = đỏ, ok = xanh.
     // FREE phase1: status PENDING ('Chưa điểm danh') → xanh (primary) — chưa phải lỗi/cảnh báo.
     // C4 (review 2026-08-11): wire value PENDING = '-' — so 'Chưa điểm danh' là dead arm
-    // Phase 1 (Mở): quét = ghi Giờ có mặt → 'Có mặt' (ok xanh), không 'pending'.
+    // Phase 1 (Mở): quét = ghi LISTED_AT → 'Có mặt' (ok xanh), không 'pending'.
     var phase1Arrival = status === STATUS_C.PENDING && CURRENT_TASK
-      && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.timeRefEpoch) > 0;
+      && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.listedAtEpoch) > 0;
     var cls = phase1Arrival ? 'ok'
       : ((status === STATUS_C.PENDING) ? 'pending'
       : (mode === 'err' ? 'err' : (mode === 'extra' ? 'extra' : (mode === 'warn' ? 'warn' : 'ok'))));
@@ -1129,10 +1129,10 @@
     var card = document.getElementById('scanCard');
     if (!card || !log || !log.length) return;
     var last = null;
-    // 2-phase: phase1 (Mở) chọn theo Giờ có mặt (timeRefEpoch); phase2 (Điểm danh) theo Giờ quét (timeScanEpoch).
+    // 2-phase: phase1 (Mở) chọn theo LISTED_AT (listedAtEpoch); phase2 (Điểm danh) theo SCANNED_AT (scannedAtEpoch).
     // So theo epoch (số) — text "HH:mm:ss" mất ngày, xuyên nửa đêm sẽ so sai.
     var phase2 = CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND;
-    var keyOf = function (r) { return phase2 ? (Number(r.timeScanEpoch) || 0) : (Number(r.timeRefEpoch) || 0); };
+    var keyOf = function (r) { return phase2 ? (Number(r.scannedAtEpoch) || 0) : (Number(r.listedAtEpoch) || 0); };
     log.forEach(function (r) {
       var e = keyOf(r);
       if (e > (last ? keyOf(last) : 0)) last = r;
@@ -1143,7 +1143,7 @@
     // task có lượt quét phase1 (PENDING) sẽ bị tô xanh ok thay vì pending.
     // C4 (review 2026-08-11): wire value PENDING = '-' — so 'Chưa điểm danh' là dead arm
     var phase1Arrival = last.status === STATUS_C.PENDING && CURRENT_TASK
-      && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && Number(last.timeRefEpoch) > 0;
+      && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && Number(last.listedAtEpoch) > 0;
     var cls = phase1Arrival ? 'scan-card ok'
       : ((last.status === STATUS_C.PENDING) ? 'scan-card pending'
       : (last.status === STATUS_C.EXTRA ? 'scan-card extra' : 'scan-card ok'));

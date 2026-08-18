@@ -67,7 +67,7 @@ function ensureSheets_() {
   ]);
   const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG, [
     'taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation',
-    'timeRef', 'timeScan', 'status', 'date',
+    'listedAt', 'scannedAt', 'status', 'date',
   ]);
   getSheet_(SHEETS.AUDIT_LOG, ['timestamp', 'email', 'action', 'targetId', 'detail']);
   // Migration an toàn: sheet cũ tạo trước khi có cột date (LOG_COL_COUNT=11) vẫn còn

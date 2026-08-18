@@ -181,8 +181,8 @@
                   <th scope="col" data-sort="4" class="sortable" aria-sort="none">Team</th>
                   <th scope="col" data-sort="5" class="sortable" aria-sort="none">Ca</th>
                   <th scope="col" data-sort="6" class="sortable" aria-sort="none">Ngày</th>
-                  <th scope="col" data-sort="7" class="sortable" aria-sort="none">Giờ có mặt</th>
-                  <th scope="col" data-sort="8" class="sortable" aria-sort="none">Giờ quét</th>
+                  <th scope="col" data-sort="7" class="sortable" aria-sort="none">LISTED_AT</th>
+                  <th scope="col" data-sort="8" class="sortable" aria-sort="none">SCANNED_AT</th>
                   <th scope="col" data-sort="9" class="sortable" aria-sort="none">Trạng thái</th>
                 </tr>
               </thead>
@@ -442,14 +442,14 @@
       <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
         <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Task mới</b>.</li>
-        <li><b>Quét Giờ có mặt:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách hiện <i>Có mặt</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
-        <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (Có mặt).</li>
+        <li><b>Quét LISTED_AT:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách hiện <i>Có mặt</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
+        <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>SCANNED_AT</b> (Có mặt).</li>
         <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
       </ol>
 
       <h3 class="about-h3">3. Tính năng chính</h3>
       <ul class="about-list">
-        <li><b>Quy trình 2 pha:</b> ghi Giờ có mặt rồi mới ghi Giờ quét — tách rõ 2 mốc điểm danh.</li>
+        <li><b>Quy trình 2 pha:</b> ghi LISTED_AT rồi mới ghi SCANNED_AT — tách rõ 2 mốc điểm danh.</li>
         <li><b>Quét tự do (FREE):</b> không cần danh sách sẵn, xây danh sách ngay khi quét.</li>
         <li><b>Phân quyền:</b> viewer / operator / manager / admin với từng mức truy cập riêng.</li>
         <li><b>Đa thiết bị:</b> tự thích ứng máy tính, tablet và điện thoại.</li>
@@ -465,9 +465,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Quét lần 1 đã ghi Giờ có mặt (xanh ngay khi quét), hoặc quét lần 2 đã ghi Giờ quét.</td></tr>
-          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Có trong danh sách, quét lần 1 xong nhưng chưa quét Giờ quét (phase 2).</td></tr>
-          <tr><td class="about-cell">Vắng</td><td class="about-cell">Chưa quét Giờ quét khi task kết thúc.</td></tr>
+          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Quét lần 1 đã ghi LISTED_AT (xanh ngay khi quét), hoặc quét lần 2 đã ghi SCANNED_AT.</td></tr>
+          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Có trong danh sách, quét lần 1 xong nhưng chưa quét SCANNED_AT (phase 2).</td></tr>
+          <tr><td class="about-cell">Vắng</td><td class="about-cell">Chưa quét SCANNED_AT khi task kết thúc.</td></tr>
           <tr><td class="about-cell">Dư</td><td class="about-cell">Quét người không có trong danh sách (sai ca, không có tên).</td></tr>
         </tbody>
       </table>

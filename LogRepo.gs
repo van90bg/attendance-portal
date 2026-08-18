@@ -18,8 +18,8 @@ function resolvedStatus_(u) {
 
 /** Map 1 dòng sheet → object log (theo LOG_COLS). */
 function logFromRow_(taskId, row) {
-  const timeRef = row[LOG_COLS.TIME_REF] || null;
-  const timeScan = row[LOG_COLS.TIME_SCAN] || null;
+  const timeRef = row[LOG_COLS.LISTED_AT] || null;
+  const timeScan = row[LOG_COLS.SCANNED_AT] || null;
   // Parse 1 lần duy nhất — tránh gọi safeDate_ + Date.parse 3-4 lần/dòng.
   const dRef = safeDate_(timeRef);
   const dScan = safeDate_(timeScan);
@@ -33,12 +33,12 @@ function logFromRow_(taskId, row) {
     workstation: String(row[LOG_COLS.WORKSTATION] || ''),
     // KHÔNG trả Date qua google.script.run (serialize lỗi → null toàn bộ).
     // Chỉ trả text đã format theo TZ script — client hiển thị trực tiếp.
-    timeRefText: formatTime_(timeRef),
-    timeScanText: formatTime_(timeScan),
+    listedAtText: formatTime_(timeRef),
+    scannedAtText: formatTime_(timeScan),
     // Sort key số (epoch ms) — text "HH:mm:ss" mất ngày → sort chuỗi sai khi task
     // xuyên nửa đêm. Client sort theo con số này (chính xác tuyệt đối).
-    timeRefEpoch: dRef ? dRef.getTime() : 0,
-    timeScanEpoch: dScan ? dScan.getTime() : 0,
+    listedAtEpoch: dRef ? dRef.getTime() : 0,
+    scannedAtEpoch: dScan ? dScan.getTime() : 0,
     status: String(row[LOG_COLS.STATUS] || ''),
     // Date = ngay vao lam (copy tu StaffData) — format yyyy-MM-dd (ISO) cho hien thi
     dateText: formatDateShort_(row[LOG_COLS.DATE]),
@@ -109,7 +109,7 @@ function searchLogsByStaff(rawStaffId) {
  * thay bằng cache ngắn hạn + INCREMENTAL update (updateLogRowCache_) — scan chạy
  * liên tiếp không chạm sheet log, chỉ 1 setValues cho dòng được quét.
  * F2 (simplify): cache SLIM — chỉ giữ field đường quét cần (staffId/staffName/
- * timeScanText/timeScanEpoch/status/_rowIndex), KHÔNG nhét 12 field: 66KB→32KB
+ * scannedAtText/scannedAtEpoch/status/_rowIndex), KHÔNG nhét 12 field: 66KB→32KB
  * (tránh chạm giới hạn 100KB/key khi task lớn, giảm eviction 500KB script cache).
  * _rowIndex giữ nguyên (cần cho update) — KHÔNG dùng bản này cho UI (dùng riêng
  * readTaskDetailCached_).
@@ -124,10 +124,10 @@ function readLogRowsCached_(taskId) {
         slotCode: r.slotCode,
         station: r.station,
         team: r.team,
-        timeRefText: r.timeRefText,
-        timeRefEpoch: r.timeRefEpoch,
-        timeScanText: r.timeScanText,
-        timeScanEpoch: r.timeScanEpoch,
+        listedAtText: r.listedAtText,
+        listedAtEpoch: r.listedAtEpoch,
+        scannedAtText: r.scannedAtText,
+        scannedAtEpoch: r.scannedAtEpoch,
         status: r.status,
         dateText: r.dateText,
         _rowIndex: r._rowIndex,
@@ -192,8 +192,8 @@ function batchAppendLogRows_(rows) {
         const cachedRows = JSON.parse(cached);
         // Append slim versions of new rows
         rows.forEach(function (row, idx) {
-          const timeRef = row[LOG_COLS.TIME_REF];
-          const timeScan = row[LOG_COLS.TIME_SCAN];
+          const timeRef = row[LOG_COLS.LISTED_AT];
+          const timeScan = row[LOG_COLS.SCANNED_AT];
           // Parse 1 lần duy nhất — tránh gọi safeDate_ nhiều lần.
           const dRef = timeRef ? safeDate_(timeRef) : null;
           const dScan = timeScan ? safeDate_(timeScan) : null;
@@ -204,10 +204,10 @@ function batchAppendLogRows_(rows) {
             slotCode: row[LOG_COLS.SLOT_CODE],
             station: row[LOG_COLS.STATION],
             team: row[LOG_COLS.TEAM],
-            timeRefText: timeRef ? formatTime_(timeRef) : '',
-            timeRefEpoch: dRef ? dRef.getTime() : 0,
-            timeScanText: timeScan ? formatTime_(timeScan) : '',
-            timeScanEpoch: dScan ? dScan.getTime() : 0,
+            listedAtText: timeRef ? formatTime_(timeRef) : '',
+            listedAtEpoch: dRef ? dRef.getTime() : 0,
+            scannedAtText: timeScan ? formatTime_(timeScan) : '',
+            scannedAtEpoch: dScan ? dScan.getTime() : 0,
             status: row[LOG_COLS.STATUS],
             dateText: formatDateShort_(row[LOG_COLS.DATE]),
             _rowIndex: rowIndices[idx],
@@ -246,10 +246,10 @@ function readTaskDetailCached_(taskId) {
         station: r.station,
         team: r.team,
         workstation: r.workstation,
-        timeRefText: r.timeRefText,
-        timeRefEpoch: r.timeRefEpoch,
-        timeScanText: r.timeScanText,
-        timeScanEpoch: r.timeScanEpoch,
+        listedAtText: r.listedAtText,
+        listedAtEpoch: r.listedAtEpoch,
+        scannedAtText: r.scannedAtText,
+        scannedAtEpoch: r.scannedAtEpoch,
         status: r.status,
         dateText: r.dateText,
       };
@@ -289,7 +289,7 @@ function transformLogStatuses_(taskId, mutate) {
   for (let i = 1; i < values.length; i++) {
     const row = values[i];
     if (String(row[LOG_COLS.TASK_ID] || '').trim() !== taskId) continue;
-    const timeScan = row[LOG_COLS.TIME_SCAN];
+    const timeScan = row[LOG_COLS.SCANNED_AT];
     const status = String(row[LOG_COLS.STATUS] || '');
     const next = mutate(status, timeScan);
     if (next !== null && next !== status) changed.push({ r: i + 1, v: next });
@@ -349,7 +349,7 @@ function resetAbsentToPending_(taskId) {
  * TIME_SCAN + STATUS (2 cột) — KHÔNG setValues cả 3 cột, tránh ghi '' vào cột không
  * đụng tới → xóa giá trị hiện hữu (legacy v1 / sửa tay). Khớp updateLogRowRef_/updateLogRowScan_.
  * @param {string} taskId
- * @param {Array<{rowIndex:number, field:'timeRef'|'timeScan', time:Date, newStatus?:string, keepStatus?:string}>} updates
+ * @param {Array<{rowIndex:number, field:'listedAt'|'scannedAt', time:Date, newStatus?:string, keepStatus?:string}>} updates
  */
 function batchUpdateLogRows_(taskId, updates) {
   if (!updates || !updates.length) return 0;
@@ -358,8 +358,8 @@ function batchUpdateLogRows_(taskId, updates) {
   // (timeRef/timeScan/status) nên update timeRef ghi '' vào TIME_SCAN → xoá sạch giá
   // trị hiện hữu (legacy v1 / sửa tay). Tách: timeRef → 1 cột TIME_REF,
   // timeScan → 2 cột TIME_SCAN+STATUS (khớp updateLogRowRef_/updateLogRowScan_ cũ).
-  writeBatchRuns_(sheet, updates, 'timeRef');
-  writeBatchRuns_(sheet, updates, 'timeScan');
+  writeBatchRuns_(sheet, updates, 'listedAt');
+  writeBatchRuns_(sheet, updates, 'scannedAt');
   invalidateTaskDetailCache_(taskId);
   invalidateTaskListCache_();
   try {
@@ -370,14 +370,14 @@ function batchUpdateLogRows_(taskId, updates) {
       updates.forEach(function (u) {
         for (let k = 0; k < rows.length; k++) {
           if (rows[k]._rowIndex === u.rowIndex) {
-            if (u.field === 'timeScan') {
-              rows[k].timeScanText = formatTime_(u.time);
-              rows[k].timeScanEpoch = u.time.getTime();
+            if (u.field === 'scannedAt') {
+              rows[k].scannedAtText = formatTime_(u.time);
+              rows[k].scannedAtEpoch = u.time.getTime();
               // n2: resolve status 1 nguồn, cache khớp sheet (resolvedStatus_: newStatus → keepStatus)
               rows[k].status = resolvedStatus_(u);
             } else {
-              rows[k].timeRefText = formatTime_(u.time);
-              rows[k].timeRefEpoch = u.time.getTime();
+              rows[k].listedAtText = formatTime_(u.time);
+              rows[k].listedAtEpoch = u.time.getTime();
               if (u.keepStatus !== undefined) rows[k].status = u.keepStatus;
             }
             break;
@@ -402,8 +402,8 @@ function writeBatchRuns_(sheet, updates, field) {
   const runData = updates.filter(function (u) { return u.field === field; });
   if (!runData.length) return;
   const sorted = runData.slice().sort(function (a, b) { return a.rowIndex - b.rowIndex; });
-  const col = (field === 'timeRef' ? LOG_COLS.TIME_REF : LOG_COLS.TIME_SCAN) + 1;
-  const width = field === 'timeRef' ? 1 : 2;
+  const col = (field === 'listedAt' ? LOG_COLS.LISTED_AT : LOG_COLS.SCANNED_AT) + 1;
+  const width = field === 'listedAt' ? 1 : 2;
   let i = 0;
   while (i < sorted.length) {
     const start = sorted[i].rowIndex;
@@ -412,7 +412,7 @@ function writeBatchRuns_(sheet, updates, field) {
     const block = [];
     for (let r = start; r <= end; r++) {
       const up = sorted.find(function (u) { return u.rowIndex === r; });
-      if (field === 'timeRef') {
+      if (field === 'listedAt') {
         block.push([up.time]);
       } else {
         // n2 (audit): KHÔNG bao giờ ghi '' vào STATUS khi thiếu newStatus — fallback

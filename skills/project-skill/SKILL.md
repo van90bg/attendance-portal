@@ -30,9 +30,9 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## 3. Architecture mental model (đọc TRƯỚC mọi fix)
 
-- **Task 2-phase**: `task.status` = `open` (ghi Giờ có mặt / timeRef) → `attend` (ghi Giờ quét / timeScan) → `done`.
+- **Task 2-phase**: `task.status` = `open` (ghi LISTED_AT / timeRef) → `attend` (ghi SCANNED_AT / timeScan) → `done`.
 - `logRow.status`: `PENDING`(-/Chưa điểm danh) · `PRESENT`(Có mặt) · `ABSENT`(Vắng) · `EXTRA`(Dư).
-- **Epoch là nguồn sự thật** cho counters/sort: `timeRefEpoch`/`timeScanEpoch` (text `HH:mm:ss` mất ngày qua đêm). `computeCounters` đếm theo epoch.
+- **Epoch là nguồn sự thật** cho counters/sort: `listedAtEpoch`/`scannedAtEpoch` (text `HH:mm:ss` mất ngày qua đêm). `computeCounters` đếm theo epoch.
 - `classifyScan(cfg,task,logRows,staffId)` → `{action:update|append|reject, phase, field, status}`.
 - Layers: `scanStaffApi`(Code) → `scanStaff`(ScanService) → `classifyScan`(ScanLogic) + `appendLogRow_`/`updateLogRowScan_`/`batchUpdateLogRows_`(LogRepo). LockService + try/catch — không throw client, trả `ok:false`.
 - `reopenTask` → ATTEND (KHÔNG quay OPEN); client recompute phase từ `task.status`.
@@ -66,14 +66,14 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 ## 5. UI labels & modal (2026-08-07/08)
 
 - Counter/badge/filter label theo phase — đồng bộ (2026-08-17): OPEN → counter 1 "Có mặt" = presentAt
-  (timeRefEpoch>0), counter 2 "Chưa có mặt" = total − presentAt − extra (FREE không roster → 0);
-  ATTEND → counter 1 "Đã điểm danh" = scanned (timeScanEpoch>0), counter 2 "Chưa điểm danh" = absent;
+  (listedAtEpoch>0), counter 2 "Chưa có mặt" = total − presentAt − extra (FREE không roster → 0);
+  ATTEND → counter 1 "Đã điểm danh" = scanned (scannedAtEpoch>0), counter 2 "Chưa điểm danh" = absent;
   DONE → "Đã điểm danh"/"Vắng" (đỏ). Badge cột Trạng thái cùng chain: OPEN: PENDING + timeRef → "Có mặt" (xanh),
   PENDING chưa timeRef → "Chưa có mặt"; ATTEND: PENDING → "Chưa điểm danh"; PRESENT → "Có mặt"; EXTRA → "Dư".
   Filter PENDING option = OPEN ? "Chưa có mặt" : "Chưa điểm danh".
   GOTCHA: renderCounters neo label bằng ID cha (#cAbsent/#cScanned → parentElement) — class absent↔waiting
   swap làm querySelector('.counter.absent') về null → bỏ qua cả khối phase-aware (counter hiện số raw sai phase).
-- Table headers Vietnamese: Ngày · Mã NV · Tên NV · Ca · Team · Giờ có mặt · Giờ quét · Trạng thái. (StaffData table riêng — xem §9.)
+- Table headers Vietnamese: Ngày · Mã NV · Tên NV · Ca · Team · LISTED_AT · SCANNED_AT · Trạng thái. (StaffData table riêng — xem §9.)
 - FREE description: "Quét lần 1 lấy danh sách, lần 2 điểm danh; NV lần 2 chưa có lần 1 → Dư."
 - Task type badge: FREE → 'Quét tự do' (purple), RECONCILE → 'Đối chiếu' (blue). List order: STT, Mã task, Loại, Station, Team, Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác.
 - Modal: với đổi màn tạo task → MUST làm HTML mockup trước (thư mục mockup riêng — `sketches/` đã xóa 2026-08-11), user duyệt, mới implement (luật user — strict).

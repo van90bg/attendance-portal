@@ -70,7 +70,7 @@ function formatDateTime_(date) {
   const d = safeDate_(date);
   if (!d) return '';
   // yyyy-MM-dd HH:mm:ss (đủ năm — task list Tạo lúc/Kết thúc); trước là dd/MM thiếu
-  // năm → "30/12 12:48" gây nhầm (bug 2026-07-29). Giờ quét (formatTime_) vẫn HH:mm:ss.
+  // năm → "30/12 12:48" gây nhầm (bug 2026-07-29). SCANNED_AT (formatTime_) vẫn HH:mm:ss.
   // Major#1 (audit re-check): phải format `d` (đã qua safeDate_) — format `date` gốc
   // vẫn throw khi cell là string legacy → taskFromRow_ lại brick đúng lỗi cũ.
   return Utilities.formatDate(d, getTimeZone_(), 'yyyy-MM-dd HH:mm:ss');

@@ -21,21 +21,21 @@
  * @param {Object} cfg — { STATUS: {...}, TASK_STATUS: {...} } (từ Config.gs)
  * @param {Object} task — { taskId, status } (status: open=phase1, attend=phase2, done)
  * @param {Array<Object>} logRows — các dòng AttendanceLog của task (đã map theo LOG_COLS;
- *   mỗi row cần field timeRefEpoch / timeScanEpoch để làm nguồn sự thật)
+ *   mỗi row cần field listedAtEpoch / scannedAtEpoch để làm nguồn sự thật)
  * @param {string} staffId — mã NV đã normalize
- * @returns {{action: 'update'|'append'|'reject', phase: 'present'|'attend', field: 'timeRef'|'timeScan'|null, status: string|null, reason: string|null, row: Object|null}}
- *   - phase 'present' (task.status=open): ghi GIỜ CÓ MẶT (TIME_REF).
- *       update: NV trong log + chưa có Giờ có mặt → ghi timeRef, status giữ PENDING.
- *       append: NV không trong log → dòng mới EXTRA + timeRef (ghi nhận có mặt, chưa điểm danh).
- *   - phase 'attend' (task.status=attend): ghi GIỜ QUÉT (TIME_SCAN) = điểm danh.
- *       update: NV trong log + chưa quét → ghi timeScan, status PRESENT.
- *       append: NV không trong log → dòng mới EXTRA + timeScan (Dư, có mặt + quét).
+ * @returns {{action: 'update'|'append'|'reject', phase: 'present'|'attend', field: 'listedAt'|'scannedAt'|null, status: string|null, reason: string|null, row: Object|null}}
+ *   - phase 'present' (task.status=open): ghi THỜI ĐIỂM VÀO DANH SÁCH (LISTED_AT).
+ *       update: NV trong log + chưa có LISTED_AT → ghi listedAt, status giữ PENDING.
+ *       append: NV không trong log → dòng mới EXTRA + listedAt (ghi nhận có mặt, chưa điểm danh).
+ *   - phase 'attend' (task.status=attend): ghi SCANNED_AT = điểm danh.
+ *       update: NV trong log + chưa quét → ghi scannedAt, status PRESENT.
+ *       append: NV không trong log → dòng mới EXTRA + scannedAt (Dư, có mặt + quét).
  *   - reject 'task-closed': task done (hoặc không xác định).
- *   - reject 'already-present': phase1, NV đã có Giờ có mặt.
+ *   - reject 'already-present': phase1, NV đã có LISTED_AT.
  *   - reject 'already-scanned': phase2, NV đã quét.
  */
 function classifyScan(cfg, task, logRows, staffId) {
-  // Phase từ task.status: open=1 (ghi Giờ có mặt), attend=2 (ghi Giờ quét).
+  // Phase từ task.status: open=1 (ghi LISTED_AT), attend=2 (ghi SCANNED_AT).
   const phase = task && task.status === cfg.TASK_STATUS.ATTEND ? 'attend' : 'present';
   if (!task || (task.status !== cfg.TASK_STATUS.OPEN && task.status !== cfg.TASK_STATUS.ATTEND)) {
     return { action: 'reject', phase: phase, field: null, status: null, reason: 'task-closed', row: null };
@@ -46,29 +46,29 @@ function classifyScan(cfg, task, logRows, staffId) {
   const row = findLogRow(logRows, staffId);
   if (row) {
     if (phase === 'present') {
-      // Đã ghi Giờ có mặt cho lần 1 → không ghi lại (client cũng chặn, đây là defense).
-      if (Number(row.timeRefEpoch) > 0) {
+      // Đã ghi LISTED_AT cho lần 1 → không ghi lại (client cũng chặn, đây là defense).
+      if (Number(row.listedAtEpoch) > 0) {
         return { action: 'reject', phase: 'present', field: null, status: null, reason: 'already-present', row: row };
       }
-      // Ghi Giờ có mặt (TIME_REF), giữ status PENDING (chưa điểm danh).
-      return { action: 'update', phase: 'present', field: 'timeRef', status: cfg.STATUS.PENDING, reason: null, row: row };
+      // Ghi LISTED_AT, giữ status PENDING (chưa điểm danh).
+      return { action: 'update', phase: 'present', field: 'listedAt', status: cfg.STATUS.PENDING, reason: null, row: row };
     }
     // phase 'attend' — chỉ quét lần 2 mới là điểm danh.
     // P2: epoch là nguồn sự thật duy nhất (khớp computeCounters) — text mất ngày.
-    if (Number(row.timeScanEpoch) > 0) {
+    if (Number(row.scannedAtEpoch) > 0) {
       return { action: 'reject', phase: 'attend', field: null, status: null, reason: 'already-scanned', row: row };
     }
     // NV lạ (Dư/EXTRA từ phase1) quét lại phase2 → VẪN là Dư (EXTRA), KHÔNG đổi thành
     // Có mặt (PRESENT). Chỉ NV trong danh sách (status PENDING) quét phase2 mới = PRESENT.
     if (row.status === cfg.STATUS.EXTRA) {
-      return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: row };
+      return { action: 'update', phase: 'attend', field: 'scannedAt', status: cfg.STATUS.EXTRA, reason: null, row: row };
     }
-    return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.PRESENT, reason: null, row: row };
+    return { action: 'update', phase: 'attend', field: 'scannedAt', status: cfg.STATUS.PRESENT, reason: null, row: row };
   }
   // NV không có trong log — phase1: append PENDING; phase2: EXTRA.
   //   phase1: append PENDING (NV tham gia, chưa điểm danh); phase2: EXTRA (ngoài danh sách).
   return {
-    action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),
+    action: 'append', phase: phase, field: (phase === 'present' ? 'listedAt' : 'scannedAt'),
     status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.EXTRA, reason: null, row: null,
   };
 }
@@ -90,25 +90,25 @@ function findLogRow(logRows, staffId) {
 
 /**
  * Tính counters từ danh sách dòng log của task.
- * Quy ước (đã chốt): Đã quét = timeScanEpoch > 0 (PRESENT + EXTRA); Vắng = pre-fill chưa quét;
+ * Quy ước (đã chốt): Đã quét = scannedAtEpoch > 0 (PRESENT + EXTRA); Vắng = pre-fill chưa quét;
  * Dư = status EXTRA.
- * 2-phase: có mặt = timeRefEpoch>0 (Giờ có mặt, phase1); quét = timeScanEpoch>0 (Giờ quét, phase2).
+ * 2-phase: có mặt = listedAtEpoch>0 (LISTED_AT, phase1); quét = scannedAtEpoch>0 (SCANNED_AT, phase2).
  *
  * @param {Object} cfg — { STATUS: {...} }
  * @param {Array<Object>} logRows
  * @returns {{scanned: number, absent: number, extra: number, total: number}}
  */
 function computeCounters(cfg, logRows) {
-  let scanned = 0;   // Giờ quét có (timeScanEpoch>0) — điểm danh xong
-  let presentAt = 0; // Giờ có mặt (timeRefEpoch>0) — phase1
+  let scanned = 0;   // scannedAtEpoch>0 — điểm danh xong
+  let presentAt = 0; // listedAtEpoch>0 — phase1
   let absent = 0;
   let extra = 0;
   const total = logRows ? logRows.length : 0;
   (logRows || []).forEach(function (row) {
     // P2: epoch là nguồn sự thật duy nhất (text mất ngày xuyên nửa đêm; slim cache
     // không còn field timeScan Date) — khớp hướng scanCard/restoreScanCard.
-    var hasScan = Number(row.timeScanEpoch) > 0;
-    var hasRef = Number(row.timeRefEpoch) > 0;
+    var hasScan = Number(row.scannedAtEpoch) > 0;
+    var hasRef = Number(row.listedAtEpoch) > 0;
     if (hasScan) scanned++;
     if (hasRef) presentAt++;
     if (row.status === cfg.STATUS.EXTRA) extra++;
@@ -127,14 +127,14 @@ function computeCounters(cfg, logRows) {
  * và trả đúng shape 2 helper LogRepo tiêu thụ:
  *   updates: [{rowIndex, field, time, newStatus?, keepStatus?}] → batchUpdateLogRows_
  *   appends: [11 cột theo LOG_COL_COUNT]                            → batchAppendLogRows_
- *   outcomes: {STAFFID: {action, field, timeRefText, timeRefEpoch, timeScanText,
- *              timeScanEpoch, status, staffName, slotCode, station, team, workstation,
+ *   outcomes: {STAFFID: {action, field, listedAtText, listedAtEpoch, scannedAtText,
+ *              scannedAtEpoch, status, staffName, slotCode, station, team, workstation,
  *              dateText, rowIndex}} — payload response client (scanStaff) / results (pasteCodes).
  *
  * Race semantics (thống nhất theo hành vi scanStaff, bảo thủ hơn pasteCodes cũ):
  *  - append mà staffId ĐÃ có trong freshLogRows (thiết bị khác vừa ghi trong lock):
- *    + field 'timeScan' & chưa có timeScanEpoch → convert thành update timeScan
- *    + field 'timeRef'   & chưa có timeRefEpoch   → convert thành update timeRef
+ *    + field 'scannedAt' & chưa có scannedAtEpoch → convert thành update scannedAt
+ *    + field 'listedAt'  & chưa有 listedAtEpoch   → convert thành update listedAt
  *    + field đã có epoch (thiết bị khác xong phase này) → KHÔNG ghi (không đè thời gian),
  *      báo thông tin row hiện hữu.
  *
@@ -163,13 +163,13 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
     const sid = String(a.code !== undefined && a.code !== null ? a.code : '').trim().toUpperCase();
     if (!sid) return;
     if (a.action === 'update' && a.row) {
-      const isScan = a.field === 'timeScan';
+      const isScan = a.field === 'scannedAt';
       outcomes[sid] = {
         action: 'update', field: a.field,
-        timeScanText: isScan ? fmt(now) : '',
-        timeScanEpoch: isScan ? now.getTime() : 0,
-        timeRefText: isScan ? '' : fmt(now),
-        timeRefEpoch: isScan ? 0 : now.getTime(),
+        scannedAtText: isScan ? fmt(now) : '',
+        scannedAtEpoch: isScan ? now.getTime() : 0,
+        listedAtText: isScan ? '' : fmt(now),
+        listedAtEpoch: isScan ? 0 : now.getTime(),
         status: a.status || STATUS.EXTRA,
         staffName: a.row.staffName || null,
         slotCode: a.row.slotCode || '', station: a.row.station || '',
@@ -178,7 +178,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
         rowIndex: a.row._rowIndex || 0,
       };
       const u = { rowIndex: a.row._rowIndex, field: a.field, time: now, newStatus: a.status };
-      // timeScan: ghi STATUS (khớp updateLogRowScan_ cũ); timeRef: chỉ TIME_REF (khớp updateLogRowRef_)
+      // scannedAt: ghi STATUS; listedAt: chỉ LISTED_AT
       if (isScan) u.keepStatus = a.row.status;
       updates.push(u);
       return;
@@ -187,12 +187,12 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
       const ex = existingMap[sid];
       if (ex) {
         // RACE: thiết bị khác vừa append trong lock → chỉ ghi nếu phase CHƯA hoàn thành
-        if (a.field === 'timeScan' && !num(ex.timeScanEpoch)) {
-          updates.push({ rowIndex: ex._rowIndex, field: 'timeScan', time: now, newStatus: a.status || STATUS.EXTRA, keepStatus: ex.status });
+        if (a.field === 'scannedAt' && !num(ex.scannedAtEpoch)) {
+          updates.push({ rowIndex: ex._rowIndex, field: 'scannedAt', time: now, newStatus: a.status || STATUS.EXTRA, keepStatus: ex.status });
           outcomes[sid] = {
-            action: 'update', field: 'timeScan',
-            timeScanText: ex.timeScanText || fmt(now), timeScanEpoch: now.getTime(),
-            timeRefText: '', timeRefEpoch: 0,
+            action: 'update', field: 'scannedAt',
+            scannedAtText: ex.scannedAtText || fmt(now), scannedAtEpoch: now.getTime(),
+            listedAtText: '', listedAtEpoch: 0,
             status: a.status || STATUS.EXTRA,
             staffName: ex.staffName || null,
             slotCode: ex.slotCode || '', station: ex.station || '',
@@ -200,12 +200,12 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
             dateText: (ex && ex.dateText) || '',
             rowIndex: ex._rowIndex || 0,
           };
-        } else if (a.field === 'timeRef' && !num(ex.timeRefEpoch)) {
-          updates.push({ rowIndex: ex._rowIndex, field: 'timeRef', time: now });
+        } else if (a.field === 'listedAt' && !num(ex.listedAtEpoch)) {
+          updates.push({ rowIndex: ex._rowIndex, field: 'listedAt', time: now });
           outcomes[sid] = {
-            action: 'update', field: 'timeRef',
-            timeRefText: ex.timeRefText || fmt(now), timeRefEpoch: now.getTime(),
-            timeScanText: '', timeScanEpoch: 0,
+            action: 'update', field: 'listedAt',
+            listedAtText: ex.listedAtText || fmt(now), listedAtEpoch: now.getTime(),
+            scannedAtText: '', scannedAtEpoch: 0,
             status: ex.status || STATUS.EXTRA,
             staffName: ex.staffName || null,
             slotCode: ex.slotCode || '', station: ex.station || '',
@@ -217,10 +217,10 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
           // phase đã xong (thiết bị khác) → KHÔNG ghi, báo row hiện hữu (không đè thời gian)
           outcomes[sid] = {
             action: 'update', field: a.field,
-            timeScanText: a.field === 'timeScan' ? (ex.timeScanText || fmt(now)) : '',
-            timeScanEpoch: a.field === 'timeScan' ? num(ex.timeScanEpoch) : 0,
-            timeRefText: a.field === 'timeRef' ? (ex.timeRefText || fmt(now)) : '',
-            timeRefEpoch: a.field === 'timeRef' ? num(ex.timeRefEpoch) : 0,
+            scannedAtText: a.field === 'scannedAt' ? (ex.scannedAtText || fmt(now)) : '',
+            scannedAtEpoch: a.field === 'scannedAt' ? num(ex.scannedAtEpoch) : 0,
+            listedAtText: a.field === 'listedAt' ? (ex.listedAtText || fmt(now)) : '',
+            listedAtEpoch: a.field === 'listedAt' ? num(ex.listedAtEpoch) : 0,
             status: ex.status || STATUS.EXTRA,
             staffName: ex.staffName || null,
             slotCode: ex.slotCode || '', station: ex.station || '',
@@ -233,7 +233,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
       }
       // append thật — enrich staffIndex (nếu có)
       const info = staffIndex ? staffIndex[sid] : null;
-      const isScan = a.field === 'timeScan';
+      const isScan = a.field === 'scannedAt';
       appends.push([
         task.taskId, sid,
         info ? String(info.staffName || '') : '',
@@ -248,8 +248,8 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
       ]);
       outcomes[sid] = {
         action: 'append', field: a.field,
-        timeScanText: isScan ? fmt(now) : '', timeScanEpoch: isScan ? now.getTime() : 0,
-        timeRefText: isScan ? '' : fmt(now), timeRefEpoch: isScan ? 0 : now.getTime(),
+        scannedAtText: isScan ? fmt(now) : '', scannedAtEpoch: isScan ? now.getTime() : 0,
+        listedAtText: isScan ? '' : fmt(now), listedAtEpoch: isScan ? 0 : now.getTime(),
         status: a.status || STATUS.EXTRA,
         staffName: info ? info.staffName || null : null,
         slotCode: info ? String(info.slotCode || '') : '',
@@ -297,7 +297,7 @@ function canScanOpen_(cfg, createdBy, activeEmail, isAdmin) {
  *
  * @param {Object} cfg — { STATUS, TASK_STATUS }
  * @param {Object} task — { taskId, status }
- * @param {Array<Object>} logRows — current log rows (with timeRefEpoch/timeScanEpoch)
+ * @param {Array<Object>} logRows — current log rows (with listedAtEpoch/scannedAtEpoch)
  * @param {Array<string>} codes — array of raw codes from paste (one per line)
  * @returns {{plans: Array<{code, action, phase, field, status, reason, row}>, invalid: Array<{code, reason}>}}
  */
@@ -309,9 +309,9 @@ function planBatchScans(cfg, task, logRows, codes) {
   const barcodeRe = typeof BARCODE_ID_RE !== 'undefined' ? BARCODE_ID_RE : require('./CsvUtil.gs').BARCODE_ID_RE;
   // Clone logRows so we can simulate appends/updates for dedup within batch
   // Fix 2 (audit 2): shallow [...logRows] vẫn dùng CHUNG object phần tử với caller —
-  // nhánh update (timeRefEpoch/timeRef) mut bản gốc. Deep copy phần tử → pure,
+  // nhánh update (listedAtEpoch/timeRef) mut bản gốc. Deep copy phần tử → pure,
   // nếu ghi sheet throw thì chỉ ảnh hưởng simulated local, không lệch logRows caller.
-  const simulatedLogRows = logRows ? logRows.map(function (r) { return Object.assign({}, r, { timeRef: r.timeRef ? new Date(r.timeRef) : r.timeRef }); }) : [];
+  const simulatedLogRows = logRows ? logRows.map(function (r) { return Object.assign({}, r, { listedAt: r.listedAt ? new Date(r.listedAt) : r.listedAt }); }) : [];
   
   for (let i = 0; i < codes.length; i++) {
     const rawCode = codes[i];
@@ -347,13 +347,13 @@ function planBatchScans(cfg, task, logRows, codes) {
     // simulated log để lượt kế classify ra already-*. 
     if (result.action === 'update' && result.row) {
       const nowU = new Date();
-      if (result.field === 'timeScan') {
-        result.row.timeScanEpoch = nowU.getTime();
-        result.row.timeScan = nowU;
+      if (result.field === 'scannedAt') {
+        result.row.scannedAtEpoch = nowU.getTime();
+        result.row.scannedAt = nowU;
         result.row.status = result.status;
       } else {
-        result.row.timeRefEpoch = nowU.getTime();
-        result.row.timeRef = nowU;
+        result.row.listedAtEpoch = nowU.getTime();
+        result.row.listedAt = nowU;
       }
     }
     
@@ -369,10 +369,10 @@ function planBatchScans(cfg, task, logRows, codes) {
         station: '',
         team: '',
         workstation: '',
-        timeRef: result.field === 'timeRef' ? now : null,
-        timeScan: result.field === 'timeScan' ? now : null,
-        timeRefEpoch: result.field === 'timeRef' ? now.getTime() : 0,
-        timeScanEpoch: result.field === 'timeScan' ? now.getTime() : 0,
+        timeRef: result.field === 'listedAt' ? now : null,
+        timeScan: result.field === 'scannedAt' ? now : null,
+        listedAtEpoch: result.field === 'listedAt' ? now.getTime() : 0,
+        scannedAtEpoch: result.field === 'scannedAt' ? now.getTime() : 0,
         status: result.status,
         date: '',
       };
@@ -389,12 +389,12 @@ function planBatchScans(cfg, task, logRows, codes) {
  * đọc sheet rồi gọi hàm này — tránh duplicate logic, test được Node mà không cần mock sheet.
  *
  * @param {Array<Object>} logRows — toàn bộ dòng log (đã map logFromRow_: staffId, staffName,
- *   status (scan status NV), taskId, timeRefText, timeScanText, ...).
+ *   status (scan status NV), taskId, listedAtText, scannedAtText, ...).
  * @param {Array<Object>} tasks — danh sách task (taskFromRow_: taskId, station,
  *   slotCode, team, status, createdAtText, createdBy, ...). Map nhanh theo taskId.
  * @param {string} staffId — mã NV đã normalize (uppercase) để so khớp.
  * @returns {Array<Object>} — [{ taskId, staffId, staffName, status, station,
- *   team, slotCode, taskStatus, createdAtText, createdBy, timeRefText, timeScanText }],
+ *   team, slotCode, taskStatus, createdAtText, createdBy, listedAtText, scannedAtText }],
  *   sort Tạo lúc giảm dần, limit 200.
  */
 function matchLogsByStaff(logRows, tasks, staffId) {
@@ -427,8 +427,8 @@ function matchLogsByStaff(logRows, tasks, staffId) {
       taskStatus: t ? t.status : '',
       createdAtText: t ? t.createdAtText : '',
       createdBy: t ? t.createdBy : '',
-      timeRefText: r.timeRefText || '',
-      timeScanText: r.timeScanText || '',
+      listedAtText: r.listedAtText || '',
+      scannedAtText: r.scannedAtText || '',
     });
   }
   // Tạo lúc giảm dần (yyyy-MM-dd HH:mm:ss — sort chuỗi được). limit 200 bảo vệ sheet lớn.

@@ -110,7 +110,7 @@ test('scanStaff: quét tự do (FREE) phase2 — NV lạ ngoài danh sách phase
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999');
   assert.equal(res.ok, true);
-  // FREE phase2: NV chưa trong danh sách phase1 → Dư (EXTRA) — ghi Giờ quét, đếm Dư.
+  // FREE phase2: NV chưa trong danh sách phase1 → Dư (EXTRA) — ghi SCANNED_AT, đếm Dư.
   assert.equal(res.status, ctx.STATUS.EXTRA, 'free phase2 NV lạ = Dư');
   assert.equal(res.message, ctx.STATUS.EXTRA, 'toast hiện "Dư"');
 });
@@ -139,16 +139,16 @@ test('scanStaff: mã hỗn hợp số + chữ (Ops12a3) → reject format', () =
 
 // WYSIWYG (2026-08-18): client gửi epoch chụp lúc quét → server ghi ĐÚNG giờ hiển thị trên
 // app, không đè bằng giờ xử lý (queue 2.5s/item + đồng hồ thiết bị lệch → nhảy giờ sau ~1s).
-test('scanStaff: clientEpoch → timeRefEpoch = giờ client (không phải giờ server)', () => {
+test('scanStaff: clientEpoch → listedAtEpoch = giờ client (không phải giờ server)', () => {
   const clientNow = new Date(Date.now() - 3000);  // 3s ago — within 15min clamp
   const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999', clientNow.getTime());
   assert.equal(res.ok, true, res.message);
   assert.equal(res.phase, 'present');
-  assert.equal(res.field, 'timeRef');
-  assert.equal(res.timeRefEpoch, clientNow.getTime(), 'epoch = giờ client chụp lúc quét');
-  assert.equal(res.timeRefText, '00:00:00');  // formatTime_ stub — epoch mới là nguồn sự thật
+  assert.equal(res.field, 'listedAt');
+  assert.equal(res.listedAtEpoch, clientNow.getTime(), 'epoch = giờ client chụp lúc quét');
+  assert.equal(res.listedAtText, '00:00:00');  // formatTime_ stub — epoch mới là nguồn sự thật
   assert.equal(res.dateText, '2026-08-02', 'dateText từ staffIndex → cột Ngày hiện ngay');
 });
 
@@ -158,5 +158,5 @@ test('scanStaff: clientEpoch thiếu/rác → fallback giờ server (không cras
   const before = Date.now();
   const res = svc.scanStaff('R1', 'ops999999');  // không gửi clientEpoch
   assert.equal(res.ok, true, res.message);
-  assert.ok(res.timeRefEpoch >= before && res.timeRefEpoch > 0, 'fallback = giờ server hiện tại');
+  assert.ok(res.listedAtEpoch >= before && res.listedAtEpoch > 0, 'fallback = giờ server hiện tại');
 });

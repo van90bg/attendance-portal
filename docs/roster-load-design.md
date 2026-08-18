@@ -92,7 +92,7 @@ loadRosterApi(taskId, filters)
 5. `toAdd = deduped.filter(nv chưa có trong existing)`; `skipped = deduped.length - toAdd.length`.
 6. `toAdd` rỗng → `{ ok:true, added:0, skipped, message: 'N NV đã có trong danh sách' }`.
 7. `batchInsertLogRows_(taskId, toAdd, now)` — 1 setValues (LogRepo.gs:151), timeRef = now
-   (**Giờ có mặt = thời điểm nạp**, giống TIME_REF của dòng log), status PENDING.
+   (**LISTED_AT = thời điểm nạp**, giống TIME_REF của dòng log), status PENDING.
    → KHÔNG áp clamp 200 của paste (roster theo ca là danh sách chính thức, đường ghi đã dùng
    cho roster lớn ở createReconcileTask).
 8. `audit_('loadRoster', taskId, { total, added, skipped })` — sau khi ghi (fail-safe order).

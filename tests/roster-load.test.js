@@ -43,7 +43,7 @@ test('loadRosterApi: append PENDING + timeRef cho NV khớp tổ hợp (A1)', ()
   const rows = logRows(ss, 'R1');
   assert.equal(rows.length, 2);
   assert.equal(rows[0][9], '-', 'status PENDING');
-  assert.ok(String(rows[0][7]).length > 0, 'timeRef (Giờ có mặt) đã ghi');
+  assert.ok(String(rows[0][7]).length > 0, 'timeRef (LISTED_AT) đã ghi');
   assert.equal(res.counters.total, 2);
 });
 

@@ -168,11 +168,11 @@ test('batchAppendLogRows_ + updateLogRowScan_ + searchLogsByStaff/searchTasksByQ
   const rows = svc.readLogRows_(taskId);
   const row1 = rows.find((r) => r.staffId === 'OPS000001');
   assert.ok(row1, 'có row OPS000001');
-  svc.batchUpdateLogRows_(taskId, [{ rowIndex: row1._rowIndex, field: 'timeScan', time: new Date(), newStatus: 'Có mặt', keepStatus: row1.status }]);
+  svc.batchUpdateLogRows_(taskId, [{ rowIndex: row1._rowIndex, field: 'scannedAt', time: new Date(), newStatus: 'Có mặt', keepStatus: row1.status }]);
   const detail = svc.readTaskDetailCached_(taskId);
   const updated = detail.log.find((r) => r.staffId === 'OPS000001');
   assert.equal(updated.status, 'Có mặt');
-  assert.ok(Number(updated.timeScanEpoch) > 0);
+  assert.ok(Number(updated.scannedAtEpoch) > 0);
   // Search xuyên task
   const hits = svc.searchLogsByStaff('ops000001');
   assert.equal(hits.length >= 1, true);

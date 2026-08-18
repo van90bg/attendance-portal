@@ -20,10 +20,10 @@ function makeRow(overrides) {
     station: 'HN2 SOC',
     team: 'Outbound',
     workstation: 'OBLoading',
-    timeRef: new Date('2026-08-02T07:30:00'),
-    timeScan: null,
-    timeRefEpoch: 1783081800000,
-    timeScanEpoch: 0,
+    listedAt: new Date('2026-08-02T07:30:00'),
+    scannedAt: null,
+    listedAtEpoch: 1783081800000,
+    scannedAtEpoch: 0,
     status: CFG.STATUS.PENDING,
   }, overrides || {});
 }
@@ -38,7 +38,7 @@ test('planBatchScans: 3 mã hợp lệ phase OPEN/FREE → 3 append PENDING', ()
   res.plans.forEach((p, i) => {
     assert.equal(p.action, 'append');
     assert.equal(p.phase, 'present');
-    assert.equal(p.field, 'timeRef');
+    assert.equal(p.field, 'listedAt');
     assert.equal(p.status, CFG.STATUS.PENDING);
     assert.equal(p.code, codes[i]);
   });
@@ -100,22 +100,22 @@ test('planBatchScans: task FREE + OPEN vs ATTEND → đúng nhánh (ATTEND chặ
   const taskOpen = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const resOpen = ScanLogic.planBatchScans(CFG, taskOpen, [], ['Ops000001']);
   assert.equal(resOpen.plans[0].phase, 'present');
-  assert.equal(resOpen.plans[0].field, 'timeRef');
+  assert.equal(resOpen.plans[0].field, 'listedAt');
 
   // Phase ATTEND (attend) → field timeScan
   const taskAttend = { taskId: 'R1', status: CFG.TASK_STATUS.ATTEND };
   const resAttend = ScanLogic.planBatchScans(CFG, taskAttend, [], ['Ops000001']);
   assert.equal(resAttend.plans[0].phase, 'attend');
-  assert.equal(resAttend.plans[0].field, 'timeScan');
+  assert.equal(resAttend.plans[0].field, 'scannedAt');
   // FREE phase2: NV lạ → EXTRA (Dư)
   assert.equal(resAttend.plans[0].status, CFG.STATUS.EXTRA);
 });
 
-test('planBatchScans: mã trùng khi row ĐÃ tồn tại (timeRefEpoch=0) → update rồi reject (m4)', () => {
+test('planBatchScans: mã trùng khi row ĐÃ tồn tại (listedAtEpoch=0) → update rồi reject (m4)', () => {
   const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   // Row tồn tại nhưng chưa có timeRef (phase OPEN, chưa quét) → mã đầu = update
-  const logRows = [makeRow({ staffId: 'OPS000001', timeRef: null, timeRefEpoch: 0 })];
-  const originalRefEpoch = logRows[0].timeRefEpoch;
+  const logRows = [makeRow({ staffId: 'OPS000001', listedAt: null, listedAtEpoch: 0 })];
+  const originalRefEpoch = logRows[0].listedAtEpoch;
   const codes = ['Ops000001', 'Ops000001'];
   const res = ScanLogic.planBatchScans(CFG, task, logRows, codes);
   assert.equal(res.plans.length, 2);
@@ -123,10 +123,10 @@ test('planBatchScans: mã trùng khi row ĐÃ tồn tại (timeRefEpoch=0) → u
   assert.equal(res.plans[1].action, 'reject');       // lần 2: đã có mặt trong batch
   assert.equal(res.plans[1].reason, 'already-present');
   // Fix 2: pure — logRows gốc không bị mutate dù plan.simulate update
-  assert.equal(logRows[0].timeRefEpoch, originalRefEpoch);
+  assert.equal(logRows[0].listedAtEpoch, originalRefEpoch);
   // Test ATTEND + row đã quét scan → update timeScan rồi duplicate reject
   const taskAttend = { taskId: 'T2', status: CFG.TASK_STATUS.ATTEND };
-  const logRows2 = [makeRow({ staffId: 'OPS000002', timeScan: null, timeScanEpoch: 0 })];
+  const logRows2 = [makeRow({ staffId: 'OPS000002', scannedAt: null, scannedAtEpoch: 0 })];
   const res2 = ScanLogic.planBatchScans(CFG, taskAttend, logRows2, ['Ops000002', 'Ops000002']);
   assert.equal(res2.plans[0].action, 'update');
   assert.equal(res2.plans[1].action, 'reject');

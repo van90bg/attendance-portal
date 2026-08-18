@@ -33,12 +33,12 @@ function mkTask(id, over) {
 }
 
 // logRow shape = logFromRow_ (Database.gs). matchLogsByStaff đọc: staffId, staffName,
-// status (scan status NV), taskId, timeRefText, timeScanText.
+// status (scan status NV), taskId, listedAtText, scannedAtText.
 function mkLog(taskId, staffId, over) {
   return Object.assign({
     taskId: taskId, staffId: staffId, staffName: 'NV ' + staffId, slotCode: '',
     station: '', team: '', workstation: '',
-    timeRefText: '09:00:00', timeRefEpoch: 0, timeScanText: '09:05:00', timeScanEpoch: 0,
+    listedAtText: '09:00:00', listedAtEpoch: 0, scannedAtText: '09:05:00', scannedAtEpoch: 0,
     status: 'Có mặt', dateText: '', _rowIndex: 0,
   }, over || {});
 }
@@ -74,8 +74,8 @@ test('matchLogsByStaff: lọc theo mã NV (case-insensitive), join task', () => 
   // log fields giữ nguyên (không bị ghi đè bởi task)
   assert.equal(res[0].staffName, 'Nguyen A');
   assert.equal(res[0].status, 'Có mặt', 'status = scan status NV, không phải task status');
-  assert.equal(res[0].timeRefText, '09:00:00');
-  assert.equal(res[0].timeScanText, '09:05:00');
+  assert.equal(res[0].listedAtText, '09:00:00');
+  assert.equal(res[0].scannedAtText, '09:05:00');
 });
 
 test('matchLogsByStaff: mã NV trống/null/undefined → []', () => {
