@@ -381,10 +381,9 @@
   // (giống pasteFocusTimer trong openPasteModal — keyboard/SR vào modal ngay, không kẹt ở scanInput).
   function focusRosterStation_() {
     var m = document.getElementById('rosterModal');
-    var sel = document.getElementById('rosterStation');
-    if (!m || !sel) return;
+    if (!m) return;
     if (rosterFocusTimer) clearTimeout(rosterFocusTimer);
-    rosterFocusTimer = setTimeout(function () { if (m.classList.contains('open')) sel.focus(); }, 60);
+    rosterFocusTimer = setTimeout(function () { if (m.classList.contains('open')) { var first = m.querySelector(".pick"); if (first) first.focus(); } }, 60);
   }
   function closeRosterModal() {
     var m = document.getElementById('rosterModal');
@@ -464,7 +463,7 @@
     renderRosterChips_();
     var num = document.getElementById('rosterTotalNum');
     if (num) num.textContent = '0';
-    if (!station) return;
+    if (!ROSTER_FILTER.station) return;
     google.script.run
       .withSuccessHandler(function (res) {
         var n = (res && res.ok) ? (res.count || 0) : 0;
@@ -480,7 +479,7 @@
     if (!form) return;
     form.addEventListener('change', function (e) {
       var t = e.target;
-      if (t.id === 'rosterStation' || t.id === 'rosterDate') refreshRosterPreview();
+      // Station is fixed from task; only chip clicks trigger preview
     });
     form.addEventListener('click', function (e) {
       var chip = e.target && e.target.closest ? e.target.closest('.pick') : null;
