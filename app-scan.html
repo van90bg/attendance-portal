@@ -48,7 +48,7 @@
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
     var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
-    var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi LISTED_AT)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi SCANNED_AT)' : '');
+    var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? '' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (đang điểm danh)' : '');
     // Hiển thị meta dạng hàng: Station | Ca | Team — Phase
     var parts = [];
     if (data.task.station) parts.push(esc(data.task.station));
@@ -385,8 +385,8 @@
       '<td data-label="Team">' + esc(r.team || '') + '</td>',
       '<td data-label="Ca">' + esc(r.slotCode || '') + '</td>',
       '<td data-label="Ngày">' + esc(r.dateText || '') + '</td>',
-      '<td data-label="LISTED_AT">' + esc(r.listedAtText || '') + '</td>',
-      '<td data-label="SCANNED_AT">' + esc(r.scannedAtText || '') + '</td>',
+      '<td data-label="Giờ vào DS">' + esc(r.listedAtText || '') + '</td>',
+      '<td data-label="Giờ điểm danh">' + esc(r.scannedAtText || '') + '</td>',
       '<td data-label="Trạng thái">' + badge + '</td>'
     ];
   }
@@ -979,7 +979,7 @@
             CURRENT_TASK.status = TASK_STATUS_C.ATTEND;
             var metaEl = document.getElementById('scanTaskMeta');
             if (metaEl) {
-              var phaseHint = ' (ghi SCANNED_AT)';
+              var phaseHint = ' (đang điểm danh)';
               var parts2 = [];
               if (CURRENT_TASK.station) parts2.push(esc(CURRENT_TASK.station));
               if (CURRENT_TASK.slotCode && CURRENT_TASK.slotCode !== SLOT_FREE_MAGIC) parts2.push(esc(CURRENT_TASK.slotCode));

@@ -73,7 +73,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
   Filter PENDING option = OPEN ? "Chưa có mặt" : "Chưa điểm danh".
   GOTCHA: renderCounters neo label bằng ID cha (#cAbsent/#cScanned → parentElement) — class absent↔waiting
   swap làm querySelector('.counter.absent') về null → bỏ qua cả khối phase-aware (counter hiện số raw sai phase).
-- Table headers Vietnamese: Ngày · Mã NV · Tên NV · Ca · Team · LISTED_AT · SCANNED_AT · Trạng thái. (StaffData table riêng — xem §9.)
+- Table headers Vietnamese: Ngày · Mã NV · Tên NV · Ca · Team · Giờ vào DS · Giờ điểm danh · Trạng thái. (StaffData table riêng — xem §9.)
 - FREE description: "Quét lần 1 lấy danh sách, lần 2 điểm danh; NV lần 2 chưa có lần 1 → Dư."
 - Task type badge: FREE → 'Quét tự do' (purple), RECONCILE → 'Đối chiếu' (blue). List order: STT, Mã task, Loại, Station, Team, Ca, Tổng NV, Đã quét, Dư, Trạng thái, Tạo lúc, Người tạo, Thao tác.
 - Modal: với đổi màn tạo task → MUST làm HTML mockup trước (thư mục mockup riêng — `sketches/` đã xóa 2026-08-11), user duyệt, mới implement (luật user — strict).
