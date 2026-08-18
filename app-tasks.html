@@ -359,7 +359,10 @@
       if (col === 'station') {
         if (SEL.station !== val) {
           SEL.station = val;
-          SEL.teams = []; SEL.slots = []; SEL.contractTypes = []; SEL.date = '';
+          SEL.teams = []; SEL.contractTypes = []; SEL.date = '';
+          // A2: task mới luôn FREE — giữ ca 'Tự do' khi đổi station (nếu để rỗng →
+          // isFreeSel() false → client gửi slotCode [] → server pre-fill nhầm cả station).
+          SEL.slots = [SLOT_FREE_MAGIC];
           renderAllSelects();
         }
         refreshModeUI(); updateCreatePreview();
@@ -743,7 +746,7 @@
         if (res.ok) {
           invalidateClientCaches_();
           closeCreateModal();
-          showToast(res.message + ' — ' + res.count + ' NV', false);
+          showToast(res.message + (res.count ? ' — ' + res.count + ' NV' : ''), false);
           loadTaskList();
           openScan(res.taskId);
           // Fix #1: task Quét tự do vừa tạo → warm staffIndex ngay (fire-and-forget)

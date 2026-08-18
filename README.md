@@ -56,10 +56,10 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 
 ## Tính năng
 
-- **Tạo task 1 luồng (A1)** — task mới luôn mở phase 1 (Mở): chọn Station · Ca · Team · Ngày → **pre-fill danh sách NV** ngay lúc tạo; Ca 'Tự do' → tạo rỗng rồi quét / nạp sau.
+- **Tạo task 1 luồng (A2)** — task mới luôn **FREE + Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster khi tạo, kể cả khi gửi ca thật): modal chỉ còn chọn **Station + Ngày**; danh sách nạp sau qua nút **Lấy danh sách theo ca** (menu ⋯ trong màn quét) hoặc quét / dán.
 - **Quy trình 2 pha** — pha **Mở** ghi Giờ có mặt (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi Giờ quét:
-  - Task chọn ca: pre-fill danh sách NV ngay lúc tạo (Giờ có mặt = giờ tạo); quét phase 2 = Có mặt / Dư.
-  - Task rỗng: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư.
+  - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Chuyển điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
+  - Nạp roster theo ca (nút ⋯): append PENDING + Giờ có mặt = lúc nạp; quét phase 2 = Có mặt / Dư.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
   - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
@@ -78,7 +78,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 200, báo mã lỗi.
-- **Lấy danh sách theo ca** — nút cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/Ngày, append PENDING + Giờ có mặt, **bỏ qua NV đã có** (idempotent).
+- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/Ngày, append PENDING + Giờ có mặt = lúc nạp, **bỏ qua NV đã có** (idempotent).
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.
 - **Counters tức thì** — Đã quét / Chưa / Dư, queue nền + optimistic.
 - **A11y** — skip-link, focus trap, `prefers-contrast`, phản hồi không dùng `alert()`.

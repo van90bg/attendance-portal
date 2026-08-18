@@ -1,8 +1,9 @@
 # Đề xuất: Nạp danh sách theo ca (roster) ở phase 1 — hợp nhất quét / dán / roster
 
-> **Trạng thái: ĐÃ TRIỂN KHAI Phase A (2026-08-18)** — task mới luôn FREE + OPEN, chọn ca =
-> pre-fill roster, `loadRosterApi` + nút "Lấy danh sách theo ca", cảnh báo chuyển phase khi log
-> rỗng. **Phase B** (bỏ branch `reconcile` khi hết task cũ) chưa làm — tách issue riêng.
+> **Trạng thái: ĐÃ TRIỂN KHAI Phase A — điều chỉnh A2 (2026-08-18)** — task mới luôn FREE +
+> OPEN + log RỖNG (KHÔNG pre-fill roster khi tạo, kể cả ca thật); roster nạp sau qua
+> `loadRosterApi` + nút "Lấy danh sách theo ca" (menu ⋯ trong màn quét), cảnh báo chuyển phase
+> khi log rỗng. **Phase B** (bỏ branch `reconcile` khi hết task cũ) chưa làm — tách issue riêng.
 
 ## 1. Bối cảnh & mục tiêu
 
@@ -91,7 +92,7 @@ loadRosterApi(taskId, filters)
 5. `toAdd = deduped.filter(nv chưa có trong existing)`; `skipped = deduped.length - toAdd.length`.
 6. `toAdd` rỗng → `{ ok:true, added:0, skipped, message: 'N NV đã có trong danh sách' }`.
 7. `batchInsertLogRows_(taskId, toAdd, now)` — 1 setValues (LogRepo.gs:151), timeRef = now
-   (**Giờ có mặt = thời điểm nạp**, giống pre-fill createReconcileTask), status PENDING.
+   (**Giờ có mặt = thời điểm nạp**, giống TIME_REF của dòng log), status PENDING.
    → KHÔNG áp clamp 200 của paste (roster theo ca là danh sách chính thức, đường ghi đã dùng
    cho roster lớn ở createReconcileTask).
 8. `audit_('loadRoster', taskId, { total, added, skipped })` — sau khi ghi (fail-safe order).
@@ -103,9 +104,9 @@ thẳng — batchInsertLogRows_ tự điền staffName/slotCode/station/team t�
 
 ## 4. Client — nút "Lấy danh sách theo ca" (app-scan.html + index.html)
 
-- Nút `#btnLoadRoster` **cạnh "Dán danh sách mã"** trong topbar viewScan — hiện cùng điều kiện
-  với `#btnPaste` (phase Mở + `canScanOpen`; sau Phase A mọi task mới = FREE nên không cần check
-  taskType). Vị trí: `#btnPaste` bên cạnh, cùng class btn-outline.
+- Nút `#btnLoadRoster` trong menu **⋯** (`#scanMoreWrap`) cạnh "Dán danh sách mã" trong topbar
+  viewScan — hiện cùng điều kiện với `#btnPaste` (phase Mở + `canScanOpen`; sau Phase A mọi task
+  mới = FREE nên không cần check taskType). Menu ⋯ chỉ hiện khi có ≥1 nút con hiển thị.
 - Dialog `#rosterModal` (tái dùng `.about-overlay` + `.about-dialog` + `anyModalOpen()`):
   - Bộ lọc gọn: Station (bắt buộc) + Ca + Team + Ngày — **tái dùng cây `getFilterOptionsApi`**
     (stationGroups + defaults + lists) + pattern chips của create modal; hoặc select đơn giản
@@ -117,17 +118,17 @@ thẳng — batchInsertLogRows_ tự điền staffName/slotCode/station/team t�
 - Module: thêm vào `app-scan.html` (nút + dialog logic) + `index.html` (HTML dialog) —
   không module mới.
 
-## 5. Modal tạo task — 2 phương án (chờ chốt)
+## 5. Modal tạo task — ĐÃ CHỐT A2 (2026-08-18)
 
-| | A1 — giữ chọn ca (khuyến nghị) | A2 — rút gọn |
+| | A1 — giữ chọn ca | **A2 — rút gọn (ĐÃ CHỐT)** |
 |---|---|---|
-| Modal | Giữ nguyên 5 filter + chip "Tự do" | Chỉ Station (+ Ngày) |
-| Chọn ca thật | Task FREE + **pre-nạp roster ngay lúc tạo** (batchInsertLogRows_, status **OPEN**) | Không pre-nạp — roster qua nút nạp sau |
-| Người quen việc | Giữ luồng "tạo xong có sẵn roster" (chỉ mất 1 bước Chuyển điểm danh so với reconcile cũ) | Phải nạp roster thủ công |
-| Độ phức tạp | Tạo task đổi: `noList` → luôn FREE + OPEN; chọn ca = pre-nạp (đi thẳng vào batchInsertLogRows_) | Tạo task đổi: luôn FREE + OPEN, bỏ filter |
+| Modal | Giữ nguyên 5 filter + chip "Tự do" | Chỉ Station + Ngày |
+| Chọn ca thật | Task FREE + **pre-nạp roster ngay lúc tạo** | **Không pre-nạp** — task mới luôn RỖNG; roster qua nút nạp sau (⋯) |
 
-Cả 2 phương án: **task mới LUÔN `taskType='free'` + status OPEN** — taskType 'reconcile'
-không còn được tạo mới. A1 giữ modal hiện tại (ít thay đổi UI, giữ người quen việc) — khuyến nghị.
+**Đã chốt A2:** task mới LUÔN `taskType='free'` + status OPEN + **log rỗng** (server ép
+`noList = true` — bỏ pre-fill khi tạo, kể cả khi client gửi ca thật; tránh nạp nhầm cả station
+khi modal chỉ có Station + Ngày). Roster nạp sau qua nút "Lấy danh sách theo ca". taskType
+'reconcile' không còn được tạo mới.
 
 ## 6. Cảnh báo nút "Chuyển điểm danh"
 
@@ -155,7 +156,8 @@ trước khi `transitionToAttend`. Chỉ nhắc, không chặn.
 
 ## 9. Quyết định mở cần chốt trước khi code
 
-1. **Modal:** A1 (giữ chọn ca → pre-nạp roster) hay A2 (rút gọn chỉ Station)? — đề xuất A1.
+1. ~~Modal A1/A2~~ — **ĐÃ CHỐT A2** (2026-08-18): modal chỉ Station + Ngày, task mới rỗng,
+   roster nạp sau qua nút ⋯ (không pre-fill khi tạo).
 2. **Nạp roster ở phase 2:** chặn (đề xuất — gate `status === OPEN`) hay cho phép? Nếu cho phép:
    mở lại vấn đề "có mặt" lệch (PENDING append ở phase 2) + rủi ro NV quét phase 2 trước khi
    nạp vẫn thành Dư không cứu được — đề xuất chặn + cảnh báo §6.

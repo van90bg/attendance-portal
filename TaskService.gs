@@ -1,10 +1,11 @@
 /**
- * TaskService.gs — Nghiệp vụ task (tạo/đóng/chuyển phase) + pre-fill log.
+ * TaskService.gs — Nghiệp vụ task (tạo/đóng/chuyển phase) + nạp roster (pre-fill log qua loadRoster).
  *
  * 2-phase attendance: tạo task → phase1 (Mở, quét Giờ có mặt) → phase2 (Điểm danh,
  * quét Giờ quét) → Xong.
- * A1 (docs/roster-load-design.md): mọi task mới = FREE + OPEN (phase 1). Chọn ca thật →
- * pre-fill roster (TIME_REF = giờ tạo); Ca 'Tự do' → log rỗng. Phase 1 KHÔNG có Dư —
+ * A2 (docs/roster-load-design.md): mọi task mới = FREE + OPEN (phase 1) + log RỖNG —
+ * KHÔNG pre-fill roster khi tạo (kể cả khi client gửi ca thật); danh sách nạp sau qua
+ * loadRosterApi (nút "Lấy danh sách theo ca" trong màn quét). Phase 1 KHÔNG có Dư —
  * Dư chỉ khi quét phase 2 ngoài danh sách. transitionToAttend chuyển Mở→Điểm danh.
  */
 
@@ -20,8 +21,9 @@ function makeTaskId_(now) {
 }
 
 /**
- * Tạo task mới (A1): luôn FREE + OPEN (phase 1); chọn ca thật = pre-fill roster,
- * Ca 'Tự do' = log rỗng. Legacy task 'reconcile' cũ không còn được tạo mới.
+ * Tạo task mới (A2): luôn FREE + OPEN (phase 1) + log RỖNG — KHÔNG pre-fill roster khi
+ * tạo (slotCode client gửi bị ép 'Tự do'). Roster nạp sau qua loadRosterApi ("Lấy danh
+ * sách theo ca" trong màn quét). Legacy task 'reconcile' cũ không còn được tạo mới.
  * @param {{station: string, slotCode: string, team: string, createdBy: string}} input
  * @returns {{ok: boolean, taskId: string|null, count: number, message: string}}
  */
@@ -33,13 +35,12 @@ function createReconcileTask(input) {
     return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
   }
   const station = String((input && input.station) || '').trim();
-  // noList: quét tự do KHÔNG danh sách (luồng vận hành quét 2 lần không cần roster).
-  // Khi bật, bỏ qua validate group + KHÔNG pre-fill log → mọi quét là Dư (phase1 ghi
-  // Giờ có mặt, phase2 ghi Giờ quét). Task vẫn Mở (phase1) như bình thường.
-  // Commit 2026-08-08: slotCode='Tự do' (magic trong dropdown Ca) tự quyết FREE.
-  // isFreeSlotSelection_ fail-safe: ['Tự do','X'] → false → đi reconcile path
-  // (filter không khớp → CREATE_FAILED_EMPTY). Giữ (input.noList) cũ cho tương thích.
-  const noList = isFreeSlotSelection_(input && input.slotCode) || !!(input && input.noList);
+  // A2 (2026-08-18): task mới LUÔN quét tự do — KHÔNG pre-fill roster khi tạo, bất kể
+  // slotCode client gửi (ca thật cũng bị bỏ — trước đây modal chỉ Station + Ngày mà
+  // SEL.slots rỗng → isFreeSel() false → nạp nhầm cả station vào roster).
+  // Nạp danh sách sau qua loadRosterApi (nút "Lấy danh sách theo ca" trong màn quét).
+  // Nhánh pre-fill bên dưới chỉ còn là legacy path — noList luôn true nên không chạy.
+  const noList = true;
   // Multi-select: slotCode/team có thể là mảng (từ modal) — task sheet chỉ có 1 cột,
   // nối ", " để lưu hiển thị; filter vẫn dùng mảng gốc (dòng NV khớp BẤT KỲ team/slot chọn).
   const slotCode = Array.isArray(input && input.slotCode)
@@ -94,7 +95,7 @@ function createReconcileTask(input) {
 
     const task = {
       taskId: taskId,
-      // A1: mọi task mới = FREE (classifyScan nhánh FREE: phase 1 KHÔNG Dư —
+      // A2: mọi task mới = FREE (classifyScan nhánh FREE: phase 1 KHÔNG Dư —
       // NV lạ quét phase 1 ghi PENDING; Dư chỉ khi quét phase 2 ngoài danh sách).
       taskType: TASK_TYPE.FREE,
       station: station,
@@ -102,18 +103,16 @@ function createReconcileTask(input) {
       slotCode: noList ? SLOT_FREE_MAGIC : slotCode,
       team: team,
       contractType: contractType,
-      // A1: KHÔNG còn task sinh ở ATTEND — roster pre-nạp vẫn qua phase 1; bấm
+      // A2: KHÔNG còn task sinh ở ATTEND — mọi task mới mở phase 1 log rỗng; bấm
       // "Chuyển điểm danh" sang phase 2 (NV ngoài danh sách quét phase 2 = Dư).
       status: TASK_STATUS.OPEN,
       createdAt: now,
       createdBy: createdBy,
       completedAt: null,
     };
-    // TIME_REF = Giờ có mặt (breaking 2026-08-05): pre-fill ghi ngay giờ tạo task
-    // cho mọi NV trong list. Khác v1 (pre-fill time = taskCreated rỗng).
-    // S2 (idempotency audit): ghi log TRƯỚC insertTask_ — nếu batchInsertLogRows_
-    // fail (quota/lock) thì KHÔNG để lại task ATTEND rỗng (tránh mọi scan sau thành
-    // EXTRA + cho phép retry tạo lại task mới sạch). batchInsert là 1 setValues → atomic.
+    // Legacy pre-fill (A1 — KHÔNG chạy từ A2 vì noList luôn true): TIME_REF = Giờ có mặt
+    // ghi ngay giờ tạo task cho mọi NV trong list. S2 (idempotency): ghi log TRƯỚC
+    // insertTask_ — batchInsert fail → không để lại task ATTEND rỗng.
     const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
     insertTask_(task);
     audit_('createTask', taskId, { type: TASK_TYPE.FREE, count: count });

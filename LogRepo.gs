@@ -143,7 +143,7 @@ function invalidateLogRows_(taskId) {
 }
 
 /**
- * Pre-fill log batch 1 lần (createReconcileTask) — KHÔNG appendRow trong loop.
+ * Pre-fill log batch 1 lần (loadRoster/paste — KHÔNG còn ở createReconcileTask từ A2) — KHÔNG appendRow trong loop.
  * @param {string} taskId
  * @param {Array<Object>} staffList — NV khớp tổ hợp
  * @param {Date} createdAt
@@ -159,7 +159,7 @@ function batchInsertLogRows_(taskId, staffList, createdAt) {
     ];
   });
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
-  invalidateLogRows_(taskId); // U2: pre-fill tạo dòng mới — xoá cache cũ nếu taskId tái sử dụng
+  invalidateLogRows_(taskId); // U2: nạp roster/paste tạo dòng mới — xoá cache cũ nếu taskId tái sử dụng
   return rows.length;
 }
 

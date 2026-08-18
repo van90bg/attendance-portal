@@ -3,7 +3,8 @@
  * Pure: isFreeSlotSelection_ (CsvUtil) 3 case.
  * VM   : createReconcileTask với CsvUtil thật + fake GAS (LockService/Session/IO).
  *        Case FREE  → taskType FREE, status OPEN, log=0 (KHÔNG pre-fill)
- *        Case ca thật (A1) → taskType FREE, status OPEN, log pre-fill >0
+ *        Case ca thật (A2) → taskType FREE, status OPEN, log=0 — mọi task mới RỖNG,
+ *        roster nạp sau qua loadRosterApi (KHÔNG pre-fill khi tạo)
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -71,13 +72,14 @@ test('vm: slotCode=["Tự do"] → FREE task, OPEN, log=0', () => {
   assert.equal(res.count, 0, 'KHÔNG pre-fill');
 });
 
-test('VM: slotCode=["08:00-17:00"] → FREE task, OPEN, log pre-fill>0 (A1)', () => {
+test('VM: slotCode=["08:00-17:00"] → FREE task, OPEN, log=0 (A2 — không pre-fill khi tạo)', () => {
   const { ctx, inserted } = makeCtx();
   const res = ctx.createReconcileTask({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
-  assert.equal(inserted[0].taskType, 'free', 'A1: mọi task mới FREE');
-  assert.equal(inserted[0].status, 'open', 'A1: mọi task mới mở phase1');
-  assert.equal(res.count, 1, 'pre-fill 1 NV (OPS001)');
+  assert.equal(inserted[0].taskType, 'free', 'A2: mọi task mới FREE');
+  assert.equal(inserted[0].status, 'open', 'A2: mọi task mới mở phase1');
+  assert.equal(inserted[0].slotCode, 'Tự do', 'A2: ca lưu = Tự do (ép FREE, bỏ ca thật)');
+  assert.equal(res.count, 0, 'A2: log rỗng — roster nạp sau qua loadRosterApi');
 });
 
 test('VM: noList cũ (input.noList=true) vẫn tương thích', () => {

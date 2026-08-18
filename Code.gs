@@ -157,7 +157,7 @@ function getAuditLogApi(limit) {
   }
 }
 
-/** Tạo task đối chiếu + pre-fill. Gate requireRole_('operator') đặt TRONG createReconcileTask
+/** Tạo task mới (A2 — luôn FREE + rỗng, không pre-fill). Gate requireRole_('operator') đặt TRONG createReconcileTask
  *  (TaskService) — chống bypass google.script.run gọi global; wrapper chỉ DEFENSE. */
 function createReconcileTaskApi(input) {
   // Gate quyền THẬT nằm TRONG createReconcileTask (TaskService) — google.script.run gọi được hàm global

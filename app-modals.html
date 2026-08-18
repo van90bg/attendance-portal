@@ -130,7 +130,7 @@
   function isFreeSel() {
     return SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
   }
-  // A1-A2 (2026-08-18): modal tạo task rút gọn — task mới LUÔN quét tự do (không roster),
+  // A2 (2026-08-18): modal tạo task rút gọn — task mới LUÔN quét tự do (không roster),
   // danh sách nạp sau qua nút "⋯" trong màn quét. Team/Ca/Hình thức ẩn trong HTML.
   function refreshModeUI() {
     var desc = document.getElementById('modeDesc');
@@ -309,7 +309,7 @@
     return name || email;
   }
 
-  /* ===== Roster modal (A1 — nạp danh sách theo ca ở phase 1, docs/roster-load-design.md) ===== */
+  /* ===== Roster modal (A2 — nạp danh sách theo ca ở phase 1, docs/roster-load-design.md) ===== */
   var rosterFocusBack = null;
   var rosterFocusTimer = null;
   var ROSTER_OPTS = null;   // cache getFilterOptionsApi (1 fetch/tab)
