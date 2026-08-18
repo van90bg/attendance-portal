@@ -34,6 +34,7 @@ function invalidateStaffIndex_() {
  * create-modal. Dùng buildStaffListFromValues (CsvUtil — giữ mọi dòng, không dedupe).
  */
 function readStaffFullList_() {
+  if (!requireRole_('manager')) return [];
   return cachedJson_(CACHE_KEYS.STAFF_STATS, function () {
     const sheet = getSheet_(SHEETS.STAFF_DATA);
     const tz = getSpreadsheet_().getSpreadsheetTimeZone();
@@ -55,6 +56,7 @@ function readStaffList_() {
 
 /** Ghi đè toàn bộ StaffData từ dữ liệu csv đã parse (syncFromCsv). */
 function overwriteStaffData_(staffList) {
+  if (!isEditor_()) return 0;
   const sheet = getSheet_(SHEETS.STAFF_DATA);
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, STAFF_DATA_COL_COUNT).clearContent();

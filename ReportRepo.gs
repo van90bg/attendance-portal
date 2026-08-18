@@ -158,5 +158,6 @@ function readAttendanceRowsAll_() {
 
 /** Chấm công của 1 Ops ID — filter từ cache chung (không đọc lại sheet). */
 function readAttendanceRows_(opsId) {
+  if (!requireRole_('manager')) return [];
   return filterAttendanceRows(readAttendanceRowsAll_(), opsId);
 }

@@ -189,6 +189,7 @@ function invalidateTaskListCache_() {
  * @returns {Array<Object>} — tasks khớp (giữ counters từ readTaskList_), limit 50
  */
 function searchTasksByQuery(rawQ) {
+  if (!requireRole_('viewer')) return [];
   const q = String(rawQ || '').trim();
   if (!q) return [];
   try {

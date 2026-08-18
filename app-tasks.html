@@ -70,6 +70,7 @@
   // (lock hết sớm khi RPC chậm sẽ cho phép chồng luồng mới). Disable nút visual khi khóa.
   var _refreshLock = false;
   var _refreshPending = 0;
+  var _refreshTimer = null;
   var _filterOptsLoaded = false;  // getFilterOptionsApi đã về — modal tạo task fetch-if-empty khi mở sớm
   function _releaseRefreshLock() {
     if (_refreshPending <= 0) return;  // clamp — timeout 5s đã nhả, RPC trả về sau không đẩy âm
@@ -98,7 +99,8 @@
     // Header "Làm mới" cũng làm mới StaffData khi đang ở Thống kê/Dữ liệu (1 nút = tất cả)
     if (withStaffRefresh) loadStaffView(null, false, 'refresh');
     // bảo hiểm an toàn: phòng RPC không bao giờ resolve (treo) — vẫn nhả sau 5s
-    setTimeout(function () {
+    if (_refreshTimer) clearTimeout(_refreshTimer);
+    _refreshTimer = setTimeout(function () {
       if (_refreshPending > 0) _refreshPending = 1;  // ép nhả ở vòng kế
       _releaseRefreshLock();
     }, 5000);

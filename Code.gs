@@ -10,7 +10,7 @@
  *   getStaffStatsApi()           → { ok, counts } — thống kê StaffData
  *   getSettingsApi()             → { ok, settings } — editor-only (trang Config Admin)
  *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
- *   getAuditLogApi(limit)        → { ok, rows } — nhật ký hoạt động viewAdmin (manager+)
+ *   getAuditLogApi(limit)        → { ok, rows } — nhật ký hoạt động viewAdmin (admin+)
  *   createReconcileTaskApi(input) → { ok, taskId, count, message }
  *   getTaskListApi()             → [{ taskId, station, slotCode, team, status, createdAt }]
  *   getTaskDetailApi(taskId)     → { ok, task, log, counters }

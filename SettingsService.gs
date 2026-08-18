@@ -13,7 +13,19 @@
  *   (tránh config chết / đệ quy khi đọc Config sheet từ chính spreadsheet cấu hình).
  */
 
-/** Đọc toàn bộ settings (defaults + override từ Config sheet) — cache 60s.
+/** Đọc settings công khai — bỏ roleMap (cho operator path: getFilterOptionsApi). */
+function getPublicSettings_() {
+  var all = getSettings_();
+  if (!all) return all;
+  var pub = {};
+  Object.keys(all).forEach(function (k) {
+    if (k === 'roleMap') return;
+    pub[k] = all[k];
+  });
+  return pub;
+}
+
+/** Đọc toàn bộ settings (defaults + override từ Config sheet) — cache 60s. Editor-only full; operator dùng getPublicSettings_.
  * @returns {Object<string, *>} merged settings (mọi key của SETTINGS_DEFAULTS đều có mặt)
  */
 function getSettings_() {

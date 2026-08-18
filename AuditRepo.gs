@@ -26,6 +26,7 @@ function audit_(action, targetId, detail) {
 
 /** Đọc audit gần nhất — mới nhất trước. limit 1..200, mặc định 50. */
 function getAuditLog_(limit) {
+  if (!requireRole_('admin')) return [];
   const sheet = getSheet_(SHEETS.AUDIT_LOG);
   const max = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
   const lastRow = sheet.getLastRow();

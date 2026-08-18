@@ -86,12 +86,12 @@
         scanInput.disabled = !canScan;
         scanInput.placeholder = canScan ? 'Quét mã nhân viên…'
           : 'Task đã kết thúc — không thể quét';
+        // T-1: áp dụng owner gate TRƯỚC updateFinishBtnState — scanOwnerLocked quyết định
+        // nút Chuyển điểm danh + disabled state, updateFinishBtnState phải đọc state mới nhất.
+        applyScanPermission();
         updateFinishBtnState();
         // F: đồng bộ indicator sort với phase vừa render (phase2 → cột Giờ quét)
         updateSortIndicators();
-        // T-1: áp dụng owner gate CUỐI CÙNG — nguồn quyết định cuối cho disabled/placeholder/
-        // nút Chuyển điểm danh/nút paste (không bị logic phase ở trên ghi đè).
-        applyScanPermission();
         // Mobile/tablet (pointer:coarse): KHÔNG focus ngay — bàn phím ảo tự bật đè màn hình
         // khi mở task quét. Máy tính (chuột/barcode scanner) giữ auto-focus như cũ.
         if (canScan && !scanOwnerLocked && !COARSE_POINTER) {
@@ -137,7 +137,7 @@
         // trỏ object cũ → dòng vừa quét optimistic 'biến mất'. Gate: đang scan thì bỏ qua
         // RPC silent (giữ view optimistic đang hiển thị — server vẫn ghi đúng phía sau).
         if (silent && scanBusy()) { _pendingSilentReload = taskId; BG_TASKS.silent = 1; updateBgIndicator(); return; } // m4: hoãn, reload khi queue idle
-        renderScanView(res);
+        try { renderScanView(res); } catch (e) { console.error("renderScanView", e); markServerFail(); }
         LAST_SCAN_VIEW = { taskId: taskId, ts: Date.now() };
         hideLoadingOverlay();
       })

@@ -140,7 +140,7 @@ test('scanStaff: mã hỗn hợp số + chữ (Ops12a3) → reject format', () =
 // WYSIWYG (2026-08-18): client gửi epoch chụp lúc quét → server ghi ĐÚNG giờ hiển thị trên
 // app, không đè bằng giờ xử lý (queue 2.5s/item + đồng hồ thiết bị lệch → nhảy giờ sau ~1s).
 test('scanStaff: clientEpoch → timeRefEpoch = giờ client (không phải giờ server)', () => {
-  const clientNow = new Date('2026-08-02T08:30:45');
+  const clientNow = new Date(Date.now() - 3000);  // 3s ago — within 15min clamp
   const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999', clientNow.getTime());

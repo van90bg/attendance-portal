@@ -111,7 +111,7 @@
     if (!s) return '';
     var m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
     if (m) return ('0' + Number(m[1])).slice(-2) + ':' + m[2] + ':' + (m[3] || '00');
-    return s;
+    return esc(s);
   }
 
   // P2: format theo TZ Asia/Ho_Chi_Minh (khớp server Session.getScriptTimeZone)

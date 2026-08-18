@@ -109,7 +109,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     // silent reload, cột Giờ có mặt/Giờ quét nhảy về giờ server). Fallback giờ server khi
     // client không gửi (thiết bị cũ / gọi tay) — chấp nhận epoch client vì gate operator+.
     const scanNow = (typeof clientEpoch === 'number' && isFinite(clientEpoch) && clientEpoch > 0)
-      ? new Date(clientEpoch)
+      ? (Math.abs(clientEpoch - Date.now()) > 900000 ? new Date() : new Date(clientEpoch))
       : new Date();
     const commit = planScanCommits(
       { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
