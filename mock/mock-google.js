@@ -211,6 +211,9 @@
       // Deep-copy khi trả client — optimistic client mutate CURRENT_LOG (status/epoch)
       // KHÔNG được leak vào server-side mock state (giống prod: google.script.run serialize JSON).
       // Nếu trả reference: mọi lần quét đầu tiên đều bị reject nhầm 'Đã điểm danh'.
+      // Khớp server getTaskDetail (TaskService.gs): permission tính tươi theo user đọc —
+      // mock luôn owner/admin để 2 nút Dán + Lấy danh sách hiện khi test local.
+      task.permission = { isAdmin: true, isOwner: true, canScanOpen: true };
       return { ok: true, task: task, log: JSON.parse(JSON.stringify(log)), counters: counters(log) };
     },
     createReconcileTaskApi: function (input) {

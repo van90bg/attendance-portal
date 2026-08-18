@@ -145,7 +145,7 @@ function probeExpr() {
       if (!els.length) return;
       const groups = {};
       els.forEach(el => {
-        if (getComputedStyle(el).display === 'none') return; // bỏ element đang hidden — computed min-height 0px gây nhiễu giả lệch
+        if (getComputedStyle(el).display === 'none' || el.offsetParent === null) return; // bỏ element hidden (cả qua ancestor hidden) — computed min-height 0px gây nhiễu giả lệch
         const s = getComputedStyle(el);
         const fp = KEYS.map(k => s[k]).join('|');
         const parent = el.closest('section') || { id: 'modal?' };

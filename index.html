@@ -115,8 +115,13 @@
         <div class="task-title" id="scanTaskTitle"></div>
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
-      <button class="btn btn-outline" id="btnPaste" onclick="openPasteModal()" style="display:none" aria-label="Dán danh sách mã" title="Dán danh sách mã">Dán danh sách mã</button>
-      <button class="btn btn-outline" id="btnLoadRoster" onclick="openRosterModal()" style="display:none" aria-label="Lấy danh sách theo ca" title="Lấy danh sách theo ca">Lấy danh sách theo ca</button>
+      <div class="topbar-more" id="scanMoreWrap" style="display:none">
+        <button class="btn btn-ghost" id="btnScanMore" onclick="toggleScanMore()" aria-label="Thêm thao tác" aria-expanded="false" aria-haspopup="true">⋯</button>
+        <div class="topbar-more-menu" id="scanMoreMenu" role="menu" hidden>
+          <button class="topbar-more-item" id="btnPaste" onclick="openPasteModal()" style="display:none" aria-label="Dán danh sách mã">Dán danh sách mã</button>
+          <button class="topbar-more-item" id="btnLoadRoster" onclick="openRosterModal()" style="display:none" aria-label="Lấy danh sách theo ca">Lấy danh sách theo ca</button>
+        </div>
+      </div>
       <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Kết thúc task">Kết thúc</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>

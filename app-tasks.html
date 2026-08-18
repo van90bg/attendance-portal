@@ -501,7 +501,7 @@
         tr.innerHTML =
           '<td class="stt" data-label="STT">' + (start + pi + 1) + '</td>' +
           '<td data-label="Mã task"><a class="task-open-link" href="javascript:void(0)" onclick="openScan(\'' + escAttr(t.taskId) + '\')">' + esc(t.taskId) + '</a></td>' +
-          '<td data-label="Loại">' + taskTypeBadge(t.taskType) + '</td>' +
+          '<td data-label="Loại">' + taskTypeBadge(t) + '</td>' +
           '<td data-label="Station">' + esc(t.station) + '</td>' +
           '<td data-label="Team">' + esc(t.team) + '</td>' +
           '<td class="td-slot" data-label="Ca">' + slotCellHtml(t.slotCode) + '</td>' +
@@ -675,7 +675,7 @@
           '<td data-label="Mã NV">' + esc(r.staffId) + '</td>' +
           '<td data-label="Tên NV">' + esc(r.staffName || "") + '</td>' +
           '<td data-label="Điểm danh">' + badgeFor(r.status) + '</td>' +
-          '<td data-label="Loại">' + taskTypeBadge(r.taskType) + '</td>' +
+          '<td data-label="Loại">' + taskTypeBadge(r) + '</td>' +
           '<td data-label="Station">' + esc(r.station || "") + '</td>' +
           '<td data-label="Team">' + esc(r.team || "") + '</td>' +
           '<td class="td-slot" data-label="Ca">' + slotCellHtml(r.slotCode || '') + '</td>' +

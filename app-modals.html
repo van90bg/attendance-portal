@@ -13,6 +13,7 @@
     var m = document.getElementById('pasteModal');
     if (!m) return;
     pasteFocusBack = document.activeElement;
+    closeScanMore_();  // item menu "⋯" — đóng menu khi mở modal
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     var ta = document.getElementById('pasteTextarea');
@@ -230,6 +231,7 @@
     if (rosterBtn && scanOwnerLocked) {
       rosterBtn.style.display = 'none';
     }
+    updateScanMoreBtn_();
   }
 
   // Modal confirm dùng chung — thay alert/confirm trình duyệt.
@@ -299,27 +301,43 @@
   }
 
   /* ===== Roster modal (A1 — nạp danh sách theo ca ở phase 1, docs/roster-load-design.md) ===== */
+  var rosterFocusBack = null;
+  var rosterFocusTimer = null;
   var ROSTER_OPTS = null;   // cache getFilterOptionsApi (1 fetch/tab)
   var ROSTER_FILTER = { station: '', slotCode: '', team: '', date: '' };
   function openRosterModal() {
     if (!CURRENT_TASK || !CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
     var m = document.getElementById('rosterModal');
     if (!m) return;
+    rosterFocusBack = document.activeElement;
+    closeScanMore_();  // item menu "⋯" — đóng menu khi mở modal
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     var num = document.getElementById('rosterTotalNum');
     if (num) num.textContent = '0';
     var submitBtn = document.getElementById('btnRosterSubmit');
     if (submitBtn) submitBtn.disabled = true;
-    if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); return; }
+    if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); return; }
     google.script.run
-      .withSuccessHandler(function (res) { ROSTER_OPTS = res; fillRosterOptions(res); })
+      .withSuccessHandler(function (res) { ROSTER_OPTS = res; fillRosterOptions(res); focusRosterStation_(); })
       .withFailureHandler(function () { ROSTER_OPTS = null; showToast('Lỗi tải danh sách ca', true); })
       .getFilterOptionsApi();
+  }
+  // Focus #rosterStation sau khi overlay transition visibility — cùng tick bị bỏ vì còn hidden
+  // (giống pasteFocusTimer trong openPasteModal — keyboard/SR vào modal ngay, không kẹt ở scanInput).
+  function focusRosterStation_() {
+    var m = document.getElementById('rosterModal');
+    var sel = document.getElementById('rosterStation');
+    if (!m || !sel) return;
+    if (rosterFocusTimer) clearTimeout(rosterFocusTimer);
+    rosterFocusTimer = setTimeout(function () { if (m.classList.contains('open')) sel.focus(); }, 60);
   }
   function closeRosterModal() {
     var m = document.getElementById('rosterModal');
     if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    if (rosterFocusTimer) { clearTimeout(rosterFocusTimer); rosterFocusTimer = null; }
+    if (rosterFocusBack && rosterFocusBack.focus) rosterFocusBack.focus();
+    rosterFocusBack = null;
   }
   function fillRosterOptions(res) {
     if (!res || !res.ok) return;

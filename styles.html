@@ -221,6 +221,22 @@
     .view-topbar-title .task-title,
     .view-topbar-title .task-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height */
+    /* Menu "⋯" viewScan — gom Dán danh sách mã + Lấy danh sách theo ca (P2-4: topbar mobile khỏi chồng 2 nút dài) */
+    .topbar-more { position: relative; flex-shrink: 0; }
+    .topbar-more-menu {
+      position: absolute; top: calc(100% + var(--space-2)); right: 0; z-index: 35;
+      min-width: 220px; padding: var(--space-2);
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
+      box-shadow: 0 8px 24px rgba(0,0,0,.12); display: flex; flex-direction: column; gap: var(--space-1);
+    }
+    .topbar-more-item {
+      display: flex; align-items: center; width: 100%; text-align: left;
+      padding: var(--space-3) var(--space-4); min-height: 44px;
+      background: transparent; border: 0; border-radius: var(--radius-sm);
+      font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--text); cursor: pointer;
+    }
+    .topbar-more-item:hover { background: var(--surface-muted); }
+    .topbar-more-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
     /* Toolbar chung các view List/Scan/Stats/Staff/Config — 1 class dùng chung */
     .scan-layout {

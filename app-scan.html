@@ -50,7 +50,7 @@
     var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
     var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
     metaEl.innerHTML =
-      esc(TT_LABEL[data.task.taskType] || 'Task') + ' ' + esc(data.task.station) + ' ' + esc(data.task.slotCode) + ' ' + esc(data.task.team) +
+      esc(taskKindLabel_(data.task)) + ' ' + esc(data.task.station) + ' ' + esc(data.task.slotCode) + ' ' + esc(data.task.team) +
       ' — <b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);  /* bỏ dấu · giữa các trường (space phân cách, trước phase dùng —) */
     if (skel) skel.style.display = 'none';
     if (tbl) tbl.style.display = '';
@@ -61,8 +61,8 @@
     renderCounters(CURRENT_COUNTERS);
     updateScanFilterLabel_();
 
-    // T-2: Nút "Dán danh sách mã" trên view-topbar — chỉ hiện khi FREE + open + canScanOpen.
-    // (nút tĩnh trong HTML; ở đây chỉ bật/tắt display theo task vừa render)
+    // T-2: Nút "Dán danh sách mã" + "Lấy danh sách theo ca" gom trong menu "⋯" (#scanMoreWrap) —
+    // chỉ hiện khi FREE + open + canScanOpen (nút tĩnh trong HTML; ở đây chỉ bật/tắt display).
     var pasteBtn = document.getElementById('btnPaste');
     var rosterBtn = document.getElementById('btnLoadRoster');
     var isFree = data.task.taskType === TASK_TYPE_C.FREE;
@@ -75,6 +75,7 @@
     if (rosterBtn) {
       rosterBtn.style.display = (isOpenPhase && perm.canScanOpen) ? '' : 'none';
     }
+    updateScanMoreBtn_();
 
     // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
         // Giờ có mặt được). Task Quét tự do (FREE) cũng 2-phase: phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét (V2 FREE là 2-phase) — phải bấm
@@ -412,10 +413,21 @@
   }
 
   // 2026-08-07: badge Loại task ở danh sách task (FREE = Quét tự do, RECONCILE = Đối chiếu).
-  function taskTypeBadge(taskType) {
+  // Badge Loại task: task mới luôn FREE nhưng có thể đã nạp danh sách (A1) — hiện trạng thái
+  // danh sách thay vì chế độ tạo: roster > 0 → "Đã có danh sách"; còn trống → "Quét tự do".
+  function taskTypeBadge(task, fallbackType) {
+    var taskType = (task && task.taskType) || fallbackType;
+    var hasRoster = task && Number(task.total || task.count || 0) > 0;
+    if (hasRoster) return '<span class="badge badge-reconcile">Đã có danh sách</span>';
     if (taskType === TASK_TYPE_C.FREE) return '<span class="badge badge-free">Quét tự do</span>';
     if (taskType === TASK_TYPE_C.RECONCILE) return '<span class="badge badge-reconcile">Đối chiếu</span>';
     return '<span class="badge">Task</span>';
+  }
+  // Nhãn loại task cho scanTaskMeta — "Đã có danh sách" khi roster đã nạp (đồng bộ taskTypeBadge).
+  function taskKindLabel_(task) {
+    if (!task) return 'Task';
+    if (Number(task.total || task.count || 0) > 0) return 'Đã có danh sách';
+    return TT_LABEL[task.taskType] || 'Task';
   }
   // F-search: badge Trạng thái task — dùng chung cho renderTaskList_ + renderSearchResults_ (tránh duplicate markup).
   // 'attend'→Điểm danh, 'done'→Xong, 'open'→Mở; trạng thái lạ/null → badge trống.
@@ -686,6 +698,42 @@
     processScanQueue();
   }
 
+  // Menu "⋯" viewScan: nút mở chỉ hiện khi có ≥1 hành động trong menu (paste/roster).
+  function updateScanMoreBtn_() {
+    var wrap = document.getElementById('scanMoreWrap');
+    if (!wrap) return;
+    var p = document.getElementById('btnPaste');
+    var r = document.getElementById('btnLoadRoster');
+    var anyVisible = (p && p.style.display !== 'none') || (r && r.style.display !== 'none');
+    wrap.style.display = anyVisible ? '' : 'none';
+    if (!anyVisible) closeScanMore_();
+  }
+  function toggleScanMore() {
+    var menu = document.getElementById('scanMoreMenu');
+    var btn = document.getElementById('btnScanMore');
+    if (!menu) return;
+    var opening = menu.hidden;
+    closeScanMore_();
+    if (opening) {
+      menu.hidden = false;
+      if (btn) btn.setAttribute('aria-expanded', 'true');
+      var first = menu.querySelector('button:not([style*="display: none"])');
+      if (first) first.focus();
+    }
+  }
+  function closeScanMore_() {
+    var menu = document.getElementById('scanMoreMenu');
+    var btn = document.getElementById('btnScanMore');
+    if (menu) menu.hidden = true;
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+  // Click ngoài menu "⋯" → đóng (mở modal bên trong tự đóng khi item được click).
+  document.addEventListener('click', function (e) {
+    var wrap = document.getElementById('scanMoreWrap');
+    var menu = document.getElementById('scanMoreMenu');
+    if (!wrap || !menu || menu.hidden) return;
+    if (!wrap.contains(e.target)) closeScanMore_();
+  });
   // P1: không cho Kết thúc khi còn lượt quét chờ server (task-closed sẽ mất scan).
   // 2-phase: 3 nút — ToAttend (Mở→Điểm danh), Finish (chỉ phase2), Reopen (Done→Mở).
   function updateFinishBtnState() {
@@ -713,6 +761,7 @@
       btnRos.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
         && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
     }
+    updateScanMoreBtn_();
     if (scanBusy()) {
       if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
       if (btnTo) { btnTo.disabled = true; btnTo.title = 'Đang xử lý quét — chờ xong rồi chuyển'; }
