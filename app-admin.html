@@ -72,13 +72,32 @@
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
+  // Đối tượng hiển thị: targetId thường đủ; settings ghi targetId '' + detail
+  // JSON {"saved":[...]} — parse ra nội dung đọc được, không hiện JSON thô.
+  function auditTargetText_(r) {
+    if (r.targetId) return r.targetId;
+    var d = r.detail || '';
+    if (!d) return '—';
+    try {
+      var o = JSON.parse(d);
+      if (o && typeof o === 'object') {
+        var parts = Object.keys(o).map(function (k) {
+          var v = o[k];
+          return k + ': ' + (Array.isArray(v) ? v.join(', ') : (v && typeof v === 'object' ? JSON.stringify(v) : v));
+        });
+        if (parts.length) return parts.join(' · ');
+      }
+    } catch (e) { /* detail khong phai JSON — roi xuong hien tho */ }
+    return String(d).slice(0, 60);
+  }
+
   function renderAuditRows(rows) {
     var tb = document.getElementById('auditTable');
     if (!tb || !tb.tBodies[0]) return;
     var html = rows.map(function (r) {
       return '<tr><td data-label="Thời gian">' + esc(fmtAuditTime_(r.timestamp)) + '</td><td data-label="Email">' + esc(r.email || '') + '</td>'
         + '<td data-label="Thao tác">' + esc(adminActionLabel_(r.action)) + '</td>'
-        + '<td data-label="Đối tượng">' + esc(r.targetId || (r.detail || '').slice(0, 60)) + '</td></tr>';
+        + '<td data-label="Đối tượng">' + esc(auditTargetText_(r)) + '</td></tr>';
     }).join('');
     tb.tBodies[0].innerHTML = html || '<tr><td colspan="4">Chưa có hoạt động nào</td></tr>';
   }
