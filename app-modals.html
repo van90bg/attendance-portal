@@ -329,10 +329,13 @@
     if (num) num.textContent = '0';
     var submitBtn = document.getElementById('btnRosterSubmit');
     if (submitBtn) submitBtn.disabled = true;
-    ROSTER_FILTER = { station: '', slotCode: [], team: [], contractType: [], date: '' };
-    if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); return; }
+    // Pre-fill Station từ task hiện tại — task luôn 1 Station, không chọn lại;
+    // Date giữ rỗng — user chọn nếu muốn lọc ngày cụ thể.
+    ROSTER_FILTER = { station: (CURRENT_TASK && CURRENT_TASK.station) || '', slotCode: [], team: [], contractType: [], date: '' };
+    var _hasStation = !!ROSTER_FILTER.station;
+    if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); if (_hasStation) refreshRosterPreview(); return; }
     google.script.run
-      .withSuccessHandler(function (res) { ROSTER_OPTS = res; fillRosterOptions(res); focusRosterStation_(); })
+      .withSuccessHandler(function (res) { ROSTER_OPTS = res; fillRosterOptions(res); focusRosterStation_(); if (_hasStation) refreshRosterPreview(); })
       .withFailureHandler(function () { ROSTER_OPTS = null; showToast('Lỗi tải danh sách ca', true); })
       .getFilterOptionsApi();
   }
