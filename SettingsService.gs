@@ -106,6 +106,7 @@ function saveSettings_(patch) {
 /** Xóa cache settings — gọi sau khi ghi Config sheet (reader không thấy giá trị cũ). */
 function invalidateSettingsCache_() {
   cache_().remove(CACHE_KEYS.SETTINGS);
+  cache_().remove(CACHE_KEYS.FILTER_OPTIONS);  // lists settings feed getFilterOptionsApi
 }
 
 /** Parse giá trị Config sheet → kiểu thật (JSON string). Cell rác / không phải JSON → trả nguyên. */

@@ -64,31 +64,36 @@ function getMetaApi() {
 
 /** Distinct values cho dropdown + cây nhóm cho modal tạo task. */
 function getFilterOptionsApi() {
-  const staffList = readStaffList_();
-  return {
-    ok: true,
-    // Cây 4 cột: stationGroups = [{ station, slotCodes: [{slotCode, teams}], dates }]
-    // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
-    stationGroups: buildStationGroups(staffList),
-    // defaults (Config sheet qua SettingsService) — pre-select modal tạo task cho MỌI user
-    // (operator không phải editor vẫn được pre-select; getSettings_ không gate).
-    defaults: {
-      station: getSetting_('defaultStation'),
-      slotCode: getSetting_('defaultSlotCode'),
-      team: getSetting_('defaultTeam'),
-    },
-    // lists (Config sheet qua SettingsService) — danh sách lựa chọn Admin khai báo.
-    // Client MERGE với distinct StaffData (union, dedup) để không mất giá trị thực
-    // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → operator OK.
-    lists: {
-      stations: settingsList_('stations'),
-      teams: settingsList_('teams'),
-      slotcodes: settingsList_('slotcodes'),
-      departments: settingsList_('departments'),
-      agencies: settingsList_('agencies'),
-      contractTypes: settingsList_('contractTypes'),
-    },
-  };
+  // Cache 60s (FILTER_OPTIONS) — stationGroups + lists + defaults hiếm đổi; modal tạo
+  // task / roster mở NGAY, không chờ đọc StaffData mỗi lần. Invalidate khi saveSettings
+  // (SettingsService.invalidateSettingsCache_) + overwriteStaffData (StaffDataRepo).
+  return cachedJson_(CACHE_KEYS.FILTER_OPTIONS, function () {
+    const staffList = readStaffList_();
+    return {
+      ok: true,
+      // Cây 4 cột: stationGroups = [{ station, slotCodes: [{slotCode, teams}], dates }]
+      // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
+      stationGroups: buildStationGroups(staffList),
+      // defaults (Config sheet qua SettingsService) — pre-select modal tạo task cho MỌI user
+      // (operator không phải editor vẫn được pre-select; getSettings_ không gate).
+      defaults: {
+        station: getSetting_('defaultStation'),
+        slotCode: getSetting_('defaultSlotCode'),
+        team: getSetting_('defaultTeam'),
+      },
+      // lists (Config sheet qua SettingsService) — danh sách lựa chọn Admin khai báo.
+      // Client MERGE với distinct StaffData (union, dedup) để không mất giá trị thực
+      // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → operator OK.
+      lists: {
+        stations: settingsList_('stations'),
+        teams: settingsList_('teams'),
+        slotcodes: settingsList_('slotcodes'),
+        departments: settingsList_('departments'),
+        agencies: settingsList_('agencies'),
+        contractTypes: settingsList_('contractTypes'),
+      },
+    };
+  }, CACHE_TTL.FILTER_OPTIONS);
 }
 
 /** Xem truoc so NV khop bo loc truoc khi tao task (modal) — khong tao gi ca. */
@@ -181,8 +186,8 @@ function getTaskDetailApi(taskId) {
 }
 
 /** Quét NV. Mở cho operator — KHÔNG cần editor (luồng vận hành hàng ngày). */
-function scanStaffApi(taskId, staffId) {
-  return scanStaff(taskId, staffId);
+function scanStaffApi(taskId, staffId, clientEpoch) {
+  return scanStaff(taskId, staffId, clientEpoch);
 }
 
 /** Kết thúc task. Gate requireRole_('operator') — mọi user hiện tại là operator+ (DEFAULT)
@@ -290,12 +295,13 @@ function getReportsApi() {
 function warmStaffCacheApi() {
   try {
     const index = readStaffIndex_(); // warm cache + tra index cho client
-    // P1-2: chi tra field UI can (ten/Ca/Station/Team/Agency) — boc cardIn/cardOut/date
+    // P1-2: chi tra field UI can (ten/Ca/Station/Team/Agency/Ngày) — boc cardIn/cardOut
     // (recon schedule nhan su) khoi payload; server van giu full index trong cache.
+    // date: cột Ngày bảng quét hiện NGAY khi quét NV lạ (optimistic — khong cho server).
     const slim = {};
     Object.keys(index).forEach(function (id) {
       const s = index[id];
-      slim[id] = { staffId: s.staffId, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '' };
+      slim[id] = { staffId: s.staffId, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '', date: s.date || '' };
     });
     return { ok: true, index: slim };
   } catch (e) {

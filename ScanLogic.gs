@@ -143,7 +143,7 @@ function computeCounters(cfg, logRows) {
  *   appends: [11 cột theo LOG_COL_COUNT]                            → batchAppendLogRows_
  *   outcomes: {STAFFID: {action, field, timeRefText, timeRefEpoch, timeScanText,
  *              timeScanEpoch, status, staffName, slotCode, station, team, workstation,
- *              rowIndex}} — payload response client (scanStaff) / results (pasteCodes).
+ *              dateText, rowIndex}} — payload response client (scanStaff) / results (pasteCodes).
  *
  * Race semantics (thống nhất theo hành vi scanStaff, bảo thủ hơn pasteCodes cũ):
  *  - append mà staffId ĐÃ có trong freshLogRows (thiết bị khác vừa ghi trong lock):
@@ -188,6 +188,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
         staffName: a.row.staffName || null,
         slotCode: a.row.slotCode || '', station: a.row.station || '',
         team: a.row.team || '', workstation: a.row.workstation || '',
+        dateText: (a.row && a.row.dateText) || '',
         rowIndex: a.row._rowIndex || 0,
       };
       const u = { rowIndex: a.row._rowIndex, field: a.field, time: now, newStatus: a.status };
@@ -210,6 +211,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
             staffName: ex.staffName || null,
             slotCode: ex.slotCode || '', station: ex.station || '',
             team: ex.team || '', workstation: ex.workstation || '',
+            dateText: (ex && ex.dateText) || '',
             rowIndex: ex._rowIndex || 0,
           };
         } else if (a.field === 'timeRef' && !num(ex.timeRefEpoch)) {
@@ -222,6 +224,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
             staffName: ex.staffName || null,
             slotCode: ex.slotCode || '', station: ex.station || '',
             team: ex.team || '', workstation: ex.workstation || '',
+            dateText: (ex && ex.dateText) || '',
             rowIndex: ex._rowIndex || 0,
           };
         } else {
@@ -236,6 +239,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
             staffName: ex.staffName || null,
             slotCode: ex.slotCode || '', station: ex.station || '',
             team: ex.team || '', workstation: ex.workstation || '',
+            dateText: (ex && ex.dateText) || '',
             rowIndex: ex._rowIndex || 0,
           };
         }
@@ -266,6 +270,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
         station: info ? String(info.station || '') : '',
         team: info ? String(info.team || '') : '',
         workstation: info ? String(info.workstation || '') : '',
+        dateText: info ? String(info.date || '') : '',  // cột Ngày (StaffData Date) — bảng quét hiện ngay
         rowIndex: 0, // gán sau batchAppendLogRows_ (caller đối chiếu rowIndices)
       };
     }

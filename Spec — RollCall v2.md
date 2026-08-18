@@ -376,7 +376,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | API | Trả về | Gate |
 | :-- | :----- | :--- |
 | `getMetaApi()` | `{ ok, appTitle, userEmail, role, isEditor }` | — |
-| `getFilterOptionsApi()` | `{ ok, stationGroups, defaults, lists }` — cây Station→Ca→Team + defaults/lists Config | — |
+| `getFilterOptionsApi()` | `{ ok, stationGroups, defaults, lists }` — cây Station→Ca→Team + defaults/lists Config; **cache 60s** (FILTER_OPTIONS, invalidate khi saveSettings/overwriteStaffData) | — |
 | `previewStaffApi(input)` | `{ ok, count }` — số NV khớp tổ hợp (đã dedupe, khớp count tạo task thật) — không tạo gì | operator (service) |
 | `getStaffStatsApi()` | `{ ok, staff[] }` — StaffData full (viewStaff/viewStats) | **manager+** (TRONG try) |
 | `getSettingsApi()` | `{ ok, settings }` — toàn bộ cấu hình (viewConfig) | editor |
@@ -385,7 +385,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `createReconcileTaskApi(input)` | `{ ok, taskId, count, message }` | operator (service) |
 | `getTaskListApi()` | `[{ taskId, station, slotCode, team, status, total, scanned, extra, createdAtText, createdBy }]` | — |
 | `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` — `task.permission = {isAdmin, isOwner, canScanOpen}` (§5.5) | — |
-| `scanStaffApi(taskId, staffId)` | `{ ok, message, status, phase, timeScanText, timeScanEpoch, timeRefText, timeRefEpoch, staffName, counters }` | operator (service) |
+| `scanStaffApi(taskId, staffId, clientEpoch?)` | `{ ok, message, status, phase, timeScanText, timeScanEpoch, timeRefText, timeRefEpoch, staffName, dateText, counters }` — **clientEpoch**: thời gian quét = giờ client chụp lúc quét (WYSIWYG — sheet ghi đúng giờ app hiển thị; fallback giờ server nếu thiếu/rác) | operator (service) |
 | `transitionToAttendApi(taskId)` | `{ ok, message }` — `open → attend` | operator (service) |
 | `completeTaskApi(taskId)` | `{ ok, message }` | operator (service) |
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator (service) |
@@ -394,7 +394,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
 | `searchTasksByQueryApi(q)` | `{ ok, rows }` — tìm task theo mã NV / mã task | — |
 | `getReportsApi()` | `{ ok, rows, email, opsId, staffName }` — báo cáo chấm công tháng theo email đăng nhập (viewReports) | **manager+** (service) |
-| `warmStaffCacheApi()` | `{ ok, index }` — preload staffIndex cache + trả index slim cho client | — |
+| `warmStaffCacheApi()` | `{ ok, index }` — preload staffIndex cache + trả index slim (kèm `date` — cột Ngày bảng quét) cho client | — |
 
 > `google.script.run` **không trả `Date`** (serialize → null) → server trả text đã format; client check cả `xxx` + `xxxText`.
 > **`getAllTasksApi` đã bỏ (2026-08-17)** — bảng task mọi owner trong viewAdmin trùng với viewTasks (cùng `listTasks()`, nút Kết thúc/Mở lại gate operator) → viewAdmin chỉ còn AuditLog; xem task qua `getTaskListApi()`/`searchTasksByQueryApi()`.
@@ -498,7 +498,7 @@ Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbo
 
 ### 9.9 Nạp danh sách theo ca (roster — A2)
 
-- Nút **Lấy danh sách theo ca** trong menu **⋯** (cạnh Dán danh sách mã) — hiện khi `open + permission.canScanOpen`; bấm → `#rosterModal` (lớp `.about-overlay`): Station (bắt buộc) / Ca (chips đa chọn) / Team (chips đa chọn) / Ngày — options từ `getFilterOptionsApi` (cache 1 lần/tab).
+- Nút **Lấy danh sách theo ca** trong menu **⋯** (cạnh Dán danh sách mã) — hiện khi `open + permission.canScanOpen`; bấm → `#rosterModal` (lớp `.about-overlay`): Station (bắt buộc) / Ca (chips đa chọn) / Team (chips đa chọn) / **Hình thức** (chips đa chọn — Contract Type) / Ngày — options từ `getFilterOptionsApi` (cache 1 lần/tab).
 - Preview số NV khớp qua `previewStaffApi` khi đổi select → nút **Nạp danh sách** bật khi count > 0.
 - Gọi `loadRosterApi(taskId, filters)` → append PENDING + `timeRef = now` cho NV CHƯA có trong log (**bỏ qua im lặng** — idempotent, khác paste báo "đã có mặt"); toast `added / skipped`; refresh counters + `loadTaskDetail` nền. Gate server: operator + `open` + `canScanOpen_`; KHÔNG reclassify dòng cũ.
 - Textarea 1 dòng = 1 mã; bỏ dòng rỗng; giới hạn **200 dòng** (client + server clamp — A4).
@@ -621,6 +621,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ Tạo task (A2): luôn FREE + Mở + log RỖNG — modal chỉ Station + Ngày; quét / dán / nạp roster xây danh sách
 ✅ A2 (2026-08-18): task mới KHÔNG pre-fill roster khi tạo (kể cả ca thật — server ép noList); nút "Lấy danh sách theo ca" (loadRosterApi — idempotent, phase 1 + owner); phase 1 không Dư; cảnh báo chuyển phase khi log rỗng
 ✅ Nạp roster theo ca: append AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = Giờ có mặt = lúc nạp
+✅ Thời gian quét WYSIWYG (2026-08-18): client gửi epoch lúc quét → sheet ghi đúng giờ hiển thị trên app (server không đè giờ xử lý — hết nhảy giờ sau ~1s); bảng quét cột Ngày hiện ngay (dateText từ response + staffIndex); roster modal thêm lọc Hình thức; getFilterOptionsApi cache 60s
 ✅ 2-phase: Mở (Giờ có mặt, FREE) → Chuyển điểm danh → Điểm danh (Giờ quét) → Kết thúc
 ✅ Quét barcode Ops (case-insensitive): Có mặt / Đã điểm danh / Đã ghi Giờ có mặt / Dư / Task đã kết thúc
 ✅ Kết thúc task → NV chưa quét gán Vắng (batch 1 lần); Mở lại task → về Điểm danh, reset Vắng

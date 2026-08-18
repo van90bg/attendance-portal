@@ -15,7 +15,7 @@ const vm = require('node:vm');
 
 // ---- Fake GAS globals ----
 const STAFF_INDEX = {
-  OPS999999: { staffName: 'NV Lạ', slotCode: '13:00-22:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IB' },
+  OPS999999: { staffName: 'NV Lạ', slotCode: '13:00-22:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IB', date: '2026-08-02' },
 };
 
 function makeCtx(overrides) {
@@ -136,4 +136,28 @@ test('scanStaff: mã hỗn hợp số + chữ (Ops12a3) → reject format', () =
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'Ops12a3');
   assert.equal(res.ok, false, 'Ops12a3 phải bị từ chối (có chữ a)');
+});
+
+// WYSIWYG (2026-08-18): client gửi epoch chụp lúc quét → server ghi ĐÚNG giờ hiển thị trên
+// app, không đè bằng giờ xử lý (queue 2.5s/item + đồng hồ thiết bị lệch → nhảy giờ sau ~1s).
+test('scanStaff: clientEpoch → timeRefEpoch = giờ client (không phải giờ server)', () => {
+  const clientNow = new Date('2026-08-02T08:30:45');
+  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const svc = loadScanService(ctx);
+  const res = svc.scanStaff('R1', 'ops999999', clientNow.getTime());
+  assert.equal(res.ok, true, res.message);
+  assert.equal(res.phase, 'present');
+  assert.equal(res.field, 'timeRef');
+  assert.equal(res.timeRefEpoch, clientNow.getTime(), 'epoch = giờ client chụp lúc quét');
+  assert.equal(res.timeRefText, '00:00:00');  // formatTime_ stub — epoch mới là nguồn sự thật
+  assert.equal(res.dateText, '2026-08-02', 'dateText từ staffIndex → cột Ngày hiện ngay');
+});
+
+test('scanStaff: clientEpoch thiếu/rác → fallback giờ server (không crash, không dùng 0)', () => {
+  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const svc = loadScanService(ctx);
+  const before = Date.now();
+  const res = svc.scanStaff('R1', 'ops999999');  // không gửi clientEpoch
+  assert.equal(res.ok, true, res.message);
+  assert.ok(res.timeRefEpoch >= before && res.timeRefEpoch > 0, 'fallback = giờ server hiện tại');
 });

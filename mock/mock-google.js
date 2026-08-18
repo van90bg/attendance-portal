@@ -146,7 +146,7 @@
       var slim = {};
       MOCK_DATA.staff.forEach(function (s) {
         var id = String(s.staffId || '').trim().toUpperCase();
-        slim[id] = { staffId: id, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '' };
+        slim[id] = { staffId: id, staffName: s.staffName, slotCode: s.slotCode, station: s.station, team: s.team, workstation: s.workstation, agency: s.agency || '', date: s.date || '' };
       });
       return { ok: true, index: slim };
     },
@@ -226,7 +226,7 @@
       var log = getLog(taskId);
       return { ok: true, taskId: taskId, count: log.length, message: 'Tạo task thành công: ' + taskId };
     },
-    scanStaffApi: function (taskId, staffId) {
+    scanStaffApi: function (taskId, staffId, clientEpoch) {
       // Mock 2-pha khớp server scanStaff (ScanService.gs + classifyScan):
       // open = ghi Giờ có mặt (timeRef, giữ status '-'); attend = ghi Giờ quét (timeScan).
       var log = getLog(taskId);
@@ -235,7 +235,9 @@
       var phase2 = !!(task && task.status === 'attend');
       var hit = null;
       log.forEach(function (r) { if (r.staffId.toLowerCase() === staffId.toLowerCase()) hit = r; });
-      var nowMs = Date.now();  // timeScanEpoch: sort key thật (QA sort "mới nhất lên đầu")
+      // WYSIWYG: nhận epoch client chụp lúc quét (khớp server scanStaff clientEpoch) — mock
+      // không đè bằng giờ server (test local khớp prod: giờ hiển thị = giờ ghi sheet).
+      var nowMs = (typeof clientEpoch === 'number' && clientEpoch > 0) ? clientEpoch : Date.now();
       var d = new Date(nowMs);
       var ts = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
       if (hit) {
@@ -248,18 +250,18 @@
         return { ok: true, message: 'Có mặt', status: hit.status, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'timeScan' : 'timeRef',
           timeScanText: hit.timeScanText || '', timeScanEpoch: hit.timeScanEpoch || 0,
           timeRefText: hit.timeRefText || '', timeRefEpoch: hit.timeRefEpoch || 0,
-          staffName: hit.staffName, counters: counters(log) };
+          staffName: hit.staffName, dateText: (hit && hit.dateText) || '', counters: counters(log) };
       }
       // NV lạ: FREE phase1 = '-' (PENDING); FREE phase2 / RECONCILE = Dư.
       var isFree = !!(task && task.taskType === 'free');
       var st = (isFree && !phase2) ? '-' : 'Dư';
       log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '',
         timeRefText: phase2 ? '' : ts, timeRefEpoch: phase2 ? 0 : nowMs,
-        timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0, status: st });
+        timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0, status: st, dateText: '' });
       return { ok: true, message: st, status: st, phase: phase2 ? 'attend' : 'present', field: phase2 ? 'timeScan' : 'timeRef',
         timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0,
         timeRefText: phase2 ? '' : ts, timeRefEpoch: phase2 ? 0 : nowMs,
-        staffName: 'NV LẠ', counters: counters(log) };
+        staffName: 'NV LẠ', dateText: '', counters: counters(log) };
     },
     pasteCodesApi: function (taskId, rawLines) {
       // Khớp server pasteCodes: { ok, message, total, success, failed, results, counters }

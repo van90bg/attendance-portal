@@ -31,6 +31,7 @@ function makeRow(overrides) {
     timeScanText: '',
     timeScanEpoch: 0,
     status: CFG.STATUS.PENDING,
+    dateText: '2026-08-02',
     _rowIndex: 5,
   }, overrides || {});
 }
@@ -60,6 +61,7 @@ test('planScanCommits: append (không race) → row 11 cột + outcome enrich st
   assert.equal(o.timeRefEpoch, 0);
   assert.equal(o.staffName, 'NhanVien Mau 099');
   assert.equal(o.slotCode, '13:00-22:00');
+  assert.equal(o.dateText, '2026-08-02', 'append outcome kèm dateText (StaffData Date)');
   // counters từ outcome epoch (nguồn sự thật — khớp computeCounters)
   const c = ScanLogic.computeCounters(CFG, [{ timeScanEpoch: o.timeScanEpoch, timeRefEpoch: o.timeRefEpoch, status: o.status }]);
   assert.equal(c.scanned, 1);
@@ -80,6 +82,7 @@ test('planScanCommits: append timeRef → timeRef epoch, status giữ action.sta
   assert.equal(o.timeScanEpoch, 0);
   assert.equal(o.status, CFG.STATUS.PENDING);
   assert.equal(o.staffName, null);   // không staffIndex → rỗng
+  assert.equal(o.dateText, '', 'không staffIndex → dateText rỗng');
 });
 
 test('planScanCommits: update timeScan → 1 update kèm keepStatus, outcome text=fmt(now)', () => {
@@ -98,6 +101,7 @@ test('planScanCommits: update timeScan → 1 update kèm keepStatus, outcome tex
   assert.equal(o.timeScanEpoch, now.getTime());
   assert.equal(o.timeRefEpoch, 0);
   assert.equal(o.status, CFG.STATUS.PRESENT);
+  assert.equal(o.dateText, '2026-08-02', 'update outcome giữ dateText của row');
 });
 
 test('planScanCommits: update timeRef → KHÔNG keepStatus (chỉ TIME_REF, khớp updateLogRowRef_ cũ)', () => {

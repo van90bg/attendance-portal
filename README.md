@@ -78,7 +78,9 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 200, báo mã lỗi.
-- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/Ngày, append PENDING + Giờ có mặt = lúc nạp, **bỏ qua NV đã có** (idempotent).
+- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING + Giờ có mặt = lúc nạp, **bỏ qua NV đã có** (idempotent).
+- **Thời gian quét WYSIWYG** — app gửi epoch chụp lúc quét (`scanStaffApi(..., clientEpoch)`): sheet ghi đúng giờ hiển thị trên app, server không đè giờ riêng → hết nhảy giờ sau ~1s khi đồng hồ thiết bị lệch / queue xử lý chậm.
+- **Cột Ngày bảng quét** — hiện ngay khi quét (optimistic từ staffIndex + response `dateText`), không chờ reload; `getFilterOptionsApi` cache 60s → modal tạo task mở nhanh.
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.
 - **Counters tức thì** — Đã quét / Chưa / Dư, queue nền + optimistic.
 - **A11y** — skip-link, focus trap, `prefers-contrast`, phản hồi không dùng `alert()`.

@@ -70,6 +70,7 @@
   // (lock hết sớm khi RPC chậm sẽ cho phép chồng luồng mới). Disable nút visual khi khóa.
   var _refreshLock = false;
   var _refreshPending = 0;
+  var _filterOptsLoaded = false;  // getFilterOptionsApi đã về — modal tạo task fetch-if-empty khi mở sớm
   function _releaseRefreshLock() {
     if (_refreshPending <= 0) return;  // clamp — timeout 5s đã nhả, RPC trả về sau không đẩy âm
     _refreshPending--;
@@ -119,9 +120,10 @@
 
         renderAllCols();  // refresh 4 cột khi data mới về (nếu modal đang mở)
         markServerOk();  // phủ cả trường hợp chỉ load options
+        _filterOptsLoaded = true;
         _releaseRefreshLock();
       })
-      .withFailureHandler(function (err) { markServerFail(); _releaseRefreshLock(); showToast('Lỗi tải options: ' + err.message, true); })
+      .withFailureHandler(function (err) { _filterOptsLoaded = false; markServerFail(); _releaseRefreshLock(); showToast('Lỗi tải options: ' + err.message, true); })
       .getFilterOptionsApi();
   }
 

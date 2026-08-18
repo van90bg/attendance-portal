@@ -129,6 +129,7 @@ const CACHE_TTL = {
   STAFF_STATS: 3600,        // 1h — danh sách StaffData full cho view thống kê (chỉ đọc; StaffData đổi theo khung giờ nên cache dài, invalidate khi syncFromCsv)
   TZ: 24 * 60 * 60,          // 24h — timezone (cache 1 lần, KHÔNG gọi trong loop)
   SETTINGS: 60,              // 60s — cấu hình (admin hiếm đổi; saveSettings_ invalidate ngay)
+  FILTER_OPTIONS: 60,       // 60s — getFilterOptionsApi (stationGroups + lists + defaults); invalidate khi saveSettings/overwriteStaffData
   REPORT_INFO: 3600,         // 1h — StaffInfo map email→Ops (chỉ đọc, đổi theo ngày tuyển)
   REPORTS: 60,               // 60s — báo cáo chấm công theo user (sheet ngoài update trong ngày)
 };
@@ -146,6 +147,7 @@ const CACHE_KEYS = {
   STAFF_STATS: 'rc2_staffStats_v1',     // toàn bộ StaffData (list full) — view thống kê, TTL 1h (tăng 30s→1h theo khung giờ; invalidate khi syncFromCsv)
   TZ: 'rc2_tz_v2',  // v2: bump sau khi sửa manifest timeZone NY→Asia/Ho_Chi_Minh (invalidate cache 24h)
   SETTINGS: 'rc2_settings_v3',  // v3: group lists là JSON array defaults thật (revert 4 cột → JSON 2026-08-11)
+  FILTER_OPTIONS: 'rc2_filterOptions_v1',  // getFilterOptionsApi (modal tạo task / roster)
   REPORT_INFO: 'rc2_reportInfo_v1',  // StaffInfo map email→Ops
   REPORTS: 'rc2_reports_v2_',        // prefix + email — báo cáo chấm công theo user; 'all_*' = chunked StaffAttendance (TTL 60s)
 };

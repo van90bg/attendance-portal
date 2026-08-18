@@ -25,6 +25,7 @@ function invalidateStaffIndex_() {
   cache_().remove(CACHE_KEYS.STAFF_INDEX);
   cache_().remove(CACHE_KEYS.STAFF_LIST);
   cache_().remove(CACHE_KEYS.STAFF_STATS);
+  cache_().remove(CACHE_KEYS.FILTER_OPTIONS);  // stationGroups feed getFilterOptionsApi
 }
 
 /**

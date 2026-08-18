@@ -9,9 +9,11 @@
  * Xử lý 1 lần quét NV.
  * @param {string} taskId
  * @param {string} rawStaffId — mã từ barcode (chưa normalize)
+ * @param {number|string} clientEpoch — epoch ms client chụp lúc quét (WYSIWYG: giờ hiển thị
+ *   trên app = giờ ghi sheet); fallback giờ server nếu thiếu/rác (queue cũ, thiết bị lạ).
  * @returns {{ok: boolean, message: string, status: string|null, counters: Object}}
  */
-function scanStaff(taskId, rawStaffId) {
+function scanStaff(taskId, rawStaffId, clientEpoch) {
   // P2 benchmark (QA prod): đo latency thật từng giai đoạn → Stackdriver.
   // Queue quét 2.5s/item — cần số liệu thật trước khi tối ưu thêm.
   const t0 = Date.now();
@@ -102,11 +104,18 @@ function scanStaff(taskId, rawStaffId) {
       // vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi".
       try { staffIndex = readStaffIndex_() || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffIndex = null; }
     }
+    // scanNow = epoch client chụp lúc quét (WYSIWYG — user thấy giờ nào, sheet ghi giờ đó;
+    // trước đây server ghi giờ XỬ LÝ, queue 2.5s/item + đồng hồ thiết bị lệch → sau ~1s
+    // silent reload, cột Giờ có mặt/Giờ quét nhảy về giờ server). Fallback giờ server khi
+    // client không gửi (thiết bị cũ / gọi tay) — chấp nhận epoch client vì gate operator+.
+    const scanNow = (typeof clientEpoch === 'number' && isFinite(clientEpoch) && clientEpoch > 0)
+      ? new Date(clientEpoch)
+      : new Date();
     const commit = planScanCommits(
       { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
       task,
       [{ code: staffId, action: result.action, field: result.field, status: result.status, row: result.row }],
-      freshLogRows, staffIndex, new Date(), formatTime_
+      freshLogRows, staffIndex, scanNow, formatTime_
     );
     if (commit.updates.length) batchUpdateLogRows_(taskId, commit.updates);
     if (commit.appends.length) {
@@ -149,6 +158,7 @@ function scanStaff(taskId, rawStaffId) {
       station: outcome ? outcome.station : '',
       team: outcome ? outcome.team : '',
       workstation: outcome ? outcome.workstation : '',
+      dateText: outcome ? (outcome.dateText || '') : '',  // cột Ngày hiện NGAY sau quét (không chờ reload)
       counters: counters,
     };
   } finally {
