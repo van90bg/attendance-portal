@@ -395,14 +395,6 @@
   }
   function fillRosterOptions(res) {
     if (!res || !res.ok) return;
-    var stations = ((res.lists && res.lists.stations) || []).slice();
-    (res.stationGroups || []).forEach(function (g) {
-      if (stations.indexOf(g.station) === -1) stations.push(g.station);
-    });
-    var dates = [];
-    (res.stationGroups || []).forEach(function (g) {
-      (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
-    });
     renderRosterChips_();
   }
   // Ca/Team đa chọn — chips toggle (Tất cả = rỗng, server bỏ lọc mảng rỗng).

@@ -553,6 +553,8 @@
       opacity: 0;
     }
     .scan-input-wrap:focus-within::after { animation: scanLine 1.8s ease-in-out infinite; }
+    /* Scan input không focus: nền hơi khác để phân biệt với scanCard */
+    .scan-input-wrap { background: var(--surface-muted); border: 1px solid var(--border); }
     .scan-input-wrap input::placeholder {
       font-size: var(--text-md);
       font-weight: 500;
@@ -564,6 +566,7 @@
       outline: none;
       border-color: var(--warning);
       box-shadow: 0 0 0 4px rgba(232, 93, 4, .18);
+      background: #fff;
     }
     /* Nút Quét chỉ hiển thị trên mobile (<992px); desktop máy quét tự Enter */
     #btnScan { min-width: 64px; min-height: 44px; margin: var(--space-1) 0; } /* touch target ≥44×44; flex stretch làm nút cao hơn ô input 8px (padding wrap 4px×2) → margin 4px 0 cân bằng */

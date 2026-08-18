@@ -49,9 +49,12 @@
     var metaEl = document.getElementById('scanTaskMeta');
     var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
     var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? ' (ghi Giờ có mặt)' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (ghi Giờ quét)' : '');
-    metaEl.innerHTML =
-      esc(taskKindLabel_(data.task)) + ' ' + esc(data.task.station) + ' ' + esc(data.task.slotCode) + ' ' + esc(data.task.team) +
-      ' — <b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);  /* bỏ dấu · giữa các trường (space phân cách, trước phase dùng —) */
+    // Hiển thị meta dạng hàng: Station | Ca | Team — Phase
+    var parts = [];
+    if (data.task.station) parts.push(esc(data.task.station));
+    if (data.task.slotCode && data.task.slotCode !== SLOT_FREE_MAGIC) parts.push(esc(data.task.slotCode));
+    if (data.task.team) parts.push(esc(data.task.team));
+    metaEl.innerHTML = parts.join(' · ') + (parts.length ? ' — ' : '') + '<b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);
     if (skel) skel.style.display = 'none';
     if (tbl) tbl.style.display = '';
     renderScanTable(safeArr(data.log));
@@ -84,8 +87,15 @@
         var canScan = !isDone;
         var scanInput = document.getElementById('scanInput');
         scanInput.disabled = !canScan;
-        scanInput.placeholder = canScan ? 'Quét mã nhân viên…'
-          : 'Task đã kết thúc — không thể quét';
+        // Placeholder phân biệt: phase Mở vs Điểm danh vs Done vs locked
+        if (!canScan) {
+          scanInput.placeholder = 'Task đã kết thúc — không thể quét';
+        } else if (scanOwnerLocked) {
+          scanInput.placeholder = 'Chỉ owner mới quét được ở phase Mở';
+        } else {
+          var isAttend = (CURRENT_TASK && (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND || CURRENT_TASK.status === TASK_STATUS_C.ATTEND));
+          scanInput.placeholder = isAttend ? 'Quét mã nhân viên để điểm danh…' : 'Quét mã nhân viên có mặt…';
+        }
         // T-1: áp dụng owner gate TRƯỚC updateFinishBtnState — scanOwnerLocked quyết định
         // nút Chuyển điểm danh + disabled state, updateFinishBtnState phải đọc state mới nhất.
         applyScanPermission();
@@ -970,9 +980,11 @@
             var metaEl = document.getElementById('scanTaskMeta');
             if (metaEl) {
               var phaseHint = ' (ghi Giờ quét)';
-              metaEl.innerHTML =
-                esc(taskKindLabel_(CURRENT_TASK)) + ' ' + esc(CURRENT_TASK.station) + ' ' +
-                esc(CURRENT_TASK.slotCode) + ' ' + esc(CURRENT_TASK.team) + ' — <b>' + esc(TASK_PHASE_LABEL[TASK_STATUS_C.ATTEND]) + '</b>' + esc(phaseHint);
+              var parts2 = [];
+              if (CURRENT_TASK.station) parts2.push(esc(CURRENT_TASK.station));
+              if (CURRENT_TASK.slotCode && CURRENT_TASK.slotCode !== SLOT_FREE_MAGIC) parts2.push(esc(CURRENT_TASK.slotCode));
+              if (CURRENT_TASK.team) parts2.push(esc(CURRENT_TASK.team));
+              metaEl.innerHTML = parts2.join(' · ') + (parts2.length ? ' — ' : '') + '<b>' + esc(TASK_PHASE_LABEL[TASK_STATUS_C.ATTEND]) + '</b>' + esc(phaseHint);
             }
             // Mở input để bắt đầu quét (phase2) — trước đó bị khóa ở phase1.
             var scanInput = document.getElementById('scanInput');
