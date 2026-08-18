@@ -273,7 +273,7 @@ function transitionToAttend(taskId) {
     }
     updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
     audit_('transitionToAttend', taskId, {});
-    return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét SCANNED_AT' };
+    return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu điểm danh' };
   } finally {
     lock.releaseLock();
   }

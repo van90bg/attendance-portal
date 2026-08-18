@@ -377,7 +377,7 @@
       if (!task) return { ok: false, message: 'Không tìm thấy task' };
       if (task.status !== 'open') return { ok: false, message: 'Chỉ chuyển sang điểm danh khi task đang ở trạng thái Mở' };
       task.status = 'attend';
-      return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu quét SCANNED_AT' };
+      return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu điểm danh' };
     },
     reopenTaskApi: function (taskId) {
       // F3: mirror server reopenTask — resetAbsentToPending_ (ABSENT->PENDING) trước,

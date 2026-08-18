@@ -245,7 +245,8 @@
     var q = SCAN_FILTER.q.trim().toLowerCase();
     var st = SCAN_FILTER.status;
     // 2-phase: sort mặc định theo phase — phase1 LISTED_AT (col7), phase2 SCANNED_AT (col8)
-    var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 8 : 7;
+    // DONE: giữ sort hiện tại (không reset về col7 — tránh sort nhảy sau khi kết thúc)
+    var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 8 : ((CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.DONE) ? SCAN_SORT.col : 7);
     // F: nếu user chưa chọn sort riêng (userSet=false mặc định) → ép theo phaseCol;
     // nếu đã chọn cột → tôn trọng cột user chọn (kể cả 7/8) — KHÔNG ép ngược lại.
     var asc = SCAN_SORT.asc;
