@@ -518,6 +518,10 @@
         <span class="flabel">Hình thức <span class="fnote">chọn nhiều</span></span>
         <div class="chips" id="rosterChipsContract" role="group" aria-label="Hình thức"></div>
       </div>
+      <div class="frow">
+        <span class="flabel">Phòng ban <span class="fnote">chọn nhiều</span></span>
+        <div class="chips" id="rosterChipsDept" role="group" aria-label="Phòng ban"></div>
+      </div>
     </div>
     <div class="create-footer">
       <div class="create-total"><b id="rosterTotalNum">0</b> <span>nhân viên khớp</span></div>
@@ -536,15 +540,15 @@
     <div class="create-form" id="createForm">
       <div class="frow">
         <span class="flabel">Station <span class="fnote">bắt buộc</span></span>
-        <select id="createStation" class="field-select" aria-label="Station" required></select>
+        <div class="chips" id="createChipsStation" role="radiogroup" aria-label="Station"></div>
       </div>
       <div class="frow">
         <span class="flabel">Team</span>
-        <select id="createTeam" class="field-select" aria-label="Team"></select>
+        <div class="chips" id="createChipsTeam" role="group" aria-label="Team"></div>
       </div>
       <div class="frow">
         <span class="flabel">Ngày</span>
-        <select id="createDate" class="field-select" aria-label="Ngày"></select>
+        <div class="chips" id="createChipsDate" role="group" aria-label="Ngày"></div>
       </div>
     </div>
     <div class="create-footer">

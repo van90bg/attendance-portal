@@ -257,19 +257,22 @@ function isFreeSlotSelection_(slotCode) {
 
 function filterStaffByGroup(staffList, group) {
   const station = String((group && group.station) || '').trim();
-  // Multi-select: teams/slots/contractTypes nhận mảng (mới) HOẶC string (tương thích cũ).
+  // Multi-select: teams/slots/contractTypes/departments nhận mảng (mới) HOẶC string (tương thích cũ).
   const slots = toFilterArray_(group && group.slotCode);
   const teams = toFilterArray_(group && group.team);
   const contractTypes = toFilterArray_(group && group.contractType);
+  const departments = toFilterArray_(group && group.department);
   const date = String((group && group.date) || '').trim();  // ngay vao lam (optional)
   return staffList.filter(function (s) {
-    if (String(s.station || '').trim() !== station) return false;
+    if (station && String(s.station || '').trim() !== station) return false;
     const sSlot = String(s.slotCode || '').trim();
     const sTeam = String(s.team || '').trim();
     const sContract = String(s.contractType || '').trim();
+    const sDept = String(s.department || '').trim();
     if (slots.length && slots.indexOf(sSlot) === -1) return false;
     if (teams.length && teams.indexOf(sTeam) === -1) return false;
     if (contractTypes.length && contractTypes.indexOf(sContract) === -1) return false;
+    if (departments.length && departments.indexOf(sDept) === -1) return false;
     if (date && String(s.date || '').trim() !== date) return false;
     return true;
   });

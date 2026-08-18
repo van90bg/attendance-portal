@@ -141,15 +141,15 @@
 
   /* ===== Create modal (Station + Team + Ngày) ===== */
   var _createOptsLoaded = false;
+  var CREATE_FILTER = { station: '', team: [], date: [] };
   function openCreateModal() {
     var m = document.getElementById('createModal');
     if (!m) return;
-    resetCreateSel_();
+    CREATE_FILTER = { station: '', team: [], date: [] };
     if (!_createOptsLoaded && typeof loadFilterOptions === 'function') loadFilterOptions();
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
-    var first = document.getElementById('createStation');
-    if (first && first.focus) first.focus();
+    renderCreateChips_();
   }
   function closeCreateModal() {
     var m = document.getElementById('createModal');
@@ -157,16 +157,18 @@
     var btn = document.getElementById('btnCreate');
     if (btn && btn.focus) btn.focus();
   }
-  function resetCreateSel_() {
-    var st = document.getElementById('createStation');
-    var tm = document.getElementById('createTeam');
-    var dt = document.getElementById('createDate');
-    if (st) st.value = '';
-    if (tm) tm.value = '';
-    if (dt) dt.value = '';
+  function renderCreateChips_() {
+    var stEl = document.getElementById('createChipsStation');
+    var tmEl = document.getElementById('createChipsTeam');
+    var dtEl = document.getElementById('createChipsDate');
+    if (!stEl || !_createOptsData) return;
+    stEl.innerHTML = chipsHtml_(_createOptsData.stations, CREATE_FILTER.station ? [CREATE_FILTER.station] : []);
+    if (tmEl) tmEl.innerHTML = chipsHtml_(_createOptsData.teams, CREATE_FILTER.team);
+    if (dtEl) dtEl.innerHTML = chipsHtml_(_createOptsData.dates, CREATE_FILTER.date);
     var sub = document.getElementById('btnCreateSubmit');
-    if (sub) sub.disabled = true;
+    if (sub) sub.disabled = !CREATE_FILTER.station;
   }
+  var _createOptsData = null;
   function fillCreateOptions(res) {
     if (!res || !res.ok) return;
     _createOptsLoaded = true;
@@ -179,31 +181,13 @@
     (res.stationGroups || []).forEach(function (g) {
       (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
     });
-    fillSel_('createStation', stations, '— Chọn Station —');
-    fillSel_('createTeam', teams, '— Tất cả —');
-    fillSel_('createDate', dates, '— Tất cả —');
-  }
-  function fillSel_(id, options, placeholder) {
-    var sel = document.getElementById(id);
-    if (!sel) return;
-    var html = '<option value="">' + placeholder + '</option>';
-    options.forEach(function (o) {
-      html += '<option value="' + escAttr(o) + '">' + esc(o) + '</option>';
-    });
-    sel.innerHTML = html;
-    sel.onchange = function () {
-      var st = document.getElementById('createStation');
-      var sub = document.getElementById('btnCreateSubmit');
-      if (sub) sub.disabled = !(st && st.value);
-    };
+    _createOptsData = { stations: stations, teams: teams, dates: dates };
+    renderCreateChips_();
   }
   function submitCreateTask() {
-    var st = document.getElementById('createStation');
-    var tm = document.getElementById('createTeam');
-    var dt = document.getElementById('createDate');
-    var station = st ? st.value : '';
-    var team = tm ? tm.value : '';
-    var date = dt ? dt.value : '';
+    var station = CREATE_FILTER.station;
+    var team = CREATE_FILTER.team.join(', ');
+    var date = CREATE_FILTER.date.join(', ');
     if (!station) { showToast('Chọn Station', true); return; }
     closeCreateModal();
     createTaskWithMeta_(station, team, date);
@@ -301,12 +285,13 @@
     if (confirmOpener && document.contains(confirmOpener)) confirmOpener.focus();
     confirmOpener = null;
   }
-  // Roster modal events — init sau DOM sẵn sàng (giống initSelEvents của create modal).
-  (function initRoster() {
+  // Roster + Create modal events — init sau DOM sẵn sàng.
+  (function initModals() {
+    function _init() { initRosterEvents(); initCreateEvents(); }
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initRosterEvents);
+      document.addEventListener('DOMContentLoaded', _init);
     } else {
-      initRosterEvents();
+      _init();
     }
   })();
 
@@ -369,7 +354,7 @@
     if (submitBtn) submitBtn.disabled = true;
     // Pre-fill Station từ task hiện tại — task luôn 1 Station, không chọn lại;
     // Date giữ rỗng — user chọn nếu muốn lọc ngày cụ thể.
-    ROSTER_FILTER = { station: (CURRENT_TASK && CURRENT_TASK.station) || '', slotCode: [], team: [], contractType: [] };
+    ROSTER_FILTER = { station: (CURRENT_TASK && CURRENT_TASK.station) || '', slotCode: [], team: [], contractType: [], department: [] };
     var _hasStation = !!ROSTER_FILTER.station;
     if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); if (_hasStation) refreshRosterPreview(); return; }
     google.script.run
@@ -419,13 +404,23 @@
     });
     return cts;
   }
+  // Phòng ban (Department) — options từ lists.departments (Config) — lọc độc lập station.
+  function rosterDeptOptions_() {
+    var depts = [];
+    (ROSTER_OPTS && ROSTER_OPTS.lists && ROSTER_OPTS.lists.departments || []).forEach(function (d) {
+      if (depts.indexOf(d) === -1) depts.push(d);
+    });
+    return depts;
+  }
   function renderRosterChips_() {
     var slotEl = document.getElementById('rosterChipsSlot');
     var ctEl = document.getElementById('rosterChipsContract');
+    var deptEl = document.getElementById('rosterChipsDept');
     if (!slotEl) return;
     var slots = rosterSlotOptions_();
     slotEl.innerHTML = chipsHtml_(slots, ROSTER_FILTER.slotCode);
     if (ctEl) ctEl.innerHTML = chipsHtml_(rosterContractOptions_(), ROSTER_FILTER.contractType);
+    if (deptEl) deptEl.innerHTML = chipsHtml_(rosterDeptOptions_(), ROSTER_FILTER.department);
   }
   function chipsHtml_(opts, selectedArr) {
     var html = '<button type="button" class="pick all' + (selectedArr.length === 0 ? ' on' : '') + '" data-col="roster-all" aria-pressed="' + (selectedArr.length === 0) + '">Tất cả</button>';
@@ -455,11 +450,15 @@
     sel.innerHTML = html;
     sel.onchange = refreshRosterPreview;
   }
+  var _rosterPreviewTimer = null;
   function refreshRosterPreview() {
+    if (_rosterPreviewTimer) clearTimeout(_rosterPreviewTimer);
+    _rosterPreviewTimer = setTimeout(_doRosterPreview, 200);
+  }
+  function _doRosterPreview() {
     var submitBtn = document.getElementById('btnRosterSubmit');
     if (submitBtn) submitBtn.disabled = true;
     var slot = ROSTER_FILTER.slotCode;
-    var team = [];
     renderRosterChips_();
     var num = document.getElementById('rosterTotalNum');
     if (num) num.textContent = '0';
@@ -471,7 +470,7 @@
         if (submitBtn) submitBtn.disabled = !(n > 0);
       })
       .withFailureHandler(function () { if (num) num.textContent = '0'; })
-      .previewStaffApi({ station: ROSTER_FILTER.station, slotCode: slot, team: team, contractType: ROSTER_FILTER.contractType });
+      .previewStaffApi({ station: ROSTER_FILTER.station, slotCode: slot, team: ROSTER_FILTER.team, contractType: ROSTER_FILTER.contractType, department: ROSTER_FILTER.department });
   }
   // Roster modal: delegate click chip Ca/Team + change station/date → preview.
   function initRosterEvents() {
@@ -486,8 +485,9 @@
       if (!chip || !chip.getAttribute('data-col')) return;
       var isSlot = chip.closest('#rosterChipsSlot') !== null;
       var isContract = chip.closest('#rosterChipsContract') !== null;
+      var isDept = chip.closest('#rosterChipsDept') !== null;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
-      var arr = isSlot ? ROSTER_FILTER.slotCode : ROSTER_FILTER.contractType;
+      var arr = isSlot ? ROSTER_FILTER.slotCode : (isDept ? ROSTER_FILTER.department : ROSTER_FILTER.contractType);
       if (chip.getAttribute('data-col') === 'roster-all') {
         arr.length = 0;  // Tất cả = rỗng (không lọc)
       } else {
@@ -495,6 +495,34 @@
       }
       renderRosterChips_();
       refreshRosterPreview();
+    });
+  }
+  // Create modal: delegate click chip Station/Team/Date.
+  function initCreateEvents() {
+    var form = document.getElementById('createForm');
+    if (!form) return;
+    form.addEventListener('click', function (e) {
+      var chip = e.target && e.target.closest ? e.target.closest('.pick') : null;
+      if (!chip || !chip.getAttribute('data-col')) return;
+      var isStation = chip.closest('#createChipsStation') !== null;
+      var isTeam = chip.closest('#createChipsTeam') !== null;
+      var isDate = chip.closest('#createChipsDate') !== null;
+      var pressed = chip.getAttribute('aria-pressed') === 'true';
+      if (chip.getAttribute('data-col') === 'roster-all') {
+        if (isStation) CREATE_FILTER.station = '';
+        else if (isTeam) CREATE_FILTER.team.length = 0;
+        else if (isDate) CREATE_FILTER.date.length = 0;
+      } else {
+        var val = chip.getAttribute('data-val');
+        if (isStation) {
+          CREATE_FILTER.station = pressed ? '' : val;
+        } else if (isTeam) {
+          toggleRosterArr_(CREATE_FILTER.team, val, !pressed);
+        } else if (isDate) {
+          toggleRosterArr_(CREATE_FILTER.date, val, !pressed);
+        }
+      }
+      renderCreateChips_();
     });
   }
   function submitRoster() {

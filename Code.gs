@@ -105,6 +105,7 @@ function previewStaffApi(input) {
     team: input && input.team,
     date: input && input.date,
     contractType: input && input.contractType,
+    department: input && input.department,
   });
   // Tái dùng dedupeStaffByGroup (đã test) — đảm bảo count preview khớp count tạo task thật.
   const deduped = dedupeStaffByGroup(filtered);
