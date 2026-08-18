@@ -155,12 +155,18 @@ function loadRoster(taskId, filters) {
         return { ok: false, total: 0, added: 0, skipped: 0, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, counters: null };
       }
       const f = filters || {};
+      // Guard station bắt buộc (pattern createReconcileTask) — station rỗng → filterStaffByGroup
+      // bỏ lọc → nạp nhầm TOÀN BỘ StaffData làm roster (client đã chặn, server tự chặn — P1 audit).
+      const station = String(f.station || '').trim();
+      if (!station) {
+        return { ok: false, total: 0, added: 0, skipped: 0, message: 'Thiếu station', counters: null };
+      }
       // Chuẩn hoá mảng (client gửi string|array) — khớp filterStaffByGroup (createReconcileTask).
       const filterSlots = Array.isArray(f.slotCode) ? f.slotCode : (f.slotCode ? [f.slotCode] : []);
       const filterTeams = Array.isArray(f.team) ? f.team : (f.team ? [f.team] : []);
       const filterContractTypes = Array.isArray(f.contractType) ? f.contractType : (f.contractType ? [f.contractType] : []);
       const staffList = filterStaffByGroup(readStaffList_(), {
-        station: String(f.station || '').trim(),
+        station: station,
         slotCode: filterSlots,
         team: filterTeams,
         contractType: filterContractTypes,

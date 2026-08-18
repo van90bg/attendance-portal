@@ -92,6 +92,18 @@ test('loadRosterApi: dedupe nội bộ — NV 2 dòng StaffData → 1 dòng', ()
   assert.equal(logRows(ss, 'R1').length, 2);
 });
 
+test('loadRosterApi: thiếu station → ok:false (guard server — P1)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedStaff(ss);
+  seedTask(ss, 'R1', 'open', 'admin@spx.com');
+  const res = svc.loadRosterApi('R1', {});  // payload thiếu station → KHÔNG nạp toàn bộ staff
+  assert.equal(res.ok, false);
+  assert.match(res.message, /Thiếu station/);
+  assert.equal(logRows(ss, 'R1').length, 0, 'không được nạp nhầm staff');
+});
+
 test('loadRosterApi: filter rỗng → ok:false (CREATE_FAILED_EMPTY)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);

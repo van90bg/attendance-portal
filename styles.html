@@ -216,7 +216,10 @@
       border-color: var(--border);
       box-shadow: 0 2px 10px rgba(0,0,0,.10);
     }
-    .view-topbar-title { flex: 1; text-align: left; }
+    .view-topbar-title { flex: 1; text-align: left; min-width: 0; }  /* min-width:0 — title co lại (ellipsis)
+       thay vì đẩy nút hành động tràn ngoài topbar (P1 audit: Chuyển điểm danh bị clip khi title dài + 2 nút) */
+    .view-topbar-title .task-title,
+    .view-topbar-title .task-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height */
 
     /* Toolbar chung các view List/Scan/Stats/Staff/Config — 1 class dùng chung */
