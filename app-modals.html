@@ -355,6 +355,7 @@
     // Pre-fill Station/Team/Date từ task hiện tại (đã chọn khi tạo task).
     var _taskTeam = (CURRENT_TASK && CURRENT_TASK.team) || '';
     var _taskDate = (CURRENT_TASK && CURRENT_TASK.date) || '';
+    // Station/Team/Ngày lock từ task — user chỉ chọn Ca/Hình thức/Phòng ban
     ROSTER_FILTER = {
       station: (CURRENT_TASK && CURRENT_TASK.station) || '',
       slotCode: [],
@@ -421,13 +422,6 @@
     return depts;
   }
   // Ngày — options từ stationGroups (distinct dates theo station) + task.date.
-  function rosterDateOptions_() {
-    var dates = [];
-    (ROSTER_OPTS && ROSTER_OPTS.stationGroups || []).forEach(function (g) {
-      (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
-    });
-    return dates;
-  }
   function renderRosterChips_() {
     var slotEl = document.getElementById('rosterChipsSlot');
     var ctEl = document.getElementById('rosterChipsContract');
@@ -437,8 +431,6 @@
     slotEl.innerHTML = chipsHtml_(slots, ROSTER_FILTER.slotCode);
     if (ctEl) ctEl.innerHTML = chipsHtml_(rosterContractOptions_(), ROSTER_FILTER.contractType);
     if (deptEl) deptEl.innerHTML = chipsHtml_(rosterDeptOptions_(), ROSTER_FILTER.department);
-    var dateEl = document.getElementById('rosterChipsDate');
-    if (dateEl) dateEl.innerHTML = chipsHtml_(rosterDateOptions_(), ROSTER_FILTER.date);
   }
   function chipsHtml_(opts, selectedArr) {
     var html = '<button type="button" class="pick all' + (selectedArr.length === 0 ? ' on' : '') + '" data-col="roster-all" aria-pressed="' + (selectedArr.length === 0) + '">Tất cả</button>';
@@ -504,9 +496,8 @@
       var isSlot = chip.closest('#rosterChipsSlot') !== null;
       var isContract = chip.closest('#rosterChipsContract') !== null;
       var isDept = chip.closest('#rosterChipsDept') !== null;
-      var isDate = chip.closest('#rosterChipsDate') !== null;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
-      var arr = isSlot ? ROSTER_FILTER.slotCode : (isDept ? ROSTER_FILTER.department : (isDate ? ROSTER_FILTER.date : ROSTER_FILTER.contractType));
+      var arr = isSlot ? ROSTER_FILTER.slotCode : (isDept ? ROSTER_FILTER.department : ROSTER_FILTER.contractType);
       if (chip.getAttribute('data-col') === 'roster-all') {
         arr.length = 0;  // Tất cả = rỗng (không lọc)
       } else {
