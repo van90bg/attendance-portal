@@ -180,6 +180,7 @@
     var scanInput = document.getElementById('scanInput');
     var btnToAttend = document.getElementById('btnToAttend');
     var pasteBtn = document.getElementById('btnPaste'); // may not exist yet, guard
+    var rosterBtn = document.getElementById('btnLoadRoster'); // may not exist yet, guard
     var banner = document.getElementById('scanPermissionBanner');
     var canScan = perm.canScanOpen;
     var isOpenPhase = CURRENT_TASK.phase === TASK_STATUS_C.OPEN || CURRENT_TASK.status === TASK_STATUS_C.OPEN;
@@ -221,9 +222,13 @@
       btnToAttend.style.display = 'none';
     }
 
-    // Nút Dán (topbar): CHỈ ẩn khi khoá — hiện/ẩn theo FREE+OPEN do renderScanView quyết.
+    // Nút Dán / Lấy danh sách theo ca (topbar): CHỈ ẩn khi khoá — hiện/ẩn theo phase
+    // do renderScanView quyết.
     if (pasteBtn && scanOwnerLocked) {
       pasteBtn.style.display = 'none';
+    }
+    if (rosterBtn && scanOwnerLocked) {
+      rosterBtn.style.display = 'none';
     }
   }
 
@@ -262,6 +267,8 @@
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('pasteModal');
       if (m && m.classList.contains('open')) { closePasteModal(); return; }
+      m = document.getElementById('rosterModal');
+      if (m && m.classList.contains('open')) { closeRosterModal(); return; }
       // viewAbout is now a section, not a modal - go back to previous view
       var aboutV = document.getElementById('viewAbout');
       if (aboutV && !aboutV.classList.contains('hidden')) {
@@ -289,5 +296,97 @@
     if (!email) return '—';
     var name = String(email).split('@')[0];
     return name || email;
+  }
+
+  /* ===== Roster modal (A1 — nạp danh sách theo ca ở phase 1, docs/roster-load-design.md) ===== */
+  var ROSTER_OPTS = null;   // cache getFilterOptionsApi (1 fetch/tab)
+  var ROSTER_FILTER = { station: '', slotCode: '', team: '', date: '' };
+  function openRosterModal() {
+    if (!CURRENT_TASK || !CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
+    var m = document.getElementById('rosterModal');
+    if (!m) return;
+    m.setAttribute('aria-hidden', 'false');
+    m.classList.add('open');
+    var num = document.getElementById('rosterTotalNum');
+    if (num) num.textContent = '0';
+    var submitBtn = document.getElementById('btnRosterSubmit');
+    if (submitBtn) submitBtn.disabled = true;
+    if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); return; }
+    google.script.run
+      .withSuccessHandler(function (res) { ROSTER_OPTS = res; fillRosterOptions(res); })
+      .withFailureHandler(function () { ROSTER_OPTS = null; showToast('Lỗi tải danh sách ca', true); })
+      .getFilterOptionsApi();
+  }
+  function closeRosterModal() {
+    var m = document.getElementById('rosterModal');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+  }
+  function fillRosterOptions(res) {
+    if (!res || !res.ok) return;
+    var stations = ((res.lists && res.lists.stations) || []).slice();
+    (res.stationGroups || []).forEach(function (g) {
+      if (stations.indexOf(g.station) === -1) stations.push(g.station);
+    });
+    var teams = ((res.lists && res.lists.teams) || []).slice();
+    var slots = ((res.lists && res.lists.slotcodes) || []).slice();
+    var dates = [];
+    (res.stationGroups || []).forEach(function (g) {
+      (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
+    });
+    fillRosterSelect_('rosterStation', stations, ROSTER_FILTER.station, true);
+    fillRosterSelect_('rosterSlot', slots, ROSTER_FILTER.slotCode, false);
+    fillRosterSelect_('rosterTeam', teams, ROSTER_FILTER.team, false);
+    fillRosterSelect_('rosterDate', dates, ROSTER_FILTER.date, false);
+  }
+  function fillRosterSelect_(id, options, selected, isStation) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var html = '<option value="">' + (isStation ? '— Chọn Station —' : '— Tất cả —') + '</option>';
+    options.forEach(function (o) {
+      html += '<option value="' + escAttr(o) + '"' + (o === selected ? ' selected' : '') + '>' + esc(o) + '</option>';
+    });
+    sel.innerHTML = html;
+    sel.onchange = refreshRosterPreview;
+  }
+  function refreshRosterPreview() {
+    var submitBtn = document.getElementById('btnRosterSubmit');
+    if (submitBtn) submitBtn.disabled = true;
+    var station = document.getElementById('rosterStation').value;
+    var slot = document.getElementById('rosterSlot').value;
+    var team = document.getElementById('rosterTeam').value;
+    var date = document.getElementById('rosterDate').value;
+    ROSTER_FILTER = { station: station, slotCode: slot, team: team, date: date };
+    var num = document.getElementById('rosterTotalNum');
+    if (num) num.textContent = '0';
+    if (!station) return;
+    google.script.run
+      .withSuccessHandler(function (res) {
+        var n = (res && res.ok) ? (res.count || 0) : 0;
+        if (num) num.textContent = n;
+        if (submitBtn) submitBtn.disabled = !(n > 0);
+      })
+      .withFailureHandler(function () { if (num) num.textContent = '0'; })
+      .previewStaffApi({ station: station, slotCode: slot ? [slot] : [], team: team ? [team] : [], contractType: [], date: date });
+  }
+  function submitRoster() {
+    var submitBtn = document.getElementById('btnRosterSubmit');
+    if (submitBtn && submitBtn.disabled) return;
+    if (!CURRENT_TASK) return;
+    if (!ROSTER_FILTER.station) { showToast('Chọn Station trước', true); return; }
+    if (submitBtn) { submitBtn.disabled = true; setBtnBusy_(submitBtn, 'Đang nạp…'); }
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (submitBtn) { restoreBtnLabel_(submitBtn, 'Nạp danh sách'); submitBtn.disabled = false; }
+        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi nạp danh sách', true); return; }
+        closeRosterModal();
+        showToast(res.message, false);
+        if (res.counters) { CURRENT_COUNTERS = res.counters; renderCounters(res.counters); }
+        if (CURRENT_TASK && CURRENT_TASK.taskId) loadTaskDetail(CURRENT_TASK.taskId, true);
+      })
+      .withFailureHandler(function (err) {
+        if (submitBtn) { restoreBtnLabel_(submitBtn, 'Nạp danh sách'); submitBtn.disabled = false; }
+        showToast('Lỗi nạp danh sách: ' + (err && err.message ? err.message : 'unknown'), true);
+      })
+      .loadRosterApi(CURRENT_TASK.taskId, ROSTER_FILTER);
   }
 </script>

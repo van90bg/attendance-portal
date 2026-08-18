@@ -1,7 +1,8 @@
 # Đề xuất: Nạp danh sách theo ca (roster) ở phase 1 — hợp nhất quét / dán / roster
 
-> **Trạng thái: PROPOSAL — tài liệu thiết kế chờ duyệt, CHƯA code.** Khi duyệt → tách issue
-> theo Phase A / Phase B bên dưới, mỗi phase 1 commit + test + sync README/Spec.
+> **Trạng thái: ĐÃ TRIỂN KHAI Phase A (2026-08-18)** — task mới luôn FREE + OPEN, chọn ca =
+> pre-fill roster, `loadRosterApi` + nút "Lấy danh sách theo ca", cảnh báo chuyển phase khi log
+> rỗng. **Phase B** (bỏ branch `reconcile` khi hết task cũ) chưa làm — tách issue riêng.
 
 ## 1. Bối cảnh & mục tiêu
 

@@ -3,7 +3,7 @@
  * Pure: isFreeSlotSelection_ (CsvUtil) 3 case.
  * VM   : createReconcileTask với CsvUtil thật + fake GAS (LockService/Session/IO).
  *        Case FREE  → taskType FREE, status OPEN, log=0 (KHÔNG pre-fill)
- *        Case RECONCILE → taskType RECONCILE, status ATTEND, log pre-fill >0
+ *        Case ca thật (A1) → taskType FREE, status OPEN, log pre-fill >0
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -71,12 +71,12 @@ test('vm: slotCode=["Tự do"] → FREE task, OPEN, log=0', () => {
   assert.equal(res.count, 0, 'KHÔNG pre-fill');
 });
 
-test('VM: slotCode=["08:00-17:00"] → RECONCILE task, ATTEND, log pre-fill>0', () => {
+test('VM: slotCode=["08:00-17:00"] → FREE task, OPEN, log pre-fill>0 (A1)', () => {
   const { ctx, inserted } = makeCtx();
   const res = ctx.createReconcileTask({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
-  assert.equal(inserted[0].taskType, 'reconcile');
-  assert.equal(inserted[0].status, 'attend', 'reconcile vào thẳng phase2');
+  assert.equal(inserted[0].taskType, 'free', 'A1: mọi task mới FREE');
+  assert.equal(inserted[0].status, 'open', 'A1: mọi task mới mở phase1');
   assert.equal(res.count, 1, 'pre-fill 1 NV (OPS001)');
 });
 

@@ -238,6 +238,19 @@ function pasteCodesApi(taskId, lines) {
   }
 }
 
+/** Nạp danh sách theo ca (roster) — Phase A (docs/roster-load-design.md). Gate thật TRONG
+ *  loadRoster (TaskService): operator + status OPEN + canScanOpen_ (owner/admin). */
+function loadRosterApi(taskId, filters) {
+  // Gate quyền THẬT nằm TRONG loadRoster (TaskService) — google.script.run gọi được hàm global
+  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
+  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
+  try {
+    return loadRoster(taskId, filters);
+  } catch (e) {
+    return { ok: false, total: 0, added: 0, skipped: 0, message: e && e.message ? e.message : 'loadRoster fail', counters: null };
+  }
+}
+
 /** F-search: tìm log của 1 mã NV (Ops) XUYÊN TASK — DỮ LIỆU CHẤM CÔNG CÁ NHÂN.
  *  Trả danh sách task mà NV đó từng hiện hữu, kèm thông tin NV trong từng task.
  *  Gate requireRole_('manager') — nền cho báo cáo tháng theo mail (chỉ manager+ xem

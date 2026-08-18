@@ -64,11 +64,16 @@
     // T-2: Nút "Dán danh sách mã" trên view-topbar — chỉ hiện khi FREE + open + canScanOpen.
     // (nút tĩnh trong HTML; ở đây chỉ bật/tắt display theo task vừa render)
     var pasteBtn = document.getElementById('btnPaste');
+    var rosterBtn = document.getElementById('btnLoadRoster');
     var isFree = data.task.taskType === TASK_TYPE_C.FREE;
     var isOpenPhase = data.task.phase === TASK_STATUS_C.OPEN || data.task.status === TASK_STATUS_C.OPEN;
     var perm = data.task.permission || {};
     if (pasteBtn) {
       pasteBtn.style.display = (isFree && isOpenPhase && perm.canScanOpen) ? '' : 'none';
+    }
+    // A1: nút "Lấy danh sách theo ca" — cùng gate paste (phase Mở + owner). Task mới luôn FREE.
+    if (rosterBtn) {
+      rosterBtn.style.display = (isOpenPhase && perm.canScanOpen) ? '' : 'none';
     }
 
     // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
@@ -688,6 +693,7 @@
     var btnRe = document.getElementById('btnReopen');
     var btnTo = document.getElementById('btnToAttend');
     var btnPast = document.getElementById('btnPaste');
+    var btnRos = document.getElementById('btnLoadRoster');
     if (!btn) return;
     var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
     var done = phase === TASK_STATUS_C.DONE;
@@ -702,6 +708,10 @@
       btnPast.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
         && CURRENT_TASK && CURRENT_TASK.taskType === TASK_TYPE_C.FREE
         && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
+    }
+    if (btnRos) {
+      btnRos.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
+        && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
     }
     if (scanBusy()) {
       if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
@@ -889,7 +899,23 @@
   }
 
   // 2-phase: chuyển task Mở (phase1, ghi Giờ có mặt) → Điểm danh (phase2, ghi Giờ quét).
+  // A1 (docs/roster-load-design.md): confirm trước khi chuyển nếu log rỗng (chưa quét /
+  // chưa nạp roster) — NV quét phase Điểm danh ngoài danh sách sẽ tính Dư.
   function transitionToAttend(taskId) {
+    if (BUSY || !taskId) return;
+    if (scanBusy()) {
+      showToast('Đang xử lý quét — chờ xong rồi chuyển', true);
+      return;
+    }
+    if (!CURRENT_LOG || !CURRENT_LOG.length) {
+      showConfirm('Chưa có ai trong danh sách', 'NV quét ở phase Điểm danh ngoài danh sách sẽ tính là Dư. Tiếp tục?', function () {
+        doTransitionToAttend(taskId);
+      });
+      return;
+    }
+    doTransitionToAttend(taskId);
+  }
+  function doTransitionToAttend(taskId) {
     if (BUSY || !taskId) return;
     if (scanBusy()) {
       showToast('Đang xử lý quét — chờ xong rồi chuyển', true);

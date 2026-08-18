@@ -14,7 +14,7 @@ description: SPX Điểm Danh (RollCall v2) — project skill. Use for ANY edit 
 
 - Local: `C:\Users\Van90BG\Documents\AppScript\RollCall_2_deploy` · Remote `main` (CI self-clasp).
 - **User rule: agent commit+push GitHub — KHÔNG tự clasp push/deploy.** CI deploy trễ → luôn check SHA thật trước khi kết luận bug (`gh run list --limit 5`, đối chiếu `.head_sha`).
-- Test: `npm run test` = 145 tests (node:test — 17 files, gồm admin-audit; pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
+- Test: `npm run test` = 154 tests (node:test — 17 files, gồm admin-audit; pure logic ScanLogic.gs/CsvUtil.gs + smoke `tests/all-gs-load.test.js`/`tests/settings-service.test.js`/`tests/role-service.test.js` load toàn bộ .gs với mock GAS dùng chung `tests/gas-sandbox.js` + contract mock↔server `tests/mock-contract.test.js`).
 - Frontend (tách module 2026-08-13): `index.html` (HTML + `<?!= include() ?>` GAS template) + `styles.html` (CSS) + 9 module JS `app-*.html` (core/stats/staff/modals/config/tasks/scan/reports/admin — thay app.html 3665 dòng) — cả nguồn GAS CRLF. Server: Code/Config/CsvUtil/Spreadsheet/Cache/StaffDataRepo/TaskRepo/LogRepo/ScanLogic/ScanService/TaskService/Auth/Debug/SettingsService/AuditRepo/ReportRepo/ReportService `.gs`. Test local: `node scripts/build-local.js` → `index.local.html` (trình duyệt không render template).
 
 ## 2. Shell: SPX Điểm Danh (2026-08-09)
@@ -36,7 +36,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - `classifyScan(cfg,task,logRows,staffId)` → `{action:update|append|reject, phase, field, status}`.
 - Layers: `scanStaffApi`(Code) → `scanStaff`(ScanService) → `classifyScan`(ScanLogic) + `appendLogRow_`/`updateLogRowScan_`/`batchUpdateLogRows_`(LogRepo). LockService + try/catch — không throw client, trả `ok:false`.
 - `reopenTask` → ATTEND (KHÔNG quay OPEN); client recompute phase từ `task.status`.
-- ROSTER reconcile → created với `status: ATTEND` (pre-fill log); FREE (noList) → `status:OPEN`.
+- A1 (2026-08-18): task mới luôn FREE + `status:OPEN` (phase 1); chọn ca thật = pre-fill roster, 'Tự do' = log rỗng. Phase 1 không Dư — Dư chỉ khi quét phase 2 ngoài danh sách. `reconcile` chỉ còn cho task cũ.
 - **NO LIST phase2 rule**: NV lạ scanned trong phase2 → **EXTRA (Dư)**, KHÔNG phải PRESENT. Client `optimistic status` phải mirror server (`target.status === EXTRA ? EXTRA : PRESENT`).
 
 ## 4. Recurring gotchas (đã fix — đừng regress)
@@ -166,7 +166,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 
 ## Verify workflow
 
-- Logic changes → `npm run test` (145/145 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
+- Logic changes → `npm run test` (154/154 — **tự chạy 2 guard audit trước**: `test:css` + `test:gs`; có dead → fail ngay). UI-only → parse+CRLF đủ.
 - **Checklist 3 audit (2026-08-11) — chạy sau MỌI batch**:
   - `npm run test:css` — dead CSS class (styles.html vs index/app + JS render động); exit 1 nếu có dead.
   - `npm run test:gs` — hàm/const/API dead trong 17 file .gs (đối chiếu gs + index/app + mock + tests + scripts); exit 1 nếu dead/treo.

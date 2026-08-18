@@ -89,7 +89,7 @@
       if (base.slotCode && base.slotCode.length && base.slotCode.indexOf(s.slotCode) === -1) return false;
       if (base.team && base.team.length && base.team.indexOf(s.team) === -1) return false;
       if (base.contractType && base.contractType.length && base.contractType.indexOf(s.contractType) === -1) return false;
-      if (base.date && base.date !== (s.dateText || '')) return false;
+      if (base.date && base.date !== (s.date || '')) return false;
       return true;
     });
   }
@@ -216,7 +216,7 @@
     createReconcileTaskApi: function (input) {
       var taskId = 'R' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-0' + (MOCK_DATA.tasks.length + 1);
       var task = {
-        taskId: taskId, taskType: 'reconcile', station: input.station, slotCode: input.slotCode,
+        taskId: taskId, taskType: 'free', station: input.station, slotCode: input.slotCode,
         team: input.team, date: (input && input.date) || '', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00',
       };
       MOCK_DATA.tasks.unshift(task);
@@ -291,6 +291,37 @@
         success++; results.push({ code: c, ok: true, action: 'append' });
       });
       return { ok: true, message: 'Dán ' + success + '/' + lines.length + ' mã thành công', total: lines.length, success: success, failed: failed, results: results, counters: counters(log) };
+    },
+    loadRosterApi: function (taskId, filters) {
+      // Khớp server loadRoster (TaskService): gate status OPEN; lọc StaffData → append PENDING
+      // + timeRef = now; bỏ qua NV đã có dòng (idempotent, không lỗi như paste).
+      var task = null;
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
+      function z(msg) { return { ok: false, total: 0, added: 0, skipped: 0, message: msg, counters: null }; }
+      if (!task) return z('Không tìm thấy task');
+      if (task.status !== 'open') return z('Chỉ phase Mở mới nạp danh sách được');
+      var base = {
+        station: filters && filters.station,
+        slotCode: (filters && filters.slotCode) || [],
+        team: (filters && filters.team) || [],
+        contractType: (filters && filters.contractType) || [],
+        date: filters && filters.date,
+      };
+      var deduped = mockDedupe(mockFilterStaff(base));
+      if (!deduped.length) return z('Không có nhân viên nào trong tổ hợp đã chọn');
+      var log = getLog(taskId);
+      var nowMs = Date.now();
+      var d = new Date(nowMs);
+      var ts = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+      var added = 0, skipped = 0;
+      deduped.forEach(function (s) {
+        var hit = null;
+        log.forEach(function (r) { if (r.staffId.toLowerCase() === s.staffId.toLowerCase()) hit = r; });
+        if (hit) { skipped++; return; }
+        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', timeRefText: ts, timeRefEpoch: nowMs, timeScanText: '', timeScanEpoch: 0, status: '-', dateText: s.date || '' });
+        added++;
+      });
+      return { ok: true, total: deduped.length, added: added, skipped: skipped, counters: counters(log), message: added ? ('Đã nạp ' + added + ' NV' + (skipped ? ' — bỏ qua ' + skipped + ' đã có' : '')) : ('Tất cả ' + skipped + ' NV đã có trong danh sách') };
     },
     searchLogsByStaffApi: function (rawStaffId) {
       // Mock F-search: quét toàn bộ task log + roster NV, filter staffId (case-insensitive).

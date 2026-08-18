@@ -3,9 +3,9 @@
  *
  * 2-phase attendance: tạo task → phase1 (Mở, quét Giờ có mặt) → phase2 (Điểm danh,
  * quét Giờ quét) → Xong.
- * - Có list: pre-fill log, TIME_REF = giờ tạo task (Giờ có mặt cho mọi NV).
- * - Không list: log rỗng; quét lần 1 ghi TIME_REF (Giờ có mặt) + dòng Dư.
- * transitionToAttend chuyển Mở→Điểm danh (mở nút Kết thúc). completeTask chỉ ở phase2.
+ * A1 (docs/roster-load-design.md): mọi task mới = FREE + OPEN (phase 1). Chọn ca thật →
+ * pre-fill roster (TIME_REF = giờ tạo); Ca 'Tự do' → log rỗng. Phase 1 KHÔNG có Dư —
+ * Dư chỉ khi quét phase 2 ngoài danh sách. transitionToAttend chuyển Mở→Điểm danh.
  */
 
 /** Tạo taskId có thứ tự đọc được: R20260802-0730 (giờ tạo). */
@@ -20,7 +20,8 @@ function makeTaskId_(now) {
 }
 
 /**
- * Tạo task đối chiếu (reconcile) + pre-fill log.
+ * Tạo task mới (A1): luôn FREE + OPEN (phase 1); chọn ca thật = pre-fill roster,
+ * Ca 'Tự do' = log rỗng. Legacy task 'reconcile' cũ không còn được tạo mới.
  * @param {{station: string, slotCode: string, team: string, createdBy: string}} input
  * @returns {{ok: boolean, taskId: string|null, count: number, message: string}}
  */
@@ -93,18 +94,17 @@ function createReconcileTask(input) {
 
     const task = {
       taskId: taskId,
-      // noList (Quét tự do) dùng taskType FREE để classifyScan nhận biết:
-      // NV lạ quét đầu (phase1) ghi PENDING (chưa điểm danh), KHÔNG Dư.
-      taskType: noList ? TASK_TYPE.FREE : TASK_TYPE.RECONCILE,
+      // A1: mọi task mới = FREE (classifyScan nhánh FREE: phase 1 KHÔNG Dư —
+      // NV lạ quét phase 1 ghi PENDING; Dư chỉ khi quét phase 2 ngoài danh sách).
+      taskType: TASK_TYPE.FREE,
       station: station,
       // 2026-08-07: FREE không chọn Ca — tự gán SLOT_FREE_MAGIC (task sheet hiển thị Ca=Tự do).
       slotCode: noList ? SLOT_FREE_MAGIC : slotCode,
       team: team,
       contractType: contractType,
-      // 2.10: RECONCILE (có list pre-fill) tạo task vào thẳng phase2 (attend) — KHÔNG
-      // cần bấm "Chuyển điểm danh" thủ công (danh sách đã có sẵn → quét NV ngoài list = Dư).
-      // FREE (noList) vẫn mở phase1 (open) — cần scan phase1 để xây danh sách rồi mới chuyển attend.
-      status: noList ? TASK_STATUS.OPEN : TASK_STATUS.ATTEND,
+      // A1: KHÔNG còn task sinh ở ATTEND — roster pre-nạp vẫn qua phase 1; bấm
+      // "Chuyển điểm danh" sang phase 2 (NV ngoài danh sách quét phase 2 = Dư).
+      status: TASK_STATUS.OPEN,
       createdAt: now,
       createdBy: createdBy,
       completedAt: null,
@@ -116,10 +116,88 @@ function createReconcileTask(input) {
     // EXTRA + cho phép retry tạo lại task mới sạch). batchInsert là 1 setValues → atomic.
     const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
     insertTask_(task);
-    audit_('createTask', taskId, { type: noList ? TASK_TYPE.FREE : TASK_TYPE.RECONCILE, count: count });
+    audit_('createTask', taskId, { type: TASK_TYPE.FREE, count: count });
     return { ok: true, taskId: taskId, count: count, message: 'Tạo task' + (noList ? ' quét tự do' : '') + ' thành công: ' + taskId };
   } finally {
     lock.releaseLock();
+  }
+}
+
+/**
+ * Nạp danh sách theo ca (roster) vào task đang MỞ — Phase A (docs/roster-load-design.md).
+ * Lọc StaffData theo tổ hợp → append dòng PENDING + timeRef = now cho NV CHƯA có trong log
+ * (bỏ qua im lặng NV đã có — idempotent, khác paste báo "đã có mặt"). KHÔNG reclassify dòng cũ.
+ * Gate: operator + status OPEN + canScanOpen_ (owner/admin) — pattern DEFENSE (như pasteCodes).
+ * @param {string} taskId
+ * @param {{station: string, slotCode: string|string[], team: string|string[], contractType: string|string[], date: string}} filters
+ * @returns {{ok: boolean, total: number, added: number, skipped: number, message: string, counters: Object}}
+ */
+function loadRoster(taskId, filters) {
+  if (!taskId) return { ok: false, total: 0, added: 0, skipped: 0, message: 'Thiếu taskId', counters: null };
+  // M1 (review 2026-08-11): gate THẬT ở service layer — google.script.run gọi được global
+  // trực tiếp nên gate chỉ ở *Api wrapper bị bypass. Operator vẫn dùng được (DEFAULT).
+  if (!requireRole_('operator')) {
+    return { ok: false, total: 0, added: 0, skipped: 0, message: 'Không đủ quyền (cần role operator trở lên)', counters: null };
+  }
+  // DEFENSE: bọc toàn bộ logic — mọi lỗi trả ok:false thay vì ném ra client (pattern scanStaff).
+  try {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      const task = readTask_(taskId);
+      if (!task) return { ok: false, total: 0, added: 0, skipped: 0, message: 'Không tìm thấy task', counters: null };
+      // Chỉ phase Mở (đồng gate với paste) — phase 2 không nạp roster (NV ngoài ds quét = Dư).
+      if (task.status !== TASK_STATUS.OPEN) {
+        return { ok: false, total: 0, added: 0, skipped: 0, message: 'Chỉ phase Mở mới nạp danh sách được', counters: null };
+      }
+      const isAdmin = isEditor_();
+      if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+        return { ok: false, total: 0, added: 0, skipped: 0, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, counters: null };
+      }
+      const f = filters || {};
+      // Chuẩn hoá mảng (client gửi string|array) — khớp filterStaffByGroup (createReconcileTask).
+      const filterSlots = Array.isArray(f.slotCode) ? f.slotCode : (f.slotCode ? [f.slotCode] : []);
+      const filterTeams = Array.isArray(f.team) ? f.team : (f.team ? [f.team] : []);
+      const filterContractTypes = Array.isArray(f.contractType) ? f.contractType : (f.contractType ? [f.contractType] : []);
+      const staffList = filterStaffByGroup(readStaffList_(), {
+        station: String(f.station || '').trim(),
+        slotCode: filterSlots,
+        team: filterTeams,
+        contractType: filterContractTypes,
+        date: String(f.date || '').trim(),
+      });
+      const deduped = dedupeStaffByGroup(staffList);
+      if (!deduped.length) {
+        return { ok: false, total: 0, added: 0, skipped: 0, message: UI_LABELS.CREATE_FAILED_EMPTY, counters: null };
+      }
+      // Bỏ qua NV đã có dòng trong log — nạp lại an toàn (idempotent), không reclassify dòng cũ.
+      const existing = {};
+      (readLogRowsCached_(taskId) || []).forEach(function (r) {
+        existing[String(r.staffId || '').trim().toUpperCase()] = 1;
+      });
+      const toAdd = deduped.filter(function (s) {
+        return !existing[String(s.staffId || '').trim().toUpperCase()];
+      });
+      const skipped = deduped.length - toAdd.length;
+      const now = new Date();
+      const added = toAdd.length ? batchInsertLogRows_(taskId, toAdd, now) : 0;
+      if (added) audit_('loadRoster', taskId, { total: deduped.length, added: added, skipped: skipped });
+      const counters = computeCounters(
+        { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+        readLogRowsCached_(taskId) || []
+      );
+      return {
+        ok: true, total: deduped.length, added: added, skipped: skipped,
+        message: added
+          ? 'Đã nạp ' + added + ' NV' + (skipped ? ' — bỏ qua ' + skipped + ' đã có' : '')
+          : ('Tất cả ' + skipped + ' NV đã có trong danh sách'),
+        counters: counters,
+      };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (e) {
+    return { ok: false, total: 0, added: 0, skipped: 0, message: e && e.message ? e.message : 'loadRoster fail', counters: null };
   }
 }
 

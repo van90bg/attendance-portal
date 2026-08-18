@@ -24,7 +24,7 @@
 
 Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình điểm danh trong ngày:
 
-1. **Tạo task** theo Station / Ca / Team (hoặc quét tự do không cần danh sách).
+1. **Tạo task** (luôn mở phase 1) — chọn Station / Ca / Team để nạp sẵn danh sách NV, hoặc Ca 'Tự do' để tạo rỗng rồi nạp sau.
 2. **Quét Giờ có mặt** (pha Mở) — ghi nhận nhân viên vào ca.
 3. **Chuyển điểm danh** (pha Điểm danh) — quét lần 2 ghi Giờ quét.
 4. **Kết thúc** — nhân viên chưa quét lần 2 tự tính là Vắng; có thể Mở lại để quét bổ sung.
@@ -56,10 +56,10 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 
 ## Tính năng
 
-- **Tạo task 2 chế độ** — modal dropdown Station · Ca · Team · Ngày; badge số NV; **Quét tự do (FREE)** không cần danh sách sẵn.
-- **Quy trình 2 pha** — pha **Mở** ghi Giờ có mặt, pha **Điểm danh** ghi Giờ quét:
-  - Task Đối chiếu: pre-fill Giờ có mặt, quét = Có mặt / Đã điểm danh / Dư.
-  - Task FREE: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư.
+- **Tạo task 1 luồng (A1)** — task mới luôn mở phase 1 (Mở): chọn Station · Ca · Team · Ngày → **pre-fill danh sách NV** ngay lúc tạo; Ca 'Tự do' → tạo rỗng rồi quét / nạp sau.
+- **Quy trình 2 pha** — pha **Mở** ghi Giờ có mặt (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi Giờ quét:
+  - Task chọn ca: pre-fill danh sách NV ngay lúc tạo (Giờ có mặt = giờ tạo); quét phase 2 = Có mặt / Dư.
+  - Task rỗng: quét lần 1 xây danh sách, bấm **Chuyển điểm danh** → quét lần 2; NV lạ → Dư.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
   - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
@@ -77,7 +77,8 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewConfig (Cấu hình) | | | | ✅ (editor) |
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
-- **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 1000, báo mã lỗi.
+- **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 200, báo mã lỗi.
+- **Lấy danh sách theo ca** — nút cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/Ngày, append PENDING + Giờ có mặt, **bỏ qua NV đã có** (idempotent).
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.
 - **Counters tức thì** — Đã quét / Chưa / Dư, queue nền + optimistic.
 - **A11y** — skip-link, focus trap, `prefers-contrast`, phản hồi không dùng `alert()`.
@@ -114,7 +115,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 145 unit tests node --test
+├── tests/                 # 154 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
@@ -125,7 +126,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 145/145 unit tests (node:test)
+npm test                        # 154/154 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -165,7 +166,7 @@ clasp deploy
 - ✅ Portal shell: sidebar 8 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile); viewAdmin — nhật ký hoạt động (manager+, lọc ngày).
 - ✅ Tách frontend (index/styles + 9 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 145/145 unit tests + 11/11 CDP local mock.
+- ✅ 154/154 unit tests + 11/11 CDP local mock.
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 
 ---

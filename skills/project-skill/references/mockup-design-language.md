@@ -74,7 +74,7 @@ Một accent tương tác duy nhất = **--primary (xanh #0b57d0)**; amber CHỈ
 
 1. Edit deterministic (Python, CRLF) → CRLF 0 LF-only/no BOM + JS parse + CSS braces 0.
 2. `node scripts/build-local.js` (BẮT BUỘC trước CDP — index.local.html stale gây probe false-fail).
-3. `npm test` (145/145) + `node scripts/audit-css.js` (DEAD 0; warnings không fatal: `.cfg-item-group`
+3. `npm test` (154/154) + `node scripts/audit-css.js` (DEAD 0; warnings không fatal: `.cfg-item-group`
    intentional JS-only, `.reports-user-name` pre-existing) + `node scripts/audit-gs.js` (0 dead/treo).
 4. CDP probe desktop 1384 + mobile 390: geometry `getBoundingClientRect` là truth. Mock roleMap = `{}`
    → inject `CFG_STATE['roleMap']` + gọi `renderRoleRows()` để test role card. Port 9222 tự boot headless

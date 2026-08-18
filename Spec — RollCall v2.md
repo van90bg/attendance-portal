@@ -169,10 +169,10 @@ Nhật ký hoạt động quản trị (viewAdmin — chỉ admin): mọi mutati
 
 ### 4.1 Loại task
 
-2 loại (`TASK_TYPE` trong Config.gs):
+**A1 (docs/roster-load-design.md, 2026-08-18):** mọi task mới = `free` + **Mở** (`open`). `reconcile` chỉ còn cho task CŨ đang chạy — không tạo mới.
 
-- `reconcile` (Đối chiếu danh sách) — tạo từ tổ hợp StaffData; **pre-fill AttendanceLog 1 lần** (`timeRef = createdAt`, `status='-'`) và task tạo ra ở trạng thái **Điểm danh** (`attend`) — quét ngay là Giờ quét.
-- `free` (Quét tự do / noList) — **không cần tổ hợp**, log rỗng; task tạo ra ở trạng thái **Mở** (`open`). Quét lần 1 xây danh sách (ghi Giờ có mặt, `PENDING` — chưa điểm danh), bấm **Chuyển điểm danh** rồi quét lần 2 (Giờ quét).
+- `free` — chọn **Ca thật** ở modal → **pre-fill AttendanceLog 1 lần** (`timeRef = createdAt`, `status='-'`) nhưng task vẫn **Mở** (phase 1). Ca **'Tự do'** → log rỗng. Quét lần 1 xây danh sách; bấm **Chuyển điểm danh** rồi quét lần 2 (Giờ quét).
+- **Phase 1 KHÔNG có Dư** — Dư (EXTRA) chỉ khi quét phase 2 mà NV không có dòng PENDING trong log (bất kể nguồn: quét phase 1 · dán · roster).
 
 ### 4.2 Task ID
 
@@ -195,9 +195,7 @@ open  →  attend  →  done
 | `attend` | 2 — Điểm danh | Quét ghi **Giờ quét** (TIME_SCAN); mọi người quét được |
 | `done` | — | Đã kết thúc — quét reject `task-closed` |
 
-Đặc điểm tạo task:
-- `reconcile` (có danh sách): **sinh ra ở `attend`** — đã pre-fill Giờ có mặt = giờ tạo task, quét ngay là Giờ quét.
-- `free` (noList): **sinh ra ở `open`** — quét lần 1 = Giờ có mặt, chuyển Điểm danh mới quét lần 2.
+Đặc điểm tạo task (A1): **mọi task mới sinh ra ở `open`** — chọn ca thật = pre-fill Giờ có mặt (roster); 'Tự do' = log rỗng; bấm **Chuyển điểm danh** (cảnh báo nếu log rỗng) để sang `attend`. Legacy `reconcile` cũ giữ nguyên.
 
 `transitionToAttend(taskId)` — `open → attend`, guard `status === OPEN`; không sửa log (NV đã có Giờ có mặt giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` (M1 — mọi user mặc định là operator nên không đổi hành vi quét).
 
@@ -208,7 +206,7 @@ open  →  attend  →  done
 3. `dedupeStaffByGroup`: **dedupe theo staffId trong cùng tổ hợp, giữ dòng đầu** (Att.csv thật có NV 2 dòng cùng ca → tránh phantom absent + row-key client lệch). Không dedupe toàn cục (NV nhiều ca hợp lệ phải giữ).
 4. Tổ hợp rỗng → `{ok:false, message:'Không có nhân viên nào trong tổ hợp đã chọn'}` (`UI_LABELS.CREATE_FAILED_EMPTY`).
 5. `insertTask_` (append 1 dòng) + (nếu có list) `batchInsertLogRows_` — **pre-fill log 1 lần** (`timeRef=createdAt`, `status='-'`), batch `setValues` 1 lần (không appendRow trong loop). `TIME_REF = Giờ có mặt` (breaking 2026-08-05).
-6. Status khởi tạo: `noList ? OPEN : ATTEND` (§4.3).
+6. Status khởi tạo: **luôn `OPEN`** (A1 — mọi task qua phase 1; không tạo task `reconcile` mới).
 7. Toàn bộ nằm trong `LockService.waitLock(10000)`.
 
 ### 4.5 Kết thúc task (`completeTask`)
@@ -394,6 +392,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `completeTaskApi(taskId)` | `{ ok, message }` | operator (service) |
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator (service) |
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 200 | operator (service) |
+| `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở phase 1; append PENDING + timeRef, **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN + owner) |
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
 | `searchTasksByQueryApi(q)` | `{ ok, rows }` — tìm task theo mã NV / mã task | — |
 | `getReportsApi()` | `{ ok, rows, email, opsId, staffName }` — báo cáo chấm công tháng theo email đăng nhập (viewReports) | **manager+** (service) |
@@ -432,7 +431,7 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 - Funnel lọc 4 cột (Loại/Station/Team/Trạng thái) + phân trang 100 task/trang; skeleton + empty state; search NV đổi thead sang SEARCH_HEAD (thêm Mã NV/Tên NV/Điểm danh).
 
 **viewScan — Màn quét:**
-- Topbar: `← Danh sách task` · tiêu đề taskId + meta · nút **Chuyển điểm danh** (chỉ phase open) + **Kết thúc** (chỉ phase attend) + **Mở lại** (chỉ done) + **Dán danh sách mã** (FREE + open + owner).
+- Topbar: `← Danh sách task` · tiêu đề taskId + meta · nút **Chuyển điểm danh** (chỉ phase open) + **Kết thúc** (chỉ phase attend) + **Mở lại** (chỉ done) + **Dán danh sách mã** (FREE + open + owner) + **Lấy danh sách theo ca** (open + owner, A1).
 - Cột trái (480px): 4 counter (Có mặt / Đã quét / Chưa điểm danh / Dư — phase-aware) · ô quét to (laser-line khi focus) · scan card projector · nút Quét (mobile).
 - Cột phải: bảng NV — tìm kiếm + lọc trạng thái + sort theo epoch; cột Giờ có mặt / Giờ quét theo phase; dòng Dư nền cam; row-diff chống flicker.
 - Khoá theo role (T-1): `!canScanOpen` + phase Mở → input disabled + banner cam + ẩn nút Chuyển điểm danh / Dán mã.
@@ -453,12 +452,12 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 
 **Chuyển view:** `selectPage(page)` → `showSection(name)` — ẩn CẢ 9 section, set active nav, lazy-load theo page; `showSection` list đủ mọi id (`['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig','viewReports','viewAdmin']`); `repairViewParents()` kéo section bị parser eject về `<main>`. Dừng/kích auto-focus theo view (`viewScan` → `startAutoFocusLoop()`).
 
-Modal: tạo task · confirm dùng chung · pasteModal · vềAbout không phải modal — dùng lớp `.about-overlay` + `anyModalOpen()` (Escape/focus trap/autofocus loop).
+Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbout không phải modal — dùng lớp `.about-overlay` + `anyModalOpen()` (Escape/focus trap/autofocus loop).
 
 ### 9.2 Modal tạo task
 
 - **5 cột chip** (`renderAllSelects` — `.pick` buttons): Station (single) · Ca · Team · Hình thức (multi-select) · Ngày (chips nếu ≤5, dropdown nếu nhiều). Cascade station → team → slot (slot phải thuộc team chọn).
-- **Ca 'Tự do'** (chip đặc biệt `SLOT_FREE_MAGIC` = 'Tự do') — chọn = chế độ FREE: ẩn Hình thức, disable Ngày; server derive `noList` qua `isFreeSlotSelection_`.
+- **Ca 'Tự do'** (chip đặc biệt `SLOT_FREE_MAGIC` = 'Tự do') — chọn = task rỗng (không pre-fill): ẩn Hình thức, disable Ngày; server derive `noList` qua `isFreeSlotSelection_`. **A1:** chọn ca thật → pre-fill roster nhưng task VẪN phase 1 (Mở).
 - **Số NV khớp trên nút Tạo** (`previewStaffApi`, debounce 200ms — KHÔNG còn API `previewStaffCountsApi` cũ) + badge tổng `createTotalNum`.
 - Pre-select defaults từ Config (`CFG_DEFAULTS`) khi mở lần đầu / modal mở trước khi options về; MERGE `CFG_LISTS` (Config) + distinct StaffData (`mergeOpts_`).
 - 'Tất cả' chip = chọn hết / bỏ hết; rỗng = không lọc (server bỏ lọc mảng rỗng).
@@ -498,6 +497,12 @@ Modal: tạo task · confirm dùng chung · pasteModal · vềAbout không phả
 ### 9.8 Paste danh sách mã (T-2)
 
 - Nút **Dán danh sách mã** cạnh ô quét — chỉ hiện khi `FREE + open + permission.canScanOpen`; bấm → `#pasteModal` (lớp `.about-overlay` — nằm trong `anyModalOpen()` nên autofocus loop không cướp textarea).
+
+### 9.9 Nạp danh sách theo ca (roster — A1)
+
+- Nút **Lấy danh sách theo ca** cạnh **Dán danh sách mã** — hiện khi `open + permission.canScanOpen`; bấm → `#rosterModal` (lớp `.about-overlay`): 4 select Station (bắt buộc) / Ca / Team / Ngày — options từ `getFilterOptionsApi` (cache 1 lần/tab).
+- Preview số NV khớp qua `previewStaffApi` khi đổi select → nút **Nạp danh sách** bật khi count > 0.
+- Gọi `loadRosterApi(taskId, filters)` → append PENDING + `timeRef = now` cho NV CHƯA có trong log (**bỏ qua im lặng** — idempotent, khác paste báo "đã có mặt"); toast `added / skipped`; refresh counters + `loadTaskDetail` nền. Gate server: operator + `open` + `canScanOpen_`; KHÔNG reclassify dòng cũ.
 - Textarea 1 dòng = 1 mã; bỏ dòng rỗng; giới hạn **200 dòng** (client + server clamp — A4).
 - Gọi `pasteCodesApi` → hiện **summary** (xanh/đỏ: `success/total` thành công, `failed` thất bại) + liệt kê mã hỏng (sai format / đã có mặt / đã điểm danh / chặn) dạng danh sách; refresh `CURRENT_LOG`/`CURRENT_COUNTERS` từ response + `loadTaskDetail` nền.
 
@@ -508,8 +513,8 @@ Modal: tạo task · confirm dùng chung · pasteModal · vềAbout không phả
 | Hạng mục | Giá trị |
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
-| Files | **17 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **145/145 pass** |
+| Files | **18 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · roster-load · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
+| **Kết quả** | **154/154 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
@@ -600,7 +605,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 145/145 (17 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 154/154 (18 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 10 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |
@@ -616,6 +621,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 
 ```plain
 ✅ Tạo task: Đối chiếu (tổ hợp Station / Ca multi / Team multi / Date) + Quét tự do (FREE, không danh sách)
+✅ A1 (2026-08-18): task mới luôn FREE + OPEN; chọn ca = pre-fill roster; nút "Lấy danh sách theo ca" (loadRosterApi — idempotent, phase 1 + owner); phase 1 không Dư; cảnh báo chuyển phase khi log rỗng
 ✅ Preview số NV khớp trước khi tạo
 ✅ Pre-fill AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = Giờ có mặt
 ✅ 2-phase: Mở (Giờ có mặt, FREE) → Chuyển điểm danh → Điểm danh (Giờ quét) → Kết thúc
@@ -633,7 +639,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ viewReports (báo cáo chấm công tháng theo email) + viewStats (pivot) + viewStaff (20 cột)
 ✅ viewAdmin — nhật ký hoạt động AuditLog (chỉ admin, lọc ngày); bỏ bảng task trùng viewTasks (2026-08-17)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
-✅ Test Node 145/145 (17 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
+✅ Test Node 154/154 (18 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
 
 **Rủi ro đã chấp nhận (biết rõ, cố tình bỏ qua):**

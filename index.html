@@ -116,6 +116,7 @@
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
       <button class="btn btn-outline" id="btnPaste" onclick="openPasteModal()" style="display:none" aria-label="Dán danh sách mã" title="Dán danh sách mã">Dán danh sách mã</button>
+      <button class="btn btn-outline" id="btnLoadRoster" onclick="openRosterModal()" style="display:none" aria-label="Lấy danh sách theo ca" title="Lấy danh sách theo ca">Lấy danh sách theo ca</button>
       <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Kết thúc task">Kết thúc</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
@@ -495,6 +496,39 @@
     <div class="paste-footer">
       <button class="btn btn-ghost" onclick="closePasteModal()">Huỷ</button>
       <button class="btn" id="btnPasteSubmit" onclick="submitPaste()">Dán</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nạp danh sách theo ca (A1 — phase 1, docs/roster-load-design.md) -->
+<div id="rosterModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="rosterModalTitle" onclick="if(event.target===this)closeRosterModal()">
+  <div class="about-dialog">
+    <h2 id="rosterModalTitle">Lấy danh sách theo ca</h2>
+    <p class="mode-desc">Nạp danh sách nhân viên của ca vào task — NV đã có trong danh sách sẽ được bỏ qua.</p>
+    <div class="create-form" id="rosterForm">
+      <div class="frow">
+        <span class="flabel">Station <span class="fnote">chọn 1</span></span>
+        <select id="rosterStation" class="field-select" aria-label="Station"></select>
+      </div>
+      <div class="frow">
+        <span class="flabel">Ca</span>
+        <select id="rosterSlot" class="field-select" aria-label="Ca"></select>
+      </div>
+      <div class="frow">
+        <span class="flabel">Team</span>
+        <select id="rosterTeam" class="field-select" aria-label="Team"></select>
+      </div>
+      <div class="frow">
+        <span class="flabel">Ngày</span>
+        <select id="rosterDate" class="field-select" aria-label="Ngày"></select>
+      </div>
+    </div>
+    <div class="create-footer">
+      <div class="create-total"><b id="rosterTotalNum">0</b> <span>nhân viên khớp</span></div>
+      <div class="create-actions">
+        <button class="btn btn-ghost" onclick="closeRosterModal()">Huỷ</button>
+        <button class="btn" id="btnRosterSubmit" onclick="submitRoster()" disabled>Nạp danh sách</button>
+      </div>
     </div>
   </div>
 </div>
