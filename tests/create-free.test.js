@@ -88,3 +88,12 @@ test('VM: noList cũ (input.noList=true) vẫn tương thích', () => {
   assert.equal(res.ok, true, res.message);
   assert.equal(inserted[0].taskType, 'free', 'noList cũ vẫn FREE');
 });
+
+test('VM: station rỗng (A2 — modal chỉ nút Tạo) → task tạo được, station rỗng', () => {
+  const { ctx, inserted } = makeCtx();
+  const res = ctx.createReconcileTask({ station: '', slotCode: ['Tự do'] });
+  assert.equal(res.ok, true, res.message);
+  assert.equal(inserted[0].taskType, 'free');
+  assert.equal(inserted[0].station, '', 'station rỗng — roster nạp sau qua loadRosterApi');
+  assert.equal(res.count, 0, 'log rỗng');
+});

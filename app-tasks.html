@@ -733,10 +733,6 @@
     };
     // 2026-08-11: team/slot rỗng = 'Tất cả' (không lọc) — chỉ Station bắt buộc.
     // Server filterStaffByGroup bỏ lọc khi mảng rỗng; guard 0 NV server vẫn chặn.
-    if (!input.station) {
-      showToast('Vui lòng chọn Station', true);
-      return;
-    }
     if (isFree) input.slotCode = [SLOT_FREE_MAGIC];
     BUSY = true;
     var btn = document.getElementById('btnCreateSubmit');

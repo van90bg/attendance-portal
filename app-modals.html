@@ -130,18 +130,13 @@
   function isFreeSel() {
     return SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
   }
-  // A2 (2026-08-18): modal tạo task rút gọn — task mới LUÔN quét tự do (không roster),
+  // A2: modal tạo task rút gọn — Station/Ca/Team/Date ẩn, task mới LUÔN quét tự do (không roster),
   // danh sách nạp sau qua nút "⋯" trong màn quét. Team/Ca/Hình thức ẩn trong HTML.
   function refreshModeUI() {
     var desc = document.getElementById('modeDesc');
     if (desc) {
-      desc.innerHTML = 'Tạo task, quét giờ có mặt trước — nạp danh sách theo ca sau qua nút <b>⋯</b> trong màn quét.';
+      desc.innerHTML = 'Task rỗng — quét / nạp danh sách sau.';
     }
-    // Ca luôn = Tự do (free) — selDate/chipsDate KHÔNG disabled nữa (ngày vẫn là filter nạp roster sau).
-    var d = document.getElementById('selDate');
-    if (d) d.disabled = false;
-    var cd = document.getElementById('chipsDate');
-    if (cd) cd.classList.remove('disabled');
   }
 
   // n1 (audit): focus trap createModal do document-level Tab handler chung xử lý

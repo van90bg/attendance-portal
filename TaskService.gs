@@ -60,13 +60,8 @@ function createReconcileTask(input) {
   // Deploy executeAs USER_DEPLOYING + access DOMAIN → getActiveUser() trả email người truy cập thật.
   const createdBy = getActiveEmail_() || 'web';
 
-  // 2026-08-07: CẢ 2 luồng (reconcile + FREE) đều cần station.
-  // Reconcile thêm slotCode; FREE tự gán slotCode='Tự do' (xem build task dưới).
-  // 2026-08-11: team/slot RỖNG hợp lệ = 'Tất cả' (không lọc) — filterStaffByGroup bỏ lọc
-  // khi mảng rỗng; guard deduped.length dưới vẫn chặn task 0 NV. Station luôn bắt buộc.
-  if (!station) {
-    return { ok: false, taskId: null, count: 0, message: 'Thiếu station' };
-  }
+  // A2: Station không bắt buộc khi tạo task (modal chỉ còn nút Tạo — Station/Ca/Team/Date
+  // nạp sau qua loadRosterApi). noList=true → guard deduped.length bỏ qua (luôn 0 dòng).
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);

@@ -201,7 +201,7 @@ open  →  attend  →  done
 
 ### 4.4 Tạo task (`createReconcileTask`)
 
-1. Validate: **chỉ `station` bắt buộc**. **A2:** server ép `noList = true` cho MỌI task mới — KHÔNG đọc StaffData / KHÔNG filter / KHÔNG pre-fill log (kể cả khi client gửi ca thật — tránh nạp nhầm cả station khi modal chỉ có Station + Ngày).
+1. **A2:** server ép `noList = true` cho MỌI task mới — KHÔNG cần station/khác filter, KHÔNG đọc StaffData / KHÔNG pre-fill log (modal chỉ còn nút Tạo; Station/Date/Ca/Team nạp sau qua loadRosterApi).
 2. Task lưu: `taskType='free'`, `status='open'`, `slotCode='Tự do'` (`SLOT_FREE_MAGIC`) + `team`/`contractType` client gửi (metadata hiển thị).
 3. `insertTask_` (append 1 dòng) — KHÔNG `batchInsertLogRows_` (log rỗng; roster nạp sau qua `loadRosterApi`).
 4. Status khởi tạo: **luôn `OPEN`** (A2 — mọi task qua phase 1; không tạo task `reconcile` mới).
@@ -452,9 +452,9 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 
 Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbout không phải modal — dùng lớp `.about-overlay` + `anyModalOpen()` (Escape/focus trap/autofocus loop).
 
-### 9.2 Modal tạo task
+### 9.2 Modal tạo task (A2 — chỉ nút Tạo)
 
-- **Modal tạo task (A2, 2026-08-18):** chỉ còn **Station** (single) + **Ngày** (chips nếu ≤5, dropdown nếu nhiều); Team / Ca / Hình thức ẩn (`display:none`) — task mới luôn FREE nên không cần chọn. `SEL.slots` giữ `SLOT_FREE_MAGIC` khi đổi Station.
+- **Modal tạo task (A2):** chỉ còn nút **Tạo** (Station / Ca / Team / Hình thức / Ngày ẩn, không cần chọn ở bước này). Task mới luôn FREE + rỗng; Station/Date nạp sau qua menu ⋯. `SEL.slots` giữ `SLOT_FREE_MAGIC`.
 - **Ca 'Tự do'** (`SLOT_FREE_MAGIC`): server ép `noList = true` cho mọi task mới — KHÔNG pre-fill khi tạo; roster nạp sau qua **Lấy danh sách theo ca** (`loadRosterApi`).
 - KHÔNG preview số NV khi tạo (log rỗng) — footer ghi "Tạo task rỗng — nạp danh sách theo ca sau trong màn quét (nút ⋯)".
 - Pre-select defaults từ Config (`CFG_DEFAULTS`) khi mở lần đầu / modal mở trước khi options về; MERGE `CFG_LISTS` (Config) + distinct StaffData (`mergeOpts_`).
