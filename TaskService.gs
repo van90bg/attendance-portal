@@ -157,12 +157,13 @@ function loadRoster(taskId, filters) {
       const filterSlots = Array.isArray(f.slotCode) ? f.slotCode : (f.slotCode ? [f.slotCode] : []);
       const filterTeams = Array.isArray(f.team) ? f.team : (f.team ? [f.team] : []);
       const filterContractTypes = Array.isArray(f.contractType) ? f.contractType : (f.contractType ? [f.contractType] : []);
+      const filterDates = Array.isArray(f.date) ? f.date : (f.date ? [f.date] : []);
       const staffList = filterStaffByGroup(readStaffList_(), {
         station: station,
         slotCode: filterSlots,
         team: filterTeams,
         contractType: filterContractTypes,
-        date: String(f.date || '').trim(),
+        date: filterDates,
       });
       const deduped = dedupeStaffByGroup(staffList);
       if (!deduped.length) {
