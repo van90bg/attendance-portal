@@ -222,6 +222,16 @@ function completeTask(taskId) {
     if (task.status !== TASK_STATUS.ATTEND) {
       return { ok: false, message: 'Task đã kết thúc' };
     }
+    // VALIDATE: scanned + absent + extra = total — data inconsistency cần fix trước khi đóng.
+    const logRows = readLogRows_(taskId);
+    const counters = computeCounters({ STATUS: STATUS }, logRows);
+    if (counters.scanned + counters.absent + counters.extra !== counters.total) {
+      console.error({ bench: 'completeTask', taskId: taskId, counters: counters, error: 'counter-mismatch' });
+      return {
+        ok: false,
+        message: 'Lỗi dữ liệu: scanned + absent + extra ≠ total (' + counters.scanned + '+' + counters.absent + '+' + counters.extra + ' ≠ ' + counters.total + '). Vui lòng báo admin.',
+      };
+    }
     // P1 (audit): markUnscannedAbsent_ TRƯỚC, updateTaskStatus_(DONE) SAU — fail-safe.
     // Nếu mark fail (quota/timeout): task vẫn ATTEND → user retry được.
     // Nếu updateTaskStatus_ fail: task vẫn ATTEND → retry, mark idempotent (dòng đã
@@ -229,7 +239,7 @@ function completeTask(taskId) {
     // đóng nhưng log chưa chuyển Vắng, retry bị chặn "Task đã kết thúc".
     const absentCount = markUnscannedAbsent_(taskId);
     updateTaskStatus_(taskId, TASK_STATUS.DONE, new Date(), task._rowIndex, task.contractType || '');
-    audit_('completeTask', taskId, { absentCount: absentCount });
+    audit_('completeTask', taskId, { absentCount: absentCount, counters: counters });
     return {
       ok: true,
       message: 'Đã kết thúc task ' + taskId + (absentCount > 0 ? ' — ' + absentCount + ' NV chưa quét đánh dấu Vắng' : ''),
