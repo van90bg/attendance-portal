@@ -65,7 +65,7 @@ function classifyScan(cfg, task, logRows, staffId) {
     }
     return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.PRESENT, reason: null, row: row };
   }
-  // NV không có trong log — mọi task đều giống FREE (không phân biệt taskType):
+  // NV không có trong log — phase1: append PENDING; phase2: EXTRA.
   //   phase1: append PENDING (NV tham gia, chưa điểm danh); phase2: EXTRA (ngoài danh sách).
   return {
     action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),

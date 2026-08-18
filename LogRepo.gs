@@ -66,9 +66,9 @@ function readLogRows_(taskId) {
  * (cache 30s). Logic lọc/join/sort/limit do matchLogsByStaff (ScanLogic.gs, pure) thực hiện —
  * test được Node mà không cần mock sheet.
  *
- * LƯU Ý: chỉ trả GIÁ TRỊ GỐC (taskType/taskStatus tên createdBy nguyên email). Các label
+ * LƯU Ý: chỉ trả GIÁ TRỊ GỐC (taskStatus, createdBy nguyên email). Các label
  * (Đối chiếu/Tự do, Mở/Điểm danh/Xong, displayName) do CLIENT tính — tránh phụ thuộc hàm
- * client-only (taskTypeBadge/displayName) vào server (ReferenceError trong GAS).
+ * client-only (displayName) vào server (ReferenceError trong GAS).
  *
  * @param {string} rawStaffId — mã NV người dùng nhập (có thể có case/space)
  * @returns {Array<Object>} — kết quả từ matchLogsByStaff

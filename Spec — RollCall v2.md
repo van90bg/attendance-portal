@@ -111,12 +111,12 @@ Giữ **nguyên header chuẩn Att.csv** (ánh xạ header → field tại `CSV_
 - Cache: index 5 phút (`STAFF_INDEX`) + list 5 phút (`STAFF_LIST`) + staff full 1h cho viewStats (`STAFF_STATS`, invalidate khi `syncFromCsv`).
 - **1 dòng = 1 NV–1 ca–1 station** (NV có thể nhiều dòng khác ca).
 
-### 3.3 AttendanceTask (10 cột)
+### 3.3 AttendanceTask (9 cột)
 
 | Cột | Field | Ghi chú |
 | :-- | :---- | :------ |
 | 1 | `taskId` | `RYYYYMMDD-HHMM` (+ `-2`, `-3`… nếu trùng phút) |
-| 2 | `taskType` | *(deprecated — giữ cột sheet, giá trị rỗng)* |
+| — | ~~`taskType`~~ | *(đã xóa — giữ indices compat)* |
 | 3 | `station` | Station đã chọn (1) |
 | 4 | `slotCode` | Ca đã chọn — multi-select nối `", "` để hiển thị |
 | 5 | `team` | Team đã chọn — multi-select nối `", "` |
@@ -564,7 +564,7 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 | Dòng có timeScan nhưng status `-` (legacy/sửa tay) | `markUnscannedAbsent_` chuẩn hóa **Có mặt** — không đánh Vắng |
 | Kết thúc fail giữa chừng (quota/timeout) | Thứ tự mark-trước/status-sau → task vẫn `open`, retry được, idempotent |
 | Cache >100KB/key | Log rows cache **slim** (~32KB); put/parse fail → `console.warn` |
-| `updateTaskStatus_` ghi nhầm cột (P0 cũ) | `writeTaskRow_` ghi CẢ dòng 10 cột từ memory (đọc dòng → sửa trong memory → setValues 1 lần) — idempotent cột không đụng |
+| `updateTaskStatus_` ghi nhầm cột (P0 cũ) | `writeTaskRow_` ghi CẢ dòng 9 cột từ memory (đọc dòng → sửa trong memory → setValues 1 lần) — idempotent cột không đụng |
 | Response scan của task cũ về muộn | Guard `item.taskId === CURRENT_TASK.taskId` + `SCAN_CARD_SEQ` |
 | RPC fail (mất mạng) | `markServerFail` → netDot "Server lỗi"; rollback optimistic; **không có offline queue bền** (chỉ trong-bộ-nhớ client) |
 | Queue đầy (50) | Chặn scan + viền đỏ pulse + disable input |
@@ -604,7 +604,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
 | Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 155/155 (18 files), mock `mock-google.js` + contract test mock↔server |
-| Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 10 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
+| Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |
 | Cooldown 15s | Có | **Không có** (chỉ chặn duplicate scan) |

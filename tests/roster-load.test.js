@@ -20,9 +20,9 @@ function seedStaff(ss) {
   ss.sheets.StaffData.appendRow([3, '2026-08-02', 'Ops003', 'NV003', 'c@spx.com', 'SKT', 'Chính thức', '', '', '', '', '', '', '', '', '', '17:00-01:00', 'IB1', 'Inbound', 'HN2']);
 }
 
-// AttendanceTask 10 cột (TASK_COLS): taskId, (deprecated), station, slotCode, team, contractType, status, createdAtText, createdBy, completedAt
+// AttendanceTask 9 cột (TASK_COLS): taskId, station, slotCode, team, contractType, status, createdAtText, createdBy, completedAt
 function seedTask(ss, taskId, status, createdBy) {
-  ss.sheets.AttendanceTask.appendRow([taskId, 'free', 'HN2', '08:00-17:00', 'Inbound', 'Chính thức', status, '2026-08-17 08:00', createdBy, '']);
+  ss.sheets.AttendanceTask.appendRow([taskId, 'HN2', '08:00-17:00', 'Inbound', 'Chính thức', status, '2026-08-17 08:00', createdBy, '']);
 }
 
 function logRows(ss, taskId) {

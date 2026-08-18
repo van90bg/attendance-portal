@@ -63,7 +63,7 @@ function ensureSheets_() {
   // ghi đè dữ liệu từ dòng 2 (header dòng 1 giữ nguyên).
   getSheet_(SHEETS.STAFF_DATA, STAFF_DATA_HEADER);
   getSheet_(SHEETS.ATTENDANCE_TASK, [
-    'taskId', 'taskType', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt',
+    'taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt',
   ]);
   const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG, [
     'taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation',
@@ -71,7 +71,7 @@ function ensureSheets_() {
   ]);
   getSheet_(SHEETS.AUDIT_LOG, ['timestamp', 'email', 'action', 'targetId', 'detail']);
   // Migration an toàn: sheet cũ tạo trước khi có cột date (LOG_COL_COUNT=11) vẫn còn
-  // 10 cột → getSheet_ chỉ set header khi sheet trống, không tự thêm cột. Nếu thiếu,
+  // 9 cột → getSheet_ chỉ set header khi sheet trống, không tự thêm cột. Nếu thiếu,
   // thêm cột cuối + đặt header, nếu không batchInsertLogRows_ ghi 11 giá trị sẽ vỡ.
   // Migration an toàn: sheet cũ (8-10 cột) thiếu cột date → thêm cột tới đủ LOG_COL_COUNT
   // (while loop, không chỉ 1 cột — nếu thiếu nhiều cột thì batchInsertLogRows_ vỡ).

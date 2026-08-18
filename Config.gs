@@ -49,17 +49,16 @@ const STAFF_DATA_HEADER = [
 // ===== Cột AttendanceTask =====
 const TASK_COLS = {
   TASK_ID: 0,
-  TASK_TYPE: 1,
-  STATION: 2,
-  SLOT_CODE: 3,
-  TEAM: 4,
-  CONTRACT_TYPE: 5,
-  STATUS: 6,
-  CREATED_AT: 7,
-  CREATED_BY: 8,
-  COMPLETED_AT: 9,
+  STATION: 1,
+  SLOT_CODE: 2,
+  TEAM: 3,
+  CONTRACT_TYPE: 4,
+  STATUS: 5,
+  CREATED_AT: 6,
+  CREATED_BY: 7,
+  COMPLETED_AT: 8,
 };
-const TASK_COL_COUNT = 10;
+const TASK_COL_COUNT = 9;
 
 // ===== Cột AttendanceLog (1 dòng / NV) =====
 // Lưu ý: bỏ cardIn/cardOut (2026-08-03) — StaffData GIỮ NGUYÊN; log không copy 2 cột này nữa.

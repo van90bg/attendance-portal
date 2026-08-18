@@ -65,7 +65,7 @@ test('scanStaff KHÔNG ghi audit — bỏ audit tần suất cao (chống phình
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   // task FREE phase attend — NV lạ → Dư (ok:true)
-  ss.sheets.AttendanceTask.appendRow(['R2026', 'free', 'HN SOC', 'Tự do', '', '', 'attend', '2026-08-17 08:00', 'web@spx.com', '']);
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', 'Tự do', '', '', 'attend', '2026-08-17 08:00', 'web@spx.com', '']);
   const res = svc.scanStaff('R2026', 'Ops6219');
   assert.equal(res.ok, true);
   // AuditLog chỉ còn header — scan không thêm dòng (mutation quản trị vẫn audit)
@@ -77,7 +77,7 @@ test('completeTask ghi audit (action=completeTask)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  ss.sheets.AttendanceTask.appendRow(['R2026', 'reconcile', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
   const res = svc.completeTask('R2026');
   assert.equal(res.ok, true);
   const rows = ss.sheets.AuditLog.data;

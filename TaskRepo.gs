@@ -80,7 +80,7 @@ function invalidateTaskCaches_(taskId) {
 /** Ghi task mới (append — tần suất thấp, chấp nhận appendRow). */
 function insertTask_(task) {
   getSheet_(SHEETS.ATTENDANCE_TASK).appendRow([
-    task.taskId, '', task.station, task.slotCode, task.team,
+    task.taskId, task.station, task.slotCode, task.team,
     task.contractType || '', task.status, task.createdAt, task.createdBy, task.completedAt || '',
   ]);
   // F5 + m3: phá negative cache (readTaskDetailCached_/readTaskCached_ cache null 15s/60s
@@ -99,7 +99,7 @@ function writeTaskRow_(sheet, r, vals, status, completedAt, contractType) {
 /** Cập nhật trạng thái task (status, completedAt). */
 function updateTaskStatus_(taskId, status, completedAt, rowIndex, contractType) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_TASK);
-  // m3 (audit): ghi 1 setValues cho cả dòng — CONTRACT_TYPE=5, STATUS=6, COMPLETED_AT=9
+  // m3 (audit): ghi 1 setValues cho cả dòng — CONTRACT_TYPE=4, STATUS=5, COMPLETED_AT=8
   // KHÔNG liền nhau (CREATED_AT=7/CREATED_BY=8 xen giữa) nên phải đọc dòng → sửa trong
   // memory → ghi cả dòng (idempotent cột không đụng, chống lỗi v1 completedAt đè CREATED_AT).
   // 2 nhánh dùng CHUNG writeTaskRow_ — trước có 2 bản copy (rủi ro drift).
