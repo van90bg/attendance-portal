@@ -111,7 +111,8 @@
         STATION_GROUPS = res.stationGroups || [];
         CFG_DEFAULTS = res.defaults || CFG_DEFAULTS;
         CFG_LISTS = res.lists || { stations: [], teams: [], slotcodes: [], departments: [], agencies: [], contractTypes: [] };
-        renderAllCols();  // refresh 4 cột khi data mới về (nếu modal đang mở)
+        renderAllCols();
+        if (typeof fillCreateOptions === "function") fillCreateOptions(res);
         markServerOk();  // phủ cả trường hợp chỉ load options
         _filterOptsLoaded = true;
         _releaseRefreshLock();
@@ -710,12 +711,14 @@
       clearSearch();
     }
   }
-  // Tạo task trực tiếp (không modal): server tạo FREE + log rỗng, mở scan view ngay.
-  function createTask() {
+  function createTaskWithMeta_(station, team, date) {
     if (BUSY) return;
     var btn = document.getElementById('btnCreate');
     BUSY = true;
     if (btn) { btn.disabled = true; setBtnBusy_(btn, 'Đang tạo…'); }
+    var input = { station: station };
+    if (team) input.team = [team];
+    if (date) input.date = date;
     google.script.run
       .withSuccessHandler(function (res) {
         BUSY = false;
@@ -725,7 +728,6 @@
           showToast(res.message, false);
           loadTaskList();
           openScan(res.taskId);
-          // warm staffIndex ngay (fire-and-forget)
           try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {}
         } else {
           showToast(res.message, true);
@@ -737,7 +739,7 @@
         if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
         showToast('Lỗi tạo task: ' + err.message, true);
       })
-      .createReconcileTaskApi({});
+      .createReconcileTaskApi(input);
   }
 
   function openScan(taskId) {

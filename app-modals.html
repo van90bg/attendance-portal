@@ -139,7 +139,75 @@
     }
   }
 
-  // openCreateModal/closeCreateModal removed (2026-08-18): tạo task trực tiếp.
+  /* ===== Create modal (Station + Team + Ngày) ===== */
+  var _createOptsLoaded = false;
+  function openCreateModal() {
+    var m = document.getElementById('createModal');
+    if (!m) return;
+    resetCreateSel_();
+    if (!_createOptsLoaded && typeof loadFilterOptions === 'function') loadFilterOptions();
+    m.setAttribute('aria-hidden', 'false');
+    m.classList.add('open');
+    var first = document.getElementById('createStation');
+    if (first && first.focus) first.focus();
+  }
+  function closeCreateModal() {
+    var m = document.getElementById('createModal');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    var btn = document.getElementById('btnCreate');
+    if (btn && btn.focus) btn.focus();
+  }
+  function resetCreateSel_() {
+    var st = document.getElementById('createStation');
+    var tm = document.getElementById('createTeam');
+    var dt = document.getElementById('createDate');
+    if (st) st.value = '';
+    if (tm) tm.value = '';
+    if (dt) dt.value = '';
+    var sub = document.getElementById('btnCreateSubmit');
+    if (sub) sub.disabled = true;
+  }
+  function fillCreateOptions(res) {
+    if (!res || !res.ok) return;
+    _createOptsLoaded = true;
+    var stations = ((res.lists && res.lists.stations) || []).slice();
+    (res.stationGroups || []).forEach(function (g) {
+      if (stations.indexOf(g.station) === -1) stations.push(g.station);
+    });
+    var teams = ((res.lists && res.lists.teams) || []).slice();
+    var dates = [];
+    (res.stationGroups || []).forEach(function (g) {
+      (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
+    });
+    fillSel_('createStation', stations, '— Chọn Station —');
+    fillSel_('createTeam', teams, '— Tất cả —');
+    fillSel_('createDate', dates, '— Tất cả —');
+  }
+  function fillSel_(id, options, placeholder) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var html = '<option value="">' + placeholder + '</option>';
+    options.forEach(function (o) {
+      html += '<option value="' + escAttr(o) + '">' + esc(o) + '</option>';
+    });
+    sel.innerHTML = html;
+    sel.onchange = function () {
+      var st = document.getElementById('createStation');
+      var sub = document.getElementById('btnCreateSubmit');
+      if (sub) sub.disabled = !(st && st.value);
+    };
+  }
+  function submitCreateTask() {
+    var st = document.getElementById('createStation');
+    var tm = document.getElementById('createTeam');
+    var dt = document.getElementById('createDate');
+    var station = st ? st.value : '';
+    var team = tm ? tm.value : '';
+    var date = dt ? dt.value : '';
+    if (!station) { showToast('Chọn Station', true); return; }
+    closeCreateModal();
+    createTaskWithMeta_(station, team, date);
+  }
   function anyModalOpen() {
     return document.querySelector('.about-overlay.open') !== null;
   }
@@ -245,7 +313,8 @@
   document.addEventListener('keydown', function (e) {
     // P3: Escape đóng modal (focus trap cơ bản)
     if (e.key === 'Escape') {
-      // createModal removed
+      m = document.getElementById('createModal');
+      if (m && m.classList.contains('open')) { closeCreateModal(); return; }
       m = document.getElementById('confirmModal');
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('pasteModal');
@@ -300,7 +369,7 @@
     if (submitBtn) submitBtn.disabled = true;
     // Pre-fill Station từ task hiện tại — task luôn 1 Station, không chọn lại;
     // Date giữ rỗng — user chọn nếu muốn lọc ngày cụ thể.
-    ROSTER_FILTER = { station: (CURRENT_TASK && CURRENT_TASK.station) || '', slotCode: [], team: [], contractType: [], date: '' };
+    ROSTER_FILTER = { station: (CURRENT_TASK && CURRENT_TASK.station) || '', slotCode: [], team: [], contractType: [] };
     var _hasStation = !!ROSTER_FILTER.station;
     if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); if (_hasStation) refreshRosterPreview(); return; }
     google.script.run
@@ -334,8 +403,6 @@
     (res.stationGroups || []).forEach(function (g) {
       (g.dates || []).forEach(function (d) { if (dates.indexOf(d) === -1) dates.push(d); });
     });
-    fillRosterSelect_('rosterStation', stations, ROSTER_FILTER.station, true);
-    fillRosterSelect_('rosterDate', dates, ROSTER_FILTER.date, false);
     renderRosterChips_();
   }
   // Ca/Team đa chọn — chips toggle (Tất cả = rỗng, server bỏ lọc mảng rỗng).
@@ -348,24 +415,10 @@
       if (g.station !== ROSTER_FILTER.station) return;
       (g.slotCodes || []).forEach(function (sc) {
         if (!sc || !sc.slotCode || sc.slotCode === SLOT_FREE_MAGIC) return;
-        var teams = sc.teams || [];
-        if (ROSTER_FILTER.team.length && !teams.some(function (t) { return ROSTER_FILTER.team.indexOf(t) !== -1; })) return;
         if (slots.indexOf(sc.slotCode) === -1) slots.push(sc.slotCode);
       });
     });
     return slots;
-  }
-  function rosterTeamOptions_() {
-    if (!ROSTER_FILTER.station) return [];
-    var teams = [];
-    (ROSTER_OPTS && ROSTER_OPTS.lists && ROSTER_OPTS.lists.teams || []).forEach(function (t) { if (teams.indexOf(t) === -1) teams.push(t); });
-    (ROSTER_OPTS && ROSTER_OPTS.stationGroups || []).forEach(function (g) {
-      if (g.station !== ROSTER_FILTER.station) return;
-      (g.slotCodes || []).forEach(function (sc) {
-        (sc.teams || []).forEach(function (t) { if (teams.indexOf(t) === -1) teams.push(t); });
-      });
-    });
-    return teams.sort();
   }
   // Hình thức (Contract Type) — options từ lists.contractTypes (Config) — lọc độc lập station.
   function rosterContractOptions_() {
@@ -377,13 +430,10 @@
   }
   function renderRosterChips_() {
     var slotEl = document.getElementById('rosterChipsSlot');
-    var teamEl = document.getElementById('rosterChipsTeam');
     var ctEl = document.getElementById('rosterChipsContract');
-    if (!slotEl || !teamEl) return;
+    if (!slotEl) return;
     var slots = rosterSlotOptions_();
-    var teams = rosterTeamOptions_();
     slotEl.innerHTML = chipsHtml_(slots, ROSTER_FILTER.slotCode);
-    teamEl.innerHTML = chipsHtml_(teams, ROSTER_FILTER.team);
     if (ctEl) ctEl.innerHTML = chipsHtml_(rosterContractOptions_(), ROSTER_FILTER.contractType);
   }
   function chipsHtml_(opts, selectedArr) {
@@ -417,12 +467,8 @@
   function refreshRosterPreview() {
     var submitBtn = document.getElementById('btnRosterSubmit');
     if (submitBtn) submitBtn.disabled = true;
-    var station = document.getElementById('rosterStation').value;
     var slot = ROSTER_FILTER.slotCode;
-    var team = ROSTER_FILTER.team;
-    var date = document.getElementById('rosterDate').value;
-    ROSTER_FILTER.station = station;
-    ROSTER_FILTER.date = date;
+    var team = [];
     renderRosterChips_();
     var num = document.getElementById('rosterTotalNum');
     if (num) num.textContent = '0';
@@ -434,7 +480,7 @@
         if (submitBtn) submitBtn.disabled = !(n > 0);
       })
       .withFailureHandler(function () { if (num) num.textContent = '0'; })
-      .previewStaffApi({ station: station, slotCode: slot, team: team, contractType: ROSTER_FILTER.contractType, date: date });
+      .previewStaffApi({ station: ROSTER_FILTER.station, slotCode: slot, team: team, contractType: ROSTER_FILTER.contractType });
   }
   // Roster modal: delegate click chip Ca/Team + change station/date → preview.
   function initRosterEvents() {
@@ -450,7 +496,7 @@
       var isSlot = chip.closest('#rosterChipsSlot') !== null;
       var isContract = chip.closest('#rosterChipsContract') !== null;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
-      var arr = isSlot ? ROSTER_FILTER.slotCode : (isContract ? ROSTER_FILTER.contractType : ROSTER_FILTER.team);
+      var arr = isSlot ? ROSTER_FILTER.slotCode : ROSTER_FILTER.contractType;
       if (chip.getAttribute('data-col') === 'roster-all') {
         arr.length = 0;  // Tất cả = rỗng (không lọc)
       } else {

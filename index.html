@@ -57,7 +57,7 @@
         <div class="task-title">Điểm danh</div>
         <div class="task-meta">Đối chiếu danh sách theo Station / Ca / Team — tạo task, quét giờ có mặt, điểm danh, bàn giao</div>
       </div>
-      <button class="btn" id="btnCreate" onclick="createTask()">+ Task mới</button>
+      <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
     </div>
 
     <div class="card">
@@ -508,27 +508,15 @@
 <div id="rosterModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="rosterModalTitle" onclick="if(event.target===this)closeRosterModal()">
   <div class="about-dialog">
     <h2 id="rosterModalTitle">Lấy danh sách theo ca</h2>
-    <p class="mode-desc">Nạp danh sách nhân viên của ca vào task — NV đã có trong danh sách sẽ được bỏ qua.</p>
+    <p class="mode-desc">Chọn Ca và Hình thức — Station lấy từ task hiện tại.</p>
     <div class="create-form" id="rosterForm">
-      <div class="frow">
-        <span class="flabel">Station <span class="fnote">chọn 1</span></span>
-        <select id="rosterStation" class="field-select" aria-label="Station"></select>
-      </div>
       <div class="frow">
         <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
         <div class="chips" id="rosterChipsSlot" role="group" aria-label="Ca"></div>
       </div>
       <div class="frow">
-        <span class="flabel">Team <span class="fnote">chọn nhiều</span></span>
-        <div class="chips" id="rosterChipsTeam" role="group" aria-label="Team"></div>
-      </div>
-      <div class="frow">
         <span class="flabel">Hình thức <span class="fnote">chọn nhiều</span></span>
         <div class="chips" id="rosterChipsContract" role="group" aria-label="Hình thức"></div>
-      </div>
-      <div class="frow">
-        <span class="flabel">Ngày</span>
-        <select id="rosterDate" class="field-select" aria-label="Ngày"></select>
       </div>
     </div>
     <div class="create-footer">
@@ -541,7 +529,32 @@
   </div>
 </div>
 
-<!-- createModal removed (2026-08-18): tạo task trực tiếp, không cần modal -->
+<div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
+  <div class="about-dialog">
+    <h2 id="createModalTitle">Tạo task mới</h2>
+    <p class="mode-desc">Task rỗng — nạp danh sách theo ca sau trong màn quét.</p>
+    <div class="create-form" id="createForm">
+      <div class="frow">
+        <span class="flabel">Station <span class="fnote">bắt buộc</span></span>
+        <select id="createStation" class="field-select" aria-label="Station" required></select>
+      </div>
+      <div class="frow">
+        <span class="flabel">Team</span>
+        <select id="createTeam" class="field-select" aria-label="Team"></select>
+      </div>
+      <div class="frow">
+        <span class="flabel">Ngày</span>
+        <select id="createDate" class="field-select" aria-label="Ngày"></select>
+      </div>
+    </div>
+    <div class="create-footer">
+      <div class="create-actions">
+        <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
+        <button class="btn" id="btnCreateSubmit" onclick="submitCreateTask()" disabled>Tạo</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal confirm dùng chung (thay alert/confirm trình duyệt — giữ UX đồng nhất) -->
 <div id="confirmModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmModalTitle" onclick="if(event.target===this)closeConfirmModal()">
