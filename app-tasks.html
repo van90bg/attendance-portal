@@ -123,42 +123,8 @@
       .getFilterOptionsApi();
   }
 
-  function setCreateTotal(n) {
-    var c = document.getElementById('createTotalNum');
-    if (!c) return;
-    c.textContent = (typeof n === 'number' && n >= 0) ? n : '—';
-  }
-  var _previewTimer = null;
-  var _previewSeq = 0;   // h2: RPC preview cũ (đã fire) không được ghi đè trạng thái hiện tại (vd: chọn 'Tự do')
-  function updateCreatePreview() {
-    var station = SEL.station;
-    var slotCode = groupSelectedSlots();
-    var team = groupSelectedTeams();
-    var contractType = SEL.contractTypes;
-    var date = SEL.date;
-    // A2: task mới luôn free → không preview roster (log rỗng khi tạo; nạp danh sách sau qua "Thêm")
-    _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0);
-    return;
-    // (đoạn dưới giữ nguyên cho luồng cũ — không còn chạy)
-    if (isFreeSel()) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal('—'); return; }
-    // Cascade: đếm theo filter hiện có — station bắt buộc; team/slot rỗng = 'Tất cả' (không lọc)
-    if (!station) { _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0); return; }
-    clearTimeout(_previewTimer);
-    var seq = ++_previewSeq;
-    _previewTimer = setTimeout(function () {
-      google.script.run
-        .withSuccessHandler(function (res) {
-          if (seq !== _previewSeq) return;   // có filter mới hơn — bỏ kết quả cũ
-          if (!res || !res.ok) { setCreateTotal(0); return; }
-          setCreateTotal(res.count);
-        })
-        .withFailureHandler(function () {
-          if (seq !== _previewSeq) return;
-          setCreateTotal(0);
-        })
-        .previewStaffApi({ station: station, slotCode: slotCode, team: team, contractType: contractType, date: date });
-    }, 200);
-  }
+
+  function updateCreatePreview() { /* no-op: task always empty on create */ }
   var STATION_GROUPS = [];   // từ server getFilterOptionsApi.stationGroups: { station, slotCodes:[{slotCode,teams}], dates }
   // defaults từ Config sheet (SettingsService qua getFilterOptionsApi.defaults) — pre-select tạo task
   var CFG_DEFAULTS = { station: '', slotCode: '', team: '' };

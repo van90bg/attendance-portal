@@ -250,8 +250,8 @@
         banner.id = 'scanPermissionBanner';
         banner.style.cssText = 'background:var(--card-extra-bg);border:1px solid var(--warning);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);font-size:var(--text-sm);color:var(--amber-dark);font-weight:600;';
         banner.textContent = 'Chỉ owner mới quét được ở phase Mở (task này)';
-        var card = document.querySelector('.scan-col-left .card');
-        if (card && card.parentNode) card.parentNode.insertBefore(banner, card);
+        var colLeft = document.querySelector('.scan-col-left');
+        if (colLeft) colLeft.prepend(banner);
       }
     } else {
       if (banner) { banner.remove(); }
@@ -377,13 +377,13 @@
       .withFailureHandler(function () { ROSTER_OPTS = null; showToast('Lỗi tải danh sách ca', true); })
       .getFilterOptionsApi();
   }
-  // Focus #rosterStation sau khi overlay transition visibility — cùng tick bị bỏ vì còn hidden
-  // (giống pasteFocusTimer trong openPasteModal — keyboard/SR vào modal ngay, không kẹt ở scanInput).
+  // Focus first focusable element in rosterModal after overlay transition —
+  // (keyboard/SR vào modal ngay, không kẹt ở scanInput).
   function focusRosterStation_() {
     var m = document.getElementById('rosterModal');
     if (!m) return;
     if (rosterFocusTimer) clearTimeout(rosterFocusTimer);
-    rosterFocusTimer = setTimeout(function () { if (m.classList.contains('open')) { var first = m.querySelector(".pick"); if (first) first.focus(); } }, 60);
+    rosterFocusTimer = setTimeout(function () { if (m.classList.contains('open')) { var first = m.querySelector('.create-footer button'); if (first) first.focus(); } }, 60);
   }
   function closeRosterModal() {
     var m = document.getElementById('rosterModal');
