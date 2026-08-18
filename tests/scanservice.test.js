@@ -29,7 +29,6 @@ function makeCtx(overrides) {
     getActiveEmail_: () => 'web',
     STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
     TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
-    TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
     UI_LABELS: { TASK_CLOSED: 'Task đã kết thúc', ALREADY_SCANNED: 'Đã điểm danh', STAFF_NOT_FOUND: 'Không tìm thấy nhân viên', SCAN_OPEN_OWNER_ONLY: 'Chỉ owner mới quét được ở phase Mở (task này)' },
     // helpers (default no-op — ghi đè tuỳ test)
     normalizeStaffId: (s) => (s || '').trim().toUpperCase(),
@@ -71,21 +70,21 @@ function loadScanService(ctx) {
   return sandbox;
 }
 
-function freshTask(taskType, status) {
-  return { taskId: 'R1', taskType: taskType, status: status };
+function freshTask(status) {
+  return { taskId: 'R1', status: status };
 }
 
-test('scanStaff: quét Dư (RECONCILE NV lạ) — KHÔNG ReferenceError, trả ok + tên NV', () => {
-  const ctx = makeCtx({ readTask_: () => freshTask('reconcile', 'open'), logRows: [] });
+test('scanStaff: NV lạ phase1 — KHÔNG ReferenceError, trả ok + tên NV', () => {
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999');
   assert.equal(res.ok, true, 'phải ok (không crash extraRow) — message=' + res.message);
-  assert.equal(res.status, ctx.STATUS.EXTRA, 'roster lạ = Dư');
+  assert.equal(res.status, ctx.STATUS.PENDING, 'NV lạ phase1 = PENDING (khong con Dư)');
   assert.equal(res.staffName, 'NV Lạ', 'phải trả tên NV từ staffIndex');
 });
 
 test('scanStaff: quét tự do (FREE) phase1 — KHÔNG ghi Dư, trả PENDING', () => {
-  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999');
   assert.equal(res.ok, true);
@@ -93,21 +92,21 @@ test('scanStaff: quét tự do (FREE) phase1 — KHÔNG ghi Dư, trả PENDING',
   assert.equal(res.message, ctx.STATUS.PENDING, 'toast message không được là "Dư"');
 });
 
-test('scanStaff: ĐỌC task QUA readTaskCached_, không gọi readTask_ trực tiếp (m3)', () => {
+test('scanStaff: ĐỌC task QUA readTaskCached_', () => {
   const ctx = makeCtx({
     // Nếu scanStaff quay lại đọc thẳng readTask_ là TEST THẤT BẠI (đập cache tiết kiệm)
     readTask_: () => { throw new Error('readTask_ trực tiếp bị gọi — scanStaff phải đi qua cache'); },
-    readTaskCached_: () => freshTask('reconcile', 'open'),
+    readTaskCached_: () => freshTask('open'),
     logRows: [],
   });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999');
   assert.equal(res.ok, true, 'phải ok qua cache — ' + res.message);
-  assert.equal(res.status, ctx.STATUS.EXTRA, 'roster NV lạ = Dư (vẫn đi qua cache)');
+  assert.equal(res.status, ctx.STATUS.PENDING, 'NV lạ phase1 = PENDING (vẫn đi qua cache)');
 });
 
 test('scanStaff: quét tự do (FREE) phase2 — NV lạ ngoài danh sách phase1 → Dư / EXTRA', () => {
-  const ctx = makeCtx({ readTask_: () => freshTask('free', 'attend'), logRows: [] });
+  const ctx = makeCtx({ readTask_: () => freshTask('attend'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999');
   assert.equal(res.ok, true);
@@ -117,7 +116,7 @@ test('scanStaff: quét tự do (FREE) phase2 — NV lạ ngoài danh sách phase
 });
 
 test('scanStaff: mã "Ops" + chữ cái (OpsABC) → reject format', () => {
-  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'OpsABC');
   assert.equal(res.ok, false, ' không được là Ops + chữ');
@@ -125,14 +124,14 @@ test('scanStaff: mã "Ops" + chữ cái (OpsABC) → reject format', () => {
 });
 
 test('scanStaff: mã "Ops" không có số (Ops) → reject format', () => {
-  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'Ops');
   assert.equal(res.ok, false, 'Ops không có số phải bị từ chối');
 });
 
 test('scanStaff: mã hỗn hợp số + chữ (Ops12a3) → reject format', () => {
-  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'Ops12a3');
   assert.equal(res.ok, false, 'Ops12a3 phải bị từ chối (có chữ a)');
@@ -142,7 +141,7 @@ test('scanStaff: mã hỗn hợp số + chữ (Ops12a3) → reject format', () =
 // app, không đè bằng giờ xử lý (queue 2.5s/item + đồng hồ thiết bị lệch → nhảy giờ sau ~1s).
 test('scanStaff: clientEpoch → timeRefEpoch = giờ client (không phải giờ server)', () => {
   const clientNow = new Date('2026-08-02T08:30:45');
-  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const res = svc.scanStaff('R1', 'ops999999', clientNow.getTime());
   assert.equal(res.ok, true, res.message);
@@ -154,7 +153,7 @@ test('scanStaff: clientEpoch → timeRefEpoch = giờ client (không phải gi�
 });
 
 test('scanStaff: clientEpoch thiếu/rác → fallback giờ server (không crash, không dùng 0)', () => {
-  const ctx = makeCtx({ readTask_: () => freshTask('free', 'open'), logRows: [] });
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
   const svc = loadScanService(ctx);
   const before = Date.now();
   const res = svc.scanStaff('R1', 'ops999999');  // không gửi clientEpoch

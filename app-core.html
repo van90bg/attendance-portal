@@ -12,7 +12,7 @@
   /* ============================================================
    * TOC — bản đồ vùng script (thứ tự xuất hiện từ đây xuống cuối)
    *  [0] Mock local (file://)  — nạp mock-google.js khi không qua GAS
-   *  [1] State & Constants     — META, CURRENT_TASK, STATUS_C, TASK_TYPE_C, headers
+   *  [1] State & Constants     — META, CURRENT_TASK, STATUS_C, headers
    *  [2] UTILITIES             — safeArr, fmtN, esc, escAttr, fmtClockHMS, fmtDate, setBtnBusy_, restoreBtnLabel_
    *  [3] Pagination            — renderPaginator_, goListPage, goScanPage
    *  [4] View infra            — repairViewParents, syncHeaderH (sớm)
@@ -50,11 +50,6 @@
   var STATUS_C = { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' };
   // Task status — khớp TASK_STATUS trong Config.gs (3 trạng thái 2-phase)
   var TASK_STATUS_C = { OPEN: 'open', ATTEND: 'attend', DONE: 'done' };
-  // Task type — khớp TASK_TYPE trong Config.gs (phân biệt quét tự do / đối chiếu)
-  var TASK_TYPE_C = { RECONCILE: 'reconcile', FREE: 'free' };
-  // Label task type (scan task meta) — 1 nguồn chung; trước đây khai trùng 2 nơi
-  // (openTask + transition handler) → dễ lệch. FIX.
-  var TT_LABEL = { reconcile: 'Đối chiếu', free: 'Tự do' };
   // Magic Ca 'Tự do' — KHỚP SLOT_FREE_MAGIC (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
   var SLOT_FREE_MAGIC = 'Tự do';
   // Regex mã barcode NV — KHỚP BARCODE_ID_RE (CsvUtil.gs). Giá trị wire/server — không đổi riêng lẻ.
@@ -79,7 +74,6 @@
   function taskHeadHtml_() {
     return '<tr>' +
       '<th scope="col">STT</th><th scope="col">Mã task</th>' +
-      funnelTh_('Loại', 'taskType') +
       funnelTh_('Station', 'station') +
       funnelTh_('Team', 'team') +
       '<th scope="col">Ca</th><th scope="col">Tổng NV</th><th scope="col">Đã quét lần 2</th><th scope="col">Dư</th>' +
@@ -88,7 +82,7 @@
   }
   var SEARCH_HEAD = '<tr>' +
         '<th scope="col">STT</th><th scope="col">Mã task</th><th scope="col">Mã NV</th><th scope="col">Tên NV</th>' +
-        '<th scope="col">Điểm danh</th><th scope="col">Loại</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
+        '<th scope="col">Điểm danh</th><th scope="col">Station</th><th scope="col">Team</th><th scope="col">Ca</th>' +
         '<th scope="col">Tạo lúc</th><th scope="col">Người tạo</th><th scope="col">Thao tác</th></tr>';
 
   // ===================== UTILITIES (dùng chung toàn app — gom 2026-08-11) =====================
@@ -534,7 +528,7 @@
   };
   // Cột filter được ở viewTasks (tên header -> field trong task) — Loại/Station/Team/Trạng thái
   var TASK_FILTERABLE = {
-    'Loại': 'taskType', 'Station': 'station', 'Team': 'team', 'Trạng thái': 'status'
+    'Station': 'station', 'Team': 'team', 'Trạng thái': 'status'
   };
   var FUNNEL_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>';
 

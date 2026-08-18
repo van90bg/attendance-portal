@@ -30,8 +30,8 @@
       { staffId: 'Ops133754', staffName: 'NV020', slotCode: '22:00-06:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBMove', agency: 'FEX', contractType: 'OS', date: '2026-08-01', cardIn: '10:15', cardOut: '18:19' },
     ],
     tasks: [
-      { taskId: 'R20260802-0900', taskType: 'reconcile', station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00' },
-      { taskId: 'R20260802-0850', taskType: 'reconcile', station: 'HN2 SOC', slotCode: '18:00-02:00', team: 'Inbound', status: 'done', createdBy: 'web', createdAtText: '2026-08-02 08:50:00' },
+      { taskId: 'R20260802-0900', station: 'HN2 SOC', slotCode: '08:00-17:00', team: 'Outbound', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00' },
+      { taskId: 'R20260802-0850', station: 'HN2 SOC', slotCode: '18:00-02:00', team: 'Inbound', status: 'done', createdBy: 'web', createdAtText: '2026-08-02 08:50:00' },
     ],
   };
 
@@ -219,7 +219,7 @@
     createReconcileTaskApi: function (input) {
       var taskId = 'R' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-0' + (MOCK_DATA.tasks.length + 1);
       var task = {
-        taskId: taskId, taskType: 'free', station: input.station, slotCode: input.slotCode,
+        taskId: taskId, station: input.station, slotCode: input.slotCode,
         team: input.team, date: (input && input.date) || '', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00',
       };
       MOCK_DATA.tasks.unshift(task);
@@ -252,9 +252,8 @@
           timeRefText: hit.timeRefText || '', timeRefEpoch: hit.timeRefEpoch || 0,
           staffName: hit.staffName, dateText: (hit && hit.dateText) || '', counters: counters(log) };
       }
-      // NV lạ: FREE phase1 = '-' (PENDING); FREE phase2 / RECONCILE = Dư.
-      var isFree = !!(task && task.taskType === 'free');
-      var st = (isFree && !phase2) ? '-' : 'Dư';
+      // NV lạ: phase1 = PENDING (thuệc danh sách); phase2 = Dư (ngoài danh sách).
+      var st = !phase2 ? '-' : 'Dư';
       log.push({ taskId: taskId, staffId: staffId, staffName: 'NV LẠ', slotCode: '', station: '', team: '', workstation: '',
         timeRefText: phase2 ? '' : ts, timeRefEpoch: phase2 ? 0 : nowMs,
         timeScanText: phase2 ? ts : '', timeScanEpoch: phase2 ? nowMs : 0, status: st, dateText: '' });
@@ -269,8 +268,8 @@
       var task = null;
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
       if (!task) return { ok: false, message: 'Không tìm thấy task', total: 0, success: 0, failed: 0, results: [], counters: null };
-      if (task.taskType !== 'free' || task.status !== 'open') {
-        return { ok: false, message: 'Chỉ áp dụng quét tự do (FREE) phase Mở', total: 0, success: 0, failed: 0, results: [], counters: null };
+      if (task.status !== 'open') {
+        return { ok: false, message: 'Chỉ áp dụng quét tự do phase Mở', total: 0, success: 0, failed: 0, results: [], counters: null };
       }
       var log = getLog(taskId);
       // Gate canScanOpen_ (owner/admin phase OPEN) bỏ qua CÓ CHỦ Ý — mock không mô
@@ -340,7 +339,7 @@
           if (String(r.staffId || '').toUpperCase() !== needle) return;
           out.push({
             taskId: t.taskId, staffId: r.staffId, staffName: r.staffName, status: r.status,
-            taskType: t.taskType, station: t.station, team: t.team, slotCode: t.slotCode,
+            station: t.station, team: t.team, slotCode: t.slotCode,
             taskStatus: t.status, createdAtText: t.createdAtText, createdBy: t.createdBy,
             timeRefText: r.timeRefText, timeScanText: r.timeScanText,
           });
@@ -354,7 +353,7 @@
           if (exists) return;
           out.push({
             taskId: t.taskId, staffId: s.staffId, staffName: s.staffName, status: '-',
-            taskType: t.taskType, station: t.station, team: t.team, slotCode: t.slotCode,
+            station: t.station, team: t.team, slotCode: t.slotCode,
             taskStatus: t.status, createdAtText: t.createdAtText, createdBy: t.createdBy,
             timeRefText: '', timeScanText: '',
           });

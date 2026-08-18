@@ -9,7 +9,6 @@ const ScanLogic = require('../ScanLogic.gs');
 const CFG = {
   STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
   TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
-  TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
 };
 
 function makeRow(overrides) {
@@ -47,13 +46,13 @@ test('phase1: NV đã có Giờ có mặt → reject already-present', () => {
   assert.equal(res.reason, 'already-present');
 });
 
-test('phase1: NV không trong log → append EXTRA + field timeRef', () => {
+test('phase1: NV không trong log → append PENDING + field timeRef', () => {
   const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const res = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
   assert.equal(res.action, 'append');
   assert.equal(res.phase, 'present');
   assert.equal(res.field, 'timeRef');
-  assert.equal(res.status, CFG.STATUS.EXTRA);
+  assert.equal(res.status, CFG.STATUS.PENDING);
 });
 
 test('phase2 (Điểm danh): NV trong log chưa quét → update timeScan/PRESENT', () => {
@@ -102,13 +101,13 @@ test('computeCounters: có Giờ có mặt nhưng chưa quét → Vắng (không
 test('noList: createReconcileTask không cần group → log rỗng, status Mở', () => {
   // Giả lập các dependency bằng stub nhẹ (TaskService dùng global GAS API).
   // Vì TaskService require GAS, test này chỉ kiểm tra classifyScan behaviour cho
-  // task noList: task Mở + log rỗng → lần 1 append EXTRA(timeRef), lần 2 append EXTRA(timeScan).
+  // task rỗng: task Mở + log rỗng → lần 1 append PENDING(timeRef), lần 2 append EXTRA(timeScan).
   const taskOpen = { taskId: 'R-NL', status: CFG.TASK_STATUS.OPEN };
   const r1 = ScanLogic.classifyScan(CFG, taskOpen, [], 'OPS000777');
   assert.equal(r1.action, 'append');
   assert.equal(r1.phase, 'present');
   assert.equal(r1.field, 'timeRef');
-  assert.equal(r1.status, CFG.STATUS.EXTRA);
+  assert.equal(r1.status, CFG.STATUS.PENDING);
 
   const taskAttend = { taskId: 'R-NL', status: CFG.TASK_STATUS.ATTEND };
   const r2 = ScanLogic.classifyScan(CFG, taskAttend, [], 'OPS000777');
@@ -134,9 +133,9 @@ test('noList/RECONCILE: NV Dư (EXTRA) quét phase2 GIỮ Dư — KHÔNG đổi 
 
 
 test('noList (FREE) phase1 quét đầu: append PENDING — KHÔNG Dư', () => {
-  // Quét tự do (taskType FREE) KHÔNG có danh sách → NV lạ hợp lệ, quét đầu
+  // KHÔNG có danh sách → NV lạ hợp lệ, quét đầu
   // (phase1) ghi Giờ có mặt + PENDING (Chưa điểm danh), KHÔNG phải Dư.
-  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.OPEN };
   const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
   assert.equal(cls.action, 'append');
   assert.equal(cls.field, 'timeRef');
@@ -145,7 +144,7 @@ test('noList (FREE) phase1 quét đầu: append PENDING — KHÔNG Dư', () => {
 
 test('noList (FREE) phase2 quét NV lạ → append EXTRA — Dư', () => {
   // Quét tự do phase2 (Điểm danh), NV lạ → append Giờ quét + PRESENT.
-  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.ATTEND, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R-NL', status: CFG.TASK_STATUS.ATTEND };
   const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
   assert.equal(cls.action, 'append');
   assert.equal(cls.field, 'timeScan');
@@ -153,11 +152,10 @@ test('noList (FREE) phase2 quét NV lạ → append EXTRA — Dư', () => {
   assert.equal(cls.status, CFG.STATUS.EXTRA);
 });
 
-test('roster (RECONCILE) NV lạ vẫn EXTRA (Dư) — không đổi behaviour', () => {
-  // Có danh sách (RECONCILE): NV quét không có trong roster → Dư (EXTRA).
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.RECONCILE };
+test('NV lạ trong log rổng → PENDING phase1', () => {
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const cls = ScanLogic.classifyScan(CFG, task, [], 'OPS000999');
   assert.equal(cls.action, 'append');
-  assert.equal(cls.status, CFG.STATUS.EXTRA);
+  assert.equal(cls.status, CFG.STATUS.PENDING);
 });
 

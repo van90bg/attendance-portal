@@ -111,13 +111,6 @@
         STATION_GROUPS = res.stationGroups || [];
         CFG_DEFAULTS = res.defaults || CFG_DEFAULTS;
         CFG_LISTS = res.lists || { stations: [], teams: [], slotcodes: [], departments: [], agencies: [], contractTypes: [] };
-        // Admin khai báo station trong Config (chưa có data) vẫn tạo task được.
-        var canCreate = STATION_GROUPS.length > 0 || (CFG_LISTS.stations || []).length > 0;
-        document.getElementById('btnCreate').disabled = !canCreate;
-        // Modal mở trước khi options về (load chậm): SEL chưa chọn gì → áp dụng defaults ngay.
-        // Đã có chọn tay thì KHÔNG đè (tôn trọng thao tác user).
-        if (SEL.station === '' && anyModalOpen()) applySelDefaults();
-
         renderAllCols();  // refresh 4 cột khi data mới về (nếu modal đang mở)
         markServerOk();  // phủ cả trường hợp chỉ load options
         _filterOptsLoaded = true;
@@ -140,7 +133,7 @@
     var team = groupSelectedTeams();
     var contractType = SEL.contractTypes;
     var date = SEL.date;
-    // A2: task mới luôn free → không preview roster (log rỗng khi tạo; nạp danh sách sau qua "⋯")
+    // A2: task mới luôn free → không preview roster (log rỗng khi tạo; nạp danh sách sau qua "Thêm")
     _previewSeq++; clearTimeout(_previewTimer); setCreateTotal(0);
     return;
     // (đoạn dưới giữ nguyên cho luồng cũ — không còn chạy)
@@ -510,7 +503,6 @@
         tr.innerHTML =
           '<td class="stt" data-label="STT">' + (start + pi + 1) + '</td>' +
           '<td data-label="Mã task"><a class="task-open-link" href="javascript:void(0)" onclick="openScan(\'' + escAttr(t.taskId) + '\')">' + esc(t.taskId) + '</a></td>' +
-          '<td data-label="Loại">' + taskTypeBadge(t) + '</td>' +
           '<td data-label="Station">' + esc(t.station) + '</td>' +
           '<td data-label="Team">' + esc(t.team) + '</td>' +
           '<td class="td-slot" data-label="Ca">' + slotCellHtml(t.slotCode) + '</td>' +
@@ -684,7 +676,6 @@
           '<td data-label="Mã NV">' + esc(r.staffId) + '</td>' +
           '<td data-label="Tên NV">' + esc(r.staffName || "") + '</td>' +
           '<td data-label="Điểm danh">' + badgeFor(r.status) + '</td>' +
-          '<td data-label="Loại">' + taskTypeBadge(r) + '</td>' +
           '<td data-label="Station">' + esc(r.station || "") + '</td>' +
           '<td data-label="Team">' + esc(r.team || "") + '</td>' +
           '<td class="td-slot" data-label="Ca">' + slotCellHtml(r.slotCode || '') + '</td>' +
@@ -719,37 +710,23 @@
       clearSearch();
     }
   }
+  // Tạo task trực tiếp (không modal): server tạo FREE + log rỗng, mở scan view ngay.
   function createTask() {
     if (BUSY) return;
-    var isFree = isFreeSel();
-    var input = {
-      station: SEL.station,
-      slotCode: groupSelectedSlots(),
-      team: groupSelectedTeams(),
-      contractType: SEL.contractTypes,
-      date: SEL.date
-      // createdBy KHÔNG gửi — server lấy từ Session.getActiveUser() (P2-8)
-      // noList KHÔNG gửi — server derive qua isFreeSlotSelection_ (slotCode=['Tự do'])
-    };
-    // 2026-08-11: team/slot rỗng = 'Tất cả' (không lọc) — chỉ Station bắt buộc.
-    // Server filterStaffByGroup bỏ lọc khi mảng rỗng; guard 0 NV server vẫn chặn.
-    if (isFree) input.slotCode = [SLOT_FREE_MAGIC];
+    var btn = document.getElementById('btnCreate');
     BUSY = true;
-    var btn = document.getElementById('btnCreateSubmit');
-    if (btn) btn.disabled = true;
+    if (btn) { btn.disabled = true; setBtnBusy_(btn, 'Đang tạo…'); }
     google.script.run
       .withSuccessHandler(function (res) {
         BUSY = false;
-        if (btn) btn.disabled = false;
+        if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
         if (res.ok) {
           invalidateClientCaches_();
-          closeCreateModal();
-          showToast(res.message + (res.count ? ' — ' + res.count + ' NV' : ''), false);
+          showToast(res.message, false);
           loadTaskList();
           openScan(res.taskId);
-          // Fix #1: task Quét tự do vừa tạo → warm staffIndex ngay (fire-and-forget)
-          // để quét đầu đã có tên NV từ cache thay vì về sau.
-          if (isFree) { try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {} }
+          // warm staffIndex ngay (fire-and-forget)
+          try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {}
         } else {
           showToast(res.message, true);
         }
@@ -757,10 +734,10 @@
       .withFailureHandler(function (err) {
         markServerFail();
         BUSY = false;
-        if (btn) btn.disabled = false;
+        if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
         showToast('Lỗi tạo task: ' + err.message, true);
       })
-      .createReconcileTaskApi(input);
+      .createReconcileTaskApi({});
   }
 
   function openScan(taskId) {

@@ -90,9 +90,6 @@ function createReconcileTask(input) {
 
     const task = {
       taskId: taskId,
-      // A2: mọi task mới = FREE (classifyScan nhánh FREE: phase 1 KHÔNG Dư —
-      // NV lạ quét phase 1 ghi PENDING; Dư chỉ khi quét phase 2 ngoài danh sách).
-      taskType: TASK_TYPE.FREE,
       station: station,
       // 2026-08-07: FREE không chọn Ca — tự gán SLOT_FREE_MAGIC (task sheet hiển thị Ca=Tự do).
       slotCode: noList ? SLOT_FREE_MAGIC : slotCode,
@@ -110,7 +107,7 @@ function createReconcileTask(input) {
     // insertTask_ — batchInsert fail → không để lại task ATTEND rỗng.
     const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
     insertTask_(task);
-    audit_('createTask', taskId, { type: TASK_TYPE.FREE, count: count });
+    audit_('createTask', taskId, { count: count });
     return { ok: true, taskId: taskId, count: count, message: 'Tạo task' + (noList ? ' quét tự do' : '') + ' thành công: ' + taskId };
   } finally {
     lock.releaseLock();
@@ -183,7 +180,7 @@ function loadRoster(taskId, filters) {
       const added = toAdd.length ? batchInsertLogRows_(taskId, toAdd, now) : 0;
       if (added) audit_('loadRoster', taskId, { total: deduped.length, added: added, skipped: skipped });
       const counters = computeCounters(
-        { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+        { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
         readLogRowsCached_(taskId) || []
       );
       return {

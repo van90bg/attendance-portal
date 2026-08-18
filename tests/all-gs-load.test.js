@@ -36,7 +36,7 @@ test('luồng repo: insertTask_ + batchInsertLogRows_ → readTaskList_/readTask
   const taskId = 'R20260811-1000';
   const now = new Date('2026-08-11T10:00:00');
   svc.insertTask_({
-    taskId: taskId, taskType: 'reconcile', station: 'HN2 SOC', slotCode: '08:00-17:00',
+    taskId: taskId, station: 'HN2 SOC', slotCode: '08:00-17:00',
     team: 'Outbound', contractType: 'GRG', status: 'attend', createdAt: now, createdBy: 'web', completedAt: null,
   });
   const count = svc.batchInsertLogRows_(taskId, [
@@ -66,7 +66,7 @@ test('markUnscannedAbsent_: PENDING chưa quét → ABSENT (Vắng)', () => {
   svc.ensureSheets_();
   const taskId = 'R20260811-1000';
   svc.insertTask_({
-    taskId: taskId, taskType: 'reconcile', station: 'HN2 SOC', slotCode: '08:00-17:00',
+    taskId: taskId, station: 'HN2 SOC', slotCode: '08:00-17:00',
     team: 'Outbound', contractType: '', status: 'attend', createdAt: new Date(), createdBy: 'web', completedAt: null,
   });
   svc.batchInsertLogRows_(taskId, [
@@ -132,7 +132,7 @@ test('getTaskDetail (TaskService + isEditor_) trả permission đúng sau tách 
   svc.ensureSheets_();
   const taskId = 'R20260811-1000';
   svc.insertTask_({
-    taskId: taskId, taskType: 'reconcile', station: 'HN2 SOC', slotCode: '08:00-17:00',
+    taskId: taskId, station: 'HN2 SOC', slotCode: '08:00-17:00',
     team: 'Outbound', contractType: '', status: 'attend', createdAt: new Date(), createdBy: 'admin@spx.com', completedAt: null,
   });
   svc.batchInsertLogRows_(taskId, [
@@ -151,7 +151,7 @@ test('batchAppendLogRows_ + updateLogRowScan_ + searchLogsByStaff/searchTasksByQ
   svc.ensureSheets_();
   const taskId = 'R20260811-1000';
   svc.insertTask_({
-    taskId: taskId, taskType: 'reconcile', station: 'HN2 SOC', slotCode: '08:00-17:00',
+    taskId: taskId, station: 'HN2 SOC', slotCode: '08:00-17:00',
     team: 'Outbound', contractType: '', status: 'attend', createdAt: new Date(), createdBy: 'web', completedAt: null,
   });
   svc.batchInsertLogRows_(taskId, [
@@ -205,9 +205,8 @@ test('planBatchScans chạy trong vm shared context (BARCODE_ID_RE global từ C
   const cfg = {
     STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
     TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
-    TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
   };
-  const res = svc.planBatchScans(cfg, { taskId: 'R1', status: 'open', taskType: 'free' }, [], ['Ops000001', 'NV000002']);
+  const res = svc.planBatchScans(cfg, { taskId: 'R1', status: 'open' }, [], ['Ops000001', 'NV000002']);
   assert.equal(res.plans.length, 1);
   assert.equal(res.invalid.length, 1);
   assert.equal(res.invalid[0].reason, 'invalid-format');

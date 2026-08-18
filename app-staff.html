@@ -174,8 +174,8 @@
     var firstOpt = document.querySelector('#sfpBody input[type="checkbox"]');
     if (firstOpt) firstOpt.focus();
   }
-  // Funnel hiển thị label theo app — field taskType/status lưu code wire/server (reconcile/free, open/attend/done).
-  var FUNNEL_LABEL = { taskType: TT_LABEL, status: TASK_PHASE_LABEL };
+  // Funnel hiển thị label theo app — field status lưu code wire/server (open/attend/done).
+  var FUNNEL_LABEL = { status: TASK_PHASE_LABEL };
   function renderFunnelOptions_(field, sel) {
     var ctx = _funnel.ctx;
     var rows = ctx.rows();

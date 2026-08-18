@@ -10,7 +10,6 @@ const ScanLogic = require('../ScanLogic.gs');
 const CFG = {
   STATUS: { PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư', PENDING: '-' },
   TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
-  TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
 };
 
 function makeRow(overrides) {
@@ -67,14 +66,14 @@ test('classifyScan: NV không trong log → append EXTRA (khớp tổ hợp như
   const rows = [makeRow()]; // chỉ có OPS000001
   const res = ScanLogic.classifyScan(CFG, task, rows, 'OPS000099');
   assert.equal(res.action, 'append');
-  assert.equal(res.status, CFG.STATUS.EXTRA);
+  assert.equal(res.status, CFG.STATUS.PENDING);
 });
 
-test('classifyScan: NV không trong log + khác tổ hợp → append EXTRA (không còn Trễ)', () => {
+test('classifyScan: NV không trong log + khác tổ hợp → append PENDING (phase1)', () => {
   const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const res = ScanLogic.classifyScan(CFG, task, [makeRow()], 'OPS000050');
   assert.equal(res.action, 'append');
-  assert.equal(res.status, CFG.STATUS.EXTRA);
+  assert.equal(res.status, CFG.STATUS.PENDING);
 });
 
 test('findLogRow: case-insensitive', () => {

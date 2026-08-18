@@ -13,7 +13,7 @@
     var m = document.getElementById('pasteModal');
     if (!m) return;
     pasteFocusBack = document.activeElement;
-    closeScanMore_();  // item menu "⋯" — đóng menu khi mở modal
+    closeScanMore_();  // item menu "Thêm" — đóng menu khi mở modal
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     var ta = document.getElementById('pasteTextarea');
@@ -131,7 +131,7 @@
     return SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
   }
   // A2: modal tạo task rút gọn — Station/Ca/Team/Date ẩn, task mới LUÔN quét tự do (không roster),
-  // danh sách nạp sau qua nút "⋯" trong màn quét. Team/Ca/Hình thức ẩn trong HTML.
+  // Danh sách nạp sau qua nút "Thêm" trong màn quét. Team/Ca/Hình thức ẩn trong HTML.
   function refreshModeUI() {
     var desc = document.getElementById('modeDesc');
     if (desc) {
@@ -139,32 +139,7 @@
     }
   }
 
-  // n1 (audit): focus trap createModal do document-level Tab handler chung xử lý
-  // (.about-overlay.open — createModal là about-overlay) — bỏ trap riêng để khỏi 2
-  // handler cùng chạy trên 1 keydown (thừa, khó đọc).
-  function openCreateModal() {
-    var m = document.getElementById('createModal');
-    if (!m) return;
-    // P2: reset lựa chọn 4 cột mỗi lần mở — không giữ giá trị cũ (tránh tạo nhầm task)
-    resetSel();
-    // Options chưa về (app mới mở, RPC khởi động chậm) → fetch NGAY thay vì modal rỗng chờ;
-    // _filterOptsLoaded chặn double-RPC khi refreshAll đang chạy.
-    if (!_filterOptsLoaded && typeof loadFilterOptions === 'function') loadFilterOptions();
-    // A2: task mới luôn free — ca = Tự do (magic), không cần chọn
-    SEL.slots = [SLOT_FREE_MAGIC];
-    renderAllSelects();
-    refreshModeUI();
-    m.setAttribute('aria-hidden', 'false');  // I10
-    m.classList.add('open');
-    var first = document.querySelector('#createModal .pick');
-    if (first && first.focus) first.focus();
-  }
-  function closeCreateModal() {
-    var m = document.getElementById('createModal');
-    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
-    var btn = document.getElementById('btnCreate');
-    if (btn && btn.focus) btn.focus();
-  }
+  // openCreateModal/closeCreateModal removed (2026-08-18): tạo task trực tiếp.
   function anyModalOpen() {
     return document.querySelector('.about-overlay.open') !== null;
   }
@@ -270,8 +245,7 @@
   document.addEventListener('keydown', function (e) {
     // P3: Escape đóng modal (focus trap cơ bản)
     if (e.key === 'Escape') {
-      var m = document.getElementById('createModal');
-      if (m && m.classList.contains('open')) { closeCreateModal(); return; }
+      // createModal removed
       m = document.getElementById('confirmModal');
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('pasteModal');
@@ -317,7 +291,7 @@
     var m = document.getElementById('rosterModal');
     if (!m) return;
     rosterFocusBack = document.activeElement;
-    closeScanMore_();  // item menu "⋯" — đóng menu khi mở modal
+    closeScanMore_();  // item menu "Thêm" — đóng menu khi mở modal
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     var num = document.getElementById('rosterTotalNum');

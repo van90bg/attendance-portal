@@ -9,7 +9,6 @@ const ScanLogic = require('../ScanLogic.gs');
 const CFG = {
   STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
   TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
-  TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
 };
 
 function makeRow(overrides) {
@@ -30,7 +29,7 @@ function makeRow(overrides) {
 }
 
 test('planBatchScans: 3 mã hợp lệ phase OPEN/FREE → 3 append PENDING', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const logRows = [];
   const codes = ['Ops000001', 'Ops000002', 'Ops000003'];
   const res = ScanLogic.planBatchScans(CFG, task, logRows, codes);
@@ -46,7 +45,7 @@ test('planBatchScans: 3 mã hợp lệ phase OPEN/FREE → 3 append PENDING', ()
 });
 
 test('planBatchScans: mã lặp trong cùng paste → lần 2 reject already-present', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const logRows = [];
   const codes = ['Ops000001', 'Ops000001', 'Ops000002'];
   const res = ScanLogic.planBatchScans(CFG, task, logRows, codes);
@@ -60,7 +59,7 @@ test('planBatchScans: mã lặp trong cùng paste → lần 2 reject already-pre
 });
 
 test('planBatchScans: mã sai prefix → invalid-format không dừng batch', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const logRows = [];
   const codes = ['Ops000001', 'NV000002', 'Ops000003'];
   const res = ScanLogic.planBatchScans(CFG, task, logRows, codes);
@@ -71,7 +70,7 @@ test('planBatchScans: mã sai prefix → invalid-format không dừng batch', ()
 });
 
 test('planBatchScans: Ops + chữ (OpsABC) → invalid-format (phải là Ops + số)', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const res = ScanLogic.planBatchScans(CFG, task, [], ['OpsABC']);
   assert.equal(res.plans.length, 0); // không có mã hợp lệ nào
   assert.equal(res.invalid.length, 1);
@@ -80,7 +79,7 @@ test('planBatchScans: Ops + chữ (OpsABC) → invalid-format (phải là Ops + 
 });
 
 test('planBatchScans: Ops không có số (Ops) → invalid-format', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const res = ScanLogic.planBatchScans(CFG, task, [], ['Ops']);
   assert.equal(res.plans.length, 0);
   assert.equal(res.invalid.length, 1);
@@ -88,7 +87,7 @@ test('planBatchScans: Ops không có số (Ops) → invalid-format', () => {
 });
 
 test('planBatchScans: Ops12a3 (số + chữ hỗn hợp) → invalid-format', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const res = ScanLogic.planBatchScans(CFG, task, [], ['Ops12a3']);
   assert.equal(res.plans.length, 0);
   assert.equal(res.invalid.length, 1);
@@ -98,13 +97,13 @@ test('planBatchScans: Ops12a3 (số + chữ hỗn hợp) → invalid-format', ()
 
 test('planBatchScans: task FREE + OPEN vs ATTEND → đúng nhánh (ATTEND chặn ở service, pure chỉ classify)', () => {
   // Phase OPEN (present) → field timeRef
-  const taskOpen = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const taskOpen = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const resOpen = ScanLogic.planBatchScans(CFG, taskOpen, [], ['Ops000001']);
   assert.equal(resOpen.plans[0].phase, 'present');
   assert.equal(resOpen.plans[0].field, 'timeRef');
 
   // Phase ATTEND (attend) → field timeScan
-  const taskAttend = { taskId: 'R1', status: CFG.TASK_STATUS.ATTEND, taskType: CFG.TASK_TYPE.FREE };
+  const taskAttend = { taskId: 'R1', status: CFG.TASK_STATUS.ATTEND };
   const resAttend = ScanLogic.planBatchScans(CFG, taskAttend, [], ['Ops000001']);
   assert.equal(resAttend.plans[0].phase, 'attend');
   assert.equal(resAttend.plans[0].field, 'timeScan');
@@ -113,7 +112,7 @@ test('planBatchScans: task FREE + OPEN vs ATTEND → đúng nhánh (ATTEND chặ
 });
 
 test('planBatchScans: mã trùng khi row ĐÃ tồn tại (timeRefEpoch=0) → update rồi reject (m4)', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   // Row tồn tại nhưng chưa có timeRef (phase OPEN, chưa quét) → mã đầu = update
   const logRows = [makeRow({ staffId: 'OPS000001', timeRef: null, timeRefEpoch: 0 })];
   const originalRefEpoch = logRows[0].timeRefEpoch;
@@ -126,7 +125,7 @@ test('planBatchScans: mã trùng khi row ĐÃ tồn tại (timeRefEpoch=0) → u
   // Fix 2: pure — logRows gốc không bị mutate dù plan.simulate update
   assert.equal(logRows[0].timeRefEpoch, originalRefEpoch);
   // Test ATTEND + row đã quét scan → update timeScan rồi duplicate reject
-  const taskAttend = { taskId: 'T2', status: CFG.TASK_STATUS.ATTEND, taskType: CFG.TASK_TYPE.FREE };
+  const taskAttend = { taskId: 'T2', status: CFG.TASK_STATUS.ATTEND };
   const logRows2 = [makeRow({ staffId: 'OPS000002', timeScan: null, timeScanEpoch: 0 })];
   const res2 = ScanLogic.planBatchScans(CFG, taskAttend, logRows2, ['Ops000002', 'Ops000002']);
   assert.equal(res2.plans[0].action, 'update');
@@ -135,7 +134,7 @@ test('planBatchScans: mã trùng khi row ĐÃ tồn tại (timeRefEpoch=0) → u
 });
 
 test('planBatchScans: không đổi logRows gốc (thuần)', () => {
-  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN, taskType: CFG.TASK_TYPE.FREE };
+  const task = { taskId: 'R1', status: CFG.TASK_STATUS.OPEN };
   const logRows = [makeRow({ staffId: 'OPS000001' })];
   const originalLength = logRows.length;
   ScanLogic.planBatchScans(CFG, task, logRows, ['Ops000002', 'Ops000003']);

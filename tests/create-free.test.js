@@ -2,8 +2,8 @@
  * tests/create-free.test.js — commit 2026-08-08: slotCode 'Tự do' → task FREE.
  * Pure: isFreeSlotSelection_ (CsvUtil) 3 case.
  * VM   : createReconcileTask với CsvUtil thật + fake GAS (LockService/Session/IO).
- *        Case FREE  → taskType FREE, status OPEN, log=0 (KHÔNG pre-fill)
- *        Case ca thật (A2) → taskType FREE, status OPEN, log=0 — mọi task mới RỖNG,
+ *        Case FREE  → status OPEN, log=0 (KHÔNG pre-fill)
+ *        Case ca thật (A2) → status OPEN, log=0 — mọi task mới RỖNG,
  *        roster nạp sau qua loadRosterApi (KHÔNG pre-fill khi tạo)
  */
 const test = require('node:test');
@@ -47,7 +47,6 @@ function makeCtx() {
     getActiveEmail_: () => 'web', // TaskService giờ dùng Auth.getActiveEmail_ (không load Auth.gs ở đây)
     requireRole_: () => true,      // M1 gate (review 2026-08-11): stub — role logic đã test riêng (role-service.test.js)
     audit_: () => {},                // AuditRepo không load trong harness này
-    TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
     TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
     UI_LABELS: { CREATE_FAILED_EMPTY: 'Không có nhân viên nào trong tổ hợp đã chọn' },
     readStaffList_: () => STAFF.slice(),
@@ -66,8 +65,7 @@ test('vm: slotCode=["Tự do"] → FREE task, OPEN, log=0', () => {
   const { ctx, inserted } = makeCtx();
   const res = ctx.createReconcileTask({ station: 'HN2', slotCode: ['Tự do'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
-  assert.equal(inserted[0].taskType, 'free', 'taskType phải FREE');
-  assert.equal(inserted[0].status, 'open', 'FREE phải mở phase1');
+  assert.equal(inserted[0].status, 'open', 'task mở phase1');
   assert.equal(inserted[0].slotCode, 'Tự do', 'Ca lưu = Tự do');
   assert.equal(res.count, 0, 'KHÔNG pre-fill');
 });
@@ -76,9 +74,8 @@ test('VM: slotCode=["08:00-17:00"] → FREE task, OPEN, log=0 (A2 — không pre
   const { ctx, inserted } = makeCtx();
   const res = ctx.createReconcileTask({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
-  assert.equal(inserted[0].taskType, 'free', 'A2: mọi task mới FREE');
-  assert.equal(inserted[0].status, 'open', 'A2: mọi task mới mở phase1');
-  assert.equal(inserted[0].slotCode, 'Tự do', 'A2: ca lưu = Tự do (ép FREE, bỏ ca thật)');
+  assert.equal(inserted[0].status, 'open', 'A2: task mở phase1');
+  assert.equal(inserted[0].slotCode, 'Tự do', 'A2: ca lưu = Tự do');
   assert.equal(res.count, 0, 'A2: log rỗng — roster nạp sau qua loadRosterApi');
 });
 
@@ -86,14 +83,13 @@ test('VM: noList cũ (input.noList=true) vẫn tương thích', () => {
   const { ctx, inserted } = makeCtx();
   const res = ctx.createReconcileTask({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'], noList: true });
   assert.equal(res.ok, true, res.message);
-  assert.equal(inserted[0].taskType, 'free', 'noList cũ vẫn FREE');
+  // noList compat test
 });
 
 test('VM: station rỗng (A2 — modal chỉ nút Tạo) → task tạo được, station rỗng', () => {
   const { ctx, inserted } = makeCtx();
   const res = ctx.createReconcileTask({ station: '', slotCode: ['Tự do'] });
   assert.equal(res.ok, true, res.message);
-  assert.equal(inserted[0].taskType, 'free');
   assert.equal(inserted[0].station, '', 'station rỗng — roster nạp sau qua loadRosterApi');
   assert.equal(res.count, 0, 'log rỗng');
 });

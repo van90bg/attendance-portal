@@ -109,11 +109,7 @@ const TASK_STATUS = {
   DONE: 'done',       // đã kết thúc
 };
 
-// ===== Loại task =====
-const TASK_TYPE = {
-  RECONCILE: 'reconcile', // đối chiếu từ csv (CÓ danh sách NV)
-  FREE: 'free',           // Quét tự do — KHÔNG danh sách (noList), quét 2 lần
-};
+// TASK_TYPE removed (2026-08-18): mọi task đều là free — không còn phân biệt FREE/RECONCILE.
 
 // ===== Cache TTL (giây) =====
 const CACHE_TTL = {

@@ -65,26 +65,12 @@ function classifyScan(cfg, task, logRows, staffId) {
     }
     return { action: 'update', phase: 'attend', field: 'timeScan', status: cfg.STATUS.PRESENT, reason: null, row: row };
   }
-  // NV không có trong log.
-  // - Roster (taskType != 'free'): NV quét lạ là Dư (EXTRA) — ghi nhận ngoài danh sách chốt.
-  //   phase1 Giờ có mặt, phase2 Giờ quét.
-  // - Quét tự do (taskType FREE / noList): KHÔNG có danh sách chốt → NV lạ là hợp lệ,
-  //   KHÔNG phải Dư. Quét đầu (phase1) = PENDING (chưa điểm danh), phase2 = PRESENT.
-  //   (Fix Dư sai 2026-08-05)
-  const isFree = task && task.taskType === cfg.TASK_TYPE.FREE;
-  if (isFree) {
-    // FREE 2-phase (noList): phase1 quét đầu = danh sách (PENDING, có mặt
-    // nhưng chưa điểm danh). phase2: NV quét lần 2 → điểm danh. NV quét phase2
-    // mà không có trong danh sách phase1 → Dư (EXTRA) — ghi Giờ quét, tính Dư.
-    return {
-      action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),
-      status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.EXTRA, reason: null, row: null,
-    };
-  }
-  if (phase === 'present') {
-    return { action: 'append', phase: 'present', field: 'timeRef', status: cfg.STATUS.EXTRA, reason: null, row: null };
-  }
-  return { action: 'append', phase: 'attend', field: 'timeScan', status: cfg.STATUS.EXTRA, reason: null, row: null };
+  // NV không có trong log — mọi task đều giống FREE (không phân biệt taskType):
+  //   phase1: append PENDING (NV tham gia, chưa điểm danh); phase2: EXTRA (ngoài danh sách).
+  return {
+    action: 'append', phase: phase, field: (phase === 'present' ? 'timeRef' : 'timeScan'),
+    status: phase === 'present' ? cfg.STATUS.PENDING : cfg.STATUS.EXTRA, reason: null, row: null,
+  };
 }
 
 /**
@@ -152,8 +138,8 @@ function computeCounters(cfg, logRows) {
  *    + field đã có epoch (thiết bị khác xong phase này) → KHÔNG ghi (không đè thời gian),
  *      báo thông tin row hiện hữu.
  *
- * @param {Object} cfg — { STATUS, TASK_STATUS, TASK_TYPE }
- * @param {Object} task — { taskId, taskType, status }
+ * @param {Object} cfg — { STATUS, TASK_STATUS }
+ * @param {Object} task — { taskId, status }
  * @param {Array} actions — [{ code?, action:'update'|'append', field, status, row? }]
  *   (classifyScan result / planBatchScans plan — cùng shape commit)
  * @param {Array} freshLogRows — log rows RE-CHECK (slim: staffId, text, epoch, status, _rowIndex)
@@ -309,8 +295,8 @@ function canScanOpen_(cfg, createdBy, activeEmail, isAdmin) {
  * For each code: normalize, validate format, then classifyScan against current logRows.
  * Deduplicates naturally within the batch (second occurrence of same code in paste will be rejected).
  *
- * @param {Object} cfg — { STATUS, TASK_STATUS, TASK_TYPE }
- * @param {Object} task — { taskId, status, taskType }
+ * @param {Object} cfg — { STATUS, TASK_STATUS }
+ * @param {Object} task — { taskId, status }
  * @param {Array<Object>} logRows — current log rows (with timeRefEpoch/timeScanEpoch)
  * @param {Array<string>} codes — array of raw codes from paste (one per line)
  * @returns {{plans: Array<{code, action, phase, field, status, reason, row}>, invalid: Array<{code, reason}>}}
@@ -404,10 +390,10 @@ function planBatchScans(cfg, task, logRows, codes) {
  *
  * @param {Array<Object>} logRows — toàn bộ dòng log (đã map logFromRow_: staffId, staffName,
  *   status (scan status NV), taskId, timeRefText, timeScanText, ...).
- * @param {Array<Object>} tasks — danh sách task (taskFromRow_: taskId, taskType, station,
+ * @param {Array<Object>} tasks — danh sách task (taskFromRow_: taskId, station,
  *   slotCode, team, status, createdAtText, createdBy, ...). Map nhanh theo taskId.
  * @param {string} staffId — mã NV đã normalize (uppercase) để so khớp.
- * @returns {Array<Object>} — [{ taskId, staffId, staffName, status, taskType, station,
+ * @returns {Array<Object>} — [{ taskId, staffId, staffName, status, station,
  *   team, slotCode, taskStatus, createdAtText, createdBy, timeRefText, timeScanText }],
  *   sort Tạo lúc giảm dần, limit 200.
  */
@@ -435,7 +421,6 @@ function matchLogsByStaff(logRows, tasks, staffId) {
       staffId: r.staffId,
       staffName: r.staffName || '',
       status: r.status || '',                   // scan status NV trong task (Có mặt/Vắng/Dư/-) — giữ nguyên để client quyết định có hiện không
-      taskType: t ? t.taskType : '',
       station: t ? t.station : '',
       team: t ? t.team : '',
       slotCode: t ? t.slotCode : '',

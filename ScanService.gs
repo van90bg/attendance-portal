@@ -69,7 +69,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     // hiếm). 52KB JSON.parse + 1 full-read StaffData mỗi 5 phút là thừa với 99% scan.
 
     const result = classifyScan(
-          { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+          { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
           task,
           logRows,
           staffId
@@ -112,7 +112,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
       ? new Date(clientEpoch)
       : new Date();
     const commit = planScanCommits(
-      { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+      { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
       task,
       [{ code: staffId, action: result.action, field: result.field, status: result.status, row: result.row }],
       freshLogRows, staffIndex, scanNow, formatTime_
@@ -202,9 +202,6 @@ function pasteCodes(taskId, rawLines) {
     const activeEmail = getActiveEmail_();
     const isAdmin = isEditor_();
     
-    if (task.taskType !== TASK_TYPE.FREE) {
-      return { ok: false, message: 'Chỉ áp dụng quét tự do (FREE)', total: 0, success: 0, failed: 0, results: [], counters: null };
-    }
     if (task.status !== TASK_STATUS.OPEN) {
       return { ok: false, message: 'Chỉ phase Mở mới dán mã được', total: 0, success: 0, failed: 0, results: [], counters: null };
     }
@@ -217,7 +214,7 @@ function pasteCodes(taskId, rawLines) {
     
     // Plan batch using pure logic
     const { plans, invalid } = planBatchScans(
-      { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+      { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
       task,
       logRows,
       lines
@@ -244,7 +241,7 @@ function pasteCodes(taskId, rawLines) {
     // Re-check race: đọc lại cache sau khi giữ lock (thiết bị khác có thể vừa ghi cùng mã)
     const freshLogRows = readLogRowsCached_(taskId) || [];
     const commit = planScanCommits(
-      { STATUS: STATUS, TASK_STATUS: TASK_STATUS, TASK_TYPE: TASK_TYPE },
+      { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
       task, commitActions, freshLogRows, staffIndex, now, formatTime_
     );
     // Results theo ĐÚNG thứ tự plans (reject/update/append xen kẽ như cũ)

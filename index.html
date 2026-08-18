@@ -57,7 +57,7 @@
         <div class="task-title">Điểm danh</div>
         <div class="task-meta">Đối chiếu danh sách theo Station / Ca / Team — tạo task, quét giờ có mặt, điểm danh, bàn giao</div>
       </div>
-      <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
+      <button class="btn" id="btnCreate" onclick="createTask()">+ Task mới</button>
     </div>
 
     <div class="card">
@@ -80,7 +80,6 @@
             <tr>
               <th scope="col">STT</th>
               <th scope="col">Mã task</th>
-              <th scope="col">Loại</th>
               <th scope="col">Station</th>
               <th scope="col">Team</th>
               <th scope="col">Ca</th>
@@ -116,7 +115,7 @@
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
       <div class="topbar-more" id="scanMoreWrap" style="display:none">
-        <button class="btn btn-ghost" id="btnScanMore" onclick="toggleScanMore()" aria-label="Thêm thao tác" aria-expanded="false" aria-haspopup="true">⋯</button>
+        <button class="btn btn-ghost" id="btnScanMore" onclick="toggleScanMore()" aria-label="Thêm thao tác" aria-expanded="false" aria-haspopup="true">Thêm</button>
         <div class="topbar-more-menu" id="scanMoreMenu" role="menu" hidden>
           <button class="topbar-more-item" id="btnPaste" onclick="openPasteModal()" style="display:none" aria-label="Dán danh sách mã">Dán danh sách mã</button>
           <button class="topbar-more-item" id="btnLoadRoster" onclick="openRosterModal()" style="display:none" aria-label="Lấy danh sách theo ca">Lấy danh sách theo ca</button>
@@ -542,44 +541,7 @@
   </div>
 </div>
 
-<!-- Modal tạo task (A2: rỗng — Station/Ca/Team/Date bỏ, roster nạp sau qua ⋯) -->
-<div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
-  <div class="about-dialog">
-    <h2 id="createModalTitle">+ Task mới</h2>
-    <!-- Audit UI: bỏ hint cũ — cột đã ghi rõ "· chọn 1 / · chọn nhiều" + modeDesc giải thích mode -->
-    <!-- modalA: 2 chế độ tạo task — Quét tự do thay checkbox nổi vàng -->
-    <p id="modeDesc" class="mode-desc"></p>
-    <div class="create-form" id="createForm">
-      <div class="frow" style="display:none">
-        <span class="flabel">Station <span class="fnote">chọn 1</span></span>
-        <div class="chips" id="chipsStation" role="group" aria-label="Station"></div>
-      </div>
-      <div class="frow" style="display:none">
-        <span class="flabel">Team <span class="fnote">chọn nhiều</span></span>
-        <div class="chips" id="chipsTeam" role="group" aria-label="Team"></div>
-      </div>
-      <div class="frow" style="display:none">
-        <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
-        <div class="chips" id="chipsSlot" role="group" aria-label="Ca"></div>
-      </div>
-      <div class="frow" style="display:none" id="rowContract">
-        <span class="flabel">Hình thức <span class="fnote">chọn nhiều</span></span>
-        <div class="chips" id="chipsContract" role="group" aria-label="Hình thức"></div>
-      </div>
-      <div class="frow" style="display:none">
-        <span class="flabel">Ngày <span class="fnote">chọn 1</span></span>
-        <div class="chips" id="chipsDate" role="group" aria-label="Ngày"></div>
-        <select id="selDate" class="field-select" aria-label="Ngày" style="display:none"></select>
-      </div>
-    </div>
-    <div class="create-footer">
-      <div class="create-actions">
-        <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
-        <button class="btn" id="btnCreateSubmit" onclick="createTask()">+ Task mới</button>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- createModal removed (2026-08-18): tạo task trực tiếp, không cần modal -->
 
 <!-- Modal confirm dùng chung (thay alert/confirm trình duyệt — giữ UX đồng nhất) -->
 <div id="confirmModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmModalTitle" onclick="if(event.target===this)closeConfirmModal()">

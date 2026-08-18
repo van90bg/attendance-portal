@@ -13,7 +13,6 @@ function taskFromRow_(row) {
   const completedAt = row[TASK_COLS.COMPLETED_AT] || null;
   return {
     taskId: String(row[TASK_COLS.TASK_ID] || ''),
-    taskType: String(row[TASK_COLS.TASK_TYPE] || ''),
     station: String(row[TASK_COLS.STATION] || ''),
     slotCode: String(row[TASK_COLS.SLOT_CODE] || ''),
     team: String(row[TASK_COLS.TEAM] || ''),
@@ -81,7 +80,7 @@ function invalidateTaskCaches_(taskId) {
 /** Ghi task mới (append — tần suất thấp, chấp nhận appendRow). */
 function insertTask_(task) {
   getSheet_(SHEETS.ATTENDANCE_TASK).appendRow([
-    task.taskId, task.taskType, task.station, task.slotCode, task.team,
+    task.taskId, '', task.station, task.slotCode, task.team,
     task.contractType || '', task.status, task.createdAt, task.createdBy, task.completedAt || '',
   ]);
   // F5 + m3: phá negative cache (readTaskDetailCached_/readTaskCached_ cache null 15s/60s

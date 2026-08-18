@@ -61,15 +61,14 @@
     renderCounters(CURRENT_COUNTERS);
     updateScanFilterLabel_();
 
-    // T-2: Nút "Dán danh sách mã" + "Lấy danh sách theo ca" gom trong menu "⋯" (#scanMoreWrap) —
+    // T-2: Nút "Dán danh sách mã" + "Lấy danh sách theo ca" gom trong menu "Thêm" (#scanMoreWrap) —
     // chỉ hiện khi FREE + open + canScanOpen (nút tĩnh trong HTML; ở đây chỉ bật/tắt display).
     var pasteBtn = document.getElementById('btnPaste');
     var rosterBtn = document.getElementById('btnLoadRoster');
-    var isFree = data.task.taskType === TASK_TYPE_C.FREE;
     var isOpenPhase = data.task.phase === TASK_STATUS_C.OPEN || data.task.status === TASK_STATUS_C.OPEN;
     var perm = data.task.permission || {};
     if (pasteBtn) {
-      pasteBtn.style.display = (isFree && isOpenPhase && perm.canScanOpen) ? '' : 'none';
+      pasteBtn.style.display = (isOpenPhase && perm.canScanOpen) ? '' : 'none';
     }
     // A1: nút "Lấy danh sách theo ca" — cùng gate paste (phase Mở + owner). Task mới luôn FREE.
     if (rosterBtn) {
@@ -77,11 +76,9 @@
     }
     updateScanMoreBtn_();
 
-    // Quét được khi: phase2 (Điểm danh) HOẶC task Đối chiếu (RECONCILE, phase1 vẫn ghi
-        // Giờ có mặt được). Task Quét tự do (FREE) cũng 2-phase: phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét (V2 FREE là 2-phase) — phải bấm
-        // "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
-        var isReconcile = data.task.taskType === TASK_TYPE_C.RECONCILE;
-        // P1: canScan chỉ dựa trên phase (không dùng isReconcile/isFree) — source of truth.
+    // Quét được khi: phase2 (Điểm danh) — phase1 ghi Giờ có mặt, chuyển Điểm danh, phase2 ghi Giờ quét.
+        // Phải bấm "Chuyển điểm danh" (phase2) mới quét được (tránh ghi Giờ có mặt mà sheet thiếu Giờ quét).
+        // P1: canScan chỉ dựa trên phase — source of truth.
         // task DONE (status DONE hoặc phase DONE) => canScan = false. applyScanPermission() sẽ gộp owner-gate + queue-full.
         var isDone = data.task.phase === TASK_STATUS_C.DONE || data.task.status === TASK_STATUS_C.DONE;
         var canScan = !isDone;
@@ -412,22 +409,10 @@
     return esc(status || '');
   }
 
-  // 2026-08-07: badge Loại task ở danh sách task (FREE = Quét tự do, RECONCILE = Đối chiếu).
-  // Badge Loại task: task mới luôn FREE nhưng có thể đã nạp danh sách (A1) — hiện trạng thái
-  // danh sách thay vì chế độ tạo: roster > 0 → "Đã có danh sách"; còn trống → "Quét tự do".
-  function taskTypeBadge(task, fallbackType) {
-    var taskType = (task && task.taskType) || fallbackType;
-    var hasRoster = task && Number(task.total || task.count || 0) > 0;
-    if (hasRoster) return '<span class="badge badge-reconcile">Đã có danh sách</span>';
-    if (taskType === TASK_TYPE_C.FREE) return '<span class="badge badge-free">Quét tự do</span>';
-    if (taskType === TASK_TYPE_C.RECONCILE) return '<span class="badge badge-reconcile">Đối chiếu</span>';
-    return '<span class="badge">Task</span>';
-  }
-  // Nhãn loại task cho scanTaskMeta — "Đã có danh sách" khi roster đã nạp (đồng bộ taskTypeBadge).
   function taskKindLabel_(task) {
     if (!task) return 'Task';
     if (Number(task.total || task.count || 0) > 0) return 'Đã có danh sách';
-    return TT_LABEL[task.taskType] || 'Task';
+    return 'Mới tạo';
   }
   // F-search: badge Trạng thái task — dùng chung cho renderTaskList_ + renderSearchResults_ (tránh duplicate markup).
   // 'attend'→Điểm danh, 'done'→Xong, 'open'→Mở; trạng thái lạ/null → badge trống.
@@ -637,14 +622,10 @@
     } else {
       item.optimisticNew = true;
       // NV lạ → dòng tạm. Status optimistic phải khớp server:
-      // - Quét tự do (FREE): PENDING (phase1) / PRESENT (phase2) — KHÔNG Dư.
-      // - Đối chiếu (RECONCILE): EXTRA (Dư) — NV lạ ngoài danh sách.
-      // (Fix 2026-08-06: trước đây hardcode EXTRA → free task hiện "Dư" 3-4s rồi mới sửa.)
-      var isFree = CURRENT_TASK && CURRENT_TASK.taskType === TASK_TYPE_C.FREE;
-      // FREE phase2: NV chưa trong danh sách phase1 → DƯ (EXTRA). KV chưa quay phase1.
-      var optimisticStatusNew = isFree
-        ? (phase2 ? STATUS_C.EXTRA : STATUS_C.PENDING)
-        : STATUS_C.EXTRA;
+      // - Phase1: PENDING (thuộc danh sách).
+      // - Phase2: EXTRA (Dư) — NV lạ ngoài danh sách.
+        // Phase2: NV chưa trong danh sách phase1 → DƯ (EXTRA). Phase1: PENDING.
+      var optimisticStatusNew = phase2 ? STATUS_C.EXTRA : STATUS_C.PENDING;
       var staffRec = CLIENT_STAFF_INDEX[String(staffId).toUpperCase()] || null;
       var cachedName = staffRec ? (staffRec.staffName || '') : '';
       target = { staffId: staffId, staffName: cachedName || '…',
@@ -661,7 +642,7 @@
     }
     item.scanSeq = SCAN_CARD_SEQ;  // P2: đánh dấu lượt quét này là mới nhất — F7 (bump sau guard) đã tăng 1 lần, ở đây chỉ gán (bỏ ++ trùng, review 2026-08-11)
     // Toast optimistic — hiện ĐÚNG trạng thái; server KHÔNG toast lại nếu trùng
-    // (tránh lặp/nháy). NV lạ (optimisticNew) đã có status đúng theo free/reconcile ở trên.
+    // (tránh lặp/nháy). NV lạ (optimisticNew) đã có status đúng ở trên.
     if (!item.optimisticNew) {
       // F5: optimistic status = target.status đã cập nhật (giữ EXTRA nếu dòng Dư) — khớp server.
       item.optimisticStatus = target.status;
@@ -700,7 +681,7 @@
     processScanQueue();
   }
 
-  // Menu "⋯" viewScan: nút mở chỉ hiện khi có ≥1 hành động trong menu (paste/roster).
+  // Menu "Thêm" viewScan: nút mở chỉ hiện khi có ≥1 hành động trong menu (paste/roster).
   function updateScanMoreBtn_() {
     var wrap = document.getElementById('scanMoreWrap');
     if (!wrap) return;
@@ -729,7 +710,7 @@
     if (menu) menu.hidden = true;
     if (btn) btn.setAttribute('aria-expanded', 'false');
   }
-  // Click ngoài menu "⋯" → đóng (mở modal bên trong tự đóng khi item được click).
+  // Click ngoài menu "Thêm" → đóng (mở modal bên trong tự đóng khi item được click).
   document.addEventListener('click', function (e) {
     var wrap = document.getElementById('scanMoreWrap');
     var menu = document.getElementById('scanMoreMenu');
@@ -756,8 +737,7 @@
     // chuyển phase KHÔNG re-render (transitionToAttend / reopen / complete).
     if (btnPast) {
       btnPast.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
-        && CURRENT_TASK && CURRENT_TASK.taskType === TASK_TYPE_C.FREE
-        && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
+        && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
     }
     if (btnRos) {
       btnRos.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
@@ -991,7 +971,7 @@
             if (metaEl) {
               var phaseHint = ' (ghi Giờ quét)';
               metaEl.innerHTML =
-                esc(TT_LABEL[CURRENT_TASK.taskType] || 'Task') + ' ' + esc(CURRENT_TASK.station) + ' ' +
+                esc(taskKindLabel_(CURRENT_TASK)) + ' ' + esc(CURRENT_TASK.station) + ' ' +
                 esc(CURRENT_TASK.slotCode) + ' ' + esc(CURRENT_TASK.team) + ' — <b>' + esc(TASK_PHASE_LABEL[TASK_STATUS_C.ATTEND]) + '</b>' + esc(phaseHint);
             }
             // Mở input để bắt đầu quét (phase2) — trước đó bị khóa ở phase1.

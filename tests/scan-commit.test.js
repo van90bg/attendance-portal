@@ -13,7 +13,6 @@ const ScanLogic = require('../ScanLogic.gs');
 const CFG = {
   STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
   TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
-  TASK_TYPE: { RECONCILE: 'reconcile', FREE: 'free' },
 };
 const FMT = (d) => 'T:' + d.getTime();
 

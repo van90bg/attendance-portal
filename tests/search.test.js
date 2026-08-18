@@ -25,7 +25,7 @@ function loadScanLogic() {
 // task shape = taskFromRow_ (Database.gs) + counters (readTaskList_).
 function mkTask(id, over) {
   return Object.assign({
-    taskId: id, taskType: 'reconcile', station: 'HN2', slotCode: '13:00-22:00',
+    taskId: id, station: 'HN2', slotCode: '13:00-22:00',
     team: 'Inbound', contractType: '', status: 'done', phase: 'done',
     createdBy: 'a@spx.vn', createdAtText: '2026-08-07 10:00:00', completedAtText: '',
     total: 0, scanned: 0, extra: 0,
@@ -46,8 +46,8 @@ function mkLog(taskId, staffId, over) {
 test('matchLogsByStaff: lọc theo mã NV (case-insensitive), join task', () => {
   const ctx = loadScanLogic();
   const tasks = [
-    mkTask('T1', { taskType: 'reconcile', status: 'done', createdAtText: '2026-08-07 10:00:00', createdBy: 'a@spx.vn' }),
-    mkTask('T2', { taskType: 'free', status: 'attend', createdAtText: '2026-08-08 09:00:00', createdBy: 'b@spx.vn' }),
+    mkTask('T1', { status: 'done', createdAtText: '2026-08-07 10:00:00', createdBy: 'a@spx.vn' }),
+    mkTask('T2', { status: 'attend', createdAtText: '2026-08-08 09:00:00', createdBy: 'b@spx.vn' }),
   ];
   const logRows = [
     mkLog('T1', 'ops001', { staffName: 'Nguyen A', status: 'Có mặt' }),
@@ -61,7 +61,6 @@ test('matchLogsByStaff: lọc theo mã NV (case-insensitive), join task', () => 
   assert.equal(res[0].taskId, 'T2');
   assert.equal(res[1].taskId, 'T1');
   // join task metadata cho res[0]=T2
-  assert.equal(res[0].taskType, 'free');
   assert.equal(res[0].station, 'HN2');
   assert.equal(res[0].team, 'Inbound');
   assert.equal(res[0].slotCode, '13:00-22:00');
@@ -69,7 +68,6 @@ test('matchLogsByStaff: lọc theo mã NV (case-insensitive), join task', () => 
   assert.equal(res[0].createdAtText, '2026-08-08 09:00:00');
   assert.equal(res[0].createdBy, 'b@spx.vn');
   // join task metadata cho res[1]=T1
-  assert.equal(res[1].taskType, 'reconcile');
   assert.equal(res[1].taskStatus, 'done');
   assert.equal(res[1].createdAtText, '2026-08-07 10:00:00');
   assert.equal(res[1].createdBy, 'a@spx.vn');
@@ -100,7 +98,6 @@ test('matchLogsByStaff: log row không có task tương ứng (orphan) → vẫn
   const res = ctx.matchLogsByStaff(logRows, [], 'ops005');
   assert.equal(res.length, 1);
   assert.equal(res[0].taskId, 'T99');
-  assert.equal(res[0].taskType, '');
   assert.equal(res[0].taskStatus, '');
   assert.equal(res[0].createdAtText, '');
   assert.equal(res[0].staffName, 'Orphan');
