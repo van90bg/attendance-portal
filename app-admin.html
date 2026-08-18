@@ -73,17 +73,19 @@
   }
 
   // Đối tượng hiển thị: targetId thường đủ; settings ghi targetId '' + detail
-  // JSON {"saved":[...]} — parse ra nội dung đọc được, không hiện JSON thô.
+  // JSON {"saved":[...]} — parse + nhãn tiếng Việt, không hiện JSON thô/key tiếng Anh.
+  // Label map để TRONG hàm (tự chứa — test trích qua new Function không cần global).
   function auditTargetText_(r) {
     if (r.targetId) return r.targetId;
     var d = r.detail || '';
     if (!d) return '—';
+    var label = { saved: 'Đã lưu', absentCount: 'Vắng', resetCount: 'Mở lại' };
     try {
       var o = JSON.parse(d);
       if (o && typeof o === 'object') {
         var parts = Object.keys(o).map(function (k) {
           var v = o[k];
-          return k + ': ' + (Array.isArray(v) ? v.join(', ') : (v && typeof v === 'object' ? JSON.stringify(v) : v));
+          return (label[k] || k) + ': ' + (Array.isArray(v) ? v.join(', ') : (v && typeof v === 'object' ? JSON.stringify(v) : v));
         });
         if (parts.length) return parts.join(' · ');
       }

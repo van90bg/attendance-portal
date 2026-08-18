@@ -105,6 +105,19 @@ test('fmtClockHMS (staffTable) format HH:mm:ss giống scanTable/fmtDate', funct
   assert.equal(fmtClockHMS('17:30:00'), '17:30:00');
   assert.equal(fmtClockHMS(''), '');
 });
+// Regression: cột Đối tượng nhật ký admin hiện JSON thô ({"saved":["roleMap"]})
+// khi targetId trống (settings) — auditTargetText_ phải parse + nhãn tiếng Việt.
+test('auditTargetText_: settings targetId trống → nhãn đọc được, không JSON thô', function () {
+  const body = extractInlineScript(indexHtml);
+  const fIdx = body.indexOf('function auditTargetText_(');
+  assert.ok(fIdx >= 0, 'phải có function auditTargetText_');
+  const fn = new Function('return (' + body.slice(fIdx, matchingBrace(body, body.indexOf('{', fIdx)) + 1) + ');')();
+  assert.equal(fn({ targetId: 'R2026', detail: '{"absentCount":2}' }), 'R2026', 'targetId có sẵn → giữ nguyên');
+  assert.equal(fn({ targetId: '', detail: '{"saved":["roleMap"]}' }), 'Đã lưu: roleMap', 'settings → nhãn tiếng Việt');
+  assert.equal(fn({ targetId: '', detail: '{"saved":["roleMap","stations"]}' }), 'Đã lưu: roleMap, stations', 'nhiều key → liệt kê');
+  assert.equal(fn({ targetId: '', detail: 'không-phải-json' }), 'không-phải-json', 'detail không phải JSON → fallback');
+  assert.equal(fn({ targetId: '', detail: '' }), '—');
+});
 
 // Mở Thống kê/Dữ liệu không tự fetch mỗi lần (StaffData ít đổi, cache theo khung giờ) — RED→GREEN
 test('ensureStaffData: mở view KHÔNG gọi loadStaffView trực tiếp (dùng cache client)', function () {
