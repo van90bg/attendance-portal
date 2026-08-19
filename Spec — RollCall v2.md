@@ -8,6 +8,7 @@
 > v2.4 (2026-08-19): **owner-gate Kết thúc/Mở lại task** (completeTask/reopenTask — đồng gate transitionToAttend, chống operator đóng/đổi trạng thái task người khác; legacy `createdBy='web'` fail-open), **warmStaffCacheApi gate operator+** (trước mở mọi role → rò index nhân sự), **fix counter partition completeTask** (`scanned+absent = total` — task có NV Dư quét phase 2 giờ đóng được), **bottom nav Điểm danh hiện cho mọi role trên mobile** (trước ẩn theo canManager_ đúng quyền view).
 > v2.5 (2026-08-19): **force-close admin** (completeTask counter lệch — admin chốt được, audit `completeTaskForceClose`; non-admin vẫn chặn), **loadRoster cho phép phase Điểm danh** (NV đến trễ vẫn nạp vào danh sách — chỉ chặn DONE), **API `updateLogRowStatusApi`** (sửa trạng thái 1 dòng log — owner/admin, PRESENT tự fill TIME_SCAN, audit `fixLogRowStatus`, cột **Sửa** trong bảng quét), **chống gian lận giờ quét** (epoch client chỉ chấp nhận trong ±3 phút so server + không sớm hơn lúc tạo task), **cờ `staffUnknown`** (mã quét không có trong StaffData → card cảnh báo + toast).
 > v2.6 (2026-08-19): **queue quét 2→8** (barcode nhanh hết bị chặn; toast cảnh báo khi queue ≥3), **tab sync** (quay lại tab → silent reload task đang mở — hết data stale khi NV khác quét ở tab khác), **confirm Kết thúc hiện số NV chưa điểm danh sẽ tính Vắng**, **scanner ngoài theo task** (đổi task giữa chừng → đóng scanner cũ + từ chối mã task cũ), **lọc 'Chưa điểm danh' phase Mở theo listedAt** (PENDING → chỉ NV đã đến có LISTED_AT), **non-owner phase Mở ẩn luôn nút camera**, **transitionToAttend re-check queue full**, **waitLock 30s cho pasteCodes/loadRoster** (10s dễ timeout khi lock bận).
+> v2.7 (2026-08-19): **security hardening** — **repo mutator gates** (M1: `requireRole_('operator')` ở `batchInsertLogRows_`/`batchAppendLogRows_`/`batchUpdateLogRows_`/`transformLogStatuses_`/`setLogRowStatus_`/`writeBatchRuns_`/`insertTask_`/`updateTaskStatus_`/`readStaffList_`/`readStaffIndex_` — chống bypass gọi global trực tiếp qua google.script.run), **`getFilterOptionsApi`/`previewStaffApi` gate operator+** (client skip `loadFilterOptions` cho viewer — không toast), **`roleMap` tách khỏi `getSettings_` → `getRoleMap_`** (cache riêng CACHE_KEYS.ROLE_MAP, invalidate cùng saveSettings_ — settings public không lộ bản đồ quyền), DEFENSE try/catch `getTaskListApi`/`getTaskDetailApi`.
 > v2.7 (2026-08-19): **fix L1 updateLogRowStatus chiều ngược** — đổi PRESENT→ABSENT/PENDING giờ **clear SCANNED_AT** (trước giữ nguyên → dòng Vắng vẫn tính `scanned` trong computeCounters, counter lệch, phá luôn ý nghĩa partition `scanned+absent=total`); về PENDING clear luôn LISTED_AT (reset 'chưa đến'); **EXTRA giữ SCANNED_AT** (thiết kế partition — EXTRA chưa quét sẽ phá invariant); audit ghi thêm `clearScanTime`/`clearListedAt`; thêm 3 test chiều ngược.
 > v2.8 (2026-08-19): **thu cửa sổ epoch client ±3 phút → ±60s** (V1 residual — queue tối đa 8 item × 2.5s ≈ 20s + latency nên 60s vẫn an toàn; ngoài cửa sổ fallback giờ server như cũ), **label filter phase Mở: 'Chưa đến' → 'Đã đến (chưa quét lần 2)'** (khớp thực tế — filter PENDING phase Mở hiện NV đã có LISTED_AT; trước label nghịch lý).
 > v2.9 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy màn quét — owner/admin, log rỗng mới hủy được; xóa hẳn dòng task + audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (append PENDING, thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không thổi phồng; khớp V2.6 lọc theo listedAt) · label phase 1 'Đã có mặt' → 'Đã đến' (2-phase: đến ≠ điểm danh).
@@ -326,7 +327,7 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 
 ### 5.6 Role hệ thống (viewer < operator < manager < admin — 2026-08-11)
 
-Bậc quyền `ROLES` (Config.gs), role thật lưu Config sheet key `roleMap` (`{ email: role }`) qua SettingsService; đọc qua `getRole_` (Auth.gs), gate chuẩn `requireRole_(min)`:
+Bậc quyền `ROLES` (Config.gs), role thật lưu Config sheet key `roleMap` (`{ email: role }`) qua SettingsService; đọc qua `getRole_` (Auth.gs) ← `getRoleMap_` (cache riêng `CACHE_KEYS.ROLE_MAP` — tách khỏi `getSettings_` 2026-08-19 để settings public không lộ bản đồ quyền; invalidate cùng `saveSettings_`; editor nhận lại qua `getSettingsApi` merge), gate chuẩn `requireRole_(min)`:
 
 - `admin` — `isEditor_` (email trùng `DEPLOYER_EMAIL` Script Properties): mọi thứ (settings/sync/debug).
 - `manager` — xem StaffData/Thống kê (`getStaffStatsApi` viewStats/viewStaff) + Báo cáo (`getReportsApi` viewReports) + tìm lịch sử chấm công NV (`searchLogsByStaffApi`).
@@ -392,7 +393,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | API | Trả về | Gate |
 | :-- | :----- | :--- |
 | `getMetaApi()` | `{ ok, appTitle, userEmail, role, isEditor }` | — |
-| `getFilterOptionsApi()` | `{ ok, stationGroups, defaults, lists }` — cây Station→Ca→Team + defaults/lists Config; **cache 60s** (FILTER_OPTIONS, invalidate khi saveSettings/overwriteStaffData) | — |
+| `getFilterOptionsApi()` | `{ ok, stationGroups, defaults, lists }` — cây Station→Ca→Team + defaults/lists Config; **cache 60s** (FILTER_OPTIONS, invalidate khi saveSettings/overwriteStaffData) | operator (service) |
 | `previewStaffApi(input)` | `{ ok, count }` — số NV khớp tổ hợp (đã dedupe, khớp count tạo task thật) — không tạo gì | operator (service) |
 | `getStaffStatsApi()` | `{ ok, staff[] }` — StaffData full (viewStaff/viewStats) | **manager+** (TRONG try) |
 | `getSettingsApi()` | `{ ok, settings }` — toàn bộ cấu hình (viewConfig) | editor |
@@ -530,7 +531,7 @@ Modal: tạo task · confirm dùng chung · **Nạp danh sách** (loadListModal 
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
 | Files | **18 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · roster-load · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **186/186 pass** |
+| **Kết quả** | **190/190 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |

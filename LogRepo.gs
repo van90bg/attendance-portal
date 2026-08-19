@@ -149,6 +149,7 @@ function invalidateLogRows_(taskId) {
  * @param {Date} createdAt
  */
 function batchInsertLogRows_(taskId, staffList, createdAt, opts) {
+  if (!requireRole_('operator')) return 0;  // M1: repo mutator global — chặn gọi trực tiếp qua google.script.run (không chỉ ở *Api wrapper)
   if (!staffList || !staffList.length) return 0;
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   const startRow = sheet.getLastRow() + 1;
@@ -170,6 +171,7 @@ function batchInsertLogRows_(taskId, staffList, createdAt, opts) {
  * Returns { startRow, count, rowIndices[] } for cache update.
  */
 function batchAppendLogRows_(rows) {
+  if (!requireRole_('operator')) return { startRow: 0, count: 0, rowIndices: [] };
   if (!rows || !rows.length) return { startRow: 0, count: 0, rowIndices: [] };
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   const startRow = sheet.getLastRow() + 1;
@@ -282,6 +284,7 @@ function invalidateTaskDetailCache_(taskId) {
  * @returns {number} số dòng đã đổi
  */
 function transformLogStatuses_(taskId, mutate) {
+  if (!requireRole_('operator')) return 0;  // M1: dùng chung markUnscannedAbsent_/resetAbsentToPending_ — chặn gọi trực tiếp
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   const values = sheet.getDataRange().getValues();
   // m6 (audit 2026-08-11): thu thập CHỈ dòng task bị đổi → gom run liên tiếp → 1 setValues/run.
@@ -352,6 +355,7 @@ function resetAbsentToPending_(taskId) {
  * @param {Array<{rowIndex:number, field:'listedAt'|'scannedAt', time:Date, newStatus?:string, keepStatus?:string}>} updates
  */
 function batchUpdateLogRows_(taskId, updates) {
+  if (!requireRole_('operator')) return 0;
   if (!updates || !updates.length) return 0;
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   // Fix 1 (audit 2): ghi CHỈ đúng cột của field — trước đây setValues cả 3 cột
@@ -399,6 +403,7 @@ function batchUpdateLogRows_(taskId, updates) {
  * Nhóm dòng liên tiếp (contiguous run) để tối đa 1 setValues/run.
  */
 function writeBatchRuns_(sheet, updates, field) {
+  if (!requireRole_('operator')) return;  // M1: ghi batch 1 field — caller đã gate nhưng global vẫn gọi trực tiếp được
   const runData = updates.filter(function (u) { return u.field === field; });
   if (!runData.length) return;
   const sorted = runData.slice().sort(function (a, b) { return a.rowIndex - b.rowIndex; });
@@ -435,6 +440,7 @@ function writeBatchRuns_(sheet, updates, field) {
  * Cot 7..9 (LISTED_AT..STATUS) lien nhau → 1 setValues. Caller giu LockService.
  */
 function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime, clearScanned, clearListed) {
+  if (!requireRole_('operator')) return;  // M1: ghi trạng thái log — chỉ operator+
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   if (clearScanned && clearListed) {
     sheet.getRange(rowIndex, LOG_COLS.LISTED_AT + 1, 1, 3).setValues([['', '', newStatus]]);

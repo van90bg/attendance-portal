@@ -12,6 +12,7 @@
  * @returns {Object<string, Object>}
  */
 function readStaffIndex_() {
+  if (!requireRole_('operator')) return {};  // M1: staff index = dữ liệu nhân sự (tên/Ca/Station/Team) — viewer không xem
   return cachedJson_(CACHE_KEYS.STAFF_INDEX, function () {
     const sheet = getSheet_(SHEETS.STAFF_DATA);
     const values = sheet.getDataRange().getValues();
@@ -47,6 +48,7 @@ function readStaffFullList_() {
  * (readStaffListUncached_ cũ tự reimplement parser → drift field so với
  * buildStaffListFromValues, vd thiếu staffEmail/agency/department — đã xóa.) */
 function readStaffList_() {
+  if (!requireRole_('operator')) return [];  // M1: StaffData full 20 field — chỉ operator+ (create-modal/filter/roster)
   return cachedJson_(CACHE_KEYS.STAFF_LIST, function () {
     const sheet = getSheet_(SHEETS.STAFF_DATA);
     const tz = getSpreadsheet_().getSpreadsheetTimeZone();

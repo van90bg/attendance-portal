@@ -13,20 +13,10 @@
  *   (tránh config chết / đệ quy khi đọc Config sheet từ chính spreadsheet cấu hình).
  */
 
-/** Đọc settings công khai — bỏ roleMap (cho operator path: getFilterOptionsApi). */
-function getPublicSettings_() {
-  var all = getSettings_();
-  if (!all) return all;
-  var pub = {};
-  Object.keys(all).forEach(function (k) {
-    if (k === 'roleMap') return;
-    pub[k] = all[k];
-  });
-  return pub;
-}
-
-/** Đọc toàn bộ settings (defaults + override từ Config sheet) — cache 60s. Editor-only full; operator dùng getPublicSettings_.
- * @returns {Object<string, *>} merged settings (mọi key của SETTINGS_DEFAULTS đều có mặt)
+/** Đọc toàn bộ settings (defaults + override Config sheet) — cache 60s.
+ * KHÔNG chứa roleMap: settings này operator path (getFilterOptionsApi/getSetting_) dùng
+ * được — bản đồ quyền lộ ra là rò rỉ P0 → tách riêng getRoleMap_() (Auth.getRole_ đọc).
+ * @returns {Object<string, *>} merged settings (mọi key SETTINGS_DEFAULTS có mặt, trừ roleMap)
  */
 function getSettings_() {
   return cachedJson_(CACHE_KEYS.SETTINGS, function () {
@@ -42,7 +32,25 @@ function getSettings_() {
       if (!(key in merged)) return;
       merged[key] = parseSettingValue_(row[1]);
     });
+    delete merged.roleMap; // P0: settings public không lộ bản đồ quyền
     return merged;
+  }, CACHE_TTL.SETTINGS);
+}
+
+/** Đọc roleMap (map email → role) — tách riêng settings, cache riêng (CACHE_KEYS.ROLE_MAP).
+ * getRole_ (Auth) đọc mỗi lần xác thực; editor lấy qua getSettingsApi (merge riêng bên
+ * Code.gs — client Config không gọi thẳng getSettings_). Invalidate cùng saveSettings_. */
+function getRoleMap_() {
+  return cachedJson_(CACHE_KEYS.ROLE_MAP, function () {
+    const sheet = getSheet_(SHEETS.CONFIG);
+    const values = sheet.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0] || '').trim() === 'roleMap') {
+        const v = parseSettingValue_(values[i][1]);
+        return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+      }
+    }
+    return {};
   }, CACHE_TTL.SETTINGS);
 }
 
@@ -118,6 +126,7 @@ function saveSettings_(patch) {
 /** Xóa cache settings — gọi sau khi ghi Config sheet (reader không thấy giá trị cũ). */
 function invalidateSettingsCache_() {
   cache_().remove(CACHE_KEYS.SETTINGS);
+  cache_().remove(CACHE_KEYS.ROLE_MAP);  // roleMap cache riêng — saveSettings_({roleMap}) phải clear cùng
   cache_().remove(CACHE_KEYS.FILTER_OPTIONS);  // lists settings feed getFilterOptionsApi
 }
 

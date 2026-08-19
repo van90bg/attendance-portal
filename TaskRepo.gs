@@ -80,6 +80,7 @@ function invalidateTaskCaches_(taskId) {
 
 /** Ghi task mới (append — tần suất thấp, chấp nhận appendRow). */
 function insertTask_(task) {
+  if (!requireRole_('operator')) return;  // M1: repo mutator global — chặn gọi trực tiếp qua google.script.run
   getSheet_(SHEETS.ATTENDANCE_TASK).appendRow([
     task.taskId, task.station, task.slotCode, task.team,
     task.contractType || '', task.status, task.createdAt, task.createdBy, task.completedAt || '',
@@ -100,6 +101,7 @@ function writeTaskRow_(sheet, r, vals, status, completedAt, contractType) {
 
 /** Cập nhật trạng thái task (status, completedAt). */
 function updateTaskStatus_(taskId, status, completedAt, rowIndex, contractType) {
+  if (!requireRole_('operator')) return false;  // M1: đổi trạng thái task — chỉ operator+
   const sheet = getSheet_(SHEETS.ATTENDANCE_TASK);
   // m3 (audit): ghi 1 setValues cho cả dòng — CONTRACT_TYPE=4, STATUS=5, COMPLETED_AT=8
   // KHÔNG liền nhau (CREATED_AT=7/CREATED_BY=8 xen giữa) nên phải đọc dòng → sửa trong

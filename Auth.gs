@@ -54,7 +54,7 @@ function getRole_(email) {
   if (isEditor_()) return ROLES.ADMIN;
   const em = String(email || '').trim().toLowerCase();
   if (!em) return ROLES.DEFAULT;
-  const map = getSetting_('roleMap');
+  const map = getRoleMap_();
   const entry = map && typeof map === 'object' ? map[em] : undefined;
   if (entry === undefined) return ROLES.DEFAULT; // không cấu hình → operator mặc định (giữ hành vi quét)
   const role = String(entry || '').trim().toLowerCase();

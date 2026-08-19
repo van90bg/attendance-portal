@@ -109,6 +109,13 @@
   }
 
   function loadFilterOptions() {
+    // #10: viewer không tạo task/nạp roster → bỏ qua; server getFilterOptionsApi gate
+    // operator (trả ok:false) — skip sớm tránh toast "không đủ quyền" mỗi refresh.
+    if (typeof canOperator_ === 'function' && !canOperator_()) {
+      _filterOptsLoaded = true;
+      _releaseRefreshLock();
+      return;
+    }
     google.script.run
       .withSuccessHandler(function (res) {
         if (!res.ok) { _releaseRefreshLock(); showToast(res.message, true); return; }
@@ -520,6 +527,11 @@
   function canAdmin_() {
     var r = META && META.role ? String(META.role).toLowerCase() : '';
     return ROLE_RANK[r] !== undefined && ROLE_RANK[r] >= ROLE_RANK.admin;
+  }
+  // role ≥ operator (khớp server requireRole_('operator')) — tạo task/nạp roster.
+  function canOperator_() {
+    var r = META && META.role ? String(META.role).toLowerCase() : '';
+    return ROLE_RANK[r] !== undefined && ROLE_RANK[r] >= ROLE_RANK.operator;
   }
   // Gợi ý tìm theo role — manager+ mới nhắc tìm NV (searchLogsByStaff gate manager).
   // 1 nguồn duy nhất: dùng cho placeholder #listSearch + toast rỗng runListSearch.

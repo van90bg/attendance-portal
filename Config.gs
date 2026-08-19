@@ -145,6 +145,7 @@ const CACHE_KEYS = {
   FILTER_OPTIONS: 'rc2_filterOptions_v1',  // getFilterOptionsApi (modal tạo task / roster)
   REPORT_INFO: 'rc2_reportInfo_v1',  // StaffInfo map email→Ops
   REPORTS: 'rc2_reports_v2_',        // prefix + email — báo cáo chấm công theo user; 'all_*' = chunked StaffAttendance (TTL 60s)
+  ROLE_MAP: 'rc2_roleMap_v1',        // roleMap tách riêng settings — getRoleMap_ (P0: getSettings_ không lộ bản đồ quyền)
 };
 
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====

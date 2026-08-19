@@ -17,7 +17,7 @@ const { makeSandbox, loadAll } = require('./gas-sandbox');
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
 const DEFAULTS = {
-  defaultStation: '', defaultSlotCode: '', defaultTeam: '', roleMap: {},
+  defaultStation: '', defaultSlotCode: '', defaultTeam: '',
   stations: ['HN2 SOC', 'HN SOC'], teams: ['Inbound', 'Outbound', 'Manual', 'TBS', 'Prep-WH'],
   slotcodes: ['08:00-17:00', '13:00-01:00', '13:00-22:00', '18:00-02:00', '18:00-05:00', '20:00-06:00', '22:00-06:00'],
   departments: ['SOC'],
@@ -30,6 +30,23 @@ test('getSettings_ trả defaults khi Config sheet chưa có override', () => {
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   assert.deepEqual(clone(svc.getSettings_()), DEFAULTS);
+});
+
+test('getSettings_ không lộ roleMap (P0) + getRoleMap_ đọc riêng + getSettingsApi merge', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  // getSettings_ public — không chứa roleMap (kể cả khi chưa cấu hình)
+  assert.equal('roleMap' in svc.getSettings_(), false);
+  // roleMap cấu hình trong Config sheet → getRoleMap_ đọc được (cache riêng)
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'op@spx.com': 'manager' })]);
+  assert.deepEqual(clone(svc.getRoleMap_()), { 'op@spx.com': 'manager' });
+  // getSettings_ VẪN không lộ roleMap sau khi cấu hình (chỉ delete, không merge)
+  assert.equal('roleMap' in svc.getSettings_(), false);
+  // getSettingsApi (editor) merge roleMap riêng cho trang Config Admin
+  const g = svc.getSettingsApi();
+  assert.equal(g.ok, true);
+  assert.deepEqual(clone(g.settings.roleMap), { 'op@spx.com': 'manager' });
 });
 
 test('saveSettings_ ghi Config sheet + getSettings_ merge override (cache invalidate)', () => {

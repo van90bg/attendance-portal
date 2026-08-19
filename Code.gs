@@ -65,55 +65,74 @@ function getMetaApi() {
 
 /** Distinct values cho dropdown + cây nhóm cho modal tạo task. */
 function getFilterOptionsApi() {
-  // Cache 60s (FILTER_OPTIONS) — stationGroups + lists + defaults hiếm đổi; modal tạo
-  // task / roster mở NGAY, không chờ đọc StaffData mỗi lần. Invalidate khi saveSettings
-  // (SettingsService.invalidateSettingsCache_) + overwriteStaffData (StaffDataRepo).
-  return cachedJson_(CACHE_KEYS.FILTER_OPTIONS, function () {
-    const staffList = readStaffList_();
-    return {
-      ok: true,
-      // Cây 4 cột: stationGroups = [{ station, slotCodes: [{slotCode, teams}], dates }]
-      // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
-      stationGroups: buildStationGroups(staffList),
-      // defaults (Config sheet qua SettingsService) — pre-select modal tạo task cho MỌI user
-      // (operator không phải editor vẫn được pre-select; getSettings_ không gate).
-      defaults: {
-        station: getSetting_('defaultStation'),
-        slotCode: getSetting_('defaultSlotCode'),
-        team: getSetting_('defaultTeam'),
-      },
-      // lists (Config sheet qua SettingsService) — danh sách lựa chọn Admin khai báo.
-      // Client MERGE với distinct StaffData (union, dedup) để không mất giá trị thực
-      // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → operator OK.
-      lists: {
-        stations: settingsList_('stations'),
-        teams: settingsList_('teams'),
-        slotcodes: settingsList_('slotcodes'),
-        departments: settingsList_('departments'),
-        agencies: settingsList_('agencies'),
-        contractTypes: settingsList_('contractTypes'),
-      },
-    };
-  }, CACHE_TTL.FILTER_OPTIONS);
+  // Gate operator TRONG hàm (M1): google.script.run gọi được global trực tiếp — chặn
+  // viewer đọc cây station/slot/team/date (dữ liệu StaffData). DEFENSE: gate TRONG try.
+  // Client skip sớm cho viewer (app-tasks loadFilterOptions) → không toast mỗi refresh.
+  try {
+    if (!requireRole_('operator')) {
+      return { ok: false, stationGroups: [], defaults: null, lists: null, message: 'Không đủ quyền (cần role operator trở lên)' };
+    }
+    // Cache 60s (FILTER_OPTIONS) — stationGroups + lists + defaults hiếm đổi; modal tạo
+    // task / roster mở NGAY, không chờ đọc StaffData mỗi lần. Invalidate khi saveSettings
+    // (SettingsService.invalidateSettingsCache_) + overwriteStaffData (StaffDataRepo).
+    return cachedJson_(CACHE_KEYS.FILTER_OPTIONS, function () {
+      const staffList = readStaffList_();
+      return {
+        ok: true,
+        // Cây 4 cột: stationGroups = [{ station, slotCodes: [{slotCode, teams}], dates }]
+        // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
+        stationGroups: buildStationGroups(staffList),
+        // defaults (Config sheet qua SettingsService) — pre-select modal tạo task cho MỌI user
+        // (operator không phải editor vẫn được pre-select; getSettings_ không gate).
+        defaults: {
+          station: getSetting_('defaultStation'),
+          slotCode: getSetting_('defaultSlotCode'),
+          team: getSetting_('defaultTeam'),
+        },
+        // lists (Config sheet qua SettingsService) — danh sách lựa chọn Admin khai báo.
+        // Client MERGE với distinct StaffData (union, dedup) để không mất giá trị thực
+        // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → operator OK.
+        lists: {
+          stations: settingsList_('stations'),
+          teams: settingsList_('teams'),
+          slotcodes: settingsList_('slotcodes'),
+          departments: settingsList_('departments'),
+          agencies: settingsList_('agencies'),
+          contractTypes: settingsList_('contractTypes'),
+        },
+      };
+    }, CACHE_TTL.FILTER_OPTIONS);
+  } catch (e) {
+    return { ok: false, stationGroups: [], defaults: null, lists: null, message: e && e.message ? e.message : 'getFilterOptions fail' };
+  }
 }
 
 /** Xem truoc so NV khop bo loc truoc khi tao task (modal) — khong tao gi ca. */
 function previewStaffApi(input) {
-  const staffList = readStaffList_();
-  const filtered = filterStaffByGroup(staffList, {
-    station: input && input.station,
-    slotCode: input && input.slotCode,
-    team: input && input.team,
-    date: input && input.date,
-    contractType: input && input.contractType,
-    department: input && input.department,
-  });
-  // Tái dùng dedupeStaffByGroup (đã test) — đảm bảo count preview khớp count tạo task thật.
-  const deduped = dedupeStaffByGroup(filtered);
-  return {
-    ok: true,
-    count: deduped.length,  // chi tra count — khong gui sample (user bo hien thi 10 NV dau)
-  };
+  // Gate operator TRONG hàm (M1) — preview đếm theo StaffData (dữ liệu HR), chặn gọi
+  // trực tiếp qua console. Client chỉ gọi từ modal tạo task (operator+).
+  try {
+    if (!requireRole_('operator')) {
+      return { ok: false, count: 0, message: 'Không đủ quyền (cần role operator trở lên)' };
+    }
+    const staffList = readStaffList_();
+    const filtered = filterStaffByGroup(staffList, {
+      station: input && input.station,
+      slotCode: input && input.slotCode,
+      team: input && input.team,
+      date: input && input.date,
+      contractType: input && input.contractType,
+      department: input && input.department,
+    });
+    // Tái dùng dedupeStaffByGroup (đã test) — đảm bảo count preview khớp count tạo task thật.
+    const deduped = dedupeStaffByGroup(filtered);
+    return {
+      ok: true,
+      count: deduped.length,  // chi tra count — khong gui sample (user bo hien thi 10 NV dau)
+    };
+  } catch (e) {
+    return { ok: false, count: 0, message: e && e.message ? e.message : 'previewStaff fail' };
+  }
 }
 
 /** View StaffData: trả toàn bộ StaffData (full 20 field) cho bảng danh sách + thống kê.
@@ -139,7 +158,11 @@ function getSettingsApi() {
     return { ok: false, settings: null, message: 'Chỉ editor (DEPLOYER_EMAIL) mới xem cấu hình' };
   }
   try {
-    return { ok: true, settings: getSettings_() };
+    // roleMap tách khỏi getSettings_ (P0: settings public operator dùng) — editor merge
+    // riêng cho trang Config Admin qua getRoleMap_ (cache riêng, invalidate cùng save).
+    const settings = getSettings_() || {};
+    settings.roleMap = getRoleMap_();
+    return { ok: true, settings: settings };
   } catch (e) {
     return { ok: false, settings: null, message: e && e.message ? e.message : 'getSettings fail' };
   }
@@ -179,12 +202,21 @@ function createReconcileTaskApi(input) {
 
 /** Danh sách task. */
 function getTaskListApi() {
-  return listTasks();
+  try {
+    return listTasks();
+  } catch (e) {
+    console.error('getTaskListApi fail', e && e.message);
+    return [];
+  }
 }
 
 /** Chi tiết task + log + counters. */
 function getTaskDetailApi(taskId) {
-  return getTaskDetail(taskId);
+  try {
+    return getTaskDetail(taskId);
+  } catch (e) {
+    return detailError_(e && e.message ? e.message : 'getTaskDetail fail');
+  }
 }
 
 /** Quét NV. Mở cho operator — KHÔNG cần editor (luồng vận hành hàng ngày). */
@@ -305,7 +337,7 @@ function searchTasksByQueryApi(rawQ) {
 }
 
 /** Báo cáo chấm công tháng theo email đăng nhập (viewReports — StaffAttendance × StaffInfo).
- *  Gate requireRole_('operator') nằm TRONG getReports (ReportService) — chống bypass;
+ *  Gate requireRole_('manager') nằm TRONG getReports (ReportService) — chống bypass;
  *  wrapper chỉ giữ DEFENSE: catch mọi lỗi (kể cả sheet nguồn chưa có) → ok:false. */
 function getReportsApi() {
   try {

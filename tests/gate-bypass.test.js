@@ -33,3 +33,32 @@ test('M2 scanStaff trả ok:false khi role < operator (bypass-proof)', () => {
   assert.strictEqual(res.ok, false, 'viewer gọi trực tiếp scanStaff phải bị chặn');
   assert.match(res.message, /quyền/);
 });
+
+test('M3 repo mutators chặn gọi trực tiếp khi role < operator (bypass-proof)', () => {
+  const svc = sandboxWithRole('viewer');
+  // Ghi gate: mọi mutator trả falsy/empty khi role < operator — không chạm sheet.
+  assert.equal(svc.batchInsertLogRows_('R1', [{ staffId: 'Ops1' }], new Date()), 0);
+  assert.deepEqual(svc.batchAppendLogRows_([['R1']]), { startRow: 0, count: 0, rowIndices: [] });
+  assert.equal(svc.batchUpdateLogRows_('R1', [{ rowIndex: 1, field: 'scannedAt', time: new Date() }]), 0);
+  assert.equal(svc.transformLogStatuses_('R1', function () { return 'Có mặt'; }), 0);
+  assert.equal(svc.setLogRowStatus_('R1', 1, 'Có mặt'), undefined);
+  assert.equal(svc.updateTaskStatus_('R1', 'done', new Date()), false);
+  assert.equal(svc.insertTask_({ taskId: 'R1' }), undefined);
+  assert.deepEqual(svc.readStaffList_(), []);
+  assert.deepEqual(svc.readStaffIndex_(), {});
+});
+
+test('M4 getFilterOptionsApi/previewStaffApi chặn viewer (role < operator)', () => {
+  const svc = sandboxWithRole('viewer');
+  const f = svc.getFilterOptionsApi();
+  assert.equal(f.ok, false);
+  assert.deepEqual(f.stationGroups, []);
+  const p = svc.previewStaffApi({ station: 'HN SOC' });
+  assert.equal(p.ok, false);
+  assert.equal(p.count, 0);
+});
+
+test('M5 getSettings_ không lộ roleMap cho mọi role (P0)', () => {
+  const svc = sandboxWithRole('viewer');
+  assert.equal('roleMap' in svc.getSettings_(), false);
+});
