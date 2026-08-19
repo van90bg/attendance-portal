@@ -71,9 +71,9 @@
       </div>
       <div class="table-wrap" id="taskListWrap">
         <div class="skeleton-wrap" id="taskSkeleton" style="display:none;">
-          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+          <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
         </div>
         <table id="taskListTable" style="display:none;">
           <thead id="taskListHead">
@@ -484,12 +484,12 @@
 </section>
 
 <!-- Modal nạp danh sách (2 tab: Theo ca / Dán mã) — 1 nút duy nhất thay menu "Thêm" -->
-<div id="loadListModal" class="about-overlay paste-dialog" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="loadListModalTitle" onclick="if(event.target===this)closeLoadListModal()">
-  <div class="about-dialog">
+<div id="loadListModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="loadListModalTitle" onclick="if(event.target===this)closeLoadListModal()">
+  <div class="about-dialog paste-dialog">
     <h2 id="loadListModalTitle">Nạp danh sách</h2>
-    <div class="load-tabs" role="tablist" aria-label="Cách nạp danh sách">
-      <button type="button" class="load-tab is-active" id="loadTabRoster" role="tab" aria-selected="true" onclick="switchLoadListTab_('roster')">Theo ca</button>
-      <button type="button" class="load-tab" id="loadTabPaste" role="tab" aria-selected="false" onclick="switchLoadListTab_('paste')">Dán mã</button>
+    <div class="load-tabs" role="tablist" aria-label="Cách nạp danh sách" onkeydown="onLoadTabKeydown_(event)">
+      <button type="button" class="load-tab is-active" id="loadTabRoster" role="tab" aria-selected="true" aria-controls="loadPaneRoster" tabindex="0" onclick="onLoadTabClick_('roster')">Theo ca</button>
+      <button type="button" class="load-tab" id="loadTabPaste" role="tab" aria-selected="false" aria-controls="loadPanePaste" tabindex="-1" onclick="onLoadTabClick_('paste')">Dán mã</button>
     </div>
     <div class="load-pane" id="loadPaneRoster">
       <p class="mode-desc">Chọn Ca, Hình thức, Phòng ban — Station/Team/Ngày lấy từ task.</p>

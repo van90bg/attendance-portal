@@ -10,3 +10,6 @@ index.local.html
 .clasprc.json
 *.clasprc.json
 .env
+
+# git worktrees local (git worktree add) — không commit
+.worktrees/

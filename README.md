@@ -27,7 +27,7 @@ Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình đi�
 1. **Tạo task** (luôn mở phase 1, log rỗng) — chọn Station / Team / Ngày (metadata hiển thị); danh sách nạp sau qua **Nạp danh sách** (tab Theo ca / Dán mã) hoặc quét.
 2. **Quét LISTED_AT** (pha Mở) — ghi nhận nhân viên vào ca.
 3. **Bắt đầu điểm danh** (pha Điểm danh) — quét lần 2 ghi SCANNED_AT.
-4. **Chốt ca** — nhân viên chưa điểm danh sẽ tính là Vắng; có thể Mở lại để quét bổ sung.
+4. **Chốt ca** (chỉ owner/admin của task) — nhân viên chưa điểm danh sẽ tính là Vắng; có thể Mở lại để quét bổ sung.
 
 Mọi luồng thao tác được trên máy tính, máy tính bảng và điện thoại — không cần thiết bị chuyên dụng.
 
@@ -121,7 +121,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 179 unit tests node --test
+├── tests/                 # 186 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md

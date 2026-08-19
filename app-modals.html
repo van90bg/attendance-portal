@@ -19,13 +19,32 @@
     var _ph = CURRENT_TASK ? (CURRENT_TASK.phase || CURRENT_TASK.status) : 'open';
     if (tab === 'paste' && _ph !== 'open') tab = 'roster';
     var on = m.querySelector('.load-tab.is-active');
-    if (on) { on.classList.remove('is-active'); on.setAttribute('aria-selected', 'false'); }
+    if (on) { on.classList.remove('is-active'); on.setAttribute('aria-selected', 'false'); on.setAttribute('tabindex', '-1'); }
     var btn = document.getElementById(tab === 'paste' ? 'loadTabPaste' : 'loadTabRoster');
-    if (btn) { btn.classList.add('is-active'); btn.setAttribute('aria-selected', 'true'); }
-    ['Roster', 'Paste'].forEach(function (t) {
-      var pane = document.getElementById('loadPane' + t);
-      if (pane) pane.style.display = (t === (tab === 'paste' ? 'Paste' : 'Roster')) ? '' : 'none';
-    });
+    if (btn) { btn.classList.add('is-active'); btn.setAttribute('aria-selected', 'true'); btn.setAttribute('tabindex', '0'); }
+    ['Roster', 'Paste'].forEach(function (t) {
+      var pane = document.getElementById('loadPane' + t);
+      if (pane) pane.style.display = (t === (tab === 'paste' ? 'Paste' : 'Roster')) ? '' : 'none';
+    });
+  }
+  // Tablist "Nạp danh sách" — click có feedback: Dán mã chỉ phase Mở (ép về Theo ca + toast thay vì im lặng).
+  function onLoadTabClick_(tab) {
+    var _ph = CURRENT_TASK ? (CURRENT_TASK.phase || CURRENT_TASK.status) : 'open';
+    if (tab === 'paste' && _ph !== 'open') {
+      showToast('Dán mã chỉ dùng ở phase Mở — NV đến trễ nạp qua "Theo ca"', true);
+      return;
+    }
+    switchLoadListTab_(tab);
+  }
+  // Tablist keyboard (roving tabindex) — ArrowLeft/Right chuyển tab, focus theo tab đang active.
+  function onLoadTabKeydown_(e) {
+    var map = { ArrowLeft: 'roster', ArrowRight: 'paste' };
+    var next = map[e.key];
+    if (!next) return;
+    e.preventDefault();
+    switchLoadListTab_(next);
+    var on = document.querySelector('#loadListModal .load-tab.is-active');
+    if (on) on.focus();
   }
   var pasteFocusBack = null;
   var pasteFocusTimer = null;

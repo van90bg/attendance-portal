@@ -217,7 +217,7 @@
     .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height */
     /* Modal "Nạp danh sách" — 2 tab: Theo ca / Dán mã (operator: 1 nút duy nhất, không menu ẩn) */
     .load-tabs { display: flex; gap: var(--space-1); padding: var(--space-2); background: var(--surface-muted); border-radius: var(--radius-md); margin-bottom: var(--space-3); }
-    .load-tab { flex: 1; padding: var(--space-2) var(--space-3); min-height: 40px; border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--muted); cursor: pointer; }
+    .load-tab { flex: 1; padding: var(--space-2) var(--space-3); min-height: 44px; border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--muted); cursor: pointer; }
     .load-tab.is-active { background: var(--card); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
     .load-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
@@ -1339,6 +1339,8 @@
       /* Mobile: nút topbar gọn + title 1 dòng — tiết chiều dọc (scan topbar 151px quá cao, 2026-08-11) */
       .view-topbar { row-gap: var(--space-2); }
       .view-topbar .btn { padding: var(--space-2) var(--space-4); min-height: 40px; font-size: var(--text-sm); }  /* touch 40px (audit 375px: trước 29px) */
+      #viewScan .view-topbar .btn { padding: var(--space-2) var(--space-2); }  /* 3 nút 375px xếp 2+1 (content 311px — space-3 đệm 313px vẫn wrap) */
+      #viewScan .view-topbar-title { min-width: 40%; }  /* title giữ ≥40% — không bị nút "Nạp danh sách" ép nén thành 6px (CDP 2026-08-19) */
       .view-topbar .task-title { font-size: var(--text-lg); }
       #viewConfig .view-topbar-title { flex: 0 1 auto; min-width: 0; }  /* title co lại — nhường chỗ cho nút dirty */
       #viewConfig .topbar-actions { flex-shrink: 1; flex-wrap: wrap; gap: var(--space-2) var(--space-2); justify-content: flex-end; }  /* 3 nút dirty = 349px > content 315px (390/375) → tràn ngang; wrap trong topbar, hết vỡ */
