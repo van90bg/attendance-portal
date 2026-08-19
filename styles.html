@@ -215,23 +215,11 @@
     .view-topbar-title .task-title,
     .view-topbar-title .task-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height */
-    /* Menu "⋯" viewScan — gom Dán danh sách mã + Lấy danh sách theo ca (P2-4: topbar mobile khỏi chồng 2 nút dài) */
-    .topbar-more { position: relative; flex-shrink: 0; }
-    .topbar-more-menu[hidden] { display: none; }  /* hidden attribute phải thắng display:flex bên dưới — nếu không menu "⋯" hiện thị mở sẵn */
-    .topbar-more-menu {
-      position: absolute; top: calc(100% + var(--space-2)); right: 0; z-index: 35;
-      min-width: 220px; padding: var(--space-2);
-      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
-      box-shadow: 0 8px 24px rgba(0,0,0,.12); display: flex; flex-direction: column; gap: var(--space-1);
-    }
-    .topbar-more-item {
-      display: flex; align-items: center; width: 100%; text-align: left;
-      padding: var(--space-3) var(--space-4); min-height: 44px;
-      background: transparent; border: 0; border-radius: var(--radius-sm);
-      font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--text); cursor: pointer;
-    }
-    .topbar-more-item:hover { background: var(--surface-muted); }
-    .topbar-more-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    /* Modal "Nạp danh sách" — 2 tab: Theo ca / Dán mã (operator: 1 nút duy nhất, không menu ẩn) */
+    .load-tabs { display: flex; gap: var(--space-1); padding: var(--space-2); background: var(--surface-muted); border-radius: var(--radius-md); margin-bottom: var(--space-3); }
+    .load-tab { flex: 1; padding: var(--space-2) var(--space-3); min-height: 40px; border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--muted); cursor: pointer; }
+    .load-tab.is-active { background: var(--card); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .load-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
     /* Toolbar chung các view List/Scan/Stats/Staff/Config — 1 class dùng chung */
     .scan-layout {
@@ -1448,8 +1436,8 @@
     .about-thead { background: var(--surface-muted); }
     /* Paste modal */
     .paste-dialog { max-width: 560px; }
-    .paste-title { margin: 0 0 var(--space-3); font-size: var(--text-lg); color: var(--text); }
     .paste-hint { margin: 0 0 var(--space-2); }  /* font-size/color đã có .muted */
+    .load-pane { min-height: 260px; }
     .paste-textarea { width: 100%; min-height: 200px; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: monospace; font-size: var(--text-sm); line-height: 1.5; resize: vertical; }
     .paste-count-hint { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
     .paste-track { height: 8px; background: var(--surface-muted); border-radius: var(--radius-2xs); overflow: hidden; position: relative; }

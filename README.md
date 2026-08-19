@@ -24,7 +24,7 @@
 
 Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình điểm danh trong ngày:
 
-1. **Tạo task** (luôn mở phase 1, log rỗng) — chọn Station / Team / Ngày (metadata hiển thị); danh sách nạp sau qua **Thêm** (Lấy danh sách theo ca) hoặc quét / dán.
+1. **Tạo task** (luôn mở phase 1, log rỗng) — chọn Station / Team / Ngày (metadata hiển thị); danh sách nạp sau qua **Nạp danh sách** (tab Theo ca / Dán mã) hoặc quét.
 2. **Quét LISTED_AT** (pha Mở) — ghi nhận nhân viên vào ca.
 3. **Bắt đầu điểm danh** (pha Điểm danh) — quét lần 2 ghi SCANNED_AT.
 4. **Chốt ca** — nhân viên chưa điểm danh sẽ tính là Vắng; có thể Mở lại để quét bổ sung.
@@ -56,10 +56,10 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 
 ## Tính năng
 
-- **Tạo task 1 luồng (A2)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): bấm **+ Task mới** → vào task ngay; danh sách nạp sau qua nút **Thêm** (Lấy danh sách theo ca) hoặc quét / dán.
+- **Tạo task 1 luồng (A2)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): bấm **+ Task mới** → vào task ngay; danh sách nạp sau qua nút **Nạp danh sách** (tab Theo ca / Dán mã) hoặc quét.
 - **Quy trình 2 pha** — pha **Mở** ghi LISTED_AT (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi SCANNED_AT:
   - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Bắt đầu điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
-    - Nạp roster theo ca (nút **Thêm**): append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1); quét phase 2 = Có mặt / Dư.
+    - Nạp roster theo ca (tab **Theo ca** trong **Nạp danh sách**): append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1); quét phase 2 = Có mặt / Dư.
     - **Đã đến ≠ Có mặt** — phase 1 ghi LISTED_AT hiện **Đã đến**; quét lần 2 ghi Giờ quét mới là **Có mặt** (điểm danh thật). Banner phase trong màn quét nhắc rõ 2 bước; đóng task khi **chưa ai quét lần 2** → confirm cảnh báo "tất cả sẽ tính Vắng" (không chặn cứng — Mở lại cứu được).
 - **Hủy task rỗng** — task phase Mở chưa có dữ liệu quét (tạo nhầm / bỏ dở): nút **Hủy** (owner/admin, hiện khi log rỗng) xóa hẳn task khỏi AttendanceTask; task đã có dữ liệu phải Bắt đầu điểm danh → Chốt ca bình thường.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
@@ -82,7 +82,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 200, báo mã lỗi.
-- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1), **bỏ qua NV đã có** (idempotent).
+- **Nạp danh sách** (1 nút — modal 2 tab Theo ca / Dán mã thay menu Thêm; tab Theo ca: phase 1 + 2, owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1), **bỏ qua NV đã có** (idempotent).
 - **Thời gian quét WYSIWYG** — app gửi epoch chụp lúc quét (`scanStaffApi(..., clientEpoch)`): sheet ghi đúng giờ hiển thị trên app, server không đè giờ riêng → hết nhảy giờ sau ~1s khi đồng hồ thiết bị lệch / queue xử lý chậm.
 - **Cột Ngày bảng quét** — hiện ngay khi quét (optimistic từ staffIndex + response `dateText`), không chờ reload; `getFilterOptionsApi` cache 60s → modal tạo task mở nhanh.
 - **Chốt ca** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.
@@ -175,6 +175,7 @@ clasp deploy
 - ✅ 186/186 unit tests + 11/11 CDP local mock.
 - ✅ Đợt 1 (2026-08-19): force-close admin (completeTask counter lệch) · loadRoster ở phase Điểm danh (chặn DONE) · sửa trạng thái dòng log (updateLogRowStatusApi + cột Sửa bảng quét) · chống gian lận giờ quét (±60s + không sớm hơn tạo task) · cảnh báo mã quét không có trong StaffData (staffUnknown) · **L1 fix** (đổi ngược PRESENT→ABSENT/PENDING clear TIME_SCAN — counter đúng; về PENDING clear LISTED_AT; EXTRA giữ SCANNED_AT — partition invariant).
 - ✅ Đợt 2 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy — owner/admin, log rỗng mới hủy được, audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không còn thổi phồng) · label phase 1 'Đã có mặt' → 'Đã đến' (khớp 2-phase: đến ≠ điểm danh).
+- ✅ Đợt 3 (2026-08-19): thuật ngữ operator — **Bắt đầu điểm danh** / **Chốt ca** / **Đang ghi danh sách** / **Đã chốt điểm danh** / **Đã điểm danh** (bỏ "quét lần 2") · gộp Dán mã + Lấy theo ca → **1 nút "Nạp danh sách"** (modal 2 tab — bỏ menu "Thêm" + CSS topbar-more) · ẩn cột Tạo lúc/Người tạo bảng task (list + F-search) · nudge quên chuyển phase (quét trùng phase Mở → toast gợi ý) · Dư → "Dư — không có trong danh sách".
 - ✅ Đợt 2 (2026-08-19): queue quét 2→8 + toast queue ≥3 · tab sync (quay lại tab → silent reload task đang mở) · confirm Kết thúc hiện số NV chưa điểm danh sẽ Vắng · scanner ngoài theo task (đổi task → đóng scanner + từ chối mã task cũ) · lọc PENDING phase Mở theo listedAt (chỉ NV đã đến) · non-owner phase Mở ẩn nút camera · transitionToAttend re-check queue full · waitLock 30s cho pasteCodes/loadRoster.
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 

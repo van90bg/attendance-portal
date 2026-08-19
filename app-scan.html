@@ -66,22 +66,14 @@
     renderCounters(CURRENT_COUNTERS);
     updateScanFilterLabel_();
 
-    // T-2: Nút "Dán danh sách mã" + "Lấy danh sách theo ca" gom trong menu "Thêm" (#scanMoreWrap) —
-    // chỉ hiện khi FREE + open + canScanOpen (nút tĩnh trong HTML; ở đây chỉ bật/tắt display).
-    var pasteBtn = document.getElementById('btnPaste');
-    var rosterBtn = document.getElementById('btnLoadRoster');
-    var isOpenPhase = data.task.phase === TASK_STATUS_C.OPEN || data.task.status === TASK_STATUS_C.OPEN;
+    // T-2: 1 nút "Nạp danh sách" (modal 2 tab: Theo ca / Dán mã) — hiện phase Mở + Điểm danh
+    // + canScanOpen (roster nạp cả phase Điểm danh — NV đến trễ; paste vẫn chặn phase 2 server).
+    var loadBtn = document.getElementById('btnLoadList');
     var perm = data.task.permission || {};
-    if (pasteBtn) {
-      pasteBtn.style.display = (isOpenPhase && perm.canScanOpen) ? '' : 'none';
-    }
-    // A1: nút "Lấy danh sách theo ca" — phase Mở + Điểm danh + owner (NV đến trễ phase 2
-    // vẫn nạp được vào danh sách — fix 2026-08-19). Nút Dán (paste) vẫn chỉ phase Mở.
-    if (rosterBtn) {
-      rosterBtn.style.display = (data.task.phase !== TASK_STATUS_C.DONE
+    if (loadBtn) {
+      loadBtn.style.display = (data.task.phase !== TASK_STATUS_C.DONE
         && data.task.status !== TASK_STATUS_C.DONE && perm.canScanOpen) ? '' : 'none';
     }
-    updateScanMoreBtn_();
 
     // Quét được khi: phase2 (Điểm danh) — phase1 ghi LISTED_AT, chuyển Điểm danh, phase2 ghi SCANNED_AT.
         // Phải bấm "Bắt đầu điểm danh" (phase2) mới quét được (tránh ghi LISTED_AT mà sheet thiếu SCANNED_AT).
@@ -541,7 +533,7 @@
       // Mở modal (openPasteModal guard gate: chỉ mở khi canScanOpen). Nếu không đủ quyền
       // / chưa có task → modal KHÔNG mở → không gọi submitPaste (tránh gửi server âm thầm
       // rồi render kết quả vào #pastePreview đang ẩn, user không thấy phản hồi).
-      var m = document.getElementById('pasteModal');
+      var m = document.getElementById('loadListModal');
       openPasteModal();
       if (!m || !m.classList.contains('open')) {
         // Phân biệt lý do: task đã kết thúc vs không có quyền dán ở phase Mở — toast đúng ngữ cảnh.
@@ -635,7 +627,7 @@
       } else {
         if (Number(target.listedAtEpoch) > 0) {
           notifyExternalScanner({ code: staffId, ok: false, message: 'Đã đến' });
-          showToast('Đã đến', true);
+          showToast('Đã đến — muốn điểm danh lần 2? Bấm "Bắt đầu điểm danh"', true);
           playBeep('error');
           showScanCard('Đã đến', target, 'warn');
           return;
@@ -717,6 +709,7 @@
     // Toast: không hiện dấu '-' (PENDING) — thay bằng label rõ nghĩa 'Chưa điểm danh'.
     var toastMsg = (item.optimisticNew && !target.staffName) ? staffId : item.optimisticStatus;
     if (toastMsg === STATUS_C.PENDING) toastMsg = 'Chưa điểm danh';
+    if (toastMsg === STATUS_C.EXTRA) toastMsg = 'Dư — không có trong danh sách';
     playBeep('scan');
     // (bỏ toast optimistic này — scan card đã đủ thông tin; tránh toast lặp/nháy)
     // optimistic: NV lạ free=PENDING (warn-ish) nhưng chưa confirm → dùng 'ok' tạm,
@@ -736,56 +729,19 @@
     processScanQueue();
   }
 
-  // Menu "Thêm" viewScan: nút mở chỉ hiện khi có ≥1 hành động trong menu (paste/roster).
-  function updateScanMoreBtn_() {
-    var wrap = document.getElementById('scanMoreWrap');
-    if (!wrap) return;
-    var p = document.getElementById('btnPaste');
-    var r = document.getElementById('btnLoadRoster');
-    var anyVisible = (p && p.style.display !== 'none') || (r && r.style.display !== 'none');
-    wrap.style.display = anyVisible ? '' : 'none';
-    if (!anyVisible) closeScanMore_();
-  }
-  function toggleScanMore() {
-    var menu = document.getElementById('scanMoreMenu');
-    var btn = document.getElementById('btnScanMore');
-    if (!menu) return;
-    var opening = menu.hidden;
-    closeScanMore_();
-    if (opening) {
-      menu.hidden = false;
-      if (btn) btn.setAttribute('aria-expanded', 'true');
-      var first = menu.querySelector('button:not([style*="display: none"])');
-      if (first) first.focus();
-    }
-  }
-  function closeScanMore_() {
-    var menu = document.getElementById('scanMoreMenu');
-    var btn = document.getElementById('btnScanMore');
-    if (menu) menu.hidden = true;
-    if (btn) btn.setAttribute('aria-expanded', 'false');
-  }
-  // Click ngoài menu "Thêm" → đóng (mở modal bên trong tự đóng khi item được click).
-  document.addEventListener('click', function (e) {
-    var wrap = document.getElementById('scanMoreWrap');
-    var menu = document.getElementById('scanMoreMenu');
-    if (!wrap || !menu || menu.hidden) return;
-    if (!wrap.contains(e.target)) closeScanMore_();
-  });
   // P1: không cho Kết thúc khi còn lượt quét chờ server (task-closed sẽ mất scan).
   // 2-phase: 3 nút — ToAttend (Mở→Điểm danh), Finish (chỉ phase2), Reopen (Done→Mở).
   function updateFinishBtnState() {
     var btn = document.getElementById('btnFinish');
     var btnRe = document.getElementById('btnReopen');
     var btnTo = document.getElementById('btnToAttend');
-    var btnPast = document.getElementById('btnPaste');
-    var btnRos = document.getElementById('btnLoadRoster');
     var btnCancel = document.getElementById('btnCancel');
+    var btnLoadList = document.getElementById('btnLoadList');
     if (!btn) return;
     var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
     var done = phase === TASK_STATUS_C.DONE;
     // Nút "Kết thúc" chỉ hiện ở phase2 (Điểm danh).
-    // T-1: ẩn "Chuyển điểm danh" khi non-owner đang bị khoá phase OPEN (scanOwnerLocked).
+    // T-1: ẩn "Bắt đầu điểm danh" khi non-owner đang bị khoá phase OPEN (scanOwnerLocked).
     if (btnTo) btnTo.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked) ? '' : 'none';
     if (btnRe) btnRe.style.display = done ? '' : 'none';
     if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
@@ -796,18 +752,11 @@
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
     }
-    // T-2: nút "Dán danh sách mã" chỉ hiện ở FREE + Mở + owner — cập nhật cả khi
-    // chuyển phase KHÔNG re-render (transitionToAttend / reopen / complete).
-    if (btnPast) {
-      btnPast.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
+    // T-2: nút "Nạp danh sách" — phase Mở + Điểm danh (roster), owner (canScanOpen).
+    if (btnLoadList) {
+      btnLoadList.style.display = (phase !== TASK_STATUS_C.DONE && !scanOwnerLocked
         && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
     }
-    // A1: loadRoster giờ cho phép cả phase Điểm danh (NV đến trễ) — chặn khi DONE / locked / non-owner.
-    if (btnRos) {
-      btnRos.style.display = (phase !== TASK_STATUS_C.DONE && !scanOwnerLocked
-        && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
-    }
-    updateScanMoreBtn_();
     if (scanBusy()) {
       if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
       if (btnTo) { btnTo.disabled = true; btnTo.title = 'Đang xử lý quét — chờ xong rồi chuyển'; }
@@ -928,7 +877,9 @@
         } else {
           rollback();
           playBeep('error');
-          showToast(res.message, true);
+          var _dupMsg = (res.message === 'Đã đến' && CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN)
+            ? 'Đã đến — muốn điểm danh lần 2? Bấm "Bắt đầu điểm danh"' : res.message;
+          showToast(_dupMsg, true);
           // Phản hồi 2-pha: server từ chối (task đóng race / quyền) → báo scanner sửa
           // kết quả dự đoán — đỏ + beep lỗi thay vì giữ xanh optimistic.
           notifyExternalScanner({ code: item.staffId, ok: false, message: res.message || 'Không điểm danh được' });
@@ -1183,6 +1134,7 @@
       }
       return (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa đến' : 'Chưa điểm danh';
     }
+    if (status === STATUS_C.EXTRA) return 'Dư — không có trong danh sách';
     return status;
   }
   function scanCardHTML(status, target) {

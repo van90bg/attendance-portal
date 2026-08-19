@@ -33,7 +33,7 @@
 
 ```
 [Tạo task (A2): Station + Ngày → task FREE + Mở + log RỖNG (KHÔNG pre-fill khi tạo)
- | Danh sách xây sau ở phase 1: quét / dán / nạp roster theo ca (nút **Thêm**, loadRosterApi)]
+ | Danh sách xây sau ở phase 1: quét / dán / nạp roster theo ca (nút **Nạp danh sách**, loadRosterApi)]
 → Quét barcode NV → phase Mở: ghi LISTED_AT · phase Điểm danh: ghi SCANNED_AT (Có mặt / Dư / reject)
 → Bắt đầu điểm danh (FREE) → Chốt ca → NV chưa quét gán Vắng
 → (tuỳ chọn) Mở lại task (về Điểm danh) → quét tiếp
@@ -177,7 +177,7 @@ Nhật ký hoạt động quản trị (viewAdmin — chỉ admin): mọi mutati
 
 **A2 (docs/roster-load-design.md, 2026-08-18):** mọi task mới = **Mở** (`open`) + **log RỖNG** — KHÔNG pre-fill roster khi tạo. TaskType đã xóa — không còn phân biệt `reconcile`/`free`.
 
-- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Thêm**, append PENDING, LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1). Bấm **Bắt đầu điểm danh** rồi quét lần 2 (SCANNED_AT); NV lạ phase 2 = Dư.
+- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Nạp danh sách**, append PENDING, LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1). Bấm **Bắt đầu điểm danh** rồi quét lần 2 (SCANNED_AT); NV lạ phase 2 = Dư.
 - **Phase 1 KHÔNG có Dư** — Dư (EXTRA) chỉ khi quét phase 2 mà NV không có dòng PENDING trong log (bất kể nguồn: quét phase 1 · dán · roster).
 
 ### 4.2 Task ID
@@ -201,7 +201,7 @@ open  →  attend  →  done
 | `attend` | 2 — Điểm danh | Quét ghi **SCANNED_AT** (TIME_SCAN); mọi người quét được |
 | `done` | — | Đã kết thúc — quét reject `task-closed` |
 
-Đặc điểm tạo task (A2): **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (nút **Thêm**); bấm **Bắt đầu điểm danh** (cảnh báo nếu log rỗng) để sang `attend`.
+Đặc điểm tạo task (A2): **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (trong modal **Nạp danh sách**); bấm **Bắt đầu điểm danh** (cảnh báo nếu log rỗng) để sang `attend`.
 
 `transitionToAttend(taskId)` - `open → attend`, guard `status === OPEN`; không sửa log (NV đã có LISTED_AT giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` + **owner-gate `canScanOpen_` (audit 2026-08-19)**: chuyển OPEN→ATTEND mở khoá quét phase 2 cho mọi người nên chỉ owner/admin được phép - chống non-owner gọi thẳng API qua console để vô hiệu owner-gate phase Mở.
 
@@ -320,7 +320,7 @@ Pure helper `canScanOpen_(cfg, createdBy, activeEmail, isAdmin)` (ScanLogic — 
 Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** trong `getTaskDetail` (sau cache — không lưu vào cache 15s vì cache dùng chung mọi user). Client `applyScanPermission()` (gọi CUỐI `renderScanView` — nguồn quyết định cuối, cờ `scanOwnerLocked`):
 - `!canScanOpen` + phase Mở → `scanInput.disabled = true` + banner "Chỉ owner mới quét được ở phase Mở" + ẩn nút **Chuyển điểm danh** + ẩn nút **Dán danh sách mã**; `submitScan` guard lại (defense barcode vật lý).
 - `updateFinishBtnState` / `updateQueueFullState` tôn trọng `scanOwnerLocked` (không vô tình bật lại).
-- **Chuyển điểm danh (`transitionToAttend`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — OPEN→ATTEND mở khoá phase 2 cho mọi người; non-owner gọi thẳng API bị reject, chống bypass owner-gate phase Mở qua console.
+- **Bắt đầu điểm danh (`transitionToAttend`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — OPEN→ATTEND mở khoá phase 2 cho mọi người; non-owner gọi thẳng API bị reject, chống bypass owner-gate phase Mở qua console.
 - **Kết thúc (`completeTask`) / Mở lại (`reopenTask`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — đóng task stamp Vắng cho toàn bộ NV chưa quét, mở lại reset Vắng → thay đổi trạng thái chấm công của task người khác nên chỉ owner/admin; non-owner gọi thẳng API bị reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY`, legacy `createdBy='web'` fail-open.
 
 **Paste (T-2)** gate cùng rule (A5): `status === open` + `canScanOpen` — `pasteCodes` server reject nếu không thoả.
@@ -448,10 +448,10 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 - Funnel lọc 4 cột (Loại/Station/Team/Trạng thái) + phân trang 100 task/trang; skeleton + empty state; search NV đổi thead sang SEARCH_HEAD (thêm Mã NV/Tên NV/Điểm danh).
 
 **viewScan — Màn quét:**
-- Topbar: `← Danh sách task` · tiêu đề taskId + meta · nút **Chuyển điểm danh** (chỉ phase open) + **Kết thúc** (chỉ phase attend) + **Mở lại** (chỉ done) + menu **Thêm** gom **Dán danh sách mã** (open + owner) + **Lấy danh sách theo ca** (open + owner).
+- Topbar: `← Danh sách task` · tiêu đề taskId + meta · nút **Nạp danh sách** (phase Mở + Điểm danh, owner — modal 2 tab Theo ca/Dán mã) + **Bắt đầu điểm danh** (chỉ phase open) + **Chốt ca** (chỉ phase attend) + **Mở lại** (chỉ done) + **Hủy** (phase Mở + log rỗng + owner).
 - Cột trái (480px): 4 counter (Có mặt / Đã quét / Chưa điểm danh / Dư — phase-aware) · ô quét to (laser-line khi focus) · scan card projector · nút Quét (mobile).
 - Cột phải: bảng NV — tìm kiếm + lọc trạng thái + sort theo epoch; cột LISTED_AT / SCANNED_AT theo phase; dòng Dư nền cam; row-diff chống flicker.
-- Khoá theo role (T-1): `!canScanOpen` + phase Mở → input disabled + banner cam + ẩn nút Chuyển điểm danh / Dán mã.
+- Khoá theo role (T-1): `!canScanOpen` + phase Mở → input disabled + banner cam + ẩn nút Bắt đầu điểm danh / Nạp danh sách.
 
 **viewHome — Trang chủ:** logo + đồng hồ thời gian thực (Asia/Ho_Chi_Minh) — màn hình chiếu/điểm danh.
 
@@ -469,13 +469,13 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 
 **Chuyển view:** `selectPage(page)` → `showSection(name)` — ẩn CẢ 9 section, set active nav, lazy-load theo page; `showSection` list đủ mọi id (`['viewHome','viewStats','viewStaff','viewAbout','viewScan','viewTasks','viewConfig','viewReports','viewAdmin']`); `repairViewParents()` kéo section bị parser eject về `<main>`. Dừng/kích auto-focus theo view (`viewScan` → `startAutoFocusLoop()`).
 
-Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbout không phải modal — dùng lớp `.about-overlay` + `anyModalOpen()` (Escape/focus trap/autofocus loop).
+Modal: tạo task · confirm dùng chung · **Nạp danh sách** (loadListModal — 2 tab Theo ca/Dán mã) · vềAbout không phải modal — dùng lớp `.about-overlay` + `anyModalOpen()` (Escape/focus trap/autofocus loop).
 
 ### 9.2 Modal tạo task (A2 — chỉ nút Tạo)
 
-- **Modal tạo task (A2):** chỉ còn nút **Tạo** (Station / Ca / Team / Hình thức / Ngày ẩn, không cần chọn ở bước này). Task mới luôn FREE + rỗng; Station/Date nạp sau qua menu **Thêm**. `SEL.slots` giữ `SLOT_FREE_MAGIC`.
+- **Modal tạo task (A2):** chỉ còn nút **Tạo** (Station / Ca / Team / Hình thức / Ngày ẩn, không cần chọn ở bước này). Task mới luôn FREE + rỗng; Station/Date nạp sau qua **Nạp danh sách** (tab Theo ca). `SEL.slots` giữ `SLOT_FREE_MAGIC`.
 - **Ca 'Tự do'** (`SLOT_FREE_MAGIC`): server ép `noList = true` cho mọi task mới — KHÔNG pre-fill khi tạo; roster nạp sau qua **Lấy danh sách theo ca** (`loadRosterApi`).
-- KHÔNG preview số NV khi tạo (log rỗng) — footer ghi "Tạo task rỗng — nạp danh sách theo ca sau trong màn quét (nút **Thêm**)".
+- KHÔNG preview số NV khi tạo (log rỗng) — footer ghi "Tạo task rỗng — nạp danh sách theo ca sau trong màn quét (nút **Nạp danh sách**)".
 - Pre-select defaults từ Config (`CFG_DEFAULTS`) khi mở lần đầu / modal mở trước khi options về; MERGE `CFG_LISTS` (Config) + distinct StaffData (`mergeOpts_`).
 - 'Tất cả' chip = chọn hết / bỏ hết; rỗng = không lọc (server bỏ lọc mảng rỗng).
 - Reset select mỗi lần mở (tránh tạo nhầm task). Modal confirm dùng chung thay `confirm()`/`alert()` trình duyệt.
@@ -517,7 +517,7 @@ Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbo
 
 ### 9.9 Nạp danh sách theo ca (roster — A2)
 
-- Nút **Lấy danh sách theo ca** trong menu **Thêm** — hiện khi `open + permission.canScanOpen`; bấm → `#rosterModal` (lớp `.about-overlay`): Station (bắt buộc) / Ca (chips đa chọn) / Team (chips đa chọn) / **Hình thức** (chips đa chọn — Contract Type) / Ngày — options từ `getFilterOptionsApi` (cache 1 lần/tab).
+- Tab **Theo ca** trong modal **Nạp danh sách** (`#loadListModal`, lớp `.about-overlay`) — hiện khi `phase Mở/Điểm danh + permission.canScanOpen`; bấm → Station (bắt buộc) / Ca (chips đa chọn) / Team (chips đa chọn) / **Hình thức** (chips đa chọn — Contract Type) / Ngày — options từ `getFilterOptionsApi` (cache 1 lần/tab).
 - Preview số NV khớp qua `previewStaffApi` khi đổi select → nút **Nạp danh sách** bật khi count > 0.
 - Gọi `loadRosterApi(taskId, filters)` → append PENDING + `timeRef = now` cho NV CHƯA có trong log (**bỏ qua im lặng** — idempotent, khác paste báo "đã có mặt"); toast `added / skipped`; refresh counters + `loadTaskDetail` nền. Gate server: operator + (OPEN|ATTEND — chặn DONE) + `canScanOpen_`; KHÔNG reclassify dòng cũ.
 - Textarea 1 dòng = 1 mã; bỏ dòng rỗng; giới hạn **200 dòng** (client + server clamp — A4).
@@ -592,7 +592,7 @@ curl -s https://script.google.com/macros/s/<deploymentId>/exec | head   # verify
 | Mở lại task | ABSENT → PENDING (quét tiếp); PRESENT giữ nguyên |
 | Anonymous gọi `syncFromCsv`/`setupSheets`/`debug` | Gate `isEditor_()` fail-closed (chỉ deployer) |
 | Sheet cũ thiếu cột `date` (migration) | `ensureSheets_` tự thêm cột + header nếu `getLastColumn() < 11` |
-| Non-owner quét task phase Mở (T-1) | Reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY` — client disable input + banner + ẩn nút Chuyển điểm danh/Dán mã; server reject lần cuối |
+| Non-owner quét task phase Mở (T-1) | Reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY` — client disable input + banner + ẩn nút Bắt đầu điểm danh/Nạp danh sách; server reject lần cuối |
 | Task legacy `createdBy='web'`/rỗng | **KHÔNG gate** — ai cũng quét được phase Mở (A1 fail-open) |
 | Dán mã lặp trong cùng 1 lần paste | `planBatchScans` simulate log → lần 2 reject `already-present`/`already-scanned` |
 | Dán mã > 200 dòng | Clamp 200 dòng đầu (cả client lẫn server — A4) |
@@ -639,6 +639,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ```plain
 ✅ Tạo task (A2): luôn FREE + Mở + log RỖNG — modal chỉ Station + Ngày; quét / dán / nạp roster xây danh sách
 ✅ A2 (2026-08-18): task mới KHÔNG pre-fill roster khi tạo (kể cả ca thật — server ép noList); nút "Lấy danh sách theo ca" (loadRosterApi — idempotent, phase 1 + owner); phase 1 không Dư; cảnh báo chuyển phase khi log rỗng
+✅ Đợt 3 (2026-08-19): UI operator — thuật ngữ: **Bắt đầu điểm danh** / **Chốt ca** / **Đang ghi danh sách** / **Đã chốt điểm danh** / **Đã điểm danh** (bỏ "quét lần 2") · gộp Dán mã + Lấy theo ca → **1 nút "Nạp danh sách"** (modal 2 tab, bỏ menu Thêm + class topbar-more/scanMore*) · ẩn cột Tạo lúc/Người tạo bảng task (list + F-search) · nudge quên chuyển phase (quét trùng phase Mở → toast gợi ý, client-only — không thêm field server) · label Dư → "Dư — không có trong danh sách".
 ✅ Đợt 1 (2026-08-19): force-close admin completeTask (counter lệch — audit completeTaskForceClose, non-admin chặn) · loadRoster thêm phase Điểm danh (chặn DONE) · cột Sửa bảng quét + updateLogRowStatusApi (owner/admin, fill TIME_SCAN khi PRESENT, **L1: đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT / PENDING thêm LISTED_AT / EXTRA giữ SCANNED_AT — partition invariant**, audit fixLogRowStatus kèm fillScanTime/clearScanTime/clearListedAt, mọi phase kể cả DONE) · chống gian lận giờ (epoch client ±3 phút + không sớm hơn tạo task) · cảnh báo staffUnknown (mã quét không có trong StaffData)
 ✅ Nạp roster theo ca: append AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = LISTED_AT = lúc nạp
 ✅ Thời gian quét WYSIWYG (2026-08-18): client gửi epoch lúc quét → sheet ghi đúng giờ hiển thị trên app (server không đè giờ xử lý — hết nhảy giờ sau ~1s); bảng quét cột Ngày hiện ngay (dateText từ response + staffIndex); roster modal thêm lọc Hình thức; getFilterOptionsApi cache 60s

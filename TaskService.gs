@@ -96,7 +96,7 @@ function createReconcileTask(input) {
       team: team,
       contractType: contractType,
       // A2: KHÔNG còn task sinh ở ATTEND — mọi task mới mở phase 1 log rỗng; bấm
-      // "Chuyển điểm danh" sang phase 2 (NV ngoài danh sách quét phase 2 = Dư).
+      // "Bắt đầu điểm danh" sang phase 2 (NV ngoài danh sách quét phase 2 = Dư).
       status: TASK_STATUS.OPEN,
       createdAt: now,
       createdBy: createdBy,

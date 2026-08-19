@@ -478,11 +478,9 @@
           '<td data-label="Team">' + esc(t.team) + '</td>' +
           '<td class="td-slot" data-label="Ca">' + slotCellHtml(t.slotCode) + '</td>' +
           '<td class="num" data-label="Tổng NV">' + (t.total || 0) + '</td>' +
-          '<td class="num" data-label="Đã quét lần 2">' + (t.scanned || 0) + '</td>' +
+          '<td class="num" data-label="Đã điểm danh">' + (t.scanned || 0) + '</td>' +
           '<td class="num" data-label="Dư">' + (t.extra || 0) + '</td>' +
           '<td data-label="Trạng thái">' + taskStatusBadge(t.status) + '</td>' +
-          '<td data-label="Tạo lúc">' + esc(t.createdAtText || t.createdAt || '') + '</td>' +
-          '<td data-label="Người tạo">' + esc(displayName(t.createdBy || '')) + '</td>' +
           '<td data-label="Thao tác">' + (t.status === TASK_STATUS_C.DONE ? '<button class="btn btn-sm btn-view" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Xem</button>' : '<button class="btn btn-sm" onclick="openScan(\'' + escAttr(t.taskId) + '\')">Quét</button>') + '</td>';
         body.appendChild(tr);
       }
@@ -650,8 +648,6 @@
           '<td data-label="Station">' + esc(r.station || "") + '</td>' +
           '<td data-label="Team">' + esc(r.team || "") + '</td>' +
           '<td class="td-slot" data-label="Ca">' + slotCellHtml(r.slotCode || '') + '</td>' +
-          '<td data-label="Tạo lúc">' + esc(r.createdAtText || "") + '</td>' +
-          '<td data-label="Người tạo">' + esc(displayName(r.createdBy || "")) + '</td>' +
           '<td data-label="Thao tác">' + (r.taskStatus === TASK_STATUS_C.DONE ? '<button class="btn btn-sm btn-view" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">Xem</button>' : '<button class="btn btn-sm" onclick="openScanAndCloseSearch(null,\'' + escAttr(r.taskId) + '\')">Quét</button>') + '</td>';
         body.appendChild(tr);
       }
