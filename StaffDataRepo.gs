@@ -27,6 +27,7 @@ function invalidateStaffIndex_() {
   cache_().remove(CACHE_KEYS.STAFF_LIST);
   cache_().remove(CACHE_KEYS.STAFF_STATS);
   cache_().remove(CACHE_KEYS.FILTER_OPTIONS);  // stationGroups feed getFilterOptionsApi
+  bumpCacheGen_();
 }
 
 /**
@@ -59,6 +60,11 @@ function readStaffList_() {
 /** Ghi đè toàn bộ StaffData từ dữ liệu csv đã parse (syncFromCsv). */
 function overwriteStaffData_(staffList) {
   if (!isEditor_()) return 0;
+  // Atomicity (review 2026-08-19): clear → write → invalidate TRONG LockService —
+  // request đồng thời không đọc được StaffData ở trạng thái rỗng/nửa chừng.
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
   const sheet = getSheet_(SHEETS.STAFF_DATA);
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, STAFF_DATA_COL_COUNT).clearContent();
@@ -73,4 +79,7 @@ function overwriteStaffData_(staffList) {
   sheet.getRange(2, 1, rows.length, STAFF_DATA_COL_COUNT).setValues(rows);
   invalidateStaffIndex_();
   return rows.length;
+  } finally {
+    lock.releaseLock();
+  }
 }

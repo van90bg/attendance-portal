@@ -146,6 +146,8 @@ const CACHE_KEYS = {
   REPORT_INFO: 'rc2_reportInfo_v1',  // StaffInfo map email→Ops
   REPORTS: 'rc2_reports_v2_',        // prefix + email — báo cáo chấm công theo user; 'all_*' = chunked StaffAttendance (TTL 60s)
   ROLE_MAP: 'rc2_roleMap_v1',        // roleMap tách riêng settings — getRoleMap_ (P0: getSettings_ không lộ bản đồ quyền)
+  CACHE_GEN: 'rc2_gen_v1',           // generation token — mọi invalidate*_ bump sau remove; cachedJson_ skip put stale khi gen đổi giữa load (review 2026-08-19)
+  CACHE_GEN: 'rc2_gen_v1',           // generation token — mọi invalidate*_ bump sau remove; cachedJson_ skip put stale khi gen đổi giữa load (review 2026-08-19)
 };
 
 // ===== Label UI (tiếng Việt) — CHỈ các message server trả về =====

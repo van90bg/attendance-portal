@@ -91,15 +91,32 @@ function buildAttendanceRowsAll(values) {
   return out;
 }
 
-/** Lọc rows theo 1 Ops ID (norm uppercase; dự phòng so phần số khi lệch tiền tố). */
+/** Có >1 ID THẬT khác nhau cùng phần số với ID đang tra (vd OPS12345 + ABC12345) —
+ * fallback phần số trong trường hợp này là AMBIGUOUS (trả nhầm dữ liệu người khác). */
+function ambiguousOpsId_(rows, rawOpsId) {
+  const wantDigits = opsDigits_(normOpsId_(rawOpsId));
+  if (!wantDigits) return false;
+  const owners = {};
+  (rows || []).forEach(function (r) {
+    const b = normOpsId_(r.bizStaffId);
+    const d = opsDigits_(b);
+    if (b && d && d === wantDigits) owners[b] = true;
+  });
+  return Object.keys(owners).length > 1;
+}
+
+/** Lọc rows theo 1 Ops ID (norm uppercase; dự phòng so phần số khi lệch tiền tố).
+ * Review 2026-08-19: fallback phần số CHỈ khi suffix unique trong dữ liệu —
+ * ambiguous (nhiều ID cùng phần số) → chỉ khớp chính xác, KHÔNG trả dữ liệu người khác. */
 function filterAttendanceRows(rows, rawOpsId) {
   const want = normOpsId_(rawOpsId);
   const wantDigits = opsDigits_(want);
+  const ambiguous = ambiguousOpsId_(rows, rawOpsId);
   return (rows || []).filter(function (r) {
     const biz = normOpsId_(r.bizStaffId);
-    const bizDigits = opsDigits_(biz);
-    if (biz !== want && (bizDigits !== wantDigits || !wantDigits)) return false;
-    return true;
+    if (biz === want) return true;
+    if (!wantDigits || ambiguous) return false;
+    return opsDigits_(biz) === wantDigits;
   });
 }
 

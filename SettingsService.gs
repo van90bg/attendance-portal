@@ -128,6 +128,7 @@ function invalidateSettingsCache_() {
   cache_().remove(CACHE_KEYS.SETTINGS);
   cache_().remove(CACHE_KEYS.ROLE_MAP);  // roleMap cache riêng — saveSettings_({roleMap}) phải clear cùng
   cache_().remove(CACHE_KEYS.FILTER_OPTIONS);  // lists settings feed getFilterOptionsApi
+  bumpCacheGen_();
 }
 
 /** Parse giá trị Config sheet → kiểu thật (JSON string). Cell rác / không phải JSON → trả nguyên. */

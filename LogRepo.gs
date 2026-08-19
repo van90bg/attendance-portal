@@ -140,6 +140,7 @@ function readLogRowsCached_(taskId) {
 function invalidateLogRows_(taskId) {
   try { cache_().remove(CACHE_KEYS.LOG_ROWS + taskId); }
   catch (e) { console.warn('invalidateLogRows_ fail', taskId, e.message); }  // F6: không giấu lỗi âm thầm (cache sống tiếp → duplicate Dư)
+  bumpCacheGen_();
 }
 
 /**
@@ -272,6 +273,7 @@ function readTaskDetailCached_(taskId) {
 function invalidateTaskDetailCache_(taskId) {
   try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); }
   catch (e) { console.warn('cache remove fail', CACHE_KEYS.TASK_DETAIL + taskId, e.message); }
+  bumpCacheGen_();
 }
 
 /**
@@ -366,12 +368,25 @@ function batchUpdateLogRows_(taskId, updates) {
   if (!requireRole_('operator')) return 0;
   if (!updates || !updates.length) return 0;
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+  // Row-integrity (review 2026-08-19): bỏ update có rowIndex KHÔNG thuộc taskId — gọi sai
+  // (rowIndex task khác) không được ghi nhầm dòng dữ liệu người khác. Đọc 1 dải cột
+  // TASK_ID (min..max rowIndex) rồi lọc — không đọc full sheet.
+  let minRow = updates[0].rowIndex, maxRow = updates[0].rowIndex;
+  updates.forEach(function (u) {
+    if (u.rowIndex < minRow) minRow = u.rowIndex;
+    if (u.rowIndex > maxRow) maxRow = u.rowIndex;
+  });
+  const idCells = sheet.getRange(minRow, LOG_COLS.TASK_ID + 1, maxRow - minRow + 1, 1).getValues();
+  const okRows = {};
+  idCells.forEach(function (c, i) { if (String(c[0] || '').trim() === taskId) okRows[minRow + i] = true; });
+  const valid = updates.filter(function (u) { return !!okRows[u.rowIndex]; });
+  if (!valid.length) return 0;
   // Fix 1 (audit 2): ghi CHỈ đúng cột của field — trước đây setValues cả 3 cột
   // (timeRef/timeScan/status) nên update timeRef ghi '' vào TIME_SCAN → xoá sạch giá
   // trị hiện hữu (legacy v1 / sửa tay). Tách: timeRef → 1 cột TIME_REF,
   // timeScan → 2 cột TIME_SCAN+STATUS (khớp updateLogRowRef_/updateLogRowScan_ cũ).
-  writeBatchRuns_(sheet, updates, 'listedAt');
-  writeBatchRuns_(sheet, updates, 'scannedAt');
+  writeBatchRuns_(sheet, valid, 'listedAt');
+  writeBatchRuns_(sheet, valid, 'scannedAt');
   invalidateTaskDetailCache_(taskId);
   invalidateTaskListCache_();
   try {
@@ -379,7 +394,7 @@ function batchUpdateLogRows_(taskId, updates) {
     const cached = cache_().get(key);
     if (cached !== null) {
       const rows = JSON.parse(cached);
-      updates.forEach(function (u) {
+      valid.forEach(function (u) {
         for (let k = 0; k < rows.length; k++) {
           if (rows[k]._rowIndex === u.rowIndex) {
             if (u.field === 'scannedAt') {
@@ -402,7 +417,7 @@ function batchUpdateLogRows_(taskId, updates) {
     console.warn('batchUpdateLogRows_ cache fail', taskId, e.message);
     invalidateLogRows_(taskId);
   }
-  return updates.length;
+  return valid.length;
 }
 
 /**
@@ -450,6 +465,13 @@ function writeBatchRuns_(sheet, updates, field) {
 function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime, clearScanned, clearListed) {
   if (!requireRole_('operator')) return;  // M1: ghi trạng thái log — chỉ operator+
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+  // Row-integrity (review 2026-08-19): rowIndex phải thuộc taskId — gọi sai (rowIndex
+  // task khác / taskId khác) chặn luôn, không ghi nhầm dòng người khác.
+  const rowTaskId = String(sheet.getRange(rowIndex, LOG_COLS.TASK_ID + 1, 1, 1).getValues()[0][0] || '').trim();
+  if (rowTaskId !== taskId) {
+    console.error('setLogRowStatus_ row mismatch', taskId, rowIndex, rowTaskId);
+    return;
+  }
   if (clearScanned && clearListed) {
     sheet.getRange(rowIndex, LOG_COLS.LISTED_AT + 1, 1, 3).setValues([['', '', newStatus]]);
   } else if (clearScanned) {

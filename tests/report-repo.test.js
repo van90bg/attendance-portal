@@ -177,6 +177,60 @@ test('readAttendanceRowsAll_: cache CHUNG — Ops khác không đọc lại shee
   assert.equal(b.length, 1);
 });
 
+test('filterAttendanceRows: ambiguous phần số (OPS12345 + ABC12345) → chỉ khớp chính xác, không lẫn người khác', () => {
+  const { ctx } = makeSandbox();
+  const svc = loadAll(ctx);
+  const rows = [
+    { bizStaffId: 'OPS12345', reportDate: '2026-08-01' },
+    { bizStaffId: 'OPS12345', reportDate: '2026-08-02' },
+    { bizStaffId: 'ABC12345', reportDate: '2026-08-01' },
+    { bizStaffId: 'OPS99999', reportDate: '2026-08-01' },
+  ];
+  // Muốn OPS12345 — ABC12345 cùng phần số → fallback phần số BỊ VÔ HIỆU (không lẫn dòng ABC)
+  const mine = svc.filterAttendanceRows(rows, 'OPS12345');
+  assert.deepEqual(mine.map((r) => r.bizStaffId), ['OPS12345', 'OPS12345']);
+  // Muốn ABC12345 — chỉ trả đúng ABC
+  const theirs = svc.filterAttendanceRows(rows, 'ABC12345');
+  assert.deepEqual(theirs.map((r) => r.bizStaffId), ['ABC12345']);
+  // Muốn phần số trần '12345' (không exact) + ambiguous → không trả gì (không đoán)
+  const bare = svc.filterAttendanceRows(rows, '12345');
+  assert.deepEqual(bare, []);
+  // ambiguousOpsId_ helper
+  assert.equal(svc.ambiguousOpsId_(rows, 'OPS12345'), true);
+  assert.equal(svc.ambiguousOpsId_(rows, 'OPS99999'), false);
+});
+
+test('filterAttendanceRows: fallback phần số vẫn chạy khi suffix unique', () => {
+  const { ctx } = makeSandbox();
+  const svc = loadAll(ctx);
+  const rows = [
+    { bizStaffId: 'OPS237511', reportDate: '2026-08-01' },
+    { bizStaffId: 'OPS237511', reportDate: '2026-08-02' },
+    { bizStaffId: 'OPS999999', reportDate: '2026-08-01' },
+  ];
+  const got = svc.filterAttendanceRows(rows, '237511');  // StaffInfo lệch tiền tố
+  assert.equal(got.length, 2);
+  assert.equal(svc.ambiguousOpsId_(rows, '237511'), false);
+});
+
+test('getReports: ambiguous phần số → rows rỗng + message báo admin (không lộ dữ liệu người khác)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'manager' })]);
+  const info = ss.insertSheet('StaffInfo');
+  info.appendRow(['No.', 'Staff ID', 'Ops ID', 'Staff Name', 'Staff Email', 'Rank', 'Joined Date', 'Working day']);
+  info.appendRow([1, 'SPXVN00001', 'Ops12345', 'NV001', 'nv001.demo@spxexpress.com', 'Analyst', '2022-03-07', 1622]);
+  const att = ss.insertSheet('StaffAttendance');
+  att.appendRow(['report_date', 'biz_staff_id', 'employee_id', 'staff_name', 'profile_station_name', 'attendance_result_ops', 'work_hour', 'in_time_convert', 'out_time_convert', 'PMO formula']);
+  att.appendRow(['2026-08-01', 'Ops12345', 'SPXVN00001', 'NV001', 'HN2 SOC', '22:00-06:00', 8, '21:52', '06:00', 'PMO A']);
+  att.appendRow(['2026-08-01', 'ABC12345', 'SPXVN00002', 'NV-KHAC', 'HN SOC', '08:00-17:00', 8, '07:52', '17:00', 'PMO B']);
+  const res = svc.getReports();
+  assert.equal(res.ok, true);
+  assert.equal(res.rows.length, 1, 'chỉ trả đúng Ops12345 — không lẫn ABC12345');
+  assert.equal(res.rows[0].bizStaffId, 'Ops12345');
+});
+
 test('readAttendanceRowsAll_: sheet lớn >1 chunk (vượt 100KB/key)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);

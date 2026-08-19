@@ -22,10 +22,25 @@ function cachedJson_(key, load, ttlSeconds) {
     try { return JSON.parse(cached); }
     catch (e) { console.warn('cache parse fail', key, e.message); }  // F8: cache hỏng → rebuild, log để biết nếu lặp
   }
+  // Stale-resurrection guard (review 2026-08-19): writer ghi sheet + invalidate (bump gen)
+  // trong lúc load() chạy → gen đổi → KHÔNG put dữ liệu cũ lên cache vừa bị xóa.
+  const genBefore = cache_().get(CACHE_KEYS.CACHE_GEN);
   const value = load();
-  try { cache_().put(key, JSON.stringify(value), ttlSeconds); }
-  catch (e) { console.warn('cache put fail', key, e.message); }  // F3: put >100KB/entry throw — log để biết cache đang miss âm thầm
+  const genAfter = cache_().get(CACHE_KEYS.CACHE_GEN);
+  if (genAfter === genBefore) {
+    try { cache_().put(key, JSON.stringify(value), ttlSeconds); }
+    catch (e) { console.warn('cache put fail', key, e.message); }  // F3: put >100KB/entry throw — log để biết cache đang miss âm thầm
+  }
   return value;
+}
+
+/** Bump generation token — mọi invalidate*_ phải gọi SAU khi remove key.
+ * Counter đơn điệu (tránh trùng timestamp ms); TTL 1h — hết hạn = gen null = không chặn put. */
+function bumpCacheGen_() {
+  try {
+    const cur = parseInt(cache_().get(CACHE_KEYS.CACHE_GEN) || '0', 10) || 0;
+    cache_().put(CACHE_KEYS.CACHE_GEN, String(cur + 1), 3600);
+  } catch (e) { console.warn('bumpCacheGen_ fail', e && e.message); }
 }
 
 /** Cache timezone 1 lần (tránh gọi trong loop).

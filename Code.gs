@@ -146,7 +146,13 @@ function getStaffStatsApi() {
     if (!requireRole_('manager')) {
       return { ok: false, message: 'Không đủ quyền (cần role manager trở lên)' };
     }
-    return { ok: true, staff: readStaffFullList_() };
+    const staff = readStaffFullList_();
+    // P2 (review 2026-08-19): theo dõi ngưỡng — full StaffData về client + phân trang 100
+    // client-side; trên ngưỡng cần server-side pagination/filter (network + parse + memory).
+    if (staff.length > 2000) {
+      console.warn({ bench: 'getStaffStatsApi', staff: staff.length, warning: 'full-payload-threshold-2000' });
+    }
+    return { ok: true, staff: staff };
   } catch (e) {
     return { ok: false, message: e && e.message ? e.message : 'getStaffStats fail' };
   }
@@ -200,13 +206,15 @@ function createReconcileTaskApi(input) {
   }
 }
 
-/** Danh sách task. */
+/** Danh sách task. Error contract (review 2026-08-19): [] CHỈ khi danh sách thực sự rỗng;
+ * lỗi hạ tầng (sheet/quota/cache) → { ok:false, message } — client phân biệt được
+ * "chưa có task" với "hệ thống lỗi", không tạo task trùng khi tưởng danh sách rỗng. */
 function getTaskListApi() {
   try {
     return listTasks();
   } catch (e) {
     console.error('getTaskListApi fail', e && e.message);
-    return [];
+    return { ok: false, message: e && e.message ? e.message : 'Lỗi tải danh sách task' };
   }
 }
 
@@ -407,6 +415,8 @@ function syncFromCsv() {
 function setupSheets() {
   // P3: gate editor-only — anonymous, không cho gọi qua google.script.run console
   if (!isEditor_()) return 'Chỉ chạy từ Script Editor';
-  ensureSheets_();
+  // strict: header lệch schema → THROW fail-closed (review 2026-08-19) — editor sửa
+  // header/migration tay trước khi vận hành, không để writer ghi sai cột âm thầm.
+  ensureSheets_(true);
   return 'OK: sheets đã sẵn sàng';
 }

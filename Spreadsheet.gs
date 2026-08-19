@@ -56,12 +56,37 @@ function getSpreadsheet_() {
   return created;
 }
 
-/** Đảm bảo toàn bộ sheet tồn tại (dùng khi khởi tạo). */
-function ensureSheets_() {
+/** Validate header theo VỊ TRÍ — writer dùng index cố định (TASK_COLS/LOG_COLS Config.gs),
+ * header đổi tên/reorder dù đủ số cột vẫn ghi sai trường âm thầm (review 2026-08-19).
+ * Chỉ kiểm tra 1..expected.length — cột thừa cuối (legacy cardIn/cardOut) không tính.
+ * Mismatch → console.error liệt kê; strict (setupSheets) → trả false để caller throw. */
+function validateColumnHeaders_(sheet, expected, sheetName) {
+  const last = sheet.getLastColumn();
+  const hdr = last > 0 ? sheet.getRange(1, 1, 1, Math.min(last, expected.length)).getValues()[0] : [];
+  const bad = [];
+  for (let i = 0; i < expected.length; i++) {
+    if (String(hdr[i] || '').trim() !== expected[i]) {
+      bad.push('c' + (i + 1) + '="' + String(hdr[i] || '') + '" (cần "' + expected[i] + '")');
+    }
+  }
+  if (bad.length) {
+    console.error('HEADER MISMATCH ' + sheetName + ': ' + bad.join('; ')
+      + ' — writer index cố định sẽ ghi vào sai cột. Sửa header hoặc migration tay.');
+    return false;
+  }
+  return true;
+}
+
+/** Đảm bảo toàn bộ sheet tồn tại (dùng khi khởi tạo). strict=true (setupSheets) →
+ * validate header theo vị trí và THROW khi mismatch (fail-closed); doGet chạy non-strict
+ * (chỉ log) để không chặn app khi sheet đang lệch — lỗi hiện trên Stackdriver. */
+function ensureSheets_(strict) {
+  const fails = [];
   getSheet_(SHEETS.CONFIG, ['Key', 'Value']);
   // Header chuẩn Att.csv (20 cột) — getSheet_ chỉ set khi sheet trống; syncFromCsv()
   // ghi đè dữ liệu từ dòng 2 (header dòng 1 giữ nguyên).
-  getSheet_(SHEETS.STAFF_DATA, STAFF_DATA_HEADER);
+  const staffSheet = getSheet_(SHEETS.STAFF_DATA, STAFF_DATA_HEADER);
+  if (!validateColumnHeaders_(staffSheet, STAFF_DATA_HEADER, SHEETS.STAFF_DATA)) fails.push(SHEETS.STAFF_DATA);
   const taskSheet = getSheet_(SHEETS.ATTENDANCE_TASK, [
     'taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt', 'date',
   ]);
@@ -71,11 +96,12 @@ function ensureSheets_() {
     taskSheet.insertColumnAfter(taskSheet.getLastColumn());
     taskSheet.getRange(1, taskSheet.getLastColumn()).setValue('date');
   }
+  if (!validateColumnHeaders_(taskSheet, ['taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt', 'date'], SHEETS.ATTENDANCE_TASK)) fails.push(SHEETS.ATTENDANCE_TASK);
   const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG, [
     'taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation',
     'listedAt', 'scannedAt', 'status', 'date',
   ]);
-  getSheet_(SHEETS.AUDIT_LOG, ['timestamp', 'email', 'action', 'targetId', 'detail']);
+  const auditSheet = getSheet_(SHEETS.AUDIT_LOG, ['timestamp', 'email', 'action', 'targetId', 'detail']);
   // Migration an toàn: sheet cũ tạo trước khi có cột date (LOG_COL_COUNT=11) vẫn còn
   // 9 cột → getSheet_ chỉ set header khi sheet trống, không tự thêm cột. Nếu thiếu,
   // thêm cột cuối + đặt header, nếu không batchInsertLogRows_ ghi 11 giá trị sẽ vỡ.
@@ -100,5 +126,12 @@ function ensureSheets_() {
     console.error('LOG SHEET có ' + logSheet.getLastColumn() + ' cột (> ' + LOG_COL_COUNT
       + ') — cột ' + (LOG_COL_COUNT + 1) + ' mang header "' + String(hdr[LOG_COL_COUNT] || '')
       + '". Writer ghi 11 giá trị, DATE sẽ vào cột sai header. Dọn sheet về 11 cột hoặc migration tay.');
+  }
+  if (!validateColumnHeaders_(logSheet, ['taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation', 'listedAt', 'scannedAt', 'status', 'date'], SHEETS.ATTENDANCE_LOG)) fails.push(SHEETS.ATTENDANCE_LOG);
+  if (!validateColumnHeaders_(auditSheet, ['timestamp', 'email', 'action', 'targetId', 'detail'], SHEETS.AUDIT_LOG)) fails.push(SHEETS.AUDIT_LOG);
+  // Fail-closed CHỈ ở setupSheets (editor chủ động) — doGet non-strict vẫn log ở trên.
+  if (strict && fails.length) {
+    throw new Error('HEADER MISMATCH — ' + fails.join(', ')
+      + ' — sửa header sheet hoặc migration tay (chi tiết trên console.error)');
   }
 }

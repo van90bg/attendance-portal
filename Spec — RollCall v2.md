@@ -1,6 +1,6 @@
 # Spec — RollCall v2: Hệ thống Điểm danh Đối chiếu Nhân viên Kho
 
-> **Version:** 2.3.0 | **Status:** Final | **Cập nhật:** 2026-08-17
+> **Version:** 2.4.0 | **Status:** Final | **Cập nhật:** 2026-08-19
 >
 > **Ghi chú viết lại:** Spec viết lại **hoàn toàn theo codebase thực tế**.
 > v2.2 (2026-08-07): task mới luôn **FREE + Open + log rỗng** (A2), **3 trạng thái `open`/`attend`/`done` (2-phase quét)**, **role owner** cho scan phase Mở, **pasteCodesApi (dán danh sách mã)**, **view Giới thiệu (`viewAbout`)**.
@@ -14,6 +14,7 @@
 > v2.9 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy màn quét — owner/admin, log rỗng mới hủy được; xóa hẳn dòng task + audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (append PENDING, thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không thổi phồng; khớp V2.6 lọc theo listedAt) · label phase 1 'Đã có mặt' → 'Đã đến' (2-phase: đến ≠ điểm danh).
 > v2.10 (2026-08-19): **`canMutateTask_` fail-closed** (complete/reopen/updateLogRowStatus — task legacy `'web'` chỉ admin đóng/mở lại/sửa; scan/paste/loadRoster/transition vẫn `canScanOpen_` fail-open vì cần vận hành) · **PENDING→EXTRA fill TIME_SCAN** (partition invariant — task không kẹt counter-mismatch) · **`batchInsertLogRows_` invalidate detail+list cache** · **`markUnscannedAbsent_` dùng epoch** (timeScan junk → Vắng đúng) · **AttendanceTask thêm cột `date`** (header + migration 9→10 cột, khớp `TASK_COL_COUNT`).
 > v2.11 (2026-08-19): **frontend P1** — nhãn mobile card bảng task `'Đã điểm danh'` (khớp `data-label` JS; trước CSS còn `'Đã quét lần 2'` → card mất nhãn + lệch grid) · **bottom nav thêm mục 'Dữ liệu'** (`bottomDataItem` — navMap treo vì thiếu button, manager+ mobile không vào được viewStaff) · **`#scanPagination` ra ngoài `.table-wrap`** (không cuộn theo bảng) · **viewReports/viewAdmin/viewAbout vào trong `<main>`** (repairViewParents không còn phải kéo section).
+> v2.12 (2026-08-19): **review integrity backend** — **row-integrity mutators** (updateTaskStatus_ rowIndex lệch → fallback tìm theo taskId; setLogRowStatus_ chặn row không thuộc taskId; batchUpdateLogRows_ lọc rowIndex theo cột TASK_ID dải min..max trước khi ghi — KHÔNG ghi nhầm dòng task khác) · **cache gen guard** (`CACHE_KEYS.CACHE_GEN` — mọi `invalidate*_` bump sau remove; `cachedJson_` skip put khi gen đổi giữa load — hết stale-resurrection race khi cross-deploy) · **`ensureSheets_(strict)` header validation theo vị trí** (`validateColumnHeaders_` — strict chỉ ở `setupSheets` → throw fail-closed 'HEADER MISMATCH'; doGet chạy non-strict chỉ console.error) · **`overwriteStaffData_` LockService** (clear→write→invalidate atomic — không đọc phải trạng thái rỗng/nửa chừng) · **report filter ambiguous phần số** (`ambiguousOpsId_` — OPS12345 vs ABC12345 cùng suffix → chỉ khớp chính xác, fallback phần số chỉ khi suffix unique; getReports message báo admin) · **`getTaskListApi` error contract** ({ok:false,message} khi lỗi hạ tầng — [] chỉ khi danh sách rỗng thật) · **`getStaffStatsApi` cảnh báo ≥2000 NV** (ngưỡng full-payload cần server-side pagination).
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -377,13 +378,14 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `rc2_reportInfo_v1` | 1h | StaffInfo map email→Ops (báo cáo) | — |
 | `rc2_reports_v2_{email}` | 60s | báo cáo chấm công theo user — `all_*` chunked StaffAttendance ≤100KB/key | — |
 | `rc2_tz_v2` | 24h | timezone script (1 lần — không gọi `Session.getScriptTimeZone()` trong loop) | — |
+| `rc2_gen_v1` | 1h | **generation token** — mọi `invalidate*_` bump sau remove; `cachedJson_` so trước/sau load, gen đổi giữa load → KHÔNG put dữ liệu cũ (chống stale-resurrection race cross-deploy) | mọi invalidate (tự tăng, không remove) |
 
 - `CacheService` giới hạn **100KB/key** → log rows dùng cache slim; `put` fail/`parse` fail đều `console.warn` (không giấu lỗi — cache miss âm thầm).
 - Negative-cache: `readTaskDetailCached_` cache `null` 15s → `insertTask_` phải invalidate detail của taskId để phá.
 
 ### 7.2 LockService
 
-- Script-level lock, `waitLock(10000)` (riêng `pasteCodes`/`loadRoster` dùng `waitLock(30000)` — xử lý khối lớn, 10s dễ timeout khi lock bận), **release trong `finally`** — mọi luồng ghi: `createReconcileTask`, `transitionToAttend`, `completeTask`, `reopenTask`, `scanStaff`, `pasteCodes`.
+- Script-level lock, `waitLock(10000)` (riêng `pasteCodes`/`loadRoster` dùng `waitLock(30000)` — xử lý khối lớn, 10s dễ timeout khi lock bận), **release trong `finally`** — mọi luồng ghi: `createReconcileTask`, `transitionToAttend`, `completeTask`, `reopenTask`, `scanStaff`, `pasteCodes`, `overwriteStaffData_` (2026-08-19: clear→write→invalidate atomic).
 - `transformLogStatuses_` (kết thúc / mở lại): batch `setValues` 1 lần cả cột status — không `setValue` trong loop (241 NV = 1 RPC thay vì ~240).
 
 ---
@@ -397,12 +399,12 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `getMetaApi()` | `{ ok, appTitle, userEmail, role, isEditor }` | — |
 | `getFilterOptionsApi()` | `{ ok, stationGroups, defaults, lists }` — cây Station→Ca→Team + defaults/lists Config; **cache 60s** (FILTER_OPTIONS, invalidate khi saveSettings/overwriteStaffData) | operator (service) |
 | `previewStaffApi(input)` | `{ ok, count }` — số NV khớp tổ hợp (đã dedupe, khớp count tạo task thật) — không tạo gì | operator (service) |
-| `getStaffStatsApi()` | `{ ok, staff[] }` — StaffData full (viewStaff/viewStats) | **manager+** (TRONG try) |
+| `getStaffStatsApi()` | `{ ok, staff[] }` — StaffData full (viewStaff/viewStats); **console.warn khi >2000 NV** (ngưỡng full-payload) | **manager+** (TRONG try) |
 | `getSettingsApi()` | `{ ok, settings }` — toàn bộ cấu hình (viewConfig) | editor |
 | `saveSettingsApi(patch)` | `{ ok, saved, ignored, message }` — whitelist key | editor (saveSettings_) |
 | `getAuditLogApi(limit)` | `{ ok, rows[{timestamp, email, action, targetId, detail}] }` — nhật ký hoạt động viewAdmin | **admin** (TRONG try) |
 | `createReconcileTaskApi(input)` | `{ ok, taskId, count, message }` | operator (service) |
-| `getTaskListApi()` | `[{ taskId, station, slotCode, team, status, total, scanned, extra, createdAtText, createdBy }]` | — |
+| `getTaskListApi()` | `[{ taskId, ... }]` — **error contract 2026-08-19**: `[]` chỉ khi danh sách rỗng thật; lỗi hạ tầng (sheet/quota/cache) → `{ ok:false, message }` (client phân biệt, không tạo task trùng khi tưởng rỗng) | — |
 | `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` — `task.permission = {isAdmin, isOwner, canScanOpen}` (§5.5) | — |
 | `scanStaffApi(taskId, staffId, clientEpoch?)` | `{ ok, message, status, phase, scannedAtText, scannedAtEpoch, listedAtText, listedAtEpoch, staffName, staffUnknown, dateText, counters }` — **clientEpoch**: thời gian quét = giờ client chụp lúc quét (WYSIWYG — sheet ghi đúng giờ app hiển thị; **chỉ chấp nhận ±60s so giờ server + không sớm hơn lúc tạo task** — fallback giờ server ngoài cửa sổ); **staffUnknown**: mã không có trong StaffData → client cảnh báo | operator (service) |
 | `transitionToAttendApi(taskId)` | `{ ok, message }` — `open → attend` | operator + owner (service) |
@@ -538,7 +540,7 @@ Modal: tạo task · confirm dùng chung · **Nạp danh sách** (loadListModal 
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
 
-Nhóm test: `distinctValues` · `isValidBarcodeId` · `dedupeStaffByGroup` · `filterStaffByGroup` (multi-select) · `normalizeStaffDate_` · `buildStaffIndex/buildStaffListFromValues` · `classifyScan` (2-phase) · `findLogRow` · `computeCounters` · `buildExtraRow` · `canScanOpen_` · `planBatchScans` · `planScanCommits` (scan-commit) · `scanStaff`/`pasteCodes` wrapper · **gate-bypass** (requireRole_ service layer chống bypass) · **role-service** (roleMap/getRole_/requireRole_) · **report-repo** (StaffInfo/StaffAttendance chunk ≤100KB) · **search** (matchTasksByQuery/searchLogsByStaff) · **settings-service** (defaults + lists) · **create-free** (FREE task) · **eol-bom** (CRLF + no BOM) · **index-html-parse** (template parse).
+Nhóm test: `distinctValues` · `isValidBarcodeId` · `dedupeStaffByGroup` · `filterStaffByGroup` (multi-select) · `normalizeStaffDate_` · `buildStaffIndex/buildStaffListFromValues` · `classifyScan` (2-phase) · `findLogRow` · `computeCounters` · `buildExtraRow` · `canScanOpen_` · `planBatchScans` · `planScanCommits` (scan-commit) · `scanStaff`/`pasteCodes` wrapper · **gate-bypass** (requireRole_ service layer chống bypass) · **role-service** (roleMap/getRole_/requireRole_) · **report-repo** (StaffInfo/StaffAttendance chunk ≤100KB + **ambiguous phần số**) · **repo-integrity** (row/task integrity mutators · cache gen guard · header validation · getTaskListApi contract) · **search** (matchTasksByQuery/searchLogsByStaff) · **settings-service** (defaults + lists) · **create-free** (FREE task) · **eol-bom** (CRLF + no BOM) · **index-html-parse** (template parse).
 
 > Chỉ test **logic thuần** (CsvUtil/ScanLogic — không gọi GAS) + smoke-load toàn bộ .gs với mock GAS; GAS API thật không test được trong Node. Không Jest/Playwright.
 
@@ -624,7 +626,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 186/186 (18 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 197/197 (20 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |

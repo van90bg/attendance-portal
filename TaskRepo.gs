@@ -69,6 +69,7 @@ function invalidateTaskCache_(taskId) {
   if (!taskId) return;
   try { cache_().remove(CACHE_KEYS.TASK + taskId); }
   catch (e) { console.warn('invalidateTaskCache_ fail', taskId, e.message); }
+  bumpCacheGen_();
 }
 
 /** Xoá mọi cache task sau khi ghi AttendanceTask — thêm TASK cache chỉ đổi ở 1 chỗ. */
@@ -110,7 +111,14 @@ function updateTaskStatus_(taskId, status, completedAt, rowIndex, contractType) 
   // F4: rowIndex optional — CẢ 3 caller (completeTask/transitionToAttend/reopenTask) đều
   // truyền _rowIndex (đã readTask_ tươi), nhánh loop chỉ là fallback legacy thủ công.
   if (rowIndex) {
-    writeTaskRow_(sheet, rowIndex, sheet.getRange(rowIndex, 1, 1, TASK_COL_COUNT).getValues()[0], status, completedAt, contractType);
+    const rowVals = sheet.getRange(rowIndex, 1, 1, TASK_COL_COUNT).getValues()[0];
+    // Row-integrity (review 2026-08-19): rowIndex phải thuộc taskId — gọi sai (rowIndex
+    // của task khác) fallback quét theo taskId thay vì ghi nhầm dòng dữ liệu người khác.
+    if (String(rowVals[TASK_COLS.TASK_ID] || '').trim() !== taskId) {
+      console.error('updateTaskStatus_ rowIndex mismatch', taskId, rowIndex, String(rowVals[TASK_COLS.TASK_ID] || ''));
+      return updateTaskStatus_(taskId, status, completedAt, 0, contractType);
+    }
+    writeTaskRow_(sheet, rowIndex, rowVals, status, completedAt, contractType);
     invalidateTaskCaches_(taskId);
     return true;
   }
@@ -182,6 +190,7 @@ function invalidateTaskListCache_() {
   // P3: counters list đọc 1 lần + cache riêng — phải xóa cùng TASK_LIST, nếu không
   // task mới/reopen hiển thị total/scanned sai đến 30s (2 key độc lập không sync).
   cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all');
+  bumpCacheGen_();
 }
 
 /**

@@ -25,13 +25,18 @@ function getReports() {
     const rows = cachedJson_(CACHE_KEYS.REPORTS + email, function () {
       return readAttendanceRows_(me.opsId);
     }, CACHE_TTL.REPORTS);
+    // Ambiguous phần số (OPS12345 vs ABC12345 cùng suffix) → rows đã lọc exact-only ở
+    // filterAttendanceRows; báo rõ để user/admin kiểm tra StaffInfo (review 2026-08-19).
+    const ambiguous = !rows.length && ambiguousOpsId_(readAttendanceRowsAll_(), me.opsId);
     return {
       ok: true,
       rows: rows,
       email: email,
       opsId: me.opsId,
       staffName: me.name || '',
-      message: rows.length ? '' : 'Chưa có dữ liệu chấm công (StaffAttendance) cho nhân viên này',
+      message: rows.length ? ''
+        : (ambiguous ? 'Mã ' + me.opsId + ' trùng phần số với nhân viên khác trong StaffAttendance — báo admin kiểm tra StaffInfo'
+          : 'Chưa có dữ liệu chấm công (StaffAttendance) cho nhân viên này'),
     };
   } catch (e) {
     return { ok: false, rows: [], message: e && e.message ? e.message : 'getReports fail' };
