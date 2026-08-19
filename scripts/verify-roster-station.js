@@ -1,6 +1,6 @@
-/* Verify fix: roster modal "Theo ca" — station chips cho task station rỗng (A2/legacy).
- * Flow A: tạo task (chọn Station) → mở scan → Nạp danh sách → preview tự > 0 → chọn Ca → submit.
- * Flow B (fix): task station RỖNG → modal hiện chips Station → chọn HN2 SOC → preview > 0 → submit.
+/* Verify tạo task 2 nhóm (dropdown): "Nạp danh sách" / "Task rỗng" + roster modal station chips.
+ * Flow A: dropdown → Nạp danh sách → create modal chọn Station → tạo → roster prefill → chọn Ca → nạp.
+ * Flow B: dropdown → Task rỗng (station '') → tạo thật → modal hiện chips Station → chọn → preview > 0 → nạp.
  * Chạy: CHROME_PATH=... node scripts/verify-roster-station.js
  */
 const http = require('node:http');
@@ -98,9 +98,20 @@ async function main() {
   const B = boot.err ? null : JSON.parse(boot.value);
   check('App load + mock', !!(B && B.hasMock && B.metaLoaded), boot.err || '');
 
-  /* ===== Flow A: tạo task (chọn Station) → roster tự prefill ===== */
+  /* ===== Flow A: dropdown → "Nạp danh sách" → create modal → roster tự prefill ===== */
   await evalIn(ws, `document.getElementById('btnCreate').click()`);
+  await sleep(200);
+  const menuA = await evalIn(ws, `JSON.stringify({
+    open: !document.getElementById('createTaskMenu').classList.contains('hidden'),
+    items: document.querySelectorAll('#createTaskMenu .create-task-menu-item').length,
+    ariaExp: document.getElementById('btnCreate').getAttribute('aria-expanded'),
+  })`);
+  const MENUA = menuA.err ? null : JSON.parse(menuA.value);
+  check('Dropdown: menu mở + 2 lựa chọn + aria-expanded=true', !!(MENUA && MENUA.open && MENUA.items === 2 && MENUA.ariaExp === 'true'), JSON.stringify(MENUA));
+  await evalIn(ws, `(function(){ var items = document.querySelectorAll('#createTaskMenu .create-task-menu-item'); if (items[0]) items[0].click(); return !!items[0]; })()`);
   await sleep(300);
+  const modalA = await evalIn(ws, `document.getElementById('createModal').classList.contains('open')`);
+  check('Dropdown: chọn "Nạp danh sách" → mở create modal', modalA.value === true, JSON.stringify(modalA));
   await evalIn(ws, `(function(){
     var chips = document.querySelectorAll('#createChipsStation .pick');
     var target = null;
@@ -162,14 +173,26 @@ async function main() {
   const DA = dA.err ? null : JSON.parse(dA.value);
   check('Flow A: nạp hoàn tất (mock seed log sẵn → thêm 0 hoặc >0, modal đóng)', !!(DA && (/Đã nạp/.test(DA.toast) || /đã có/.test(DA.toast)) && DA.rows >= 6 && DA.modalClosed), JSON.stringify(DA));
 
-  /* ===== Flow B (fix): task station RỖNG → chips Station cho phép chọn ===== */
-  // Flow B: mô phỏng task station rỗng — openRosterModal đọc CURRENT_TASK.station lúc mở modal.
-  await evalIn(ws, `(function(){ if (CURRENT_TASK) CURRENT_TASK.station = ''; return CURRENT_TASK ? CURRENT_TASK.station : null; })()`);
-  await evalIn(ws, `openScan(${JSON.stringify(newId.value)})`);
-  await sleep(SETTLE_MS);
-  const vB = await evalIn(ws, `JSON.stringify({ station: CURRENT_TASK ? (CURRENT_TASK.station || '') : null })`);
+  /* ===== Flow B: dropdown → "Task rỗng" → tạo task THẬT không station ===== */
+  await evalIn(ws, `showSection('viewTasks')`);
+  await sleep(400);
+  await evalIn(ws, `document.getElementById('btnCreate').click()`);
+  await sleep(200);
+  await evalIn(ws, `document.body.click()`);
+  await sleep(150);
+  const closedB = await evalIn(ws, `document.getElementById('createTaskMenu').classList.contains('hidden')`);
+  check('Dropdown: click ngoài → menu đóng', closedB.value === true, JSON.stringify(closedB));
+  await evalIn(ws, `document.getElementById('btnCreate').click()`);
+  await sleep(200);
+  await evalIn(ws, `(function(){ var items = document.querySelectorAll('#createTaskMenu .create-task-menu-item'); if (items[1]) items[1].click(); return !!items[1]; })()`);
+  await sleep(SETTLE_MS + 400);
+  const vB = await evalIn(ws, `JSON.stringify({
+    station: CURRENT_TASK ? (CURRENT_TASK.station || '') : null,
+    menuClosed: document.getElementById('createTaskMenu').classList.contains('hidden'),
+    toast: document.getElementById('toast').innerText,
+  })`);
   const VB = vB.err ? null : JSON.parse(vB.value);
-  check('Flow B: task station rỗng (A2/legacy)', !!(VB && VB.station === ''), JSON.stringify(VB));
+  check('Flow B: "Task rỗng" tạo xong — station "" + scan tự mở + menu đóng', !!(VB && VB.station === '' && VB.menuClosed && /Tạo task thành công/.test(VB.toast || '')), JSON.stringify(VB));
 
   await evalIn(ws, `document.getElementById('btnLoadList').click()`);
   await sleep(SETTLE_MS + 400);
@@ -204,7 +227,7 @@ async function main() {
     rows: document.querySelectorAll('#scanTableBody tr').length,
   })`);
   const DB = dB.err ? null : JSON.parse(dB.value);
-  check('Flow B (FIX): nạp danh sách thành công', !!(DB && /Đã nạp/.test(DB.toast) && DB.rows >= 1), JSON.stringify(DB));
+  check('Flow B (FIX): nạp danh sách thành công', !!(DB && (/Đã nạp/.test(DB.toast) || /đã có/.test(DB.toast)) && DB.rows >= 6), JSON.stringify(DB));
 
   const failed = results.filter((r) => !r.pass).length;
   console.log(failed ? 'RESULT: FAIL (' + failed + ')' : 'RESULT: ALL PASS');

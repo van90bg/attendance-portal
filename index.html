@@ -57,7 +57,19 @@
         <div class="task-title">Điểm danh</div>
         <div class="task-meta">Đối chiếu danh sách theo Station / Ca / Team — tạo task, quét giờ có mặt, điểm danh, bàn giao</div>
       </div>
-      <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
+      <div class="create-task-wrap" id="createTaskWrap">
+        <button class="btn" id="btnCreate" onclick="toggleCreateTaskMenu()" aria-haspopup="true" aria-expanded="false">+ Task mới</button>
+        <div class="create-task-menu hidden" id="createTaskMenu" role="menu" aria-label="Tạo task mới">
+          <button type="button" class="create-task-menu-item" role="menuitem" onclick="chooseCreateMode('roster')">
+            <span class="create-task-item-title">Nạp danh sách</span>
+            <span class="create-task-item-hint">Chọn Station — task có danh sách NV theo ca</span>
+          </button>
+          <button type="button" class="create-task-menu-item" role="menuitem" onclick="chooseCreateMode('empty')">
+            <span class="create-task-item-title">Task rỗng</span>
+            <span class="create-task-item-hint">Quét tự do — nạp danh sách sau (hoặc không)</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -540,7 +552,7 @@
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">
     <h2 id="createModalTitle">Tạo task mới</h2>
-    <p class="mode-desc">Task rỗng — nạp danh sách theo ca sau trong màn quét.</p>
+    <p class="mode-desc">Chọn Station — task này có danh sách NV; sau khi tạo, mở "Nạp danh sách" trong màn quét để chọn Ca và nạp.</p>
     <div class="create-form" id="createForm">
       <div class="frow">
         <span class="flabel">Station <span class="fnote">bắt buộc</span></span>

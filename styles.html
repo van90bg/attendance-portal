@@ -145,6 +145,23 @@
     }
     .btn:hover { background: var(--primary-dark); }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
+    /* Dropdown tạo task: 2 nhóm (Nạp danh sách / Task rỗng) */
+    .create-task-wrap { position: relative; }
+    #btnCreate::after { content: '\25BE'; margin-left: var(--space-2); font-size: var(--text-2xs); transition: transform .15s; }
+    .create-task-wrap.menu-open #btnCreate::after { transform: rotate(180deg); }
+    .create-task-menu {
+      position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: 60;
+      min-width: 250px; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); box-shadow: 0 2px 10px rgba(0,0,0,.10);
+      padding: var(--space-1);
+    }
+    .create-task-menu-item {
+      display: block; width: 100%; text-align: left; border: none; background: none;
+      padding: var(--space-2); border-radius: var(--radius-sm); cursor: pointer;
+    }
+    .create-task-menu-item:hover { background: var(--surface-muted); }
+    .create-task-item-title { display: block; font-weight: 600; color: var(--text); }
+    .create-task-item-hint { display: block; font-size: var(--text-2xs); color: var(--muted); margin-top: 2px; }
     .btn-outline {
       background: #fff;
       color: var(--primary);

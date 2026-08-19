@@ -56,7 +56,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 
 ## Tính năng
 
-- **Tạo task 1 luồng (A2)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): bấm **+ Task mới** → vào task ngay; danh sách nạp sau qua nút **Nạp danh sách** (tab Theo ca / Dán mã) hoặc quét.
+- **Tạo task 2 nhóm (dropdown + Task mới)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): nút **+ Task mới** là dropdown 2 lựa chọn — **Nạp danh sách** (chọn Station trong modal → task có station, nạp roster theo ca ngay) hoặc **Task rỗng** (tạo ngay, quét tự do); danh sách nạp sau qua nút **Nạp danh sách** (tab Theo ca / Dán mã) hoặc quét.
 - **Quy trình 2 pha** — pha **Mở** ghi LISTED_AT (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi SCANNED_AT:
   - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Bắt đầu điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
     - Nạp roster theo ca (tab **Theo ca** trong **Nạp danh sách**): append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1); quét phase 2 = Có mặt / Dư.

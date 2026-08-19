@@ -179,7 +179,7 @@
   function refreshModeUI() {
     var desc = document.getElementById('modeDesc');
     if (desc) {
-      desc.innerHTML = 'Task rỗng — quét / nạp danh sách sau.';
+      desc.innerHTML = 'Chọn Station — task này có danh sách NV; sau khi tạo, mở "Nạp danh sách" trong màn quét để chọn Ca và nạp.';
     }
   }
 
@@ -194,6 +194,34 @@
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     renderCreateChips_();
+  }
+  /* ===== Dropdown tạo task: 2 nhóm — Nạp danh sách (chọn Station) / Task rỗng (tạo ngay) ===== */
+  function toggleCreateTaskMenu() {
+    var menu = document.getElementById('createTaskMenu');
+    var btn = document.getElementById('btnCreate');
+    if (!menu) return;
+    var nowHidden = !menu.classList.contains('hidden');
+    menu.classList.toggle('hidden', nowHidden);
+    if (btn) btn.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
+    var wrap = document.getElementById('createTaskWrap');
+    if (wrap) wrap.classList.toggle('menu-open', !nowHidden);
+  }
+  function closeCreateTaskMenu() {
+    var menu = document.getElementById('createTaskMenu');
+    if (!menu || menu.classList.contains('hidden')) return;
+    menu.classList.add('hidden');
+    var btn = document.getElementById('btnCreate');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    var wrap = document.getElementById('createTaskWrap');
+    if (wrap) wrap.classList.remove('menu-open');
+  }
+  function chooseCreateMode(mode) {
+    closeCreateTaskMenu();
+    if (mode === 'roster') openCreateModal();
+    else if (mode === 'empty') createEmptyTask();
+  }
+  function createEmptyTask() {
+    createTaskWithMeta_('', '', '');
   }
   function closeCreateModal() {
     var m = document.getElementById('createModal');
@@ -338,9 +366,15 @@
     }
   })();
 
+  document.addEventListener('click', function (e) {
+    var wrap = document.getElementById('createTaskWrap');
+    if (wrap && !wrap.contains(e.target)) closeCreateTaskMenu();
+  });
   document.addEventListener('keydown', function (e) {
     // P3: Escape đóng modal (focus trap cơ bản)
     if (e.key === 'Escape') {
+      var cmenu = document.getElementById('createTaskMenu');
+      if (cmenu && !cmenu.classList.contains('hidden')) { closeCreateTaskMenu(); return; }
       m = document.getElementById('createModal');
       if (m && m.classList.contains('open')) { closeCreateModal(); return; }
       m = document.getElementById('confirmModal');
