@@ -32,7 +32,11 @@ function httpGet(p, method) {
 async function ensureCdp() {
   try { await httpGet('/json/version'); return; } catch (e) { /* boot */ }
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rollcall-roster-'));
-  const exe = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  const exe = process.env.CHROME_PATH || [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',  // Windows (default dev box)
+    '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable',  // Linux (codespace)
+    '/usr/bin/chromium', '/usr/bin/chromium-browser', '/snap/bin/chromium',
+  ].find(function (p) { return fs.existsSync(p); }) || 'google-chrome';
   console.log('Boot Chrome headless (CDP port ' + CDP_PORT + ')...');
   chromeProc = spawn(exe, ['--headless=new', '--remote-debugging-port=' + CDP_PORT,
     '--user-data-dir=' + userDataDir, '--no-first-run', '--no-default-browser-check', '--disable-gpu', 'about:blank'],

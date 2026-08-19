@@ -33,8 +33,11 @@ async function ensureCdp() {
     return; // đã có CDP port
   } catch (e) { /* chưa mở */ }
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rollcall-mock-'));
-  const exe = process.env.CHROME_PATH
-    || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  const exe = process.env.CHROME_PATH || [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',  // Windows (default dev box)
+    '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable',  // Linux (codespace)
+    '/usr/bin/chromium', '/usr/bin/chromium-browser', '/snap/bin/chromium',
+  ].find(function (p) { return fs.existsSync(p); }) || 'google-chrome';
   console.log('Boot Chrome headless (CDP port ' + CDP_PORT + ')...');
   chromeProc = spawn(exe, [
     '--headless=new',
