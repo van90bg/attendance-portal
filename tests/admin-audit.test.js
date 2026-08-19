@@ -50,7 +50,7 @@ test('getAuditLogApi: admin nhận rows, mới nhất trước', () => {
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'mgr@spx.com': 'admin' })]);
-  svc.audit_('scan', 'R2026', { staffId: 'Ops1' });
+  svc.audit_('loadRoster', 'R2026', { staffId: 'Ops1' });
   svc.audit_('createTask', 'R2027', {});
   const res = svc.getAuditLogApi(50);
   assert.equal(res.ok, true);
@@ -237,6 +237,33 @@ test('updateLogRowStatus: PRESENT→PENDING clear TIME_SCAN + LISTED_AT (reset v
   assert.equal(res.counters.presentAt, 0);
   assert.equal(res.counters.absent, 1);
   assert.ok(String(ss.sheets.AuditLog.data[ss.sheets.AuditLog.data.length - 1][4]).includes('clearListedAt') && String(ss.sheets.AuditLog.data[ss.sheets.AuditLog.data.length - 1][4]).includes('true'));
+});
+
+test('updateLogRowStatus: ABSENT→PENDING clear LISTED_AT (không có scan để clear) (#7)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, '', ST.ABSENT, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.PENDING);
+  assert.equal(res.ok, true, res.message);
+  const raw = ss.sheets.AttendanceLog.data[1];
+  assert.equal(raw[7], '', 'LISTED_AT bị xoá — PENDING = chưa đến');
+  assert.equal(raw[8], '', 'TIME_SCAN (rỗng sẵn) không đổi');
+  assert.equal(res.counters.absent, 1, 'partition: PENDING chưa quét vẫn tính absent (scanned+absent=total)');
+});
+
+test('audit_: action ngoài whitelist KHÔNG ghi (log poisoning chặn) (#9)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'mgr@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  svc.audit_('completeTask', 'R2026', {});
+  svc.audit_('scan', 'R2026', { staffId: 'Ops1' });        // ngoài whitelist — bị bỏ
+  svc.audit_('deleteAllRows', 'R2026', {});                // action lạ qua google.script.run
+  const rows = ss.sheets.AuditLog.data;
+  assert.equal(rows.length, 2, 'chỉ header + 1 row whitelist');
+  assert.equal(rows[1][2], 'completeTask');
 });
 
 test('updateLogRowStatus: PENDING→EXTRA dòng chưa quét → FILL TIME_SCAN (B-P1-2 — task đóng được)', () => {

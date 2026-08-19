@@ -476,6 +476,11 @@ function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime, clearScanned, c
     sheet.getRange(rowIndex, LOG_COLS.LISTED_AT + 1, 1, 3).setValues([['', '', newStatus]]);
   } else if (clearScanned) {
     sheet.getRange(rowIndex, LOG_COLS.SCANNED_AT + 1, 1, 2).setValues([['', newStatus]]);
+  } else if (clearListed) {
+    // clearListed-only (ABSENT→PENDING — dòng không có scan): LISTED_AT + STATUS KHÔNG liền
+    // (SCANNED_AT chen giữa) → 2 setValues riêng; SCANNED_AT giữ nguyên.
+    sheet.getRange(rowIndex, LOG_COLS.LISTED_AT + 1, 1, 1).setValues([['']]);
+    sheet.getRange(rowIndex, LOG_COLS.STATUS + 1, 1, 1).setValues([[newStatus]]);
   } else if (scanTime) {
     sheet.getRange(rowIndex, LOG_COLS.SCANNED_AT + 1, 1, 2).setValues([[scanTime, newStatus]]);
   } else {

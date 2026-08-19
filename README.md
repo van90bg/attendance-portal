@@ -122,7 +122,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 197 unit tests node --test
+├── tests/                 # 199 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
@@ -133,7 +133,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 197/197 unit tests (node:test)
+npm test                        # 199/199 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -182,7 +182,7 @@ clasp deploy
 - ✅ Đợt 4 (2026-08-19): security hardening — **repo mutator gates** (M1: `requireRole_('operator')` ở LogRepo/TaskRepo/StaffDataRepo — chống bypass gọi global trực tiếp) · **`getFilterOptionsApi`/`previewStaffApi` gate operator+** + client skip `loadFilterOptions` cho viewer · **`roleMap` tách `getSettings_` → `getRoleMap_`** (P0: bản đồ quyền không lộ qua settings public) · DEFENSE `getTaskListApi`/`getTaskDetailApi`.
 - ✅ Đợt 5 (2026-08-19): backend logic P1 — **`canMutateTask_` fail-closed** (complete/reopen/updateLogRowStatus — task legacy `'web'` chỉ admin; scan/paste/loadRoster/transition vẫn `canScanOpen_` fail-open vì cần vận hành) · **PENDING→EXTRA tự fill TIME_SCAN** (partition invariant — task không kẹt "counter-mismatch") · **`batchInsertLogRows_` invalidate detail+list cache** · **`markUnscannedAbsent_` dùng epoch** (timeScan junk → Vắng đúng) · **AttendanceTask thêm cột `date`** (header + migration 9→10 cột khớp `TASK_COL_COUNT`).
 - ✅ Đợt 6 (2026-08-19): frontend P1 — nhãn mobile card bảng task `'Đã điểm danh'` (khớp `data-label` JS) · bottom nav thêm mục **Dữ liệu** (manager+ mobile vào được viewStaff) · **`#scanPagination`** ra ngoài `.table-wrap` · **viewReports/viewAdmin/viewAbout vào trong `<main>`**.
-- ✅ Đợt 7 (2026-08-19): review integrity backend — **row-integrity mutators** (updateTaskStatus_ fallback theo taskId / setLogRowStatus_ chặn row lệch / batchUpdateLogRows_ lọc rowIndex thuộc taskId — không ghi nhầm dòng task khác) · **cache gen guard** (`CACHE_KEYS.CACHE_GEN` — mọi invalidate*_ bump; cachedJson_ skip put dữ liệu cũ khi gen đổi giữa load — hết stale-resurrection race cross-deploy) · **`ensureSheets_(strict)` header validation theo vị trí** (setupSheets fail-closed 'HEADER MISMATCH'; doGet non-strict chỉ log) · **overwriteStaffData_ LockService** (clear→write→invalidate atomic) · **report filter ambiguous phần số** (OPS12345 vs ABC12345 → chỉ khớp chính xác + message báo admin) · **getTaskListApi error contract** ({ok:false,message} — [] chỉ khi rỗng thật; client xử lý lỗi ở đợt 8) · **getStaffStatsApi cảnh báo ≥2000 NV**.
+- ✅ Đợt 7 (2026-08-19): review integrity backend — **row-integrity mutators** (updateTaskStatus_ fallback theo taskId / setLogRowStatus_ chặn row lệch / batchUpdateLogRows_ lọc rowIndex thuộc taskId — không ghi nhầm dòng task khác) · **cache gen guard** (`CACHE_KEYS.CACHE_GEN` — mọi invalidate*_ bump; cachedJson_ skip put dữ liệu cũ khi gen đổi giữa load — hết stale-resurrection race cross-deploy) · **`ensureSheets_(strict)` header validation theo vị trí** (setupSheets fail-closed 'HEADER MISMATCH'; doGet non-strict chỉ log) · **overwriteStaffData_ LockService** (clear→write→invalidate atomic) · **report filter ambiguous phần số** (OPS12345 vs ABC12345 → chỉ khớp chính xác + message báo admin) · **getTaskListApi error contract** ({ok:false,message} — [] chỉ khi rỗng thật; client xử lý lỗi ở đợt 8) · **getStaffStatsApi cảnh báo ≥2000 NV** · **admin gate thật** (owner-gate `isEditor_()` → `requireRole_('admin')` — admin trong roleMap giờ bypass như deployer) · **clearListed độc lập** (ABSENT→PENDING xoá LISTED_AT — hết PENDING 'đã đến' giả) · **audit whitelist + lock** (action lạ qua google.script.run bị bỏ, append không interleave).
 
 ---
 

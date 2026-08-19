@@ -7,18 +7,39 @@
  * gãy nghiệp vụ chính (audit là phụ, scan/complete phải chạy được dù audit fail).
  */
 
-/** Ghi 1 dòng audit (append — không lock, sheet nhỏ). */
+/** Whitelist action hợp lệ (review 2026-08-19) — audit_ là hàm global gọi được qua
+ * google.script.run; action lạ (doạ dòng junk) bị BỎ, không làm phình AuditLog.
+ * Thêm action mới phải vào đây — KHÔNG audit action chưa đăng ký. */
+const AUDIT_ACTIONS_ = {
+  pasteCodes: true, createTask: true, loadRoster: true, completeTaskForceClose: true,
+  completeTask: true, transitionToAttend: true, reopenTask: true, cancelTask: true,
+  fixLogRowStatus: true, settings: true,
+};
+
+/** Ghi 1 dòng audit (append + LockService — append row không lock có thể interleave
+ * khi 2 execution ghi cùng lúc; lock re-entrant nên an toàn với caller đã giữ lock). */
 function audit_(action, targetId, detail) {
   try {
-    const sheet = getSheet_(SHEETS.AUDIT_LOG);
-    const row = [
-      new Date().toISOString(),
-      getActiveEmail_() || 'web',
-      String(action || ''),
-      String(targetId || ''),
-      JSON.stringify(detail || {}),
-    ];
-    sheet.appendRow(row);
+    const act = String(action || '');
+    if (!AUDIT_ACTIONS_[act]) {
+      console.warn('audit_ bỏ qua action ngoài whitelist:', act);
+      return;
+    }
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      const sheet = getSheet_(SHEETS.AUDIT_LOG);
+      const row = [
+        new Date().toISOString(),
+        getActiveEmail_() || 'web',
+        act,
+        String(targetId || ''),
+        JSON.stringify(detail || {}),
+      ];
+      sheet.appendRow(row);
+    } finally {
+      lock.releaseLock();
+    }
   } catch (e) {
     console.error('audit_ fail:', e && e.message ? e.message : e);
   }

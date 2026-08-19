@@ -144,7 +144,7 @@ function loadRoster(taskId, filters) {
       if (task.status === TASK_STATUS.DONE) {
         return { ok: false, total: 0, added: 0, skipped: 0, message: 'Task đã kết thúc — không thể nạp danh sách', counters: null };
       }
-      const isAdmin = isEditor_();
+      const isAdmin = requireRole_('admin');
       if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
         return { ok: false, total: 0, added: 0, skipped: 0, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, counters: null };
       }
@@ -221,7 +221,7 @@ function completeTask(taskId) {
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
     // Mutation gate fail-closed (canMutateTask_ — B-P1-4): đóng task gán Vắng cho NV chưa
     // quét — chỉ owner/admin; KHÔNG fail-open cho task legacy 'web' (canScanOpen_ dành vận hành).
-    const isAdmin = isEditor_();
+    const isAdmin = requireRole_('admin');
     if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
       return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
     }
@@ -295,7 +295,7 @@ function transitionToAttend(taskId) {
     // giới hạn owner) → chỉ owner/admin được phép, đồng gate scanStaff/pasteCodes/loadRoster.
     // Thiếu gate này: non-owner gọi thẳng transitionToAttendApi qua console để vô hiệu
     // owner-gate phase Mở rồi quét thoải mái (owner-gate chỉ là khoá cửa trước).
-    const isAdmin = isEditor_();
+    const isAdmin = requireRole_('admin');
     if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
       return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
     }
@@ -328,7 +328,7 @@ function reopenTask(taskId) {
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
     // Mutation gate fail-closed (canMutateTask_ — B-P1-4): mở lại reset ABSENT→PENDING —
     // chỉ owner/admin; KHÔNG fail-open cho task legacy 'web'.
-    const isAdmin = isEditor_();
+    const isAdmin = requireRole_('admin');
     if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
       return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
     }
@@ -373,7 +373,7 @@ function cancelTask(taskId) {
     if (task.status !== TASK_STATUS.OPEN) {
       return { ok: false, message: 'Chỉ hủy được task đang ở phase Mở' };
     }
-    const isAdmin = isEditor_();
+    const isAdmin = requireRole_('admin');
     if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
       return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
     }
@@ -402,7 +402,7 @@ function getTaskDetail(taskId) {
   if (!detail || !detail.task) return detailError_('Không tìm thấy task');
   // T-1: Tính permission tươi cho user đang đọc — KHÔNG lưu vào cache (cache 15s dùng chung mọi user).
   const activeEmail = getActiveEmail_();
-  const isAdmin = isEditor_();
+  const isAdmin = requireRole_('admin');
   const isOwner = String(detail.task.createdBy || '').trim().toLowerCase() === String(activeEmail || '').trim().toLowerCase()
     && String(detail.task.createdBy || '').trim().toLowerCase() !== 'web'
     && String(detail.task.createdBy || '').trim().includes('@');
@@ -445,7 +445,7 @@ function updateLogRowStatus(taskId, rawStaffId, newStatus) {
       if (!task) return { ok: false, message: 'Không tìm thấy task', counters: null };
       // Mutation dữ liệu chấm công → owner/admin (fail-closed canMutateTask_ — cùng gate
       // completeTask/reopenTask; KHÔNG fail-open cho task legacy 'web').
-      const isAdmin = isEditor_();
+      const isAdmin = requireRole_('admin');
       if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
         return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, counters: null };
       }
@@ -461,9 +461,12 @@ function updateLogRowStatus(taskId, rawStaffId, newStatus) {
       // (scanned sai, absent thieu). Ve PENDING → clear luon LISTED_AT (reset ve chua den).
       // EXTRA KHONG clear: giu SCANNED_AT theo thiet ke (completeTask partition
       // scanned+absent=total — EXTRA chua quet se pha invariant).
+      // #7 (review 2026-08-19): clearListed DOC LAP voi clearScanned — ABSENT→PENDING
+      // (khong co scan) truoc day LISTED_AT con → dong PENDING van nam trong filter
+      // 'Da den (chua quet lan 2)'. PENDING = chua den → xoa LISTED_AT bat ky nguon nao.
       const hasScan = Number(row.scannedAtEpoch) > 0;
       const clearScanned = hasScan && (newStatus === STATUS.ABSENT || newStatus === STATUS.PENDING);
-      const clearListed = clearScanned && newStatus === STATUS.PENDING;
+      const clearListed = newStatus === STATUS.PENDING;
       // B-P1-2: EXTRA trên dòng CHƯA quét cũng fill TIME_SCAN — partition invariant
       // scanned+absent=total (EXTRA không scan → computeCounters đếm extra, absent thiếu
       // → completeTask chặn "counter-mismatch", task kẹt không đóng được).
