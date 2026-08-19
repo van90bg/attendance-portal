@@ -1,6 +1,6 @@
 /* Verify tạo task 2 nhóm (dropdown): "Nạp danh sách" / "Task rỗng" + roster modal station chips.
  * Flow A: dropdown → Nạp danh sách → create modal chọn Station → tạo → roster prefill → chọn Ca → nạp.
- * Flow B: dropdown → Task rỗng (station '') → tạo thật → modal hiện chips Station → chọn → preview > 0 → nạp.
+ * Flow B: dropdown → Task rỗng (station '') → tạo thật → KHÔNG có nút Nạp danh sách (modal chỉ ở task có station).
  * Chạy: CHROME_PATH=... node scripts/verify-roster-station.js
  */
 const http = require('node:http');
@@ -194,40 +194,12 @@ async function main() {
   const VB = vB.err ? null : JSON.parse(vB.value);
   check('Flow B: "Task rỗng" tạo xong — station "" + scan tự mở + menu đóng', !!(VB && VB.station === '' && VB.menuClosed && /Tạo task thành công/.test(VB.toast || '')), JSON.stringify(VB));
 
-  await evalIn(ws, `document.getElementById('btnLoadList').click()`);
-  await sleep(SETTLE_MS + 400);
-  const mB = await evalIn(ws, `JSON.stringify({
-    num: document.getElementById('rosterTotalNum').textContent,
-    subDisabled: document.getElementById('btnRosterSubmit').disabled,
-    stChips: document.querySelectorAll('#rosterChipsStation .pick').length,
-  })`);
-  const MB = mB.err ? null : JSON.parse(mB.value);
-  check('Flow B: station rỗng → preview 0 + nút disabled (chưa chọn)', !!(MB && MB.num === '0' && MB.subDisabled === true && MB.stChips >= 1), JSON.stringify(MB));
-
-  await evalIn(ws, `(function(){
-    var chips = document.querySelectorAll('#rosterChipsStation .pick');
-    var target = null;
-    Array.prototype.forEach.call(chips, function (c) { if (c.getAttribute('data-val') === 'HN2 SOC') target = c; });
-    if (target) target.click();
-    return !!target;
-  })()`);
-  await sleep(SETTLE_MS + 400);
-  const mB2 = await evalIn(ws, `JSON.stringify({
-    num: document.getElementById('rosterTotalNum').textContent,
-    subDisabled: document.getElementById('btnRosterSubmit').disabled,
-    st: ROSTER_FILTER.station,
-  })`);
-  const MB2 = mB2.err ? null : JSON.parse(mB2.value);
-  check('Flow B (FIX): chọn Station chip → preview > 0 + nút enabled', !!(MB2 && MB2.st === 'HN2 SOC' && Number(MB2.num) > 0 && MB2.subDisabled === false), JSON.stringify(MB2));
-
-  await evalIn(ws, `document.getElementById('btnRosterSubmit').click()`);
-  await sleep(SETTLE_MS);
-  const dB = await evalIn(ws, `JSON.stringify({
+  const vB2 = await evalIn(ws, `JSON.stringify({
+    loadBtnHidden: (function(){ var b = document.getElementById('btnLoadList'); return b ? b.style.display === 'none' : true; })(),
     toast: document.getElementById('toast').innerText,
-    rows: document.querySelectorAll('#scanTableBody tr').length,
   })`);
-  const DB = dB.err ? null : JSON.parse(dB.value);
-  check('Flow B (FIX): nạp danh sách thành công', !!(DB && (/Đã nạp/.test(DB.toast) || /đã có/.test(DB.toast)) && DB.rows >= 6), JSON.stringify(DB));
+  const VB2 = vB2.err ? null : JSON.parse(vB2.value);
+  check('Flow B: task rỗng KHÔNG có nút Nạp danh sách', !!(VB2 && VB2.loadBtnHidden), JSON.stringify(VB2));
 
   const failed = results.filter((r) => !r.pass).length;
   console.log(failed ? 'RESULT: FAIL (' + failed + ')' : 'RESULT: ALL PASS');

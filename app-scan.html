@@ -68,11 +68,12 @@
 
     // T-2: 1 nút "Nạp danh sách" (modal 2 tab: Theo ca / Dán mã) — hiện phase Mở + Điểm danh
     // + canScanOpen (roster nạp cả phase Điểm danh — NV đến trễ; paste vẫn chặn phase 2 server).
+    // CHỈ task có station (nhóm Nạp danh sách) — task rỗng không có nút này.
     var loadBtn = document.getElementById('btnLoadList');
     var perm = data.task.permission || {};
     if (loadBtn) {
       loadBtn.style.display = (data.task.phase !== TASK_STATUS_C.DONE
-        && data.task.status !== TASK_STATUS_C.DONE && perm.canScanOpen) ? '' : 'none';
+        && data.task.status !== TASK_STATUS_C.DONE && data.task.station && perm.canScanOpen) ? '' : 'none';
     }
 
     // Quét được khi: phase2 (Điểm danh) — phase1 ghi LISTED_AT, chuyển Điểm danh, phase2 ghi SCANNED_AT.
@@ -752,10 +753,11 @@
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
     }
-    // T-2: nút "Nạp danh sách" — phase Mở + Điểm danh (roster), owner (canScanOpen).
+    // T-2: nút "Nạp danh sách" — CHỈ task có station (nhóm Nạp danh sách), phase Mở + Điểm danh (roster), owner (canScanOpen).
     if (btnLoadList) {
       btnLoadList.style.display = (phase !== TASK_STATUS_C.DONE && !scanOwnerLocked
-        && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
+        && CURRENT_TASK && CURRENT_TASK.station
+        && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
     }
     if (scanBusy()) {
       if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }

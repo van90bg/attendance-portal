@@ -201,13 +201,13 @@ open  →  attend  →  done
 | `attend` | 2 — Điểm danh | Quét ghi **SCANNED_AT** (TIME_SCAN); mọi người quét được |
 | `done` | — | Đã kết thúc — quét reject `task-closed` |
 
-Đặc điểm tạo task: **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (trong modal **Nạp danh sách** — tab Theo ca có bộ chọn **Station** riêng, task station rỗng vẫn nạp được); bấm **Bắt đầu điểm danh** (cảnh báo nếu log rỗng) để sang `attend`. Nút **+ Task mới** là dropdown 2 nhóm: **Nạp danh sách** (modal Station/Team/Ngày — station bắt buộc) và **Task rỗng** (tạo ngay không chọn gì).
+Đặc điểm tạo task: **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (trong modal **Nạp danh sách**); bấm **Bắt đầu điểm danh** (cảnh báo nếu log rỗng) để sang `attend`. Nút **+ Task mới** là dropdown 2 nhóm: **Nạp danh sách** (modal Station/Team/Ngày — station bắt buộc) và **Task rỗng** (tạo ngay không chọn gì). Nút **Nạp danh sách** trong màn quét **CHỈ hiện ở task có station** (nhóm Nạp danh sách) — task rỗng quét tự do, không có modal nạp.
 
 `transitionToAttend(taskId)` - `open → attend`, guard `status === OPEN`; không sửa log (NV đã có LISTED_AT giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` + **owner-gate `canScanOpen_` (audit 2026-08-19)**: chuyển OPEN→ATTEND mở khoá quét phase 2 cho mọi người nên chỉ owner/admin được phép - chống non-owner gọi thẳng API qua console để vô hiệu owner-gate phase Mở.
 
 ### 4.4 Tạo task (`createReconcileTask`)
 
-1. **A2:** server ép `noList = true` cho MỌI task mới — KHÔNG đọc StaffData / KHÔNG pre-fill log (danh sách nạp sau qua loadRosterApi). Client: nút **+ Task mới** là dropdown — nhóm **Nạp danh sách** mở modal Station + Team + Ngày (station bắt buộc — task có station để nạp roster theo ca); nhóm **Task rỗng** gọi thẳng `createReconcileTaskApi` với input rỗng (station `''`) — quét tự do, nạp sau qua loadRosterApi (tab Theo ca có chips Station riêng).
+1. **A2:** server ép `noList = true` cho MỌI task mới — KHÔNG đọc StaffData / KHÔNG pre-fill log (danh sách nạp sau qua loadRosterApi). Client: nút **+ Task mới** là dropdown — nhóm **Nạp danh sách** mở modal Station + Team + Ngày (station bắt buộc — task có station để nạp roster theo ca); nhóm **Task rỗng** gọi thẳng `createReconcileTaskApi` với input rỗng (station `''`) — quét tự do. Nút **Nạp danh sách** (màn quét) **CHỈ hiện khi task có station** (gate UI `CURRENT_TASK.station` — task rỗng không có modal nạp; server loadRosterApi vẫn chấp nhận mọi task).
 2. Task lưu: `status='open'`, `slotCode='Tự do'` (`SLOT_FREE_MAGIC`) + `team`/`contractType` client gửi (metadata hiển thị).
 3. `insertTask_` (append 1 dòng) — KHÔNG `batchInsertLogRows_` (log rỗng; roster nạp sau qua `loadRosterApi`).
 4. Status khởi tạo: **luôn `OPEN`** (A2 — mọi task qua phase 1).
