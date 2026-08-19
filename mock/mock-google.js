@@ -303,7 +303,7 @@
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
       function z(msg) { return { ok: false, total: 0, added: 0, skipped: 0, message: msg, counters: null }; }
       if (!task) return z('Không tìm thấy task');
-      if (task.status !== 'open') return z('Chỉ phase Mở mới nạp danh sách được');
+      if (task.status === 'done') return z('Task đã kết thúc — không thể nạp danh sách');
       var base = {
         station: filters && filters.station,
         slotCode: (filters && filters.slotCode) || [],
@@ -326,6 +326,28 @@
         added++;
       });
       return { ok: true, total: deduped.length, added: added, skipped: skipped, counters: counters(log), message: added ? ('Đã nạp ' + added + ' NV' + (skipped ? ' — bỏ qua ' + skipped + ' đã có' : '')) : ('Tất cả ' + skipped + ' NV đã có trong danh sách') };
+    },
+    updateLogRowStatusApi: function (taskId, staffId, newStatus) {
+      // Khớp server updateLogRowStatus (TaskService): đổi STATUS 1 dòng theo staffId;
+      // PRESENT trên dòng chưa quét → fill TIME_SCAN = now; trả counters + message.
+      var task = null;
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
+      if (!task) return { ok: false, message: 'Không tìm thấy task', counters: null };
+      var allowed = ['-', 'Có mặt', 'Vắng', 'Dư'];
+      if (allowed.indexOf(newStatus) === -1) return { ok: false, message: 'Trạng thái không hợp lệ', counters: null };
+      var needle = String(staffId || '').trim().toUpperCase();
+      var hit = null;
+      getLog(taskId).forEach(function (r) { if (String(r.staffId || '').toUpperCase() === needle) hit = r; });
+      if (!hit) return { ok: false, message: 'Không tìm thấy NV trong task', counters: null };
+      if (hit.status === newStatus) return { ok: false, message: 'NV đã ở trạng thái này', counters: null };
+      hit.status = newStatus;
+      if (newStatus === 'Có mặt' && !hit.scannedAtEpoch) {
+        var nowMs = Date.now();
+        var d = new Date(nowMs);
+        hit.scannedAtText = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+        hit.scannedAtEpoch = nowMs;
+      }
+      return { ok: true, message: 'Đã cập nhật ' + staffId + ' → ' + newStatus, counters: counters(getLog(taskId)) };
     },
     searchLogsByStaffApi: function (rawStaffId) {
       // Mock F-search: quét toàn bộ task log + roster NV, filter staffId (case-insensitive).

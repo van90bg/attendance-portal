@@ -137,3 +137,102 @@ test('reopenTask: non-owner rejected (owner gate)', () => {
   assert.equal(res.ok, false);
   assert.equal(res.message, UI_SCAN_OWNER);
 });
+
+test('completeTask: counter mismatch + admin → force-close ok:true + audit completeTaskForceClose', () => {
+  const { ctx, ss } = makeSandbox(); // admin@spx.com = editor (DEPLOYER_EMAIL)
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, t, ST.PRESENT, '2026-08-17']);
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6221', 'NV C', '', '', '', '', '', '', ST.EXTRA, '']); // EXTRA chưa quét → counter lệch
+  const res = svc.completeTask('R2026');
+  assert.equal(res.ok, true, res.message);
+  assert.equal(svc.readTask_('R2026').status, 'done');
+  const rows = ss.sheets.AuditLog.data;
+  assert.equal(rows[rows.length - 2][2], 'completeTaskForceClose');
+  assert.equal(rows[rows.length - 2][3], 'R2026');
+  assert.equal(rows[rows.length - 1][2], 'completeTask', 'audit completeTask vẫn được ghi sau');
+});
+
+test('completeTask: counter mismatch + non-admin owner → vẫn reject (chỉ admin force-close)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' }); // owner nhưng KHÔNG editor
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, t, ST.PRESENT, '2026-08-17']);
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6221', 'NV C', '', '', '', '', '', '', ST.EXTRA, '']);
+  const res = svc.completeTask('R2026');
+  assert.equal(res.ok, false);
+  assert.match(res.message, /scanned \+ absent/i);
+});
+
+test('updateLogRowStatus: owner đổi ABSENT→PRESENT → fill TIME_SCAN + counters + audit', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, '', ST.ABSENT, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.PRESENT);
+  assert.equal(res.ok, true, res.message);
+  assert.ok(res.counters, 'trả counters để client render');
+  const row = svc.findLogRow(svc.readLogRows_('R2026'), 'Ops6219');
+  assert.equal(row.status, ST.PRESENT);
+  assert.ok(Number(row.scannedAtEpoch) > 0, 'TIME_SCAN được điền (invariant PRESENT)');
+  const rows = ss.sheets.AuditLog.data;
+  assert.equal(rows[rows.length - 1][2], 'fixLogRowStatus');
+  assert.ok(String(rows[rows.length - 1][4]).includes('fillScanTime') && String(rows[rows.length - 1][4]).includes('true'));
+});
+
+test('updateLogRowStatus: PRESENT→EXTRA không fill TIME_SCAN (chỉ đổi STATUS)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, t, ST.PRESENT, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.EXTRA);
+  assert.equal(res.ok, true, res.message);
+  const row = svc.findLogRow(svc.readLogRows_('R2026'), 'Ops6219');
+  assert.equal(row.status, ST.EXTRA);
+  const raw = ss.sheets.AttendanceLog.data[1];
+  assert.equal(raw[8].getTime(), t.getTime(), 'TIME_SCAN giữ nguyên');
+});
+
+test('updateLogRowStatus: non-owner reject (owner gate)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', '', '', ST.PENDING, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.PRESENT);
+  assert.equal(res.ok, false);
+  assert.equal(res.message, UI_SCAN_OWNER);
+});
+
+test('updateLogRowStatus: status không hợp lệ → reject', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', '', '', ST.PENDING, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', 'X');
+  assert.equal(res.ok, false);
+  assert.match(res.message, /hợp lệ/);
+});
+
+test('updateLogRowStatus: NV không có trong task → reject; cùng status → reject', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', '', '', ST.PENDING, '2026-08-17']);
+  const nf = svc.updateLogRowStatus('R2026', 'Ops9999', ST.PRESENT);
+  assert.equal(nf.ok, false);
+  assert.match(nf.message, /Không tìm thấy NV/);
+  const same = svc.updateLogRowStatus('R2026', 'Ops6219', ST.PENDING);
+  assert.equal(same.ok, false);
+  assert.match(same.message, /đã ở trạng thái/);
+});

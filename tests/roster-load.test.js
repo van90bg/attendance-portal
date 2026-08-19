@@ -115,15 +115,26 @@ test('loadRosterApi: filter rỗng → ok:false (CREATE_FAILED_EMPTY)', () => {
   assert.match(res.message, /Không có nhân viên/i);
 });
 
-test('loadRosterApi gate: status != open → reject', () => {
+test('loadRosterApi gate: phase ATTEND → cho phép (NV đến trễ vẫn vào được danh sách)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
   seedTask(ss, 'R1', 'attend', 'admin@spx.com');
   const res = svc.loadRosterApi('R1', { station: 'HN2' });
+  assert.equal(res.ok, true, res.message);
+  assert.ok(res.added > 0, 'roster được nạp ở phase Điểm danh');
+});
+
+test('loadRosterApi gate: phase DONE → reject', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedStaff(ss);
+  seedTask(ss, 'R1', 'done', 'admin@spx.com');
+  const res = svc.loadRosterApi('R1', { station: 'HN2' });
   assert.equal(res.ok, false);
-  assert.match(res.message, /phase Mở/);
+  assert.match(res.message, /kết thúc/);
 });
 
 test('loadRosterApi gate: non-owner phase Mở → reject (canScanOpen_)', () => {

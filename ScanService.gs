@@ -104,13 +104,17 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
       // vẫn ghi Dư (staffInfo=null) thay vì "Server lỗi".
       try { staffIndex = readStaffIndex_() || null; } catch (e) { console.warn('readStaffIndex fail', staffId, e.message); staffIndex = null; }
     }
-    // scanNow = epoch client chụp lúc quét (WYSIWYG — user thấy giờ nào, sheet ghi giờ đó;
-    // trước đây server ghi giờ XỬ LÝ, queue 2.5s/item + đồng hồ thiết bị lệch → sau ~1s
-    // silent reload, cột LISTED_AT/SCANNED_AT nhảy về giờ server). Fallback giờ server khi
-    // client không gửi (thiết bị cũ / gọi tay) — chấp nhận epoch client vì gate operator+.
-    const scanNow = (typeof clientEpoch === 'number' && isFinite(clientEpoch) && clientEpoch > 0)
-      ? (Math.abs(clientEpoch - Date.now()) > 900000 ? new Date() : new Date(clientEpoch))
-      : new Date();
+    // scanNow = epoch client chup luc quet (WYSIWYG - user thay gio nao, sheet ghi gio do).
+    // Chong gian lan gio: chi chap nhan epoch client trong cua so ±3 phut so voi server
+    // (dong ho thiet bi lech nhe + queue delay 2.5s/item); ngoai cua so, gio truoc khi tao
+    // task (createdAtText), hoac gio tuong lai → server-authoritative (gio server hien tai).
+    const clientEpochOk = typeof clientEpoch === 'number' && isFinite(clientEpoch) && clientEpoch > 0
+      && Math.abs(clientEpoch - Date.now()) <= 180000;
+    let scanNow = clientEpochOk ? new Date(clientEpoch) : new Date();
+    const taskCreatedAt = safeDate_(task.createdAtText);
+    if ((taskCreatedAt && scanNow.getTime() < taskCreatedAt.getTime()) || scanNow.getTime() > Date.now()) {
+      scanNow = new Date();
+    }
     const commit = planScanCommits(
       { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
       task,
@@ -131,6 +135,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     const listedAtText = outcome ? outcome.listedAtText : '';
     const listedAtEpoch = outcome ? outcome.listedAtEpoch : 0;
     const scannedName = outcome ? outcome.staffName : null;
+    const staffUnknown = outcome ? !!outcome.staffUnknown : false;
     const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));
     // P2 benchmark: tổng + tách giai đoạn — QA prod đọc Stackdriver biết ngay
     // bottleneck (read sheet vs write). Phân tích: t1→t2 = đọc task+log (full sheet),
@@ -154,6 +159,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
       listedAtText: listedAtText,
       listedAtEpoch: listedAtEpoch,
       staffName: scannedName,
+      staffUnknown: staffUnknown,
       slotCode: outcome ? outcome.slotCode : '',
       station: outcome ? outcome.station : '',
       team: outcome ? outcome.team : '',

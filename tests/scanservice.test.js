@@ -34,6 +34,7 @@ function makeCtx(overrides) {
     normalizeStaffId: (s) => (s || '').trim().toUpperCase(),
     isValidBarcodeId: (s) => /^OPS\d+$/i.test(s || ''),
     formatTime_: () => '00:00:00',
+    safeDate_: (s) => { if (!s) return null; const d = new Date(s); return isNaN(d.getTime()) ? null : d; },
     readTask_: () => overrides.readTask_ ? overrides.readTask_() : null,
     // m3: scanStaff giờ đọc task QUA cache — mock delegate về readTask_ (hành vi tương đương).
     // Test có thể override riêng readTaskCached_ để khóa đường dùng cache.

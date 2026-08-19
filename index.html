@@ -170,9 +170,9 @@
           </div>
           <div class="table-wrap">
             <div class="skeleton-wrap" id="scanSkeleton" style="display:none;">
-              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
-              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
+              <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
             </div>
             <table id="scanTable" style="display:none;">
               <thead>
@@ -188,6 +188,7 @@
                   <th scope="col" data-sort="7" class="sortable" aria-sort="none">Giờ vào DS</th>
                   <th scope="col" data-sort="8" class="sortable" aria-sort="none">Giờ điểm danh</th>
                   <th scope="col" data-sort="9" class="sortable" aria-sort="none">Trạng thái</th>
+                  <th scope="col">Sửa</th>
                 </tr>
               </thead>
               <tbody id="scanTableBody"></tbody>
@@ -581,6 +582,26 @@
   <div class="about-dialog spin-dialog">
     <div class="spin-big"></div>
     <p id="spinModalMsg" role="status" aria-live="polite" class="spin-msg"></p>
+  </div>
+</div>
+
+<!-- Modal sửa trạng thái 1 dòng log (fix thủ công — owner/admin, có audit server) -->
+<div id="fixStatusModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="fixStatusModalTitle" onclick="if(event.target===this)closeFixStatusModal()">
+  <div class="about-dialog">
+    <h2 id="fixStatusModalTitle">Sửa trạng thái</h2>
+    <p class="mode-desc" id="fixStatusMsg"></p>
+    <div class="create-form">
+      <div class="frow">
+        <span class="flabel">Trạng thái mới</span>
+        <select id="fixStatusSelect"></select>
+      </div>
+    </div>
+    <div class="create-footer">
+      <div class="create-actions">
+        <button class="btn btn-ghost" onclick="closeFixStatusModal()">Huỷ</button>
+        <button class="btn" id="btnFixStatusSubmit" onclick="submitFixStatus()" disabled>Lưu</button>
+      </div>
+    </div>
   </div>
 </div>
 

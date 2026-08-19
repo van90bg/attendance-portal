@@ -138,9 +138,11 @@ function loadRoster(taskId, filters) {
     try {
       const task = readTask_(taskId);
       if (!task) return { ok: false, total: 0, added: 0, skipped: 0, message: 'Không tìm thấy task', counters: null };
-      // Chỉ phase Mở (đồng gate với paste) — phase 2 không nạp roster (NV ngoài ds quét = Dư).
-      if (task.status !== TASK_STATUS.OPEN) {
-        return { ok: false, total: 0, added: 0, skipped: 0, message: 'Chỉ phase Mở mới nạp danh sách được', counters: null };
+      // Fix (2026-08-19): cho phep nap roster o phase OPEN VA ATTEND — NV den tre sau khi
+      // chuyen phase van vao duoc danh sach (append PENDING + listedAt=now, quet phase 2 = Có mặt).
+      // Chi chan khi task da DONE.
+      if (task.status === TASK_STATUS.DONE) {
+        return { ok: false, total: 0, added: 0, skipped: 0, message: 'Task đã kết thúc — không thể nạp danh sách', counters: null };
       }
       const isAdmin = isEditor_();
       if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
@@ -238,11 +240,17 @@ function completeTask(taskId) {
     const logRows = readLogRows_(taskId);
     const counters = computeCounters({ STATUS: STATUS }, logRows);
     if (counters.scanned + counters.absent !== counters.total) {
-      console.error({ bench: 'completeTask', taskId: taskId, counters: counters, error: 'counter-mismatch' });
-      return {
-        ok: false,
-        message: 'Lỗi dữ liệu: scanned + absent ≠ total (' + counters.scanned + '+' + counters.absent + ' ≠ ' + counters.total + '). Vui lòng báo admin.',
-      };
+      if (!isAdmin) {
+        console.error({ bench: 'completeTask', taskId: taskId, counters: counters, error: 'counter-mismatch' });
+        return {
+          ok: false,
+          message: 'Lỗi dữ liệu: scanned + absent ≠ total (' + counters.scanned + '+' + counters.absent + ' ≠ ' + counters.total + '). Vui lòng báo admin.',
+        };
+      }
+      // Admin force-close (escape hatch): counter lech (sua tay sheet / bug) van cho admin
+      // chot task - markUnscannedAbsent_ xu ly PENDING binh thuong ben duoi; audit ly do.
+      console.warn({ bench: 'completeTask', taskId: taskId, counters: counters, error: 'counter-mismatch-force-closed' });
+      audit_('completeTaskForceClose', taskId, { counters: counters });
     }
     // P1 (audit): markUnscannedAbsent_ TRƯỚC, updateTaskStatus_(DONE) SAU — fail-safe.
     // Nếu mark fail (quota/timeout): task vẫn ATTEND → user retry được.
@@ -366,4 +374,56 @@ function getTaskDetail(taskId) {
 /** F: object lỗi dùng chung cho getTaskDetail. */
 function detailError_(message) {
   return { ok: false, message: message, task: null, log: [] };
+}
+
+/**
+ * Sua trang thai 1 dong log theo staffId (fix thu cong — owner/admin, co audit).
+ * Dung cho: chuyen Du -> Co mat, sua Vang nham, bo sung nguoi vao danh sach.
+ * newStatus PRESENT tren dong chua quet (scannedAtEpoch=0) → ghi kem TIME_SCAN=now
+ * (giu invariant scanned+absent=total); cac status khac chi doi STATUS.
+ * @param {string} taskId
+ * @param {string} rawStaffId — ma NV (normalize trong ham)
+ * @param {string} newStatus — PENDING/PRESENT/ABSENT/EXTRA (STATUS)
+ * @returns {{ok: boolean, message: string, counters: Object|null}}
+ */
+function updateLogRowStatus(taskId, rawStaffId, newStatus) {
+  if (!taskId || !rawStaffId) return { ok: false, message: 'Thiếu taskId hoặc mã NV', counters: null };
+  // M1 (review): gate THẬT ở service layer — google.script.run gọi được global trực tiếp.
+  if (!requireRole_('operator')) {
+    return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)', counters: null };
+  }
+  const allowed = [STATUS.PENDING, STATUS.PRESENT, STATUS.ABSENT, STATUS.EXTRA];
+  if (allowed.indexOf(newStatus) === -1) {
+    return { ok: false, message: 'Trạng thái không hợp lệ', counters: null };
+  }
+  // DEFENSE: bọc toàn bộ logic — mọi lỗi trả ok:false thay vì ném ra client.
+  try {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      const task = readTask_(taskId);
+      if (!task) return { ok: false, message: 'Không tìm thấy task', counters: null };
+      // Mutation dữ liệu chấm công → owner/admin (cùng gate completeTask/reopenTask).
+      const isAdmin = isEditor_();
+      if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+        return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, counters: null };
+      }
+      const staffId = normalizeStaffId(rawStaffId);
+      const rows = readLogRows_(taskId);
+      const row = findLogRow(rows, staffId);
+      if (!row) return { ok: false, message: 'Không tìm thấy NV trong task', counters: null };
+      if (row.status === newStatus) {
+        return { ok: false, message: 'NV đã ở trạng thái này', counters: null };
+      }
+      const scanTime = (newStatus === STATUS.PRESENT && !(Number(row.scannedAtEpoch) > 0)) ? new Date() : null;
+      setLogRowStatus_(taskId, row._rowIndex, newStatus, scanTime);
+      audit_('fixLogRowStatus', taskId, { staffId: staffId, oldStatus: row.status, newStatus: newStatus, fillScanTime: !!scanTime });
+      const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));
+      return { ok: true, message: 'Đã cập nhật ' + staffId + ' → ' + newStatus, counters: counters };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'updateLogRowStatus fail', counters: null };
+  }
 }

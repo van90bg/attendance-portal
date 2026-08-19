@@ -159,6 +159,39 @@ test('planScanCommits RACE timeRef: ex chưa có listedAtEpoch → convert updat
   assert.equal(res.outcomes.OPS000001.status, CFG.STATUS.PENDING, 'timeRef convert giữ status row (PENDING)');
 });
 
+test('planScanCommits: append với mã không có trong staffIndex → staffUnknown:true', () => {
+  const now = new Date('2026-08-02T08:00:00');
+  const staffIndex = {
+    OPS000001: { staffName: 'NV 1', slotCode: '08:00-17:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IB', date: '2026-08-02' },
+  };
+  const res = ScanLogic.planScanCommits(CFG, { taskId: 'R1' },
+    [{ code: 'OPS000099', action: 'append', field: 'scannedAt', status: CFG.STATUS.EXTRA }],
+    [], staffIndex, now, FMT);
+  const o = res.outcomes.OPS000099;
+  assert.equal(o.staffUnknown, true, 'mã lạ so với StaffData → cờ cảnh báo');
+  assert.equal(o.staffName, null);
+});
+
+test('planScanCommits: mã có trong staffIndex → staffUnknown:false', () => {
+  const now = new Date('2026-08-02T08:00:00');
+  const staffIndex = {
+    OPS000099: { staffName: 'NhanVien Mau 099', slotCode: '13:00-22:00', station: 'HN2 SOC', team: 'Inbound', workstation: 'IBReceiving', date: '2026-08-02' },
+  };
+  const res = ScanLogic.planScanCommits(CFG, { taskId: 'R1' },
+    [{ code: 'OPS000099', action: 'append', field: 'scannedAt', status: CFG.STATUS.EXTRA }],
+    [], staffIndex, now, FMT);
+  assert.equal(res.outcomes.OPS000099.staffUnknown, false);
+});
+
+test('planScanCommits: staffIndex load fail (null) → staffUnknown:false (không cảnh báo ồn)', () => {
+  const now = new Date('2026-08-02T08:00:00');
+  const res = ScanLogic.planScanCommits(CFG, { taskId: 'R1' },
+    [{ code: 'OPS000099', action: 'append', field: 'listedAt', status: CFG.STATUS.PENDING }],
+    [], null, now, FMT);
+  assert.equal(res.outcomes.OPS000099.staffUnknown, false);
+  assert.equal(res.outcomes.OPS000099.staffName, null);
+});
+
 test('planScanCommits: nhiều actions cùng batch (race skip + update + append thật) — tách đúng', () => {
   const now = new Date('2026-08-02T08:00:00');
   const ex = makeRow({ staffId: 'OPS000001', scannedAtEpoch: 1700000000000, scannedAtText: '07:45:00', status: CFG.STATUS.PRESENT });

@@ -427,4 +427,19 @@ function writeBatchRuns_(sheet, updates, field) {
   }
 }
 
-
+/**
+ * Sua trang thai 1 dong log (fix thu cong - owner/admin qua TaskService.updateLogRowStatus).
+ * newStatus PRESENT + scanTime != null → ghi TIME_SCAN + STATUS (2 cot lien nhau);
+ * nguoc lai chi ghi STATUS. 1 setValues - caller giu LockService.
+ */
+function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime) {
+  const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
+  if (scanTime) {
+    sheet.getRange(rowIndex, LOG_COLS.SCANNED_AT + 1, 1, 2).setValues([[scanTime, newStatus]]);
+  } else {
+    sheet.getRange(rowIndex, LOG_COLS.STATUS + 1, 1, 1).setValues([[newStatus]]);
+  }
+  invalidateTaskDetailCache_(taskId);
+  invalidateLogRows_(taskId);
+  invalidateTaskListCache_();
+}

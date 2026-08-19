@@ -306,6 +306,8 @@
       if (m && m.classList.contains('open')) { closePasteModal(); return; }
       m = document.getElementById('rosterModal');
       if (m && m.classList.contains('open')) { closeRosterModal(); return; }
+      m = document.getElementById('fixStatusModal');
+      if (m && m.classList.contains('open')) { closeFixStatusModal(); return; }
       // viewAbout is now a section, not a modal - go back to previous view
       var aboutV = document.getElementById('viewAbout');
       if (aboutV && !aboutV.classList.contains('hidden')) {

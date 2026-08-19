@@ -257,6 +257,16 @@ function loadRosterApi(taskId, filters) {
   }
 }
 
+/** Sửa trạng thái 1 dòng log (fix thủ công - owner/admin, audit). Gate thật TRONG
+ *  updateLogRowStatus (TaskService) - wrapper chỉ giữ DEFENSE: catch mọi lỗi → ok:false. */
+function updateLogRowStatusApi(taskId, staffId, newStatus) {
+  try {
+    return updateLogRowStatus(taskId, staffId, newStatus);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'updateLogRowStatus fail', counters: null };
+  }
+}
+
 /** F-search: tìm log của 1 mã NV (Ops) XUYÊN TASK — DỮ LIỆU CHẤM CÔNG CÁ NHÂN.
  *  Trả danh sách task mà NV đó từng hiện hữu, kèm thông tin NV trong từng task.
  *  Gate requireRole_('manager') — nền cho báo cáo tháng theo mail (chỉ manager+ xem

@@ -248,6 +248,9 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
       ]);
       outcomes[sid] = {
         action: 'append', field: a.field,
+        // staffUnknown: ma khong co trong StaffData (staffIndex co nhung khong tim thay) -
+        // client canh bao (gian lan / danh may sai); staffIndex load fail → null → khong bao.
+        staffUnknown: staffIndex !== null && !info,
         scannedAtText: isScan ? fmt(now) : '', scannedAtEpoch: isScan ? now.getTime() : 0,
         listedAtText: isScan ? '' : fmt(now), listedAtEpoch: isScan ? 0 : now.getTime(),
         status: a.status || STATUS.EXTRA,

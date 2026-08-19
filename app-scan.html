@@ -73,9 +73,11 @@
     if (pasteBtn) {
       pasteBtn.style.display = (isOpenPhase && perm.canScanOpen) ? '' : 'none';
     }
-    // A1: nút "Lấy danh sách theo ca" — cùng gate paste (phase Mở + owner). Task mới luôn FREE.
+    // A1: nút "Lấy danh sách theo ca" — phase Mở + Điểm danh + owner (NV đến trễ phase 2
+    // vẫn nạp được vào danh sách — fix 2026-08-19). Nút Dán (paste) vẫn chỉ phase Mở.
     if (rosterBtn) {
-      rosterBtn.style.display = (isOpenPhase && perm.canScanOpen) ? '' : 'none';
+      rosterBtn.style.display = (data.task.phase !== TASK_STATUS_C.DONE
+        && data.task.status !== TASK_STATUS_C.DONE && perm.canScanOpen) ? '' : 'none';
     }
     updateScanMoreBtn_();
 
@@ -406,6 +408,8 @@
   function scanRowCells(r, idx) {
     var badge = badgeFor(r.status, r);
     var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
+    // Fix thủ công 1 dòng (updateLogRowStatusApi) — chỉ owner/admin (canScanOpen), mọi phase.
+    var canFix = CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen;
     return [
       '<td class="stt" data-label="STT">' + (idx + 1) + '</td>',
       '<td data-label="Mã NV"><b>' + esc(r.staffId) + '</b></td>',
@@ -417,7 +421,8 @@
       '<td data-label="Ngày">' + esc(r.dateText || '') + '</td>',
       '<td data-label="Giờ vào DS">' + esc(r.listedAtText || '') + '</td>',
       '<td data-label="Giờ điểm danh">' + esc(r.scannedAtText || '') + '</td>',
-      '<td data-label="Trạng thái">' + badge + '</td>'
+      '<td data-label="Trạng thái">' + badge + '</td>',
+      '<td data-label="Sửa">' + (canFix ? '<button type="button" class="btn btn-sm btn-ghost" onclick="openFixStatusModal(\'' + escAttr(r.staffId) + '\')">Sửa</button>' : '') + '</td>'
     ];
   }
 
@@ -779,8 +784,9 @@
       btnPast.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
         && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
     }
+    // A1: loadRoster giờ cho phép cả phase Điểm danh (NV đến trễ) — chặn khi DONE / locked / non-owner.
     if (btnRos) {
-      btnRos.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
+      btnRos.style.display = (phase !== TASK_STATUS_C.DONE && !scanOwnerLocked
         && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen) ? '' : 'none';
     }
     updateScanMoreBtn_();
@@ -891,7 +897,13 @@
           // user đã quét NV khác khi response đang bay, không để card nhảy về cũ.
           if (res.status && item.scanSeq === SCAN_CARD_SEQ) {
             var srvMode = res.status === STATUS_C.EXTRA ? 'extra' : 'ok';
-            showScanCard(res.status, item.target, srvMode);
+            // staffUnknown: mã không có trong StaffData → card amber + toast (đánh máy sai/gian lận).
+            if (res.staffUnknown) {
+              showScanCard(res.status, item.target, 'warn');
+              showToast('NV không có trong dữ liệu — kiểm tra lại mã', true);
+            } else {
+              showScanCard(res.status, item.target, srvMode);
+            }
           }
         } else {
           rollback();
@@ -1393,5 +1405,74 @@
     }).then(function (smallFile) {
       return new Html5Qrcode('photoScanReader').scanFile(smallFile, false);
     });
+  }
+
+  // ===== Sửa trạng thái 1 dòng log (fix thủ công — owner/admin, có audit server) =====
+  var FIX_STATUS_TARGET = null; // { staffId, status }
+  function openFixStatusModal(staffId) {
+    if (!CURRENT_TASK || !CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
+    var m = document.getElementById('fixStatusModal');
+    if (!m) return;
+    var sel = document.getElementById('fixStatusSelect');
+    if (sel && sel.options.length === 0) {
+      // Populate 1 lần từ STATUS_C (1 nguồn sự thật — không hardcode wire value)
+      [
+        [STATUS_C.PENDING, 'Chưa điểm danh'],
+        [STATUS_C.PRESENT, STATUS_C.PRESENT],
+        [STATUS_C.ABSENT, STATUS_C.ABSENT],
+        [STATUS_C.EXTRA, STATUS_C.EXTRA],
+      ].forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o[0];
+        opt.textContent = o[1];
+        sel.appendChild(opt);
+      });
+    }
+    var row = null;
+    (CURRENT_LOG || []).forEach(function (r) {
+      if (!row && String(r.staffId || '').toUpperCase() === String(staffId || '').toUpperCase()) row = r;
+    });
+    FIX_STATUS_TARGET = { staffId: staffId, status: row ? row.status : null };
+    var msgEl = document.getElementById('fixStatusMsg');
+    if (msgEl) {
+      msgEl.textContent = 'NV ' + staffId + (row && row.staffName ? ' — ' + row.staffName : '')
+        + ' đang ở trạng thái: ' + (row ? (row.status || 'Chưa xác định') : '?');
+    }
+    if (sel) {
+      sel.value = (row && row.status) ? row.status : STATUS_C.PENDING;
+      sel.disabled = !row; // dòng không còn trong log (đã reload) → không cho lưu
+    }
+    var btn = document.getElementById('btnFixStatusSubmit');
+    if (btn) btn.disabled = !row;
+    m.setAttribute('aria-hidden', 'false');
+    m.classList.add('open');
+    if (sel) setTimeout(function () { if (m.classList.contains('open')) sel.focus(); }, 60);
+  }
+  function closeFixStatusModal() {
+    var m = document.getElementById('fixStatusModal');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    FIX_STATUS_TARGET = null;
+  }
+  function submitFixStatus() {
+    if (!FIX_STATUS_TARGET || !CURRENT_TASK) return;
+    var sel = document.getElementById('fixStatusSelect');
+    if (!sel || !sel.value) { showToast('Chọn trạng thái mới', true); return; }
+    if (sel.value === FIX_STATUS_TARGET.status) { showToast('NV đã ở trạng thái này', true); return; }
+    var btn = document.getElementById('btnFixStatusSubmit');
+    if (btn) btn.disabled = true;
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (btn) btn.disabled = false;
+        if (!res || !res.ok) { showToast((res && res.message) || 'Lỗi sửa trạng thái', true); return; }
+        closeFixStatusModal();
+        showToast(res.message, false);
+        if (res.counters) { CURRENT_COUNTERS = res.counters; renderCounters(res.counters); }
+        loadTaskDetail(CURRENT_TASK.taskId, true);
+      })
+      .withFailureHandler(function (err) {
+        if (btn) btn.disabled = false;
+        showToast('Lỗi sửa trạng thái: ' + (err && err.message ? err.message : ''), true);
+      })
+      .updateLogRowStatusApi(CURRENT_TASK.taskId, FIX_STATUS_TARGET.staffId, sel.value);
   }
 </script>
