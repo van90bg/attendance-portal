@@ -29,7 +29,7 @@ function logRows(ss, taskId) {
   return ss.sheets.AttendanceLog.data.filter(function (r) { return r && r[0] === taskId; });
 }
 
-test('loadRosterApi: append PENDING + timeRef cho NV khớp tổ hợp (A1)', () => {
+test('loadRosterApi: append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1)', () => {
   const { ctx, ss } = makeSandbox();  // admin (DEPLOYER_EMAIL) → owner gate mở
   const svc = loadAll(ctx);
   svc.ensureSheets_();
@@ -43,8 +43,22 @@ test('loadRosterApi: append PENDING + timeRef cho NV khớp tổ hợp (A1)', ()
   const rows = logRows(ss, 'R1');
   assert.equal(rows.length, 2);
   assert.equal(rows[0][9], '-', 'status PENDING');
-  assert.ok(String(rows[0][7]).length > 0, 'timeRef (LISTED_AT) đã ghi');
+  assert.equal(String(rows[0][7]), '', 'LISTED_AT rỗng — roster chỉ pre-fill, thời điểm đến ghi khi NV quét phase 1');
   assert.equal(res.counters.total, 2);
+});
+
+test('loadRosterApi: quét phase 1 sau nạp roster → ghi LISTED_AT (thời điểm đến)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedStaff(ss);
+  seedTask(ss, 'R1', 'open', 'admin@spx.com');
+  const res = svc.loadRosterApi('R1', { station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
+  assert.equal(res.ok, true, res.message);
+  assert.equal(String(logRows(ss, 'R1')[0][7]), '', 'roster không ghi LISTED_AT');
+  const sc = svc.scanStaffApi('R1', 'Ops001');
+  assert.equal(sc.ok, true, sc.message);
+  assert.equal(String(logRows(ss, 'R1')[0][7]).length > 0, true, 'quét phase 1 ghi LISTED_AT = thời điểm đến');
 });
 
 test('loadRosterApi: idempotent — nạp lại → added=0, skipped=2, không trùng dòng', () => {

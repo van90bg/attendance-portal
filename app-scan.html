@@ -621,7 +621,7 @@
     });
 
     // 2-phase: chặn NGAY ở client theo phase hiện tại (tránh toast lặp + gọi server).
-    // phase1 (Mở): đã có LISTED_AT (listedAtEpoch>0) → 'Đã có mặt'.
+    // phase1 (Mở): đã có LISTED_AT (listedAtEpoch>0) → 'Đã đến'.
     // phase2 (Điểm danh): đã quét (scannedAtEpoch>0) → 'Đã điểm danh'.
     if (target) {
       if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
@@ -634,10 +634,10 @@
         }
       } else {
         if (Number(target.listedAtEpoch) > 0) {
-          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã có mặt' });
-          showToast('Đã có mặt', true);
+          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã đến' });
+          showToast('Đã đến', true);
           playBeep('error');
-          showScanCard('Đã có mặt', target, 'warn');
+          showScanCard('Đã đến', target, 'warn');
           return;
         }
       }

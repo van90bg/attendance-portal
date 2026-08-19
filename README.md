@@ -59,7 +59,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 - **Tạo task 1 luồng (A2)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): bấm **+ Task mới** → vào task ngay; danh sách nạp sau qua nút **Thêm** (Lấy danh sách theo ca) hoặc quét / dán.
 - **Quy trình 2 pha** — pha **Mở** ghi LISTED_AT (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi SCANNED_AT:
   - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Chuyển điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
-    - Nạp roster theo ca (nút **Thêm**): append PENDING + LISTED_AT = lúc nạp; quét phase 2 = Có mặt / Dư.
+    - Nạp roster theo ca (nút **Thêm**): append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1); quét phase 2 = Có mặt / Dư.
     - **Đã đến ≠ Có mặt** — phase 1 ghi LISTED_AT hiện **Đã đến**; quét lần 2 ghi Giờ quét mới là **Có mặt** (điểm danh thật). Banner phase trong màn quét nhắc rõ 2 bước; đóng task khi **chưa ai quét lần 2** → confirm cảnh báo "tất cả sẽ tính Vắng" (không chặn cứng — Mở lại cứu được).
 - **Hủy task rỗng** — task phase Mở chưa có dữ liệu quét (tạo nhầm / bỏ dở): nút **Hủy** (owner/admin, hiện khi log rỗng) xóa hẳn task khỏi AttendanceTask; task đã có dữ liệu phải Chuyển điểm danh → Kết thúc bình thường.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
@@ -82,7 +82,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
 - **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 200, báo mã lỗi.
-- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING + LISTED_AT = lúc nạp, **bỏ qua NV đã có** (idempotent).
+- **Lấy danh sách theo ca** — nút trong menu ⋯ cạnh Dán danh sách mã (phase 1 + owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1), **bỏ qua NV đã có** (idempotent).
 - **Thời gian quét WYSIWYG** — app gửi epoch chụp lúc quét (`scanStaffApi(..., clientEpoch)`): sheet ghi đúng giờ hiển thị trên app, server không đè giờ riêng → hết nhảy giờ sau ~1s khi đồng hồ thiết bị lệch / queue xử lý chậm.
 - **Cột Ngày bảng quét** — hiện ngay khi quét (optimistic từ staffIndex + response `dateText`), không chờ reload; `getFilterOptionsApi` cache 60s → modal tạo task mở nhanh.
 - **Kết thúc task** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.

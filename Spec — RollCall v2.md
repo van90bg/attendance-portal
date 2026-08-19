@@ -142,7 +142,7 @@ Giữ **nguyên header chuẩn Att.csv** (ánh xạ header → field tại `CSV_
 | 5 | `station` | |
 | 6 | `team` | |
 | 7 | `workstation` | |
-| 8 | `timeRef` | **LISTED_AT** — ghi khi quét phase 1 / dán / nạp roster theo ca (thời điểm ghi dòng) |
+| 8 | `timeRef` | **LISTED_AT** — ghi khi quét phase 1 / dán (thời điểm ghi dòng); **nạp roster KHÔNG ghi** — thời điểm đến ghi khi NV quét phase 1 |
 | 9 | `timeScan` | giờ quét đối chiếu (rỗng = chưa quét) |
 | 10 | `status` | `-` (PENDING) / `Có mặt` (PRESENT) / `Vắng` (ABSENT) / `Dư` (EXTRA) |
 | 11 | `date` | **ngày vào làm** (copy từ StaffData) — hiển thị cột Date; khác `timeRef` (ngày task) |
@@ -176,7 +176,7 @@ Nhật ký hoạt động quản trị (viewAdmin — chỉ admin): mọi mutati
 
 **A2 (docs/roster-load-design.md, 2026-08-18):** mọi task mới = **Mở** (`open`) + **log RỖNG** — KHÔNG pre-fill roster khi tạo. TaskType đã xóa — không còn phân biệt `reconcile`/`free`.
 
-- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Thêm**, append PENDING + `timeRef = lúc nạp`). Bấm **Chuyển điểm danh** rồi quét lần 2 (SCANNED_AT); NV lạ phase 2 = Dư.
+- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Thêm**, append PENDING, LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1). Bấm **Chuyển điểm danh** rồi quét lần 2 (SCANNED_AT); NV lạ phase 2 = Dư.
 - **Phase 1 KHÔNG có Dư** — Dư (EXTRA) chỉ khi quét phase 2 mà NV không có dòng PENDING trong log (bất kể nguồn: quét phase 1 · dán · roster).
 
 ### 4.2 Task ID
@@ -407,7 +407,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `cancelTaskApi(taskId)` | `{ ok, message }` — hủy task **phase Mở + log rỗng** (xóa hẳn dòng task khỏi AttendanceTask; task có dữ liệu quét bị chặn) | operator (cancelTask — OPEN + owner) |
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator + owner (service) |
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 200 | operator (service) |
-| `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở **phase Mở + Điểm danh** (NV đến trễ vẫn vào được danh sách — chỉ chặn DONE); append PENDING + timeRef, **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN/ATTEND + owner) |
+| `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở **phase Mở + Điểm danh** (NV đến trễ vẫn vào được danh sách — chỉ chặn DONE); append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1), **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN/ATTEND + owner) |
 | `updateLogRowStatusApi(taskId, staffId, newStatus)` | `{ ok, message, counters }` — sửa trạng thái 1 dòng log theo mã NV (sửa Dư/Vắng nhầm, bổ sung người); **PRESENT trên dòng chưa quét tự fill TIME_SCAN = now**; **đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT** (counter đúng — partition `scanned+absent=total`), về PENDING clear luôn LISTED_AT, **EXTRA giữ SCANNED_AT** (thiết kế partition); cùng status / NV không có / status không hợp lệ → ok:false; audit `fixLogRowStatus` (kèm fillScanTime/clearScanTime/clearListedAt) | operator + **owner/admin** (service — hoạt động cả task DONE) |
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
 | `searchTasksByQueryApi(q)` | `{ ok, rows }` — tìm task theo mã NV / mã task | — |

@@ -148,14 +148,14 @@ function invalidateLogRows_(taskId) {
  * @param {Array<Object>} staffList — NV khớp tổ hợp
  * @param {Date} createdAt
  */
-function batchInsertLogRows_(taskId, staffList, createdAt) {
+function batchInsertLogRows_(taskId, staffList, createdAt, opts) {
   if (!staffList || !staffList.length) return 0;
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
   const startRow = sheet.getLastRow() + 1;
   const rows = staffList.map(function (s) {
     return [
       taskId, s.staffId, s.staffName, s.slotCode, s.station, s.team, s.workstation,
-      createdAt, '', STATUS.PENDING, s.date || '',
+      opts && opts.noListedAt ? '' : createdAt, '', STATUS.PENDING, s.date || '',
     ];
   });
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);

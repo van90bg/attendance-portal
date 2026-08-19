@@ -139,7 +139,7 @@ function loadRoster(taskId, filters) {
       const task = readTask_(taskId);
       if (!task) return { ok: false, total: 0, added: 0, skipped: 0, message: 'Không tìm thấy task', counters: null };
       // Fix (2026-08-19): cho phep nap roster o phase OPEN VA ATTEND — NV den tre sau khi
-      // chuyen phase van vao duoc danh sach (append PENDING + listedAt=now, quet phase 2 = Có mặt).
+      // chuyen phase van vao duoc danh sach (append PENDING, LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1).
       // Chi chan khi task da DONE.
       if (task.status === TASK_STATUS.DONE) {
         return { ok: false, total: 0, added: 0, skipped: 0, message: 'Task đã kết thúc — không thể nạp danh sách', counters: null };
@@ -181,7 +181,7 @@ function loadRoster(taskId, filters) {
       });
       const skipped = deduped.length - toAdd.length;
       const now = new Date();
-      const added = toAdd.length ? batchInsertLogRows_(taskId, toAdd, now) : 0;
+      const added = toAdd.length ? batchInsertLogRows_(taskId, toAdd, now, { noListedAt: true }) : 0;
       if (added) audit_('loadRoster', taskId, { total: deduped.length, added: added, skipped: skipped });
       const counters = computeCounters(
         { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
