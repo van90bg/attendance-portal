@@ -464,11 +464,20 @@
     });
     return depts;
   }
+  // Station options — union lists.stations + stationGroups (giống create modal).
+  function rosterStationOptions_() {
+    var sts = [];
+    (ROSTER_OPTS && ROSTER_OPTS.lists && ROSTER_OPTS.lists.stations || []).forEach(function (s) { if (sts.indexOf(s) === -1) sts.push(s); });
+    (ROSTER_OPTS && ROSTER_OPTS.stationGroups || []).forEach(function (g) { if (sts.indexOf(g.station) === -1) sts.push(g.station); });
+    return sts;
+  }
   // Ngày — options từ stationGroups (distinct dates theo station) + task.date.
   function renderRosterChips_() {
+    var stEl = document.getElementById('rosterChipsStation');
     var slotEl = document.getElementById('rosterChipsSlot');
     var ctEl = document.getElementById('rosterChipsContract');
     var deptEl = document.getElementById('rosterChipsDept');
+    if (stEl) stEl.innerHTML = chipsHtml_(rosterStationOptions_(), ROSTER_FILTER.station ? [ROSTER_FILTER.station] : []);
     if (!slotEl) return;
     var slots = rosterSlotOptions_();
     slotEl.innerHTML = chipsHtml_(slots, ROSTER_FILTER.slotCode);
@@ -536,13 +545,18 @@
     form.addEventListener('click', function (e) {
       var chip = e.target && e.target.closest ? e.target.closest('.pick') : null;
       if (!chip || !chip.getAttribute('data-col')) return;
+      var isStation = chip.closest('#rosterChipsStation') !== null;
       var isSlot = chip.closest('#rosterChipsSlot') !== null;
       var isContract = chip.closest('#rosterChipsContract') !== null;
       var isDept = chip.closest('#rosterChipsDept') !== null;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
       var arr = isSlot ? ROSTER_FILTER.slotCode : (isDept ? ROSTER_FILTER.department : ROSTER_FILTER.contractType);
       if (chip.getAttribute('data-col') === 'roster-all') {
-        arr.length = 0;  // Tất cả = rỗng (không lọc)
+        if (isStation) ROSTER_FILTER.station = '';  // Tất cả = rỗng (không lọc)
+        else arr.length = 0;
+      } else if (isStation) {
+        // Station single-select (giống create modal) — task mới không có station (A2) nên phải chọn tay.
+        ROSTER_FILTER.station = pressed ? '' : chip.getAttribute('data-val');
       } else {
         toggleRosterArr_(arr, chip.getAttribute('data-val'), !pressed, isSlot);
       }

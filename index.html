@@ -492,8 +492,12 @@
       <button type="button" class="load-tab" id="loadTabPaste" role="tab" aria-selected="false" aria-controls="loadPanePaste" tabindex="-1" onclick="onLoadTabClick_('paste')">Dán mã</button>
     </div>
     <div class="load-pane" id="loadPaneRoster">
-      <p class="mode-desc">Chọn Ca, Hình thức, Phòng ban — Station/Team/Ngày lấy từ task.</p>
+      <p class="mode-desc">Chọn Station, Ca, Hình thức, Phòng ban — Team/Ngày lấy từ task (nếu có).</p>
       <div class="create-form" id="rosterForm">
+        <div class="frow">
+          <span class="flabel">Station</span>
+          <div class="chips" id="rosterChipsStation" role="radiogroup" aria-label="Station"></div>
+        </div>
         <div class="frow">
           <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
           <div class="chips" id="rosterChipsSlot" role="group" aria-label="Ca"></div>
