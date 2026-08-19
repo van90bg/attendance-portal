@@ -161,6 +161,10 @@ function batchInsertLogRows_(taskId, staffList, createdAt, opts) {
   });
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
   invalidateLogRows_(taskId); // U2: nạp roster/paste tạo dòng mới — xoá cache cũ nếu taskId tái sử dụng
+  // P1 (B-P1-1): ghi dòng mới cũng invalidate detail + list (counters) — trước chỉ LOG_ROWS
+  // → readTaskDetailCached_/readTaskList_ giữ data cũ 15s/30s sau khi nạp roster.
+  invalidateTaskDetailCache_(taskId);
+  invalidateTaskListCache_();
   return rows.length;
 }
 
@@ -319,14 +323,18 @@ function transformLogStatuses_(taskId, mutate) {
 /** Khi kết thúc task: chuyển dòng chưa quét (timeScan rỗng, status '-') thành 'Vắng'. */
 function markUnscannedAbsent_(taskId) {
   return transformLogStatuses_(taskId, function (status, timeScan) {
-    if (timeScan && status === STATUS.PENDING) {
+    // P2 (B-P1-6): epoch là nguồn sự thật — cell timeScan junk (safeDate_ parse fail)
+    // KHÔNG tính là đã quét; trước dùng truthiness (cell có giá trị lạ → nhầm thành PRESENT).
+    const dScan = safeDate_(timeScan);
+    const hasScan = dScan ? dScan.getTime() > 0 : false;
+    if (hasScan && status === STATUS.PENDING) {
       // P1: insurance data-repair — dòng có timeScan nhưng status còn '-' (data legacy/
       // sửa tay; mọi write path đều ghi 2 cột trong 1 setValues atomic dưới LockService
       // nên luồng bình thường không sinh ra state này). KHÔNG đánh Vắng — chuẩn hóa
       // thành Có mặt.
       return STATUS.PRESENT;
     }
-    if (!timeScan && status === STATUS.PENDING) return STATUS.ABSENT;
+    if (!hasScan && status === STATUS.PENDING) return STATUS.ABSENT;
     return null;
   });
 }

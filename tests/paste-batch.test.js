@@ -160,6 +160,16 @@ test('canScanOpen_: createdBy=web → cho phép (A1)', () => {
   assert.equal(ScanLogic.canScanOpen_(CFG, 'not-an-email', 'any@test.com', false), true);
 });
 
+test('canMutateTask_: fail-closed — admin bypass, owner đúng, non-owner chặn, legacy web chặn (B-P1-4)', () => {
+  assert.equal(ScanLogic.canMutateTask_('owner@test.com', 'other@test.com', true), true);   // admin bypass
+  assert.equal(ScanLogic.canMutateTask_('owner@test.com', 'owner@test.com', false), true);  // owner đúng
+  assert.equal(ScanLogic.canMutateTask_('Owner@test.com', 'owner@test.com', false), true);  // case-insensitive
+  assert.equal(ScanLogic.canMutateTask_('owner@test.com', 'other@test.com', false), false); // non-owner chặn
+  assert.equal(ScanLogic.canMutateTask_('web', 'any@test.com', false), false);              // legacy web → CHẶN (khác canScanOpen_)
+  assert.equal(ScanLogic.canMutateTask_('', 'any@test.com', false), false);                 // rỗng → chặn
+  assert.equal(ScanLogic.canMutateTask_('not-an-email', 'any@test.com', false), false);     // không @ → chặn
+});
+
 test('canScanOpen_: task không OPEN → cho phép (gate chỉ phase OPEN)', () => {
   // canScanOpen_ không check task status — caller phải check trước
   // Nhưng function vẫn trả true khi isAdmin=true hoặc owner match

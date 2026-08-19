@@ -239,6 +239,24 @@ test('updateLogRowStatus: PRESENT→PENDING clear TIME_SCAN + LISTED_AT (reset v
   assert.ok(String(ss.sheets.AuditLog.data[ss.sheets.AuditLog.data.length - 1][4]).includes('clearListedAt') && String(ss.sheets.AuditLog.data[ss.sheets.AuditLog.data.length - 1][4]).includes('true'));
 });
 
+test('updateLogRowStatus: PENDING→EXTRA dòng chưa quét → FILL TIME_SCAN (B-P1-2 — task đóng được)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, '', ST.PENDING, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.EXTRA);
+  assert.equal(res.ok, true, res.message);
+  const raw = ss.sheets.AttendanceLog.data[1];
+  assert.ok(raw[8] && raw[8].getTime() > 0, 'EXTRA trên dòng chưa quét được FILL TIME_SCAN — giữ partition invariant');
+  assert.equal(res.counters.scanned + res.counters.absent, res.counters.total, 'partition invariant — task đóng được không cần force-close');
+  const close = svc.completeTask('R2026');
+  assert.equal(close.ok, true, close.message);
+  const rows = ss.sheets.AuditLog.data;
+  assert.ok(!rows.some((r) => r[2] === 'completeTaskForceClose'), 'không cần force-close');
+});
+
 test('updateLogRowStatus: PRESENT→EXTRA GIỮ TIME_SCAN — partition invariant scanned+absent=total (L1)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
   const svc = loadAll(ctx);

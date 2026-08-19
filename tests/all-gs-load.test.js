@@ -80,6 +80,37 @@ test('markUnscannedAbsent_: PENDING chưa quét → ABSENT (Vắng)', () => {
   assert.equal(detail.log[1].status, 'Vắng');
 });
 
+test('markUnscannedAbsent_: timeScan junk (không parse được) → ABSENT, không phải PRESENT (B-P1-6)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  const taskId = 'R20260811-1001';
+  svc.insertTask_({
+    taskId: taskId, station: 'HN2 SOC', slotCode: '08:00-17:00',
+    team: 'Outbound', contractType: '', status: 'attend', createdAt: new Date(), createdBy: 'web', completedAt: null,
+  });
+  // Dòng PENDING có SCANNED_AT là chuỗi rác (legacy/sửa tay) — KHÔNG tính là đã quét
+  ss.sheets.AttendanceLog.appendRow(['R20260811-1001', 'OPS000001', 'A', '', 'HN2 SOC', 'Outbound', 'OB', '', 'garbage-value', '-', '']);
+  const n = svc.markUnscannedAbsent_(taskId);
+  assert.equal(n, 1);
+  const detail = svc.readTaskDetailCached_(taskId);
+  assert.equal(detail.log[0].status, 'Vắng');
+});
+
+test('batchInsertLogRows_ invalidate task detail cache — insert thêm dòng vẫn thấy đủ (B-P1-1)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  const taskId = 'R20260811-1002';
+  const now = new Date('2026-08-11T10:00:00');
+  svc.insertTask_({ taskId: taskId, station: 'HN2 SOC', slotCode: '', team: '', contractType: '', status: 'attend', createdAt: now, createdBy: 'web', completedAt: null });
+  svc.batchInsertLogRows_(taskId, [{ staffId: 'OPS000001', staffName: 'A', slotCode: '', station: 'HN2 SOC', team: '', workstation: '', date: '' }], now);
+  assert.equal(svc.readTaskDetailCached_(taskId).log.length, 1);
+  // Ghi tiếp 1 batch nữa — detail cache phải bị invalidate (trước chỉ invalidate LOG_ROWS)
+  svc.batchInsertLogRows_(taskId, [{ staffId: 'OPS000002', staffName: 'B', slotCode: '', station: 'HN2 SOC', team: '', workstation: '', date: '' }], now);
+  assert.equal(svc.readTaskDetailCached_(taskId).log.length, 2);
+});
+
 test('overwriteStaffData_ ghi đè + readStaffList_ đọc lại qua CsvUtil parser', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);

@@ -62,9 +62,15 @@ function ensureSheets_() {
   // Header chuẩn Att.csv (20 cột) — getSheet_ chỉ set khi sheet trống; syncFromCsv()
   // ghi đè dữ liệu từ dòng 2 (header dòng 1 giữ nguyên).
   getSheet_(SHEETS.STAFF_DATA, STAFF_DATA_HEADER);
-  getSheet_(SHEETS.ATTENDANCE_TASK, [
-    'taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt',
+  const taskSheet = getSheet_(SHEETS.ATTENDANCE_TASK, [
+    'taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt', 'date',
   ]);
+  // Migration an toàn (B-P1-5): sheet AttendanceTask cũ 9 cột (trước cột date) — thêm cột
+  // 10 + header 'date' (insertTask_ ghi 10 giá trị theo TASK_COL_COUNT; thiếu cột → vỡ).
+  while (taskSheet.getLastColumn() < TASK_COL_COUNT) {
+    taskSheet.insertColumnAfter(taskSheet.getLastColumn());
+    taskSheet.getRange(1, taskSheet.getLastColumn()).setValue('date');
+  }
   const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG, [
     'taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation',
     'listedAt', 'scannedAt', 'status', 'date',

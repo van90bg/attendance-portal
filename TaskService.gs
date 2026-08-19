@@ -219,10 +219,10 @@ function completeTask(taskId) {
   try {
     const task = readTask_(taskId);
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
-    // Owner-gate (same gate as transitionToAttend/scan/paste/loadRoster): closing/reopening
-    // a task mutates attendance state (stamps ABSENT / resets it) - owner/admin only.
+    // Mutation gate fail-closed (canMutateTask_ — B-P1-4): đóng task gán Vắng cho NV chưa
+    // quét — chỉ owner/admin; KHÔNG fail-open cho task legacy 'web' (canScanOpen_ dành vận hành).
     const isAdmin = isEditor_();
-    if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+    if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
       return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
     }
     // Chỉ kết thúc khi đang ở phase2 (Điểm danh). Nếu còn Mở (phase1) → chặn.
@@ -326,10 +326,10 @@ function reopenTask(taskId) {
   try {
     const task = readTask_(taskId);
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
-    // Owner-gate (same gate as transitionToAttend/scan/paste/loadRoster): closing/reopening
-    // a task mutates attendance state (stamps ABSENT / resets it) - owner/admin only.
+    // Mutation gate fail-closed (canMutateTask_ — B-P1-4): mở lại reset ABSENT→PENDING —
+    // chỉ owner/admin; KHÔNG fail-open cho task legacy 'web'.
     const isAdmin = isEditor_();
-    if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+    if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
       return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
     }
     if (task.status !== TASK_STATUS.DONE) {
@@ -443,9 +443,10 @@ function updateLogRowStatus(taskId, rawStaffId, newStatus) {
     try {
       const task = readTask_(taskId);
       if (!task) return { ok: false, message: 'Không tìm thấy task', counters: null };
-      // Mutation dữ liệu chấm công → owner/admin (cùng gate completeTask/reopenTask).
+      // Mutation dữ liệu chấm công → owner/admin (fail-closed canMutateTask_ — cùng gate
+      // completeTask/reopenTask; KHÔNG fail-open cho task legacy 'web').
       const isAdmin = isEditor_();
-      if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+      if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
         return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, counters: null };
       }
       const staffId = normalizeStaffId(rawStaffId);
@@ -463,7 +464,10 @@ function updateLogRowStatus(taskId, rawStaffId, newStatus) {
       const hasScan = Number(row.scannedAtEpoch) > 0;
       const clearScanned = hasScan && (newStatus === STATUS.ABSENT || newStatus === STATUS.PENDING);
       const clearListed = clearScanned && newStatus === STATUS.PENDING;
-      const scanTime = (newStatus === STATUS.PRESENT && !hasScan) ? new Date() : null;
+      // B-P1-2: EXTRA trên dòng CHƯA quét cũng fill TIME_SCAN — partition invariant
+      // scanned+absent=total (EXTRA không scan → computeCounters đếm extra, absent thiếu
+      // → completeTask chặn "counter-mismatch", task kẹt không đóng được).
+      const scanTime = ((newStatus === STATUS.PRESENT || newStatus === STATUS.EXTRA) && !hasScan) ? new Date() : null;
       setLogRowStatus_(taskId, row._rowIndex, newStatus, scanTime, clearScanned, clearListed);
       audit_('fixLogRowStatus', taskId, { staffId: staffId, oldStatus: row.status, newStatus: newStatus, fillScanTime: !!scanTime, clearScanTime: clearScanned, clearListedAt: clearListed });
       const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));

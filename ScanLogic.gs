@@ -293,6 +293,25 @@ function canScanOpen_(cfg, createdBy, activeEmail, isAdmin) {
 }
 
 /**
+ * Kiểm tra quyền MUTATE trạng thái chấm công (complete/reopen/updateLogRowStatus).
+ * FAIL-CLOSED — khác canScanOpen_ (fail-open cho task legacy 'web' vì cần vận hành quét):
+ * owner không xác định ('web'/rỗng/không '@') → CHẶN mọi mutation, chỉ admin bypass.
+ * Mutation gán/reset Vắng ảnh hưởng dữ liệu chấm công nên không cho fail-open như scan.
+ * @param {string} createdBy — email người tạo task
+ * @param {string} activeEmail — email người đang thao tác
+ * @param {boolean} isAdmin — isEditor_()
+ * @returns {boolean}
+ */
+function canMutateTask_(createdBy, activeEmail, isAdmin) {
+  if (isAdmin) return true;
+  const cb = String(createdBy || '').trim().toLowerCase();
+  const ae = String(activeEmail || '').trim().toLowerCase();
+  const isValidEmail = cb.includes('@') && cb !== 'web' && cb !== '';
+  if (!isValidEmail) return false; // fail-closed: owner không xác định → chặn mutation
+  return ae === cb;
+}
+
+/**
  * Plan batch scans for paste feature (T-2).
  * Pure function - no side effects, testable on Node.
  * For each code: normalize, validate format, then classifyScan against current logRows.
@@ -469,6 +488,7 @@ if (typeof module !== 'undefined' && module.exports) {
     findLogRow: findLogRow,
     computeCounters: computeCounters,
     canScanOpen_: canScanOpen_,
+    canMutateTask_: canMutateTask_,
     planScanCommits: planScanCommits,
     planBatchScans: planBatchScans,
     matchLogsByStaff: matchLogsByStaff,

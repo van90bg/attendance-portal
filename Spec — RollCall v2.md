@@ -12,6 +12,7 @@
 > v2.7 (2026-08-19): **fix L1 updateLogRowStatus chiều ngược** — đổi PRESENT→ABSENT/PENDING giờ **clear SCANNED_AT** (trước giữ nguyên → dòng Vắng vẫn tính `scanned` trong computeCounters, counter lệch, phá luôn ý nghĩa partition `scanned+absent=total`); về PENDING clear luôn LISTED_AT (reset 'chưa đến'); **EXTRA giữ SCANNED_AT** (thiết kế partition — EXTRA chưa quét sẽ phá invariant); audit ghi thêm `clearScanTime`/`clearListedAt`; thêm 3 test chiều ngược.
 > v2.8 (2026-08-19): **thu cửa sổ epoch client ±3 phút → ±60s** (V1 residual — queue tối đa 8 item × 2.5s ≈ 20s + latency nên 60s vẫn an toàn; ngoài cửa sổ fallback giờ server như cũ), **label filter phase Mở: 'Chưa đến' → 'Đã đến (chưa quét lần 2)'** (khớp thực tế — filter PENDING phase Mở hiện NV đã có LISTED_AT; trước label nghịch lý).
 > v2.9 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy màn quét — owner/admin, log rỗng mới hủy được; xóa hẳn dòng task + audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (append PENDING, thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không thổi phồng; khớp V2.6 lọc theo listedAt) · label phase 1 'Đã có mặt' → 'Đã đến' (2-phase: đến ≠ điểm danh).
+> v2.10 (2026-08-19): **`canMutateTask_` fail-closed** (complete/reopen/updateLogRowStatus — task legacy `'web'` chỉ admin đóng/mở lại/sửa; scan/paste/loadRoster/transition vẫn `canScanOpen_` fail-open vì cần vận hành) · **PENDING→EXTRA fill TIME_SCAN** (partition invariant — task không kẹt counter-mismatch) · **`batchInsertLogRows_` invalidate detail+list cache** · **`markUnscannedAbsent_` dùng epoch** (timeScan junk → Vắng đúng) · **AttendanceTask thêm cột `date`** (header + migration 9→10 cột, khớp `TASK_COL_COUNT`).
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -321,7 +322,7 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 - `!canScanOpen` + phase Mở → `scanInput.disabled = true` + banner "Chỉ owner mới quét được ở phase Mở" + ẩn nút **Chuyển điểm danh** + ẩn nút **Dán danh sách mã**; `submitScan` guard lại (defense barcode vật lý).
 - `updateFinishBtnState` / `updateQueueFullState` tôn trọng `scanOwnerLocked` (không vô tình bật lại).
 - **Bắt đầu điểm danh (`transitionToAttend`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — OPEN→ATTEND mở khoá phase 2 cho mọi người; non-owner gọi thẳng API bị reject, chống bypass owner-gate phase Mở qua console.
-- **Kết thúc (`completeTask`) / Mở lại (`reopenTask`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — đóng task stamp Vắng cho toàn bộ NV chưa quét, mở lại reset Vắng → thay đổi trạng thái chấm công của task người khác nên chỉ owner/admin; non-owner gọi thẳng API bị reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY`, legacy `createdBy='web'` fail-open.
+- **Kết thúc (`completeTask`) / Mở lại (`reopenTask`) / Sửa trạng thái log (`updateLogRowStatus`) dùng mutation-gate `canMutateTask_` FAIL-CLOSED (B-P1-4, 2026-08-19)** — đóng stamp Vắng / mở lại reset Vắng / sửa status = thay đổi trạng thái chấm công task người khác nên chỉ owner/admin; **task legacy `createdBy='web'` → CHẶN** (khác `canScanOpen_` fail-open — mutation không fail-open); non-owner/legacy bị reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY`, admin bypass.
 
 **Paste (T-2)** gate cùng rule (A5): `status === open` + `canScanOpen` — `pasteCodes` server reject nếu không thoả.
 
@@ -409,7 +410,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator + owner (service) |
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 200 | operator (service) |
 | `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở **phase Mở + Điểm danh** (NV đến trễ vẫn vào được danh sách — chỉ chặn DONE); append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1), **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN/ATTEND + owner) |
-| `updateLogRowStatusApi(taskId, staffId, newStatus)` | `{ ok, message, counters }` — sửa trạng thái 1 dòng log theo mã NV (sửa Dư/Vắng nhầm, bổ sung người); **PRESENT trên dòng chưa quét tự fill TIME_SCAN = now**; **đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT** (counter đúng — partition `scanned+absent=total`), về PENDING clear luôn LISTED_AT, **EXTRA giữ SCANNED_AT** (thiết kế partition); cùng status / NV không có / status không hợp lệ → ok:false; audit `fixLogRowStatus` (kèm fillScanTime/clearScanTime/clearListedAt) | operator + **owner/admin** (service — hoạt động cả task DONE) |
+| `updateLogRowStatusApi(taskId, staffId, newStatus)` | `{ ok, message, counters }` — sửa trạng thái 1 dòng log theo mã NV (sửa Dư/Vắng nhầm, bổ sung người); **PRESENT/EXTRA trên dòng CHƯA quét tự fill TIME_SCAN = now** (B-P1-2: EXTRA chưa quét phá partition `scanned+absent=total` → task kẹt không đóng được); **đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT** (counter đúng), về PENDING clear luôn LISTED_AT, **EXTRA giữ SCANNED_AT** (thiết kế partition); cùng status / NV không có / status không hợp lệ → ok:false; audit `fixLogRowStatus` (kèm fillScanTime/clearScanTime/clearListedAt) | operator + **owner/admin** (`canMutateTask_` fail-closed — hoạt động cả task DONE) |
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
 | `searchTasksByQueryApi(q)` | `{ ok, rows }` — tìm task theo mã NV / mã task | — |
 | `getReportsApi()` | `{ ok, rows, email, opsId, staffName }` — báo cáo chấm công tháng theo email đăng nhập (viewReports) | **manager+** (service) |
@@ -531,7 +532,7 @@ Modal: tạo task · confirm dùng chung · **Nạp danh sách** (loadListModal 
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
 | Files | **18 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · roster-load · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **190/190 pass** |
+| **Kết quả** | **194/194 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |

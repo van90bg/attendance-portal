@@ -65,7 +65,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
   - **Bắt đầu điểm danh** (OPEN→ATTEND) chỉ owner/admin — non-owner gọi thẳng server bị chặn (M1 service-layer, đồng gate scan/paste/nạp roster).
-  - **Chốt ca / Mở lại task** chỉ owner/admin (đồng gate Bắt đầu điểm danh) — chống operator/manager gọi thẳng API đóng/đổi trạng thái task người khác; legacy `createdBy='web'` fail-open. `warmStaffCacheApi` (index nhân sự) giờ gate operator+.
+  - **Chốt ca / Mở lại / Sửa trạng thái log** chỉ owner/admin — gate **fail-closed `canMutateTask_`** (khác `canScanOpen_` fail-open): task legacy `createdBy='web'` không ai đóng/mở lại/sửa được ngoài admin. `warmStaffCacheApi` (index nhân sự) giờ gate operator+.
   - **Repo mutator gate (M1 2026-08-19)** — mọi hàm ghi/đọc StaffData-task-log (`batchInsertLogRows_`/`batchAppendLogRows_`/`batchUpdateLogRows_`/`transformLogStatuses_`/`setLogRowStatus_`/`writeBatchRuns_`/`insertTask_`/`updateTaskStatus_`/`readStaffList_`/`readStaffIndex_`) tự `requireRole_('operator')` (google.script.run gọi được global trực tiếp — gate *Api wrapper bị bypass); `getFilterOptionsApi`/`previewStaffApi` gate operator+; `roleMap` tách khỏi `getSettings_` → `getRoleMap_` (bản đồ quyền không lộ qua settings public).
   - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
   - **Phân quyền theo view (2026-08-17):**
@@ -122,7 +122,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 190 unit tests node --test
+├── tests/                 # 194 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
@@ -133,7 +133,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 190/190 unit tests (node:test)
+npm test                        # 194/194 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -173,13 +173,14 @@ clasp deploy
 - ✅ Portal shell: sidebar 8 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile); viewAdmin — nhật ký hoạt động (manager+, lọc ngày).
 - ✅ Tách frontend (index/styles + 9 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 190/190 unit tests + 11/11 CDP local mock.
+- ✅ 194/194 unit tests + 11/11 CDP local mock.
 - ✅ Đợt 1 (2026-08-19): force-close admin (completeTask counter lệch) · loadRoster ở phase Điểm danh (chặn DONE) · sửa trạng thái dòng log (updateLogRowStatusApi + cột Sửa bảng quét) · chống gian lận giờ quét (±60s + không sớm hơn tạo task) · cảnh báo mã quét không có trong StaffData (staffUnknown) · **L1 fix** (đổi ngược PRESENT→ABSENT/PENDING clear TIME_SCAN — counter đúng; về PENDING clear LISTED_AT; EXTRA giữ SCANNED_AT — partition invariant).
 - ✅ Đợt 2 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy — owner/admin, log rỗng mới hủy được, audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không còn thổi phồng) · label phase 1 'Đã có mặt' → 'Đã đến' (khớp 2-phase: đến ≠ điểm danh).
 - ✅ Đợt 3 (2026-08-19): thuật ngữ operator — **Bắt đầu điểm danh** / **Chốt ca** / **Đang ghi danh sách** / **Đã chốt điểm danh** / **Đã điểm danh** (bỏ "quét lần 2") · gộp Dán mã + Lấy theo ca → **1 nút "Nạp danh sách"** (modal 2 tab — bỏ menu "Thêm" + CSS topbar-more) · ẩn cột Tạo lúc/Người tạo bảng task (list + F-search) · nudge quên chuyển phase (quét trùng phase Mở → toast gợi ý) · Dư → "Dư — không có trong danh sách".
 - ✅ Đợt 2 (2026-08-19): queue quét 2→8 + toast queue ≥3 · tab sync (quay lại tab → silent reload task đang mở) · confirm Kết thúc hiện số NV chưa điểm danh sẽ Vắng · scanner ngoài theo task (đổi task → đóng scanner + từ chối mã task cũ) · lọc PENDING phase Mở theo listedAt (chỉ NV đã đến) · non-owner phase Mở ẩn nút camera · transitionToAttend re-check queue full · waitLock 30s cho pasteCodes/loadRoster.
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 - ✅ Đợt 4 (2026-08-19): security hardening — **repo mutator gates** (M1: `requireRole_('operator')` ở LogRepo/TaskRepo/StaffDataRepo — chống bypass gọi global trực tiếp) · **`getFilterOptionsApi`/`previewStaffApi` gate operator+** + client skip `loadFilterOptions` cho viewer · **`roleMap` tách `getSettings_` → `getRoleMap_`** (P0: bản đồ quyền không lộ qua settings public) · DEFENSE `getTaskListApi`/`getTaskDetailApi`.
+- ✅ Đợt 5 (2026-08-19): backend logic P1 — **`canMutateTask_` fail-closed** (complete/reopen/updateLogRowStatus — task legacy `'web'` chỉ admin; scan/paste/loadRoster/transition vẫn `canScanOpen_` fail-open vì cần vận hành) · **PENDING→EXTRA tự fill TIME_SCAN** (partition invariant — task không kẹt "counter-mismatch") · **`batchInsertLogRows_` invalidate detail+list cache** · **`markUnscannedAbsent_` dùng epoch** (timeScan junk → Vắng đúng) · **AttendanceTask thêm cột `date`** (header + migration 9→10 cột khớp `TASK_COL_COUNT`).
 
 ---
 
