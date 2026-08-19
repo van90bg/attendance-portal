@@ -391,6 +391,22 @@
     .counter.waiting .num { color: var(--primary); }
     .counter.extra .num { color: var(--amber-dark); }  /* đồng bộ scanCard.extra/.warn (--amber-dark) */
 
+    /* Banner trạng thái phase (viewScan) — hướng dẫn 2 bước điểm danh (U2 audit). */
+    .phase-banner {
+      margin-bottom: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-muted);
+      color: var(--text);
+      font-size: var(--text-sm);
+      line-height: 1.5;
+    }
+    .phase-banner b { font-weight: 700; }
+    .phase-banner.phase-open { border-color: var(--warning); background: var(--card-extra-bg); color: var(--amber-dark); }
+    .phase-banner.phase-attend { border-color: var(--success); background: var(--primary-soft); color: var(--success-dark); }
+    .phase-banner.phase-done { border-color: var(--border); background: var(--surface-muted); }
+
     /* ===== Toolbar bảng NV chung viewScan + viewStaff ===== */
     .att-toolbar {
       display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;

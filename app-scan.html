@@ -177,7 +177,7 @@
       document.getElementById('cScanned').textContent = c.scanned || 0;
       document.getElementById('cAbsent').textContent = c.absent || 0;
       document.getElementById('cExtra').textContent = c.extra || 0;
-      // Label counter theo phase: OPEN → 'Có mặt'/'Chưa có mặt'; ATTEND → 'Đã điểm danh'/'Chưa điểm danh';
+      // Label counter theo phase: OPEN → 'Đã đến'/'Chưa đến'; ATTEND → 'Đã điểm danh'/'Chưa điểm danh';
       // DONE → 'Đã điểm danh'/'Vắng' (đỏ).
       // Neo bằng ID cha — KHÔNG dùng '.counter.absent': nhánh OPEN tự swap class
       // absent→waiting nên querySelector('.counter.absent') về null ở lần render kế
@@ -196,13 +196,13 @@
           absentCounter.classList.add('absent');
           absentCounter.classList.remove('waiting');
         } else if (CURRENT_TASK.phase === TASK_STATUS_C.OPEN) {
-          // Phase 1 (Mở): counter 1 = 'Có mặt' (presentAt — đã ghi LISTED_AT, xanh);
-          // counter 2 = 'Chưa có mặt' (roster chưa đến; FREE không roster → 0).
+          // Phase 1 (Mở): counter 1 = 'Đã đến' (presentAt — đã ghi LISTED_AT, xanh);
+          // counter 2 = 'Chưa đến' (roster chưa đến; FREE không roster → 0).
           var presentAt = c.presentAt || 0;
           document.getElementById('cScanned').textContent = presentAt;
           document.getElementById('cAbsent').textContent = Math.max(0, (c.total || 0) - presentAt - (c.extra || 0));
-          if (scannedLbl) scannedLbl.textContent = 'Có mặt';
-          lbl.textContent = 'Chưa có mặt';
+          if (scannedLbl) scannedLbl.textContent = 'Đã đến';
+          lbl.textContent = 'Chưa đến';
           absentCounter.classList.add('waiting');
           absentCounter.classList.remove('absent');
         } else { // ATTEND (phase) — chưa kết thúc
@@ -213,13 +213,42 @@
           absentCounter.classList.remove('waiting');
         }
       }
+      renderPhaseBanner(c);
     }
 
-  // P1: label option lọc trạng thái theo phase — PENDING = 'Chưa có mặt' (Mở) / 'Chưa điểm danh' (Điểm danh).
+  // U2: banner trạng thái phase — đổ nội dung theo phase + counters; hiển thị ngay dưới
+  // topbar viewScan. Nhắc rõ bước 2-phase: OPEN phải bấm Chuyển điểm danh, ATTEND người
+  // chưa quét lần 2 sẽ Vắng khi Kết thúc.
+  function renderPhaseBanner(c) {
+    var el = document.getElementById('scanPhaseBanner');
+    if (!el) return;
+    if (!CURRENT_TASK) { el.style.display = 'none'; return; }
+    var co = c || {};
+    var ph = CURRENT_TASK.phase || CURRENT_TASK.status;
+    var total = co.total || 0;
+    var scanned = co.scanned || 0;
+    var presentAt = co.presentAt || 0;
+    var html;
+    if (ph === TASK_STATUS_C.OPEN) {
+      html = '<b>Phase 1 — Mở:</b> quét để ghi Giờ có mặt (<b>Đã đến ' + presentAt + '</b>' +
+        (total ? ' / ' + total : '') + '). Bấm <b>Chuyển điểm danh</b> khi xong — quên chuyển thì mọi lượt quét chỉ ghi Giờ có mặt.';
+    } else if (ph === TASK_STATUS_C.ATTEND) {
+      html = '<b>Phase 2 — Điểm danh:</b> đã quét lần 2 <b>' + scanned + (total ? ' / ' + total : '') + '</b>. ' +
+        'Bấm <b>Kết thúc</b> khi xong — người chưa quét lần 2 sẽ tính <b>Vắng</b>.';
+    } else {
+      html = '<b>Đã kết thúc:</b> ' + scanned + ' điểm danh · ' + (co.absent || 0) + ' Vắng' +
+        ((co.extra || 0) ? ' · ' + co.extra + ' Dư' : '') + '.';
+    }
+    el.className = 'phase-banner ' + (ph === TASK_STATUS_C.OPEN ? 'phase-open' : ph === TASK_STATUS_C.ATTEND ? 'phase-attend' : 'phase-done');
+    el.innerHTML = html;
+    el.style.display = '';
+  }
+
+  // P1: label option lọc trạng thái theo phase — PENDING = 'Chưa đến' (Mở) / 'Chưa điểm danh' (Điểm danh).
   function updateScanFilterLabel_() {
     var statusEl = document.getElementById('scanStatusFilter');
     if (!statusEl) return;
-    var lbl = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa có mặt' : 'Chưa điểm danh';
+    var lbl = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa đến' : 'Chưa điểm danh';
     for (var i = 0; i < statusEl.options.length; i++) {
       if (statusEl.options[i].value === STATUS_C.PENDING) { statusEl.options[i].textContent = lbl; return; }
     }
@@ -408,11 +437,11 @@
 
   function badgeFor(status, row) {
     if (status === STATUS_C.PENDING || !status) {
-      // Phase 1 (Mở) + đã ghi LISTED_AT → 'Có mặt' (xanh) — khớp scanCard/counter.
+      // Phase 1 (Mở) + đã ghi LISTED_AT → 'Đã đến' (xanh) — khớp scanCard/counter.
       if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && row && Number(row.listedAtEpoch) > 0) {
-        return '<span class="badge present">Có mặt</span>';
+        return '<span class="badge present">Đã đến</span>';
       }
-      return '<span class="badge pending">' + (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN ? 'Chưa có mặt' : 'Chưa điểm danh') + '</span>';
+      return '<span class="badge pending">' + (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN ? 'Chưa đến' : 'Chưa điểm danh') + '</span>';
     }
     if (status === STATUS_C.PRESENT) return '<span class="badge present">Có mặt</span>';
     if (status === STATUS_C.ABSENT) return '<span class="badge absent">Vắng</span>';
@@ -995,7 +1024,7 @@
             updateFinishBtnState();
             // Re-render UI phụ thuộc phase NGAY — badge cột Trạng thái + label/giá trị
             // counter + sort cột SCANNED_AT. Trước đây phải mở lại task mới cập nhật
-            // (user thấy 'Có mặt'/'Chưa có mặt' stale cho tới khi reload).
+            // (user thấy 'Đã đến'/'Chưa đến' stale cho tới khi reload).
             renderScanTable(CURRENT_LOG);
             recountFromLog();
             updateSortIndicators();
@@ -1023,9 +1052,16 @@
       return;
     }
     // Modal confirm thay cho confirm() trình duyệt — giữ UX đồng nhất với các modal khác
+    // Cảnh báo mạnh khi scanned===0: task OPEN→ATTEND rồi đóng mà chưa ai quét lần 2
+    // (Giờ quét) → markUnscannedAbsent_ đánh MỌI dòng Vắng dù phase 1 đã ghi Giờ có mặt.
+    // reopenTask cứu được nên confirm là đủ, không chặn cứng.
+    var scannedNow = (CURRENT_COUNTERS && CURRENT_COUNTERS.scanned) || 0;
+    var finishMsg = (scannedNow === 0)
+      ? 'Chưa có ai quét lần 2 (Giờ quét) — tất cả sẽ tính Vắng dù đã ghi Giờ có mặt. Kết thúc task ' + CURRENT_TASK.taskId + '?'
+      : 'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.';
     showConfirm(
-      'Kết thúc task',
-      'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.',
+      scannedNow === 0 ? 'Cảnh báo — chưa ai điểm danh' : 'Kết thúc task',
+      finishMsg,
       function () {
         BUSY = true;
         showModalSpin('Đang kết thúc task…');
@@ -1064,13 +1100,13 @@
   // Label trạng thái scan — 1 nguồn chung (scanCardHTML + setScanLiveMsg_), tránh lệch sau này.
   function scanStatusLabel_(status, target) {
     if (status === STATUS_C.PENDING || !status) {
-      // Phase 1 (Mở) + đã ghi LISTED_AT → 'Có mặt' — quét phase1 = ghi nhận có mặt,
+      // Phase 1 (Mở) + đã ghi LISTED_AT → 'Đã đến' — quét phase1 = ghi nhận đã đến,
       // 'Chưa điểm danh' ngay sau quét gây hiểu lầm. Chưa quét gì /
       // phase 2 chưa quét lần 2 → vẫn 'Chưa điểm danh'.
       if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.listedAtEpoch) > 0) {
-        return 'Có mặt';
+        return 'Đã đến';
       }
-      return (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa có mặt' : 'Chưa điểm danh';
+      return (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa đến' : 'Chưa điểm danh';
     }
     return status;
   }
@@ -1105,7 +1141,7 @@
     // C2: Dư = cam (extra), đã điểm danh/đã có mặt = cam (warn, không phải lỗi), lỗi = đỏ, ok = xanh.
     // FREE phase1: status PENDING ('Chưa điểm danh') → xanh (primary) — chưa phải lỗi/cảnh báo.
     // C4 (review 2026-08-11): wire value PENDING = '-' — so 'Chưa điểm danh' là dead arm
-    // Phase 1 (Mở): quét = ghi LISTED_AT → 'Có mặt' (ok xanh), không 'pending'.
+    // Phase 1 (Mở): quét = ghi LISTED_AT → 'Đã đến' (ok xanh), không 'pending'.
     var phase1Arrival = status === STATUS_C.PENDING && CURRENT_TASK
       && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.listedAtEpoch) > 0;
     var cls = phase1Arrival ? 'ok'

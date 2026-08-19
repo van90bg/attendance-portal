@@ -59,9 +59,11 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 - **Tạo task 1 luồng (A2)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): bấm **+ Task mới** → vào task ngay; danh sách nạp sau qua nút **Thêm** (Lấy danh sách theo ca) hoặc quét / dán.
 - **Quy trình 2 pha** — pha **Mở** ghi LISTED_AT (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi SCANNED_AT:
   - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Chuyển điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
-  - Nạp roster theo ca (nút **Thêm**): append PENDING + LISTED_AT = lúc nạp; quét phase 2 = Có mặt / Dư.
+    - Nạp roster theo ca (nút **Thêm**): append PENDING + LISTED_AT = lúc nạp; quét phase 2 = Có mặt / Dư.
+    - **Đã đến ≠ Có mặt** — phase 1 ghi LISTED_AT hiện **Đã đến**; quét lần 2 ghi Giờ quét mới là **Có mặt** (điểm danh thật). Banner phase trong màn quét nhắc rõ 2 bước; đóng task khi **chưa ai quét lần 2** → confirm cảnh báo "tất cả sẽ tính Vắng" (không chặn cứng — Mở lại cứu được).
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
+  - **Chuyển điểm danh** (OPEN→ATTEND) chỉ owner/admin — non-owner gọi thẳng server bị chặn (M1 service-layer, đồng gate scan/paste/nạp roster).
   - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
   - **Phân quyền theo view (2026-08-17):**
 
@@ -117,7 +119,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 155 unit tests node --test
+├── tests/                 # 160 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
@@ -128,7 +130,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 155/155 unit tests (node:test)
+npm test                        # 160/160 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -168,7 +170,7 @@ clasp deploy
 - ✅ Portal shell: sidebar 8 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile); viewAdmin — nhật ký hoạt động (manager+, lọc ngày).
 - ✅ Tách frontend (index/styles + 9 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 155/155 unit tests + 11/11 CDP local mock.
+- ✅ 160/160 unit tests + 11/11 CDP local mock.
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 
 ---

@@ -126,6 +126,10 @@
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
     </div>
 
+    <!-- Banner trạng thái phase — hướng dẫn rõ 2 bước (quên Chuyển điểm danh → mọi scan
+         rớt Giờ có mặt, kết thúc ra toàn Vắng). JS renderPhaseBanner đổ nội dung theo phase. -->
+    <div id="scanPhaseBanner" class="phase-banner" style="display:none" role="status" aria-live="polite"></div>
+
     <!-- Layout 2 cột: trái = quét + counters + scan card, phải = bảng NV -->
 <div class="scan-layout">
       <div class="scan-col-left">
@@ -442,8 +446,8 @@
       <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
         <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Task mới</b>.</li>
-        <li><b>Quét vào danh sách:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách hiện <i>Có mặt</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
-        <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để xác nhận <i>Đã điểm danh</i>.</li>
+        <li><b>Quét vào danh sách:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) - người trong danh sách hiện <i>Đã đến</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
+        <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (<i>Có mặt</i>).</li>
         <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
       </ol>
 
@@ -465,9 +469,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Đã quét xác nhận có mặt (xanh ngay khi quét), hoặc đã quét điểm danh.</td></tr>
-          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Có trong danh sách, đã quét vào danh sách nhưng chưa quét điểm danh.</td></tr>
-          <tr><td class="about-cell">Vắng</td><td class="about-cell">Chưa quét điểm danh khi task kết thúc.</td></tr>
+          <tr><td class="about-cell">Đã đến</td><td class="about-cell">Quét lần 1 đã ghi Giờ có mặt - có trong danh sách/đã đến, chưa phải điểm danh.</td></tr>
+          <tr><td class="about-cell">Có mặt</td><td class="about-cell">Quét lần 2 đã ghi Giờ quét - điểm danh thật.</td></tr>
+          <tr><td class="about-cell">Chưa điểm danh</td><td class="about-cell">Có trong danh sách, quét lần 1 xong nhưng chưa quét Giờ quét (phase 2).</td></tr>
+          <tr><td class="about-cell">Vắng</td><td class="about-cell">Chưa quét Giờ quét khi task kết thúc.</td></tr>
           <tr><td class="about-cell">Dư</td><td class="about-cell">Quét người không có trong danh sách (sai ca, không có tên).</td></tr>
         </tbody>
       </table>

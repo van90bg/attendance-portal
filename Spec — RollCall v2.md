@@ -197,7 +197,7 @@ open  →  attend  →  done
 
 Đặc điểm tạo task (A2): **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (nút **Thêm**); bấm **Chuyển điểm danh** (cảnh báo nếu log rỗng) để sang `attend`.
 
-`transitionToAttend(taskId)` — `open → attend`, guard `status === OPEN`; không sửa log (NV đã có LISTED_AT giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` (M1 — mọi user mặc định là operator nên không đổi hành vi quét).
+`transitionToAttend(taskId)` - `open → attend`, guard `status === OPEN`; không sửa log (NV đã có LISTED_AT giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` + **owner-gate `canScanOpen_` (audit 2026-08-19)**: chuyển OPEN→ATTEND mở khoá quét phase 2 cho mọi người nên chỉ owner/admin được phép - chống non-owner gọi thẳng API qua console để vô hiệu owner-gate phase Mở.
 
 ### 4.4 Tạo task (`createReconcileTask`)
 
@@ -210,6 +210,7 @@ open  →  attend  →  done
 ### 4.5 Kết thúc task (`completeTask`)
 
 - Guard: task phải `attend` (phase 2); còn `open` → `UI_LABELS.COMPLETE_BLOCKED` ('Chỉ kết thúc khi ở Điểm danh'); `done` → 'Task đã kết thúc'.
+- **Cảnh báo scanned===0 (audit 2026-08-19)**: client confirm mạnh "Chưa có ai quét lần 2 — tất cả sẽ tính Vắng" trước khi gọi completeTaskApi; server KHÔNG chặn cứng (reopenTask cứu được).
 - **Thứ tự fail-safe**: `markUnscannedAbsent_` TRƯỚC → `updateTaskStatus_(DONE, completedAt)` SAU.
   - `markUnscannedAbsent_`: `transformLogStatuses_` — batch ghi 1 lần cả cột status; dòng `timeScan` rỗng + status `-` → `Vắng`; dòng có `timeScan` nhưng status `-` (legacy/sửa tay) → **chuẩn hóa `Có mặt`** (không đánh Vắng).
   - Nếu mark fail (quota/timeout): task vẫn `attend` → retry được. Nếu status-update fail: vẫn `attend`, mark idempotent → retry an toàn.
@@ -286,7 +287,7 @@ pasteCodesApi(taskId, lines) → clamp 200 dòng (A4 — ScanService `slice(0, 2
 | Counter | Công thức |
 | :------ | :-------- |
 | `scanned` (Đã quét) | số dòng `scannedAtEpoch > 0` (gồm PRESENT + EXTRA) |
-| `presentAt` (Có mặt) | số dòng `listedAtEpoch > 0` — LISTED_AT phase1 (thêm 2026-08-17) |
+| `presentAt` (Đã đến) | số dòng `listedAtEpoch > 0` - LISTED_AT phase1 (thêm 2026-08-17; đổi label "Đã đến" 2026-08-19 để phân biệt với Có mặt phase 2) |
 | `absent` (Chưa điểm danh / Vắng) | số dòng `scannedAtEpoch == 0` và status ≠ EXTRA |
 | `extra` (Dư) | số dòng status = EXTRA |
 | `total` | tổng số dòng log |
@@ -306,6 +307,7 @@ Pure helper `canScanOpen_(cfg, createdBy, activeEmail, isAdmin)` (ScanLogic — 
 Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** trong `getTaskDetail` (sau cache — không lưu vào cache 15s vì cache dùng chung mọi user). Client `applyScanPermission()` (gọi CUỐI `renderScanView` — nguồn quyết định cuối, cờ `scanOwnerLocked`):
 - `!canScanOpen` + phase Mở → `scanInput.disabled = true` + banner "Chỉ owner mới quét được ở phase Mở" + ẩn nút **Chuyển điểm danh** + ẩn nút **Dán danh sách mã**; `submitScan` guard lại (defense barcode vật lý).
 - `updateFinishBtnState` / `updateQueueFullState` tôn trọng `scanOwnerLocked` (không vô tình bật lại).
+- **Chuyển điểm danh (`transitionToAttend`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — OPEN→ATTEND mở khoá phase 2 cho mọi người; non-owner gọi thẳng API bị reject, chống bypass owner-gate phase Mở qua console.
 
 **Paste (T-2)** gate cùng rule (A5): `status === open` + `canScanOpen` — `pasteCodes` server reject nếu không thoả.
 
@@ -334,8 +336,9 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `ABSENT` | `Vắng` | **chỉ khi kết thúc task** (dòng chưa quét) |
 | `EXTRA` | `Dư` | quét NV không có trong log |
 
-- Label **phase-aware** (đồng bộ counter/badge/filter — 2026-08-17): task `open` (FREE phase1) → `-` hiển thị "Có mặt" (đã ghi LISTED_AT); task `attend` → `-` hiển thị "Chưa điểm danh" (chưa quét lần 2 **≠** vắng); task kết thúc → label counter đổi thành "Vắng".
+- Label **phase-aware** (đồng bộ counter/badge/filter — 2026-08-17; đổi label 2026-08-19): task `open` (FREE phase1) → `-` hiển thị "Đã đến" (đã ghi LISTED_AT — KHÔNG dùng "Có mặt" để tránh nhầm với điểm danh thật); task `attend` → `-` hiển thị "Chưa điểm danh" (chưa quét lần 2 **≠** vắng); task kết thúc → label counter đổi thành "Vắng".
 - UI chỉ đổi label, không đổi logic (dùng `STATUS_C` mirror — đổi chuỗi hiển thị không vỡ logic).
+- **Banner phase viewScan (audit 2026-08-19)**: hướng dẫn 2 bước nổi bật dưới topbar — OPEN → "Bấm Chuyển điểm danh khi xong", ATTEND → "đã quét lần 2 X/N, người chưa quét sẽ Vắng khi Kết thúc", DONE → kết quả. Render từ `renderPhaseBanner` trong mỗi `renderCounters`.
 
 ---
 
@@ -512,7 +515,7 @@ Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbo
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
 | Files | **18 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · roster-load · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **155/155 pass** |
+| **Kết quả** | **160/160 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
@@ -603,7 +606,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 155/155 (18 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 160/160 (18 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |
@@ -637,7 +640,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ viewReports (báo cáo chấm công tháng theo email) + viewStats (pivot) + viewStaff (20 cột)
 ✅ viewAdmin — nhật ký hoạt động AuditLog (chỉ admin, lọc ngày); bỏ bảng task trùng viewTasks (2026-08-17)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
-✅ Test Node 155/155 (18 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
+✅ Test Node 160/160 (18 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
 
 **Rủi ro đã chấp nhận (biết rõ, cố tình bỏ qua):**

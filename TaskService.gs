@@ -273,6 +273,14 @@ function transitionToAttend(taskId) {
     if (task.status !== TASK_STATUS.OPEN) {
       return { ok: false, message: UI_LABELS.TRANSITION_BLOCKED };
     }
+    // Owner-gate (M1): chuyển OPEN→ATTEND mở khoá quét phase 2 cho MỌI NGƯỜI (không còn
+    // giới hạn owner) → chỉ owner/admin được phép, đồng gate scanStaff/pasteCodes/loadRoster.
+    // Thiếu gate này: non-owner gọi thẳng transitionToAttendApi qua console để vô hiệu
+    // owner-gate phase Mở rồi quét thoải mái (owner-gate chỉ là khoá cửa trước).
+    const isAdmin = isEditor_();
+    if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
+    }
     updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
     audit_('transitionToAttend', taskId, {});
     return { ok: true, message: 'Đã chuyển sang Điểm danh — bắt đầu điểm danh' };

@@ -163,3 +163,28 @@ test('loadRosterApi: audit row được ghi (action=loadRoster)', () => {
   assert.equal(last[3], 'R1');
   assert.ok(String(last[4]).includes('added'), 'detail chứa added/skipped');
 });
+
+test('transitionToAttend gate: non-owner phase Mở → reject (canScanOpen_)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });  // operator, non-editor
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedStaff(ss);
+  seedTask(ss, 'R1', 'open', 'owner@spx.com');
+  const res = svc.transitionToAttend('R1');
+  assert.equal(res.ok, false);
+  assert.match(res.message, /owner/i);
+  const rows = ss.sheets.AttendanceTask.data;
+  assert.equal(rows[rows.length - 1][5], 'open', 'task vẫn OPEN — phase không bị lật');
+});
+
+test('transitionToAttend: owner quyền → ok, chuyển sang Điểm danh (attend)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedStaff(ss);
+  seedTask(ss, 'R1', 'open', 'owner@spx.com');
+  const res = svc.transitionToAttend('R1');
+  assert.equal(res.ok, true, res.message);
+  const rows = ss.sheets.AttendanceTask.data;
+  assert.equal(rows[rows.length - 1][5], 'attend');
+});

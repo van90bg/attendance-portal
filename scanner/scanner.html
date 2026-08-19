@@ -220,7 +220,7 @@
       var status = String(r.status || '').trim();
       var label = String(r.statusLabel || '').trim();
       // label từ app (statusLabel) là nguồn hiển thị — app đã phân giải
-      // FREE phase1 PENDING → 'Có mặt'; chỉ fallback sang raw status khi thiếu.
+      // FREE phase1 PENDING → 'Đã đến'; chỉ fallback sang raw status khi thiếu.
       var disp = label || (status === '-' ? 'Chưa điểm danh' : status);
       var msg = String(r.message || '').trim();
       var time = String(r.time || '').trim();
