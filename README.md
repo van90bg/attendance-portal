@@ -144,7 +144,7 @@ node scripts/build-local.js     # → index.local.html
 node scripts/audit-css.js       # rà dead CSS (exit 1 nếu có dead; --full xem dynamic)
 node scripts/audit-gs.js        # rà dead .gs / API treo (exit 1 nếu có dead/treo)
 node scripts/audit-style.js --strict # rà computed style class chung (cần Chrome)
-node scripts/audit-ui.js        # audit CDP 7 view × 4 viewport (exit 1 nếu FAIL; --quick)
+node scripts/audit-ui.js        # audit CDP 7 view × 4 viewport (exit 1 nếu FAIL; --quick) — Chrome: CHROME_PATH env / tự dò google-chrome, chromium (Linux 2026-08-19)
 ```
 
 Mở `index.local.html` bằng browser — mock tự nạp khi không có `google.script.run`.
