@@ -35,7 +35,7 @@
 [Tạo task (A2): Station + Ngày → task FREE + Mở + log RỖNG (KHÔNG pre-fill khi tạo)
  | Danh sách xây sau ở phase 1: quét / dán / nạp roster theo ca (nút **Thêm**, loadRosterApi)]
 → Quét barcode NV → phase Mở: ghi LISTED_AT · phase Điểm danh: ghi SCANNED_AT (Có mặt / Dư / reject)
-→ Chuyển điểm danh (FREE) → Kết thúc task → NV chưa quét gán Vắng
+→ Bắt đầu điểm danh (FREE) → Chốt ca → NV chưa quét gán Vắng
 → (tuỳ chọn) Mở lại task (về Điểm danh) → quét tiếp
 ```
 
@@ -177,7 +177,7 @@ Nhật ký hoạt động quản trị (viewAdmin — chỉ admin): mọi mutati
 
 **A2 (docs/roster-load-design.md, 2026-08-18):** mọi task mới = **Mở** (`open`) + **log RỖNG** — KHÔNG pre-fill roster khi tạo. TaskType đã xóa — không còn phân biệt `reconcile`/`free`.
 
-- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Thêm**, append PENDING, LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1). Bấm **Chuyển điểm danh** rồi quét lần 2 (SCANNED_AT); NV lạ phase 2 = Dư.
+- `free` — task mới **rỗng** (0 dòng log): danh sách xây sau ở phase 1 qua **quét** / **dán** / **nạp roster theo ca** (`loadRosterApi` — nút **Thêm**, append PENDING, LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1). Bấm **Bắt đầu điểm danh** rồi quét lần 2 (SCANNED_AT); NV lạ phase 2 = Dư.
 - **Phase 1 KHÔNG có Dư** — Dư (EXTRA) chỉ khi quét phase 2 mà NV không có dòng PENDING trong log (bất kể nguồn: quét phase 1 · dán · roster).
 
 ### 4.2 Task ID
@@ -201,7 +201,7 @@ open  →  attend  →  done
 | `attend` | 2 — Điểm danh | Quét ghi **SCANNED_AT** (TIME_SCAN); mọi người quét được |
 | `done` | — | Đã kết thúc — quét reject `task-closed` |
 
-Đặc điểm tạo task (A2): **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (nút **Thêm**); bấm **Chuyển điểm danh** (cảnh báo nếu log rỗng) để sang `attend`.
+Đặc điểm tạo task (A2): **mọi task mới sinh ra ở `open` với log RỖNG** — KHÔNG pre-fill roster khi tạo; danh sách nạp sau qua quét / dán / **Lấy danh sách theo ca** (nút **Thêm**); bấm **Bắt đầu điểm danh** (cảnh báo nếu log rỗng) để sang `attend`.
 
 `transitionToAttend(taskId)` - `open → attend`, guard `status === OPEN`; không sửa log (NV đã có LISTED_AT giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` + **owner-gate `canScanOpen_` (audit 2026-08-19)**: chuyển OPEN→ATTEND mở khoá quét phase 2 cho mọi người nên chỉ owner/admin được phép - chống non-owner gọi thẳng API qua console để vô hiệu owner-gate phase Mở.
 
@@ -235,7 +235,7 @@ open  →  attend  →  done
 
 - Chỉ hủy được task **`open` + log RỖNG** (tạo nhầm / bỏ dở) — xóa hẳn dòng task khỏi AttendanceTask (`deleteRow`), invalidate cache + audit `cancelTask`.
 - Gate: `requireRole_('operator')` + `canScanOpen_` (owner/admin — đồng gate transitionToAttend, §5.5).
-- Task đã có dữ liệu quét → **chặn** ('Task đã có dữ liệu quét — không hủy được. Hãy Chuyển điểm danh rồi Kết thúc.') — dữ liệu chấm công không bao giờ bị xóa nhầm.
+- Task đã có dữ liệu quét → **chặn** ('Task đã có dữ liệu quét — không hủy được. Hãy Bắt đầu điểm danh rồi Chốt ca.') — dữ liệu chấm công không bao giờ bị xóa nhầm.
 - Client: nút **Hủy** trong màn quét — hiện chỉ khi phase Mở + log rỗng + `permission.canScanOpen`; confirm trước khi gọi `cancelTaskApi`; thành công → `backToList()`.
 
 ---
@@ -352,7 +352,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 
 - Label **phase-aware** (đồng bộ counter/badge/filter — 2026-08-17; đổi label 2026-08-19): task `open` (FREE phase1) → `-` hiển thị "Đã đến" (đã ghi LISTED_AT — KHÔNG dùng "Có mặt" để tránh nhầm với điểm danh thật); task `attend` → `-` hiển thị "Chưa điểm danh" (chưa quét lần 2 **≠** vắng); task kết thúc → label counter đổi thành "Vắng".
 - UI chỉ đổi label, không đổi logic (dùng `STATUS_C` mirror — đổi chuỗi hiển thị không vỡ logic).
-- **Banner phase viewScan (audit 2026-08-19)**: hướng dẫn 2 bước nổi bật dưới topbar — OPEN → "Bấm Chuyển điểm danh khi xong", ATTEND → "đã quét lần 2 X/N, người chưa quét sẽ Vắng khi Kết thúc", DONE → kết quả. Render từ `renderPhaseBanner` trong mỗi `renderCounters`.
+- **Banner phase viewScan (audit 2026-08-19)**: hướng dẫn 2 bước nổi bật dưới topbar — OPEN → "Bấm Bắt đầu điểm danh khi xong", ATTEND → "đã quét X/N, người chưa quét sẽ Vắng khi Chốt ca — muốn điểm danh lại thì Chốt ca rồi Mở lại", DONE → kết quả. Render từ `renderPhaseBanner` trong mỗi `renderCounters`.
 
 ---
 
@@ -642,7 +642,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ Đợt 1 (2026-08-19): force-close admin completeTask (counter lệch — audit completeTaskForceClose, non-admin chặn) · loadRoster thêm phase Điểm danh (chặn DONE) · cột Sửa bảng quét + updateLogRowStatusApi (owner/admin, fill TIME_SCAN khi PRESENT, **L1: đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT / PENDING thêm LISTED_AT / EXTRA giữ SCANNED_AT — partition invariant**, audit fixLogRowStatus kèm fillScanTime/clearScanTime/clearListedAt, mọi phase kể cả DONE) · chống gian lận giờ (epoch client ±3 phút + không sớm hơn tạo task) · cảnh báo staffUnknown (mã quét không có trong StaffData)
 ✅ Nạp roster theo ca: append AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = LISTED_AT = lúc nạp
 ✅ Thời gian quét WYSIWYG (2026-08-18): client gửi epoch lúc quét → sheet ghi đúng giờ hiển thị trên app (server không đè giờ xử lý — hết nhảy giờ sau ~1s); bảng quét cột Ngày hiện ngay (dateText từ response + staffIndex); roster modal thêm lọc Hình thức; getFilterOptionsApi cache 60s
-✅ 2-phase: Mở (LISTED_AT, FREE) → Chuyển điểm danh → Điểm danh (SCANNED_AT) → Kết thúc
+✅ 2-phase: Mở (LISTED_AT, FREE) → Bắt đầu điểm danh → Điểm danh (SCANNED_AT) → Chốt ca
 ✅ Quét barcode Ops (case-insensitive): Có mặt / Đã điểm danh / Đã ghi LISTED_AT / Dư / Task đã kết thúc
 ✅ Kết thúc task → NV chưa quét gán Vắng (batch 1 lần); Mở lại task → về Điểm danh, reset Vắng
 ✅ Hủy task rỗng (2026-08-19): cancelTaskApi — phase Mở + log rỗng + owner/admin; xóa hẳn task khỏi AttendanceTask; task có dữ liệu bị chặn

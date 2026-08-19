@@ -352,7 +352,7 @@ function reopenTask(taskId) {
 
 /**
  * Hủy task đang Mở (OPEN) với log RỖNG — xóa hẳn task khỏi AttendanceTask (tạo nhầm / bỏ dở).
- * KHÔNG cho hủy khi đã có dữ liệu quét — phải Chuyển điểm danh → Kết thúc bình thường.
+ * KHÔNG cho hủy khi đã có dữ liệu quét — phải Bắt đầu điểm danh → Chốt ca bình thường.
  * Gate: operator + OPEN + canScanOpen_ (owner/admin — đồng gate transitionToAttend).
  * @param {string} taskId
  * @returns {{ok: boolean, message: string}}
@@ -379,7 +379,7 @@ function cancelTask(taskId) {
     }
     // An toàn: chỉ xóa dòng task khi log RỖNG — có dữ liệu quét thì phải Kết thúc bình thường.
     if (readLogRows_(taskId).length > 0) {
-      return { ok: false, message: 'Task đã có dữ liệu quét — không hủy được. Hãy Chuyển điểm danh rồi Kết thúc.' };
+      return { ok: false, message: 'Task đã có dữ liệu quét — không hủy được. Hãy Bắt đầu điểm danh rồi Chốt ca.' };
     }
     getSheet_(SHEETS.ATTENDANCE_TASK).deleteRow(task._rowIndex);
     invalidateTaskCaches_(taskId);

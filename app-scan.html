@@ -84,7 +84,7 @@
     updateScanMoreBtn_();
 
     // Quét được khi: phase2 (Điểm danh) — phase1 ghi LISTED_AT, chuyển Điểm danh, phase2 ghi SCANNED_AT.
-        // Phải bấm "Chuyển điểm danh" (phase2) mới quét được (tránh ghi LISTED_AT mà sheet thiếu SCANNED_AT).
+        // Phải bấm "Bắt đầu điểm danh" (phase2) mới quét được (tránh ghi LISTED_AT mà sheet thiếu SCANNED_AT).
         // P1: canScan chỉ dựa trên phase — source of truth.
         // task DONE (status DONE hoặc phase DONE) => canScan = false. applyScanPermission() sẽ gộp owner-gate + queue-full.
         var isDone = data.task.phase === TASK_STATUS_C.DONE || data.task.status === TASK_STATUS_C.DONE;
@@ -101,7 +101,7 @@
           scanInput.placeholder = isAttend ? 'Quét mã nhân viên để điểm danh…' : 'Quét mã nhân viên có mặt…';
         }
         // T-1: áp dụng owner gate TRƯỚC updateFinishBtnState — scanOwnerLocked quyết định
-        // nút Chuyển điểm danh + disabled state, updateFinishBtnState phải đọc state mới nhất.
+        // nút Bắt đầu điểm danh + disabled state, updateFinishBtnState phải đọc state mới nhất.
         applyScanPermission();
         updateFinishBtnState();
         // F: đồng bộ indicator sort với phase vừa render (phase2 → cột SCANNED_AT)
@@ -221,7 +221,7 @@
     }
 
   // U2: banner trạng thái phase — đổ nội dung theo phase + counters; hiển thị ngay dưới
-  // topbar viewScan. Nhắc rõ bước 2-phase: OPEN phải bấm Chuyển điểm danh, ATTEND người
+  // topbar viewScan. Nhắc rõ bước 2-phase: OPEN phải bấm Bắt đầu điểm danh, ATTEND người
   // chưa quét lần 2 sẽ Vắng khi Kết thúc.
   function renderPhaseBanner(c) {
     var el = document.getElementById('scanPhaseBanner');
@@ -234,13 +234,13 @@
     var presentAt = co.presentAt || 0;
     var html;
     if (ph === TASK_STATUS_C.OPEN) {
-      html = '<b>Phase 1 — Mở:</b> quét để ghi Giờ có mặt (<b>Đã đến ' + presentAt + '</b>' +
-        (total ? ' / ' + total : '') + '). Bấm <b>Chuyển điểm danh</b> khi xong — quên chuyển thì mọi lượt quét chỉ ghi Giờ có mặt.';
+      html = '<b>Đang ghi danh sách:</b> quét để ghi nhận Giờ có mặt (<b>Đã đến ' + presentAt + '</b>' +
+        (total ? ' / ' + total : '') + '). Bấm <b>Bắt đầu điểm danh</b> khi xong — quên chuyển thì mọi lượt quét chỉ ghi Giờ có mặt.';
     } else if (ph === TASK_STATUS_C.ATTEND) {
-      html = '<b>Phase 2 — Điểm danh:</b> đã quét lần 2 <b>' + scanned + (total ? ' / ' + total : '') + '</b>. ' +
-        'Bấm <b>Kết thúc</b> khi xong — người chưa quét lần 2 sẽ tính <b>Vắng</b>.';
+      html = '<b>Đang điểm danh:</b> đã quét <b>' + scanned + (total ? ' / ' + total : '') + '</b>. ' +
+        'Bấm <b>Chốt ca</b> khi xong — người chưa quét sẽ tính <b>Vắng</b>. Muốn điểm danh lại lần nữa? Chốt ca rồi Mở lại.';
     } else {
-      html = '<b>Đã kết thúc:</b> ' + scanned + ' điểm danh · ' + (co.absent || 0) + ' Vắng' +
+      html = '<b>Đã chốt điểm danh:</b> ' + scanned + ' điểm danh · ' + (co.absent || 0) + ' Vắng' +
         ((co.extra || 0) ? ' · ' + co.extra + ' Dư' : '') + '.';
     }
     el.className = 'phase-banner ' + (ph === TASK_STATUS_C.OPEN ? 'phase-open' : ph === TASK_STATUS_C.ATTEND ? 'phase-attend' : 'phase-done');
@@ -248,12 +248,12 @@
     el.style.display = '';
   }
 
-  // P1: label option lọc trạng thái theo phase — PENDING = 'Đã đến (chưa quét lần 2)' (Mở —
+  // P1: label option lọc trạng thái theo phase — PENDING = 'Đã đến (chưa điểm danh)' (Mở —
 // filter V4 chỉ hiện NV có LISTED_AT) / 'Chưa điểm danh' (Điểm danh).
   function updateScanFilterLabel_() {
     var statusEl = document.getElementById('scanStatusFilter');
     if (!statusEl) return;
-    var lbl = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Đã đến (chưa quét lần 2)' : 'Chưa điểm danh';
+    var lbl = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Đã đến (chưa điểm danh)' : 'Chưa điểm danh';
     for (var i = 0; i < statusEl.options.length; i++) {
       if (statusEl.options[i].value === STATUS_C.PENDING) { statusEl.options[i].textContent = lbl; return; }
     }
@@ -1130,9 +1130,9 @@
     }).length;
     var scannedNow = (CURRENT_COUNTERS && CURRENT_COUNTERS.scanned) || 0;
     var finishMsg = (scannedNow === 0)
-      ? 'Chưa có ai quét lần 2 (Giờ quét) — tất cả sẽ tính Vắng dù đã ghi Giờ có mặt. Kết thúc task ' + CURRENT_TASK.taskId + '?'
+      ? 'Chưa có ai điểm danh (Giờ quét) — tất cả sẽ tính Vắng dù đã ghi Giờ có mặt. Chốt ca task ' + CURRENT_TASK.taskId + '?'
       : (pendingLeft > 0
-        ? 'Kết thúc task ' + CURRENT_TASK.taskId + '?\n' + pendingLeft + ' NV chưa điểm danh sẽ tính Vắng.'
+        ? 'Chốt ca task ' + CURRENT_TASK.taskId + '?\n' + pendingLeft + ' NV chưa điểm danh sẽ tính Vắng.'
         : 'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.');
     showConfirm(
       scannedNow === 0 ? 'Cảnh báo — chưa ai điểm danh' : 'Kết thúc task',

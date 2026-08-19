@@ -121,13 +121,13 @@
           <button class="topbar-more-item" id="btnLoadRoster" onclick="openRosterModal()" style="display:none" aria-label="Lấy danh sách theo ca">Lấy danh sách theo ca</button>
         </div>
       </div>
-      <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Chuyển sang điểm danh">Chuyển điểm danh</button>
-      <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Kết thúc task">Kết thúc</button>
+      <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Bắt đầu điểm danh">Bắt đầu điểm danh</button>
+      <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Chốt ca">Chốt ca</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
       <button class="btn btn-danger" id="btnCancel" onclick="cancelTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Hủy task rỗng">Hủy</button>
     </div>
 
-    <!-- Banner trạng thái phase — hướng dẫn rõ 2 bước (quên Chuyển điểm danh → mọi scan
+    <!-- Banner trạng thái phase — hướng dẫn rõ 2 bước (quên Bắt đầu điểm danh → mọi scan
          rớt Giờ có mặt, kết thúc ra toàn Vắng). JS renderPhaseBanner đổ nội dung theo phase. -->
     <div id="scanPhaseBanner" class="phase-banner" style="display:none" role="status" aria-live="polite"></div>
 
@@ -449,7 +449,7 @@
       <ol class="about-list about-list-lh">
         <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Task mới</b>.</li>
         <li><b>Quét vào danh sách:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) - người trong danh sách hiện <i>Đã đến</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
-        <li><b>Chuyển điểm danh:</b> nhấn <b>Chuyển điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (<i>Có mặt</i>).</li>
+        <li><b>Bắt đầu điểm danh:</b> nhấn <b>Bắt đầu điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (<i>Có mặt</i>).</li>
         <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
       </ol>
 
