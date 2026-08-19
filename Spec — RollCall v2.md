@@ -7,6 +7,7 @@
 > v2.3 (2026-08-17): **shell UI 9 view** (viewHome/Stats/Tasks/Scan/Staff/Config/Reports/Admin/About — tách module `app-*.html`), **role 4 bậc viewer<operator<manager<admin** (roleMap qua Config sheet, gate `requireRole_` ở service layer), **viewReports** (báo cáo chấm công tháng theo email), **viewAdmin** (nhật ký hoạt động AuditLog — chỉ admin; bảng task mọi owner đã bỏ vì trùng viewTasks), **viewStats** (pivot StaffData), **AuditRepo/ReportRepo/ReportService**, **cache chunk StaffAttendance ≤100KB/key**.
 > v2.4 (2026-08-19): **owner-gate Kết thúc/Mở lại task** (completeTask/reopenTask — đồng gate transitionToAttend, chống operator đóng/đổi trạng thái task người khác; legacy `createdBy='web'` fail-open), **warmStaffCacheApi gate operator+** (trước mở mọi role → rò index nhân sự), **fix counter partition completeTask** (`scanned+absent = total` — task có NV Dư quét phase 2 giờ đóng được), **bottom nav Điểm danh hiện cho mọi role trên mobile** (trước ẩn theo canManager_ đúng quyền view).
 > v2.5 (2026-08-19): **force-close admin** (completeTask counter lệch — admin chốt được, audit `completeTaskForceClose`; non-admin vẫn chặn), **loadRoster cho phép phase Điểm danh** (NV đến trễ vẫn nạp vào danh sách — chỉ chặn DONE), **API `updateLogRowStatusApi`** (sửa trạng thái 1 dòng log — owner/admin, PRESENT tự fill TIME_SCAN, audit `fixLogRowStatus`, cột **Sửa** trong bảng quét), **chống gian lận giờ quét** (epoch client chỉ chấp nhận trong ±3 phút so server + không sớm hơn lúc tạo task), **cờ `staffUnknown`** (mã quét không có trong StaffData → card cảnh báo + toast).
+> v2.6 (2026-08-19): **queue quét 2→8** (barcode nhanh hết bị chặn; toast cảnh báo khi queue ≥3), **tab sync** (quay lại tab → silent reload task đang mở — hết data stale khi NV khác quét ở tab khác), **confirm Kết thúc hiện số NV chưa điểm danh sẽ tính Vắng**, **scanner ngoài theo task** (đổi task giữa chừng → đóng scanner cũ + từ chối mã task cũ), **lọc 'Chưa điểm danh' phase Mở theo listedAt** (PENDING → chỉ NV đã đến có LISTED_AT), **non-owner phase Mở ẩn luôn nút camera**, **transitionToAttend re-check queue full**, **waitLock 30s cho pasteCodes/loadRoster** (10s dễ timeout khi lock bận).
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -370,7 +371,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 
 ### 7.2 LockService
 
-- Script-level lock, `waitLock(10000)`, **release trong `finally`** — mọi luồng ghi: `createReconcileTask`, `transitionToAttend`, `completeTask`, `reopenTask`, `scanStaff`, `pasteCodes`.
+- Script-level lock, `waitLock(10000)` (riêng `pasteCodes`/`loadRoster` dùng `waitLock(30000)` — xử lý khối lớn, 10s dễ timeout khi lock bận), **release trong `finally`** — mọi luồng ghi: `createReconcileTask`, `transitionToAttend`, `completeTask`, `reopenTask`, `scanStaff`, `pasteCodes`.
 - `transformLogStatuses_` (kết thúc / mở lại): batch `setValues` 1 lần cả cột status — không `setValue` trong loop (241 NV = 1 RPC thay vì ~240).
 
 ---

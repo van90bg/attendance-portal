@@ -173,6 +173,7 @@ clasp deploy
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
 - ✅ 174/174 unit tests + 11/11 CDP local mock.
 - ✅ Đợt 1 (2026-08-19): force-close admin (completeTask counter lệch) · loadRoster ở phase Điểm danh (chặn DONE) · sửa trạng thái dòng log (updateLogRowStatusApi + cột Sửa bảng quét) · chống gian lận giờ quét (±3 phút + không sớm hơn tạo task) · cảnh báo mã quét không có trong StaffData (staffUnknown).
+- ✅ Đợt 2 (2026-08-19): queue quét 2→8 + toast queue ≥3 · tab sync (quay lại tab → silent reload task đang mở) · confirm Kết thúc hiện số NV chưa điểm danh sẽ Vắng · scanner ngoài theo task (đổi task → đóng scanner + từ chối mã task cũ) · lọc PENDING phase Mở theo listedAt (chỉ NV đã đến) · non-owner phase Mở ẩn nút camera · transitionToAttend re-check queue full · waitLock 30s cho pasteCodes/loadRoster.
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 
 ---

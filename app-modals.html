@@ -256,6 +256,12 @@
     if (rosterBtn && scanOwnerLocked) {
       rosterBtn.style.display = 'none';
     }
+    // V5: non-owner bị khoá phase Mở → ẩn luôn nút camera (quét ảnh/tab ngoài cũng bị
+    // chặn bởi scanOwnerLocked) — display '' trả về CSS gốc (inline-flex; media mobile none).
+    var camBtn = document.getElementById('btnCamera');
+    var camPhoto = document.getElementById('btnCameraPhoto');
+    if (camBtn) camBtn.style.display = scanOwnerLocked ? 'none' : '';
+    if (camPhoto) camPhoto.style.display = scanOwnerLocked ? 'none' : '';
     updateScanMoreBtn_();
   }
 

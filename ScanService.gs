@@ -199,7 +199,7 @@ function pasteCodes(taskId, rawLines) {
   // thay vì ném ra → client hiện toast gọn, KHÔNG "Server lỗi" chung (pattern scanStaff).
   try {
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  lock.waitLock(30000); // 30s — paste 200 mã + ghi batch lâu, 10s dễ timeout khi lock bận
   try {
     const task = readTask_(taskId);
     if (!task) return { ok: false, message: 'Không tìm thấy task', total: 0, success: 0, failed: 0, results: [], counters: null };

@@ -40,7 +40,9 @@
         : (CURRENT_TASK.status === TASK_STATUS_C.DONE ? 'done' : 'open');
     }
     // Task kết thúc → tự đóng tab scanner ngoài (nếu mở cho chính task này).
-    if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.DONE && EXTERNAL_SCAN_TASK_ID === CURRENT_TASK.taskId) {
+    // V3: user mở task KHÁC giữa chừng → scanner gắn task cũ phải đóng (quét mã task cũ là sai ca).
+    if (CURRENT_TASK && EXTERNAL_SCAN_TASK_ID
+      && (EXTERNAL_SCAN_TASK_ID !== CURRENT_TASK.taskId || CURRENT_TASK.phase === TASK_STATUS_C.DONE)) {
       closeExternalScanner();
     }
     CURRENT_LOG = safeArr(data.log);
@@ -285,6 +287,11 @@
     var out = [];
     safeArr(log).forEach(function (r) {
       if (st && r.status !== st) return;
+      // V4: phase Mở — 'Chưa điểm danh' (PENDING) gộp 2 nhóm ('Đã đến' có LISTED_AT /
+      // 'Chưa đến' chưa quét lần 1). Lọc theo listedAt: PENDING → chỉ NV ĐÃ đến; NV chưa
+      // đến xem được ở chế độ mặc định (không lọc).
+      if (st === STATUS_C.PENDING && CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN
+        && !(Number(r.listedAtEpoch) > 0)) return;
       if (q) {
         var hay = (String(r.staffId || '') + ' ' + String(r.staffName || '')).toLowerCase();
         if (hay.indexOf(q) === -1) return;
@@ -478,7 +485,7 @@
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.
   var SCAN_QUEUE = [];
   var SCAN_PROCESSING = false;
-  var SCAN_QUEUE_MAX = 2; // giảm backlog (5 → 2) để tên NV hiện tức thì, ít delay queue
+  var SCAN_QUEUE_MAX = 8; // backlog barcode scanner nhanh (tối đa chờ trước khi disable input)
   // m4 (audit): silent reload (paste/finish/refresh) xảy ra giữa lượt quét → gate trong
   // loadTaskDetail HOÃN thay vì bỏ (đặt _pendingSilentReload) → reload khi queue sạch.
   var _pendingSilentReload = null;
@@ -720,6 +727,8 @@
     recountFromLog();
     renderScanTable(CURRENT_LOG);
     SCAN_QUEUE.push(item);
+    // #1 (review): queue dài (3+) → cảnh báo 1 lần (không spam mỗi lượt) — user quét chậm lại.
+    if (SCAN_QUEUE.length === 3) showToast('Đang xử lý ' + SCAN_QUEUE.length + ' lượt quét — quét chậm lại', true);
     BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
     updateBgIndicator();
     updateFinishBtnState();
@@ -1042,6 +1051,9 @@
             updateSortIndicators();
             // T-1: Re-apply permission after phase transition
             applyScanPermission();
+            // #10 (review): transition mở lại input — re-check queue full (queue cũ có thể
+            // đã đầy → không được bật input dù mở phase 2).
+            updateQueueFullState();
             scanInput.focus();
           }
         }
@@ -1067,10 +1079,17 @@
     // Cảnh báo mạnh khi scanned===0: task OPEN→ATTEND rồi đóng mà chưa ai quét lần 2
     // (Giờ quét) → markUnscannedAbsent_ đánh MỌI dòng Vắng dù phase 1 đã ghi Giờ có mặt.
     // reopenTask cứu được nên confirm là đủ, không chặn cứng.
+    // #4 (review): đếm NV chưa điểm danh (PENDING) — kết thúc sẽ đánh Vắng cả số này,
+    // hiện rõ trong confirm để user không bất ngờ (không chặn — reopenTask cứu được).
+    var pendingLeft = safeArr(CURRENT_LOG).filter(function (r) {
+      return r.status === STATUS_C.PENDING;
+    }).length;
     var scannedNow = (CURRENT_COUNTERS && CURRENT_COUNTERS.scanned) || 0;
     var finishMsg = (scannedNow === 0)
       ? 'Chưa có ai quét lần 2 (Giờ quét) — tất cả sẽ tính Vắng dù đã ghi Giờ có mặt. Kết thúc task ' + CURRENT_TASK.taskId + '?'
-      : 'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.';
+      : (pendingLeft > 0
+        ? 'Kết thúc task ' + CURRENT_TASK.taskId + '?\n' + pendingLeft + ' NV chưa điểm danh sẽ tính Vắng.'
+        : 'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.');
     showConfirm(
       scannedNow === 0 ? 'Cảnh báo — chưa ai điểm danh' : 'Kết thúc task',
       finishMsg,
@@ -1285,6 +1304,11 @@
     // App đang không ở task nào (đổi view/task giữa chừng) → báo về scanner, không drop im lặng.
     if (!CURRENT_TASK) {
       notifyExternalScanner({ code: code, ok: false, message: 'Chưa mở task — mở task trong app rồi quét' });
+      return;
+    }
+    // V3: scanner mở cho task cũ, user đã mở task khác → từ chối mã (không nhầm ca).
+    if (EXTERNAL_SCAN_TASK_ID && EXTERNAL_SCAN_TASK_ID !== CURRENT_TASK.taskId) {
+      notifyExternalScanner({ code: code, ok: false, message: 'Task đã đổi — mở lại camera cho task ' + CURRENT_TASK.taskId });
       return;
     }
     var inp = document.getElementById('scanInput');

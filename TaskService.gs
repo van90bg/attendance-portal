@@ -64,7 +64,7 @@ function createReconcileTask(input) {
   // nạp sau qua loadRosterApi). noList=true → guard deduped.length bỏ qua (luôn 0 dòng).
 
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  lock.waitLock(30000); // 30s — loadRoster dựng StaffData filter lâu, 10s dễ timeout khi lock bận
   try {
     // noList: KHÔNG đọc StaffData, log rỗng — mọi quét sau là Dư (phase1 LISTED_AT,
     // phase2 SCANNED_AT). Dùng trực tiếp staffList rỗng để skip filter + dedupe + guard.

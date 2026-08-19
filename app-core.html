@@ -283,6 +283,7 @@
       else if (e.key === 'Escape') { onListSearchKeydown(e); }
     });
     initNetworkStatus();
+    initTabSync();       // #12: quay lại tab → silent reload task đang mở (data không stale)
     initBgIndicator();   // indicator tác vụ nền (header) — ẩn ban đầu, hiện khi có scan/RPC/silent
     initSelEvents();
     startAutoFocusLoop();
@@ -441,6 +442,21 @@
     updateNetStatus();
     window.addEventListener('online', function () { updateNetStatus(true); });
     window.addEventListener('offline', function () { updateNetStatus(false); });
+  }
+
+  /* ===== Tab sync — quay lại tab thì reload im lặng (2026-08-19) ===== */
+  // #12 (review): user chuyển tab / app xuống nền rồi quay lại — dữ liệu có thể stale
+  // (người khác quét ở tab khác). Reload silent (không spinner): loadTaskDetail(…, true)
+  // tự hoãn qua _pendingSilentReload nếu đang scan. Chỉ chạy khi đang ở view quét.
+  function initTabSync() {
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (typeof loadTaskDetail !== 'function') return;
+      if (typeof CURRENT_TASK === 'undefined' || !CURRENT_TASK || !CURRENT_TASK.taskId) return;
+      var vs = document.getElementById('viewScan');
+      if (!vs || vs.classList.contains('hidden')) return;
+      loadTaskDetail(CURRENT_TASK.taskId, true);
+    });
   }
 
   /* ===== Background task indicator (header) — 2026-08-09 ===== */
