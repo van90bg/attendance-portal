@@ -10,6 +10,7 @@
 > v2.6 (2026-08-19): **queue quét 2→8** (barcode nhanh hết bị chặn; toast cảnh báo khi queue ≥3), **tab sync** (quay lại tab → silent reload task đang mở — hết data stale khi NV khác quét ở tab khác), **confirm Kết thúc hiện số NV chưa điểm danh sẽ tính Vắng**, **scanner ngoài theo task** (đổi task giữa chừng → đóng scanner cũ + từ chối mã task cũ), **lọc 'Chưa điểm danh' phase Mở theo listedAt** (PENDING → chỉ NV đã đến có LISTED_AT), **non-owner phase Mở ẩn luôn nút camera**, **transitionToAttend re-check queue full**, **waitLock 30s cho pasteCodes/loadRoster** (10s dễ timeout khi lock bận).
 > v2.7 (2026-08-19): **fix L1 updateLogRowStatus chiều ngược** — đổi PRESENT→ABSENT/PENDING giờ **clear SCANNED_AT** (trước giữ nguyên → dòng Vắng vẫn tính `scanned` trong computeCounters, counter lệch, phá luôn ý nghĩa partition `scanned+absent=total`); về PENDING clear luôn LISTED_AT (reset 'chưa đến'); **EXTRA giữ SCANNED_AT** (thiết kế partition — EXTRA chưa quét sẽ phá invariant); audit ghi thêm `clearScanTime`/`clearListedAt`; thêm 3 test chiều ngược.
 > v2.8 (2026-08-19): **thu cửa sổ epoch client ±3 phút → ±60s** (V1 residual — queue tối đa 8 item × 2.5s ≈ 20s + latency nên 60s vẫn an toàn; ngoài cửa sổ fallback giờ server như cũ), **label filter phase Mở: 'Chưa đến' → 'Đã đến (chưa quét lần 2)'** (khớp thực tế — filter PENDING phase Mở hiện NV đã có LISTED_AT; trước label nghịch lý).
+> v2.9 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy màn quét — owner/admin, log rỗng mới hủy được; xóa hẳn dòng task + audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (append PENDING, thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không thổi phồng; khớp V2.6 lọc theo listedAt) · label phase 1 'Đã có mặt' → 'Đã đến' (2-phase: đến ≠ điểm danh).
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -206,7 +207,7 @@ open  →  attend  →  done
 
 ### 4.4 Tạo task (`createReconcileTask`)
 
-1. **A2:** server ép `noList = true` cho MỌI task mới — KHÔNG cần station/khác filter, KHÔNG đọc StaffData / KHÔNG pre-fill log (modal chỉ còn nút Tạo; Station/Date/Ca/Team nạp sau qua loadRosterApi).
+1. **A2:** server ép `noList = true` cho MỌI task mới — KHÔNG cần station/khác filter, KHÔNG đọc StaffData / KHÔNG pre-fill log (modal Station + Team + Ngày — station bắt buộc; danh sách nạp sau qua loadRosterApi).
 2. Task lưu: `status='open'`, `slotCode='Tự do'` (`SLOT_FREE_MAGIC`) + `team`/`contractType` client gửi (metadata hiển thị).
 3. `insertTask_` (append 1 dòng) — KHÔNG `batchInsertLogRows_` (log rỗng; roster nạp sau qua `loadRosterApi`).
 4. Status khởi tạo: **luôn `OPEN`** (A2 — mọi task qua phase 1).
@@ -482,7 +483,7 @@ Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbo
 ### 9.3 Scan queue nền (client)
 
 - Capture **0ms**: clear + focus + toast optimistic + scan card + counters recount NGAY; server xử lý nền tuần tự.
-- Chặn sớm: mã không phải `Ops` → toast lỗi; đã quét (Có mặt/Dư) → "Đã điểm danh" (không gọi server); queue đầy (max 50) → chặn + viền đỏ pulse + disable input.
+- Chặn sớm: mã không phải `Ops` → toast lỗi; đã quét (Có mặt/Dư) → "Đã điểm danh" (không gọi server); queue đầy (max 8 — SCAN_QUEUE_MAX) → chặn + viền đỏ pulse + disable input.
 - **Rollback** an toàn: fail → trả status/timeScan cũ; dòng lạ → `splice` theo index (không `pop()` — pop xóa nhầm row khi queue có 2+ NV lạ).
 - **Guards**: `SCAN_CARD_SEQ` (response cũ không đè scan card mới), capture `taskId` lúc enqueue (response task cũ không đụng UI), chặn **Kết thúc** và **backToList** khi còn scan đang xử lý.
 - Counter đồng bộ cuối queue từ server (chuẩn nhất); exception → recount từ log.

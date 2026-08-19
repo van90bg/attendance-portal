@@ -16,7 +16,7 @@
     var name = String(m.staffName || '').trim();
     var em = String(m.email || '').trim();
     var out = '';
-    if (name) out += '<span class="reports-user-name">' + esc(name) + '</span>';
+    if (name) out += '<span>' + esc(name) + '</span>';
     if (em) out += ' <span class="reports-user-email">' + esc(em) + '</span>';
     var extra = REPORT_ROWS.length ? ' — ' + REPORT_ROWS.length + ' dòng' : (m.message ? ' — ' + m.message : '');
     if (extra) out += ' <span class="reports-user-count">' + esc(extra) + '</span>';
