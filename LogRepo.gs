@@ -429,12 +429,18 @@ function writeBatchRuns_(sheet, updates, field) {
 
 /**
  * Sua trang thai 1 dong log (fix thu cong - owner/admin qua TaskService.updateLogRowStatus).
- * newStatus PRESENT + scanTime != null → ghi TIME_SCAN + STATUS (2 cot lien nhau);
- * nguoc lai chi ghi STATUS. 1 setValues - caller giu LockService.
+ * newStatus PRESENT + scanTime != null → ghi TIME_SCAN + STATUS (2 cot lien nhau).
+ * L1: clearScanned/clearListed — doi nguoc PRESENT→ABSENT/PENDING phai xoa SCANNED_AT
+ * (computeCounters dem scanned theo scannedAtEpoch>0); ve PENDING xoa luon LISTED_AT.
+ * Cot 7..9 (LISTED_AT..STATUS) lien nhau → 1 setValues. Caller giu LockService.
  */
-function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime) {
+function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime, clearScanned, clearListed) {
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
-  if (scanTime) {
+  if (clearScanned && clearListed) {
+    sheet.getRange(rowIndex, LOG_COLS.LISTED_AT + 1, 1, 3).setValues([['', '', newStatus]]);
+  } else if (clearScanned) {
+    sheet.getRange(rowIndex, LOG_COLS.SCANNED_AT + 1, 1, 2).setValues([['', newStatus]]);
+  } else if (scanTime) {
     sheet.getRange(rowIndex, LOG_COLS.SCANNED_AT + 1, 1, 2).setValues([[scanTime, newStatus]]);
   } else {
     sheet.getRange(rowIndex, LOG_COLS.STATUS + 1, 1, 1).setValues([[newStatus]]);

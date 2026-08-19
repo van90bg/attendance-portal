@@ -415,9 +415,17 @@ function updateLogRowStatus(taskId, rawStaffId, newStatus) {
       if (row.status === newStatus) {
         return { ok: false, message: 'NV đã ở trạng thái này', counters: null };
       }
-      const scanTime = (newStatus === STATUS.PRESENT && !(Number(row.scannedAtEpoch) > 0)) ? new Date() : null;
-      setLogRowStatus_(taskId, row._rowIndex, newStatus, scanTime);
-      audit_('fixLogRowStatus', taskId, { staffId: staffId, oldStatus: row.status, newStatus: newStatus, fillScanTime: !!scanTime });
+      // L1 (review): doi nguoc PRESENT→ABSENT/PENDING phai clear SCANNED_AT — computeCounters
+      // dem scanned theo scannedAtEpoch>0; giu nguyen → dong Vang van tinh 'da diem danh'
+      // (scanned sai, absent thieu). Ve PENDING → clear luon LISTED_AT (reset ve chua den).
+      // EXTRA KHONG clear: giu SCANNED_AT theo thiet ke (completeTask partition
+      // scanned+absent=total — EXTRA chua quet se pha invariant).
+      const hasScan = Number(row.scannedAtEpoch) > 0;
+      const clearScanned = hasScan && (newStatus === STATUS.ABSENT || newStatus === STATUS.PENDING);
+      const clearListed = clearScanned && newStatus === STATUS.PENDING;
+      const scanTime = (newStatus === STATUS.PRESENT && !hasScan) ? new Date() : null;
+      setLogRowStatus_(taskId, row._rowIndex, newStatus, scanTime, clearScanned, clearListed);
+      audit_('fixLogRowStatus', taskId, { staffId: staffId, oldStatus: row.status, newStatus: newStatus, fillScanTime: !!scanTime, clearScanTime: clearScanned, clearListedAt: clearListed });
       const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));
       return { ok: true, message: 'Đã cập nhật ' + staffId + ' → ' + newStatus, counters: counters };
     } finally {

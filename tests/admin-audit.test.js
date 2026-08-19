@@ -201,6 +201,62 @@ test('updateLogRowStatus: PRESENT→EXTRA không fill TIME_SCAN (chỉ đổi ST
   assert.equal(raw[8].getTime(), t.getTime(), 'TIME_SCAN giữ nguyên');
 });
 
+test('updateLogRowStatus: PRESENT→ABSENT clear TIME_SCAN → counter scanned giảm, absent tăng (L1)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, t, ST.PRESENT, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.ABSENT);
+  assert.equal(res.ok, true, res.message);
+  const row = svc.findLogRow(svc.readLogRows_('R2026'), 'Ops6219');
+  assert.equal(row.status, ST.ABSENT);
+  const raw = ss.sheets.AttendanceLog.data[1];
+  assert.equal(raw[8], '', 'TIME_SCAN bị xoá — dòng Vắng không còn tính Có mặt');
+  assert.equal(raw[7].getTime(), t.getTime(), 'LISTED_AT giữ nguyên (NV vẫn đã đến)');
+  assert.equal(res.counters.scanned, 0, 'scanned hết dòng đã quét nhầm');
+  assert.equal(res.counters.absent, 1, 'absent đếm đúng dòng Vắng');
+  const rows = ss.sheets.AuditLog.data;
+  assert.ok(String(rows[rows.length - 1][4]).includes('clearScanTime') && String(rows[rows.length - 1][4]).includes('true'));
+});
+
+test('updateLogRowStatus: PRESENT→PENDING clear TIME_SCAN + LISTED_AT (reset về chưa đến) (L1)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, t, ST.PRESENT, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.PENDING);
+  assert.equal(res.ok, true, res.message);
+  const raw = ss.sheets.AttendanceLog.data[1];
+  assert.equal(raw[7], '', 'LISTED_AT bị xoá');
+  assert.equal(raw[8], '', 'TIME_SCAN bị xoá');
+  assert.equal(res.counters.scanned, 0);
+  assert.equal(res.counters.presentAt, 0);
+  assert.equal(res.counters.absent, 1);
+  assert.ok(String(ss.sheets.AuditLog.data[ss.sheets.AuditLog.data.length - 1][4]).includes('clearListedAt') && String(ss.sheets.AuditLog.data[ss.sheets.AuditLog.data.length - 1][4]).includes('true'));
+});
+
+test('updateLogRowStatus: PRESENT→EXTRA GIỮ TIME_SCAN — partition invariant scanned+absent=total (L1)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, t, ST.PRESENT, '2026-08-17']);
+  const res = svc.updateLogRowStatus('R2026', 'Ops6219', ST.EXTRA);
+  assert.equal(res.ok, true, res.message);
+  const raw = ss.sheets.AttendanceLog.data[1];
+  assert.equal(raw[8].getTime(), t.getTime(), 'TIME_SCAN giữ nguyên (EXTRA quét phase 2 luôn có SCANNED_AT)');
+  assert.equal(res.counters.scanned + res.counters.absent, res.counters.total, 'partition invariant còn nguyên — task đóng được không cần force-close');
+  const close = svc.completeTask('R2026');
+  assert.equal(close.ok, true, close.message);
+  const rows = ss.sheets.AuditLog.data;
+  assert.ok(!rows.some((r) => r[2] === 'completeTaskForceClose'), 'không cần force-close');
+});
+
 test('updateLogRowStatus: non-owner reject (owner gate)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });
   const svc = loadAll(ctx);

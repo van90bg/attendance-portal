@@ -8,6 +8,7 @@
 > v2.4 (2026-08-19): **owner-gate Kết thúc/Mở lại task** (completeTask/reopenTask — đồng gate transitionToAttend, chống operator đóng/đổi trạng thái task người khác; legacy `createdBy='web'` fail-open), **warmStaffCacheApi gate operator+** (trước mở mọi role → rò index nhân sự), **fix counter partition completeTask** (`scanned+absent = total` — task có NV Dư quét phase 2 giờ đóng được), **bottom nav Điểm danh hiện cho mọi role trên mobile** (trước ẩn theo canManager_ đúng quyền view).
 > v2.5 (2026-08-19): **force-close admin** (completeTask counter lệch — admin chốt được, audit `completeTaskForceClose`; non-admin vẫn chặn), **loadRoster cho phép phase Điểm danh** (NV đến trễ vẫn nạp vào danh sách — chỉ chặn DONE), **API `updateLogRowStatusApi`** (sửa trạng thái 1 dòng log — owner/admin, PRESENT tự fill TIME_SCAN, audit `fixLogRowStatus`, cột **Sửa** trong bảng quét), **chống gian lận giờ quét** (epoch client chỉ chấp nhận trong ±3 phút so server + không sớm hơn lúc tạo task), **cờ `staffUnknown`** (mã quét không có trong StaffData → card cảnh báo + toast).
 > v2.6 (2026-08-19): **queue quét 2→8** (barcode nhanh hết bị chặn; toast cảnh báo khi queue ≥3), **tab sync** (quay lại tab → silent reload task đang mở — hết data stale khi NV khác quét ở tab khác), **confirm Kết thúc hiện số NV chưa điểm danh sẽ tính Vắng**, **scanner ngoài theo task** (đổi task giữa chừng → đóng scanner cũ + từ chối mã task cũ), **lọc 'Chưa điểm danh' phase Mở theo listedAt** (PENDING → chỉ NV đã đến có LISTED_AT), **non-owner phase Mở ẩn luôn nút camera**, **transitionToAttend re-check queue full**, **waitLock 30s cho pasteCodes/loadRoster** (10s dễ timeout khi lock bận).
+> v2.7 (2026-08-19): **fix L1 updateLogRowStatus chiều ngược** — đổi PRESENT→ABSENT/PENDING giờ **clear SCANNED_AT** (trước giữ nguyên → dòng Vắng vẫn tính `scanned` trong computeCounters, counter lệch, phá luôn ý nghĩa partition `scanned+absent=total`); về PENDING clear luôn LISTED_AT (reset 'chưa đến'); **EXTRA giữ SCANNED_AT** (thiết kế partition — EXTRA chưa quét sẽ phá invariant); audit ghi thêm `clearScanTime`/`clearListedAt`; thêm 3 test chiều ngược.
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -398,7 +399,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator + owner (service) |
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 200 | operator (service) |
 | `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở **phase Mở + Điểm danh** (NV đến trễ vẫn vào được danh sách — chỉ chặn DONE); append PENDING + timeRef, **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN/ATTEND + owner) |
-| `updateLogRowStatusApi(taskId, staffId, newStatus)` | `{ ok, message, counters }` — sửa trạng thái 1 dòng log theo mã NV (sửa Dư/Vắng nhầm, bổ sung người); **PRESENT trên dòng chưa quét tự fill TIME_SCAN = now** (giữ invariant `scanned+absent=total`); cùng status / NV không có / status không hợp lệ → ok:false; audit `fixLogRowStatus` | operator + **owner/admin** (service — hoạt động cả task DONE) |
+| `updateLogRowStatusApi(taskId, staffId, newStatus)` | `{ ok, message, counters }` — sửa trạng thái 1 dòng log theo mã NV (sửa Dư/Vắng nhầm, bổ sung người); **PRESENT trên dòng chưa quét tự fill TIME_SCAN = now**; **đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT** (counter đúng — partition `scanned+absent=total`), về PENDING clear luôn LISTED_AT, **EXTRA giữ SCANNED_AT** (thiết kế partition); cùng status / NV không có / status không hợp lệ → ok:false; audit `fixLogRowStatus` (kèm fillScanTime/clearScanTime/clearListedAt) | operator + **owner/admin** (service — hoạt động cả task DONE) |
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
 | `searchTasksByQueryApi(q)` | `{ ok, rows }` — tìm task theo mã NV / mã task | — |
 | `getReportsApi()` | `{ ok, rows, email, opsId, staffName }` — báo cáo chấm công tháng theo email đăng nhập (viewReports) | **manager+** (service) |
@@ -520,7 +521,7 @@ Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbo
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
 | Files | **18 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · roster-load · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **174/174 pass** |
+| **Kết quả** | **177/177 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
@@ -611,7 +612,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 174/174 (18 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 177/177 (18 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |
@@ -628,7 +629,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ```plain
 ✅ Tạo task (A2): luôn FREE + Mở + log RỖNG — modal chỉ Station + Ngày; quét / dán / nạp roster xây danh sách
 ✅ A2 (2026-08-18): task mới KHÔNG pre-fill roster khi tạo (kể cả ca thật — server ép noList); nút "Lấy danh sách theo ca" (loadRosterApi — idempotent, phase 1 + owner); phase 1 không Dư; cảnh báo chuyển phase khi log rỗng
-✅ Đợt 1 (2026-08-19): force-close admin completeTask (counter lệch — audit completeTaskForceClose, non-admin chặn) · loadRoster thêm phase Điểm danh (chặn DONE) · cột Sửa bảng quét + updateLogRowStatusApi (owner/admin, fill TIME_SCAN khi PRESENT, audit fixLogRowStatus, mọi phase kể cả DONE) · chống gian lận giờ (epoch client ±3 phút + không sớm hơn tạo task) · cảnh báo staffUnknown (mã quét không có trong StaffData)
+✅ Đợt 1 (2026-08-19): force-close admin completeTask (counter lệch — audit completeTaskForceClose, non-admin chặn) · loadRoster thêm phase Điểm danh (chặn DONE) · cột Sửa bảng quét + updateLogRowStatusApi (owner/admin, fill TIME_SCAN khi PRESENT, **L1: đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT / PENDING thêm LISTED_AT / EXTRA giữ SCANNED_AT — partition invariant**, audit fixLogRowStatus kèm fillScanTime/clearScanTime/clearListedAt, mọi phase kể cả DONE) · chống gian lận giờ (epoch client ±3 phút + không sớm hơn tạo task) · cảnh báo staffUnknown (mã quét không có trong StaffData)
 ✅ Nạp roster theo ca: append AttendanceLog 1 lần (dedupe staffId giữ dòng đầu); TIME_REF = LISTED_AT = lúc nạp
 ✅ Thời gian quét WYSIWYG (2026-08-18): client gửi epoch lúc quét → sheet ghi đúng giờ hiển thị trên app (server không đè giờ xử lý — hết nhảy giờ sau ~1s); bảng quét cột Ngày hiện ngay (dateText từ response + staffIndex); roster modal thêm lọc Hình thức; getFilterOptionsApi cache 60s
 ✅ 2-phase: Mở (LISTED_AT, FREE) → Chuyển điểm danh → Điểm danh (SCANNED_AT) → Kết thúc
@@ -646,7 +647,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ viewReports (báo cáo chấm công tháng theo email) + viewStats (pivot) + viewStaff (20 cột)
 ✅ viewAdmin — nhật ký hoạt động AuditLog (chỉ admin, lọc ngày); bỏ bảng task trùng viewTasks (2026-08-17)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
-✅ Test Node 174/174 (18 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
+✅ Test Node 177/177 (18 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
 
 **Rủi ro đã chấp nhận (biết rõ, cố tình bỏ qua):**
