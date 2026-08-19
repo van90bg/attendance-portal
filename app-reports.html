@@ -54,6 +54,13 @@
           if (metaEl) metaEl.textContent = 'Lỗi';
           if (skel) skel.style.display = 'none';
           showToast((res && res.message) || 'Lỗi tải báo cáo', true);
+          // #11: inline error + Thử lại (trước chỉ meta 'Lỗi' — không có nơi bấm lại).
+          if (empty) {
+            empty.style.display = '';
+            empty.innerHTML = 'Không tải được báo cáo'
+              + ((res && res.message) ? ': <b>' + esc(res.message) + '</b>' : '')
+              + ' — <a href="javascript:void(0)" onclick="loadReportsView()">Thử lại</a>';
+          }
           return;
         }
         REPORT_ROWS = safeArr(res.rows);
@@ -68,6 +75,11 @@
         markServerFail();
         if (skel) skel.style.display = 'none';
         showToast('Lỗi tải báo cáo: ' + err.message, true);
+        if (empty) {
+          empty.style.display = '';
+          empty.innerHTML = 'Không tải được báo cáo: <b>' + esc(err.message || 'lỗi kết nối')
+            + '</b> — <a href="javascript:void(0)" onclick="loadReportsView()">Thử lại</a>';
+        }
       })
       .getReportsApi();
   }

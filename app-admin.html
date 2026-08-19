@@ -64,11 +64,21 @@
     if (countEl) countEl.textContent = d ? rows.length + '/' + AUDIT_ROWS.length + ' dòng' : AUDIT_ROWS.length + ' dòng';
     renderAuditRows(rows);
   }
-  // Ngày từ timestamp ISO — dùng new Date (local, KHỚP fmtAuditTime_) chứ không cắt chuỗi UTC:
-  // ISO lưu UTC, sát nửa đêm giờ VN (UTC+7) cắt chuỗi sẽ lệch ngày với ngày hiển thị.
+  // #14 (review 2026-08-19): format theo TZ Asia/Ho_Chi_Minh (khớp fmtDate app-core + server
+  // Session.getScriptTimeZone) — new Date(iso) dùng LOCAL TZ thiết bị, đổi vùng/du lịch là lệch
+  // ngày giờ hiển thị + lệch filter theo ngày. en-CA date = YYYY-MM-DD (khớp input type=date).
+  var _auditTZ = (function () {
+    try {
+      return {
+        date: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }),
+        time: new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }),
+      };
+    } catch (e) { return null; }
+  })();
   function auditRowDate_(iso) {
     var d = new Date(iso);
     if (isNaN(d.getTime())) return '';
+    if (_auditTZ) return _auditTZ.date.format(d);
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
@@ -108,6 +118,7 @@
     if (!iso) return '';
     var d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
+    if (_auditTZ) return _auditTZ.time.format(d).replace(', ', ' ');  // en-GB → "19/08, 15:04" → "19/08 15:04"
     return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' '
       + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
   }

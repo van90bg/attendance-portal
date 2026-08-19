@@ -493,12 +493,16 @@
 
   // F6: modal spin cho nút chuyển trạng thái (Kết thúc / Chuyển điểm danh / Mở lại) —
   // thay loadingOverlay toàn màn để thấy rõ đang xử lý ở ngay tâm màn, hết khi nhận phản hồi.
+  // #13 (review 2026-08-19): spinModal nút mở để restore focus — showModalSpin không
+  // đổi focus (aria-hidden nên SR bỏ qua); nút bấm trước đó phải nhận lại focus khi đóng.
+  var _spinOpener = null;
   function showModalSpin(msg) {
     var ov = document.getElementById('loadingOverlay');
     if (ov && !ov.classList.contains('hide')) return;  // overlay toàn màn đang hiện — tránh 2 spinner đè nhau
     var m = document.getElementById('spinModal');
     var l = document.getElementById('spinModalMsg');
     if (!m) return;
+    if (_spinOpener === null) _spinOpener = document.activeElement;
     if (l) l.textContent = msg || 'Đang xử lý…';
     m.classList.add('open');
     m.setAttribute('aria-hidden', 'false');
@@ -508,6 +512,8 @@
     if (!m) return;
     m.classList.remove('open');
     m.setAttribute('aria-hidden', 'true');
+    if (_spinOpener && document.contains(_spinOpener)) _spinOpener.focus();
+    _spinOpener = null;
   }
 
   /* P2: watchdog an toàn — nếu RPC khởi động treo (cold start GAS / mạng chậm / offline),
@@ -582,6 +588,15 @@
           if (skel) skel.style.display = 'none';
           var metaEl = document.getElementById('staffMeta');
           if (metaEl) metaEl.textContent = 'Không tải được';
+          // #11: inline error + Thử lại — trước chỉ meta 'Không tải được' + toast biến mất,
+          // user không có nơi bấm lại ngoài nút ⟳ Làm mới.
+          var stEmpty = document.getElementById('staffEmpty');
+          if (stEmpty) {
+            stEmpty.style.display = '';
+            stEmpty.innerHTML = 'Không tải được dữ liệu nhân viên'
+              + ((res && res.message) ? ': <b>' + esc(res.message) + '</b>' : '')
+              + ' — <a href="javascript:void(0)" onclick="ensureStaffData(true,false)">Thử lại</a>';
+          }
           return;
         }
         STAFF_ROWS = safeArr(res.staff);
@@ -755,6 +770,12 @@
   function selectPage(page) {
     var target = PAGE_VIEWS[page];
     if (!target || !document.getElementById(target)) return;
+    // #10: role guard (khớp gate server + sidebar ẩn) — selectPage gọi qua onclick/devtools
+    // không vượt được view ngoài quyền (trước chỉ ẩn nút, vào view vẫn chạy RPC rồi báo lỗi).
+    if (page === 'admin' && !(typeof canAdmin_ === 'function' && canAdmin_())) return;
+    if (page === 'config' && !(META && META.isEditor)) return;
+    if ((page === 'stats' || page === 'data' || page === 'reports')
+      && !(typeof canManager_ === 'function' && canManager_())) return;
     // Guard rời trang Cấu hình khi còn thay đổi chưa lưu → confirm
     if (page !== 'config' && ACTIVE_PAGE === 'config' && CFG_DIRTY) {
       showConfirm('Chưa lưu cấu hình', 'Có thay đổi cấu hình chưa lưu — rời trang sẽ mất thay đổi này. Tiếp tục?', function () {

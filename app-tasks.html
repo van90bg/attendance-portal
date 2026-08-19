@@ -38,6 +38,15 @@
           var it = document.getElementById(mgrPages[pg]);
           if (it) it.style.display = canManager_() ? '' : 'none';
         }
+        // #10: home shortcut Thống kê/Báo cáo — manager+ mới hiện (khớp gate server;
+        // trước viewer bấm vào mở view trống 'Không đủ quyền' sau 1 RPC lãng phí).
+        var hsStats = document.getElementById('homeShortcutStats');
+        if (hsStats) hsStats.style.display = canManager_() ? '' : 'none';
+        var hsReports = document.getElementById('homeShortcutReports');
+        if (hsReports) hsReports.style.display = canManager_() ? '' : 'none';
+        // #10: nút + Task mới — operator+ mới thấy (createReconcileTask gate operator)
+        var bc = document.getElementById('btnCreate');
+        if (bc) bc.style.display = canOperator_() ? '' : 'none';
         // Attendance stays out of navMap: the bottom item must stay visible for viewer+ (mobile
         // relies on bottom nav since the sidebar is hidden <=700px); it was gated by canManager_.
         var navMap = { stats: 'bottomStatsItem', data: 'bottomDataItem', reports: 'bottomReportsItem' };
@@ -417,6 +426,22 @@
     google.script.run
       .withSuccessHandler(function (tasks) {
         hideLoadingOverlay();  // ẩn ngay khi callback về — KHÔNG phụ thuộc render (phòng render throw → overlay treo)
+        // Error contract (review 2026-08-19): {ok:false,message} = lỗi hạ tầng — KHÔNG đè
+        // cache cũ bằng dữ liệu rỗng; inline báo lỗi + Thử lại (trước đây lỗi trả về []
+        // → hiện 'Chưa có task nào' + user tạo task trùng).
+        if (tasks && tasks.ok === false) {
+          markServerFail();
+          _releaseRefreshLock();
+          if (skel) skel.style.display = 'none';
+          if (tbl) tbl.style.display = 'none';
+          if (empty) {
+            empty.style.display = '';
+            empty.innerHTML = 'Không tải được danh sách task: <b>' + esc(tasks.message || 'lỗi không xác định')
+              + '</b> — <a href="javascript:void(0)" onclick="loadTaskList()">Thử lại</a>';
+          }
+          showToast('Lỗi tải task: ' + (tasks.message || 'lỗi không xác định'), true);
+          return;
+        }
         LAST_TASK_LIST = { tasks: safeArr(tasks), ts: Date.now() };  // cập nhật cache
         try { renderTaskList_(safeArr(tasks)); }
         catch (e) { showToast('Lỗi hiển thị danh sách: ' + (e && e.message ? e.message : e), true); }

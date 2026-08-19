@@ -47,10 +47,17 @@
         restore();
         if (!res || !res.ok) {
           if (!silent) showToast((res && res.message) || 'Lỗi tải cấu hình', true);
-          if (empty) empty.style.display = '';
           if (meta) meta.textContent = 'Không tải được';
           if (saveBtn) saveBtn.style.display = 'none';
           if (sk) sk.style.display = 'none';
+          // #11: #configEmpty mặc định là 'Không có quyền…' — đè bằng inline error + Thử lại
+          // (trước đây lỗi tải hiện nhầm thông điệp phân quyền, user tưởng mất quyền).
+          if (empty) {
+            empty.style.display = '';
+            empty.innerHTML = 'Không tải được cấu hình'
+              + ((res && res.message) ? ': <b>' + esc(res.message) + '</b>' : '')
+              + ' — <a href="javascript:void(0)" onclick="loadConfigView(null)">Thử lại</a>';
+          }
           return;
         }
           renderConfigForm(res.settings || {});

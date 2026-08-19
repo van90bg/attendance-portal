@@ -1197,7 +1197,9 @@
     var last = null;
     // 2-phase: phase1 (Mở) chọn theo LISTED_AT (listedAtEpoch); phase2 (Điểm danh) theo SCANNED_AT (scannedAtEpoch).
     // So theo epoch (số) — text "HH:mm:ss" mất ngày, xuyên nửa đêm sẽ so sai.
-    var phase2 = CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND;
+    // #17 (review 2026-08-19): DONE cũng chọn theo SCANNED_AT — mở lại task đã chốt phải
+    // khôi phục lượt điểm danh cuối, không phải lượt quét vào danh sách (phase1).
+    var phase2 = CURRENT_TASK && (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND || CURRENT_TASK.phase === TASK_STATUS_C.DONE);
     var keyOf = function (r) { return phase2 ? (Number(r.scannedAtEpoch) || 0) : (Number(r.listedAtEpoch) || 0); };
     log.forEach(function (r) {
       var e = keyOf(r);

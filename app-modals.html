@@ -194,6 +194,10 @@
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     renderCreateChips_();
+    // #13 (review 2026-08-19): focus-in modal — trước không focus gì, Tab đầu tiên
+    // nhảy về phần tử đứng TRƯỚC modal trong document (nút header) rồi mới vào modal.
+    var first = m.querySelector('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (first && first.focus) first.focus();
   }
   /* ===== Dropdown tạo task: 2 nhóm — Nạp danh sách (chọn Station) / Task rỗng (tạo ngay) ===== */
   function toggleCreateTaskMenu() {
@@ -400,6 +404,10 @@
       var focusables = m.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
       if (!focusables.length) return;
       var first = focusables[0], last = focusables[focusables.length - 1];
+      // #13 (review 2026-08-19): focus đang NGOÀI modal (vd sau click vào overlay khi
+      // focus còn ở body) → Tab đầu tiên phải kéo về first, không để trôi ra ngoài dialog.
+      var inside = m.contains(document.activeElement);
+      if (!inside) { e.preventDefault(); first.focus(); return; }
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
@@ -444,8 +452,23 @@
     var _hasStation = !!ROSTER_FILTER.station;
     if (ROSTER_OPTS && ROSTER_OPTS.ok) { fillRosterOptions(ROSTER_OPTS); focusRosterStation_(); if (_hasStation) refreshRosterPreview(); return; }
     google.script.run
-      .withSuccessHandler(function (res) { ROSTER_OPTS = res; fillRosterOptions(res); focusRosterStation_(); if (_hasStation) refreshRosterPreview(); })
-      .withFailureHandler(function () { ROSTER_OPTS = null; showToast('Lỗi tải danh sách ca', true); })
+      .withSuccessHandler(function (res) {
+        ROSTER_OPTS = res;
+        var errEl = document.getElementById('rosterError');
+        if (errEl) { errEl.style.display = 'none'; errEl.innerHTML = ''; }
+        fillRosterOptions(res); focusRosterStation_(); if (_hasStation) refreshRosterPreview();
+      })
+      .withFailureHandler(function (err) {
+        ROSTER_OPTS = null;
+        showToast('Lỗi tải danh sách ca', true);
+        // #11: inline error + Thử lại — trước chỉ toast, form để trống không rõ lý do.
+        var errEl = document.getElementById('rosterError');
+        if (errEl) {
+          errEl.style.display = '';
+          errEl.innerHTML = 'Không tải được danh sách ca: <b>' + esc(err.message || 'lỗi kết nối')
+            + '</b> — <a href="javascript:void(0)" onclick="openRosterModal()">Thử lại</a>';
+        }
+      })
       .getFilterOptionsApi();
   }
   // Focus first focusable element in loadListModal after overlay transition —

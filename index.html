@@ -221,11 +221,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10M7 8h6M7 16h8"/></svg>
           Điểm danh
         </button>
-        <button type="button" class="home-shortcut" onclick="selectPage('stats')" aria-label="Thống kê">
+        <button type="button" class="home-shortcut" id="homeShortcutStats" onclick="selectPage('stats')" aria-label="Thống kê">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
           Thống kê
         </button>
-        <button type="button" class="home-shortcut" onclick="selectPage('reports')" aria-label="Báo cáo">
+        <button type="button" class="home-shortcut" id="homeShortcutReports" onclick="selectPage('reports')" aria-label="Báo cáo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 13h6M9 17h6"/></svg>
           Báo cáo
         </button>
@@ -438,10 +438,10 @@
 
       <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
-        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → chọn Station, Ca, Team → nhấn <b>+ Task mới</b>.</li>
-        <li><b>Quét vào danh sách:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) - người trong danh sách hiện <i>Đã đến</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
+        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → nhấn <b>+ Task mới</b> → chọn <b>Nạp danh sách</b> (chọn Station, Ca, Hình thức, Phòng ban — Team/Ngày lấy từ task nếu có) hoặc <b>Task rỗng</b> (tạo ngay, quét tự do).</li>
+        <li><b>Quét vào danh sách:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách hiện <i>Đã đến</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
         <li><b>Bắt đầu điểm danh:</b> nhấn <b>Bắt đầu điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (<i>Có mặt</i>).</li>
-        <li><b>Kết thúc:</b> nhấn <b>Kết thúc</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
+        <li><b>Chốt ca:</b> nhấn <b>Chốt ca</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
       </ol>
 
       <h3 class="about-h3">3. Tính năng chính</h3>
@@ -523,6 +523,7 @@
           <div class="chips" id="rosterChipsDept" role="group" aria-label="Phòng ban"></div>
         </div>
       </div>
+      <div class="empty" id="rosterError" style="display:none;"></div>
       <div class="create-footer">
         <div class="create-total"><b id="rosterTotalNum">0</b> <span>nhân viên khớp</span></div>
         <div class="create-actions">
