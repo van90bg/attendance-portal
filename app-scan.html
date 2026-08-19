@@ -248,11 +248,12 @@
     el.style.display = '';
   }
 
-  // P1: label option lọc trạng thái theo phase — PENDING = 'Chưa đến' (Mở) / 'Chưa điểm danh' (Điểm danh).
+  // P1: label option lọc trạng thái theo phase — PENDING = 'Đã đến (chưa quét lần 2)' (Mở —
+// filter V4 chỉ hiện NV có LISTED_AT) / 'Chưa điểm danh' (Điểm danh).
   function updateScanFilterLabel_() {
     var statusEl = document.getElementById('scanStatusFilter');
     if (!statusEl) return;
-    var lbl = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa đến' : 'Chưa điểm danh';
+    var lbl = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Đã đến (chưa quét lần 2)' : 'Chưa điểm danh';
     for (var i = 0; i < statusEl.options.length; i++) {
       if (statusEl.options[i].value === STATUS_C.PENDING) { statusEl.options[i].textContent = lbl; return; }
     }

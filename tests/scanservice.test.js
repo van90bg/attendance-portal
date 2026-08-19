@@ -161,3 +161,24 @@ test('scanStaff: clientEpoch thiếu/rác → fallback giờ server (không cras
   assert.equal(res.ok, true, res.message);
   assert.ok(res.listedAtEpoch >= before && res.listedAtEpoch > 0, 'fallback = giờ server hiện tại');
 });
+
+// V1 (2026-08-19): cửa sổ ±60s — epoch ngoài cửa sổ (lùi 90s) → fallback server; trong cửa sổ (30s) → dùng.
+test('scanStaff: clientEpoch lùi 90s (ngoài ±60s) → fallback giờ server, không nhận epoch cũ', () => {
+  const oldEpoch = Date.now() - 90000;
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
+  const svc = loadScanService(ctx);
+  const before = Date.now();
+  const res = svc.scanStaff('R1', 'ops999999', oldEpoch);
+  assert.equal(res.ok, true, res.message);
+  assert.notEqual(res.listedAtEpoch, oldEpoch, 'epoch lùi quá 60s bị bỏ');
+  assert.ok(res.listedAtEpoch >= before && res.listedAtEpoch > 0, 'fallback = giờ server hiện tại');
+});
+
+test('scanStaff: clientEpoch lùi 30s (trong ±60s) → dùng giờ client', () => {
+  const clientNow = new Date(Date.now() - 30000);
+  const ctx = makeCtx({ readTask_: () => freshTask('open'), logRows: [] });
+  const svc = loadScanService(ctx);
+  const res = svc.scanStaff('R1', 'ops999999', clientNow.getTime());
+  assert.equal(res.ok, true, res.message);
+  assert.equal(res.listedAtEpoch, clientNow.getTime(), 'epoch trong cửa sổ được dùng (WYSIWYG)');
+});
