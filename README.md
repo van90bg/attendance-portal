@@ -181,6 +181,7 @@ clasp deploy
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 - ✅ Đợt 4 (2026-08-19): security hardening — **repo mutator gates** (M1: `requireRole_('operator')` ở LogRepo/TaskRepo/StaffDataRepo — chống bypass gọi global trực tiếp) · **`getFilterOptionsApi`/`previewStaffApi` gate operator+** + client skip `loadFilterOptions` cho viewer · **`roleMap` tách `getSettings_` → `getRoleMap_`** (P0: bản đồ quyền không lộ qua settings public) · DEFENSE `getTaskListApi`/`getTaskDetailApi`.
 - ✅ Đợt 5 (2026-08-19): backend logic P1 — **`canMutateTask_` fail-closed** (complete/reopen/updateLogRowStatus — task legacy `'web'` chỉ admin; scan/paste/loadRoster/transition vẫn `canScanOpen_` fail-open vì cần vận hành) · **PENDING→EXTRA tự fill TIME_SCAN** (partition invariant — task không kẹt "counter-mismatch") · **`batchInsertLogRows_` invalidate detail+list cache** · **`markUnscannedAbsent_` dùng epoch** (timeScan junk → Vắng đúng) · **AttendanceTask thêm cột `date`** (header + migration 9→10 cột khớp `TASK_COL_COUNT`).
+- ✅ Đợt 6 (2026-08-19): frontend P1 — nhãn mobile card bảng task `'Đã điểm danh'` (khớp `data-label` JS) · bottom nav thêm mục **Dữ liệu** (manager+ mobile vào được viewStaff) · **`#scanPagination`** ra ngoài `.table-wrap` · **viewReports/viewAdmin/viewAbout vào trong `<main>`**.
 
 ---
 

@@ -13,6 +13,7 @@
 > v2.8 (2026-08-19): **thu cửa sổ epoch client ±3 phút → ±60s** (V1 residual — queue tối đa 8 item × 2.5s ≈ 20s + latency nên 60s vẫn an toàn; ngoài cửa sổ fallback giờ server như cũ), **label filter phase Mở: 'Chưa đến' → 'Đã đến (chưa quét lần 2)'** (khớp thực tế — filter PENDING phase Mở hiện NV đã có LISTED_AT; trước label nghịch lý).
 > v2.9 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy màn quét — owner/admin, log rỗng mới hủy được; xóa hẳn dòng task + audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (append PENDING, thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không thổi phồng; khớp V2.6 lọc theo listedAt) · label phase 1 'Đã có mặt' → 'Đã đến' (2-phase: đến ≠ điểm danh).
 > v2.10 (2026-08-19): **`canMutateTask_` fail-closed** (complete/reopen/updateLogRowStatus — task legacy `'web'` chỉ admin đóng/mở lại/sửa; scan/paste/loadRoster/transition vẫn `canScanOpen_` fail-open vì cần vận hành) · **PENDING→EXTRA fill TIME_SCAN** (partition invariant — task không kẹt counter-mismatch) · **`batchInsertLogRows_` invalidate detail+list cache** · **`markUnscannedAbsent_` dùng epoch** (timeScan junk → Vắng đúng) · **AttendanceTask thêm cột `date`** (header + migration 9→10 cột, khớp `TASK_COL_COUNT`).
+> v2.11 (2026-08-19): **frontend P1** — nhãn mobile card bảng task `'Đã điểm danh'` (khớp `data-label` JS; trước CSS còn `'Đã quét lần 2'` → card mất nhãn + lệch grid) · **bottom nav thêm mục 'Dữ liệu'** (`bottomDataItem` — navMap treo vì thiếu button, manager+ mobile không vào được viewStaff) · **`#scanPagination` ra ngoài `.table-wrap`** (không cuộn theo bảng) · **viewReports/viewAdmin/viewAbout vào trong `<main>`** (repairViewParents không còn phải kéo section).
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -119,20 +120,20 @@ Giữ **nguyên header chuẩn Att.csv** (ánh xạ header → field tại `CSV_
 - Cache: index 5 phút (`STAFF_INDEX`) + list 5 phút (`STAFF_LIST`) + staff full 1h cho viewStats (`STAFF_STATS`, invalidate khi `syncFromCsv`).
 - **1 dòng = 1 NV–1 ca–1 station** (NV có thể nhiều dòng khác ca).
 
-### 3.3 AttendanceTask (9 cột)
+### 3.3 AttendanceTask (10 cột)
 
 | Cột | Field | Ghi chú |
 | :-- | :---- | :------ |
 | 1 | `taskId` | `RYYYYMMDD-HHMM` (+ `-2`, `-3`… nếu trùng phút) |
-| — | ~~`taskType`~~ | *(đã xóa — giữ indices compat)* |
-| 3 | `station` | Station đã chọn (1) |
-| 4 | `slotCode` | Ca đã chọn — multi-select nối `", "` để hiển thị |
-| 5 | `team` | Team đã chọn — multi-select nối `", "` |
-| 6 | `contractType` | Hình thức đã chọn (thêm 2026-08-16 — multi-select nối `", "`) |
-| 7 | `status` | `open` (Mở) / `attend` (Điểm danh) / `done` (Xong) |
-| 8 | `createdAt` | thời điểm tạo |
-| 9 | `createdBy` | email người tạo (webapp đăng nhập); task legacy tạo cũ = `'web'` — dùng cho owner gate (§5.5) |
-| 10 | `completedAt` | thời điểm kết thúc (rỗng khi open) |
+| 2 | `station` | Station đã chọn (1) |
+| 3 | `slotCode` | Ca đã chọn — multi-select nối `", "` để hiển thị |
+| 4 | `team` | Team đã chọn — multi-select nối `", "` |
+| 5 | `contractType` | Hình thức đã chọn (thêm 2026-08-16 — multi-select nối `", "`) |
+| 6 | `status` | `open` (Mở) / `attend` (Điểm danh) / `done` (Xong) |
+| 7 | `createdAt` | thời điểm tạo |
+| 8 | `createdBy` | email người tạo (webapp đăng nhập); task legacy tạo cũ = `'web'` — dùng cho owner gate (§5.5) |
+| 9 | `completedAt` | thời điểm kết thúc (rỗng khi open) |
+| 10 | `date` | **ngày task** — thêm header + migration 9→10 cột 2026-08-19 (B-P1-5, khớp `TASK_COL_COUNT`) |
 
 ### 3.4 AttendanceLog (11 cột, 1 dòng / NV)
 
@@ -445,7 +446,7 @@ Sidebar (8 mục, mục Quản trị ẩn non-manager, Cấu hình ẩn non-edit
 
 **viewTasks — Điểm danh (danh sách task):**
 - Topbar: nút **+ Task mới** (modal tạo task §9.2) · ô tìm `.list-search` (`#listSearch`): mã Ops → tìm NV xuyên task (manager+), mã R2026 → tìm task (`runListSearch`).
-- Bảng 13 cột: STT / Mã task / Loại / Station / Team / Ca / Tổng NV / Đã quét lần 2 / Dư / Trạng thái / Tạo lúc / Người tạo / Thao tác (nút **Quét** hoặc **Xem**).
+- Bảng 10 cột: STT / Mã task / Station / Team / Ca / Tổng NV / Đã điểm danh / Dư / Trạng thái / Thao tác (nút **Quét** hoặc **Xem**) — cột Loại/Tạo lúc/Người tạo đã ẩn (Đợt 3).
 - Funnel lọc 4 cột (Loại/Station/Team/Trạng thái) + phân trang 100 task/trang; skeleton + empty state; search NV đổi thead sang SEARCH_HEAD (thêm Mã NV/Tên NV/Điểm danh).
 
 **viewScan — Màn quét:**
