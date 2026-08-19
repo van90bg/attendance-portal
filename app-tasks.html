@@ -38,7 +38,9 @@
           var it = document.getElementById(mgrPages[pg]);
           if (it) it.style.display = canManager_() ? '' : 'none';
         }
-        var navMap = { stats: 'bottomStatsItem', attendance: 'bottomAttendanceItem', data: 'bottomDataItem', reports: 'bottomReportsItem' };
+        // Attendance stays out of navMap: the bottom item must stay visible for viewer+ (mobile
+        // relies on bottom nav since the sidebar is hidden <=700px); it was gated by canManager_.
+        var navMap = { stats: 'bottomStatsItem', data: 'bottomDataItem', reports: 'bottomReportsItem' };
         for (var pg2 in navMap) {
           var it2 = navMap[pg2] ? document.getElementById(navMap[pg2]) : null;
           if (it2) it2.style.display = canManager_() ? '' : 'none';

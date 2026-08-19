@@ -217,6 +217,12 @@ function completeTask(taskId) {
   try {
     const task = readTask_(taskId);
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
+    // Owner-gate (same gate as transitionToAttend/scan/paste/loadRoster): closing/reopening
+    // a task mutates attendance state (stamps ABSENT / resets it) - owner/admin only.
+    const isAdmin = isEditor_();
+    if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
+    }
     // Chỉ kết thúc khi đang ở phase2 (Điểm danh). Nếu còn Mở (phase1) → chặn.
     if (task.status === TASK_STATUS.OPEN) {
       return { ok: false, message: UI_LABELS.COMPLETE_BLOCKED };
@@ -224,14 +230,18 @@ function completeTask(taskId) {
     if (task.status !== TASK_STATUS.ATTEND) {
       return { ok: false, message: 'Task đã kết thúc' };
     }
-    // VALIDATE: scanned + absent + extra = total — data inconsistency cần fix trước khi đóng.
+    // VALIDATE: scanned + absent = total — data inconsistency cần fix trước khi đóng.
+    // Partition invariant: scanned counts every row that was ever scanned (PRESENT and EXTRA
+    // both carry SCANNED_AT); absent counts the rest - so scanned+absent = total. Do NOT add
+    // extra again: a scanned EXTRA row is already inside scanned -> double-count makes the
+    // invariant fail and the task becomes unclosable.
     const logRows = readLogRows_(taskId);
     const counters = computeCounters({ STATUS: STATUS }, logRows);
-    if (counters.scanned + counters.absent + counters.extra !== counters.total) {
+    if (counters.scanned + counters.absent !== counters.total) {
       console.error({ bench: 'completeTask', taskId: taskId, counters: counters, error: 'counter-mismatch' });
       return {
         ok: false,
-        message: 'Lỗi dữ liệu: scanned + absent + extra ≠ total (' + counters.scanned + '+' + counters.absent + '+' + counters.extra + ' ≠ ' + counters.total + '). Vui lòng báo admin.',
+        message: 'Lỗi dữ liệu: scanned + absent ≠ total (' + counters.scanned + '+' + counters.absent + ' ≠ ' + counters.total + '). Vui lòng báo admin.',
       };
     }
     // P1 (audit): markUnscannedAbsent_ TRƯỚC, updateTaskStatus_(DONE) SAU — fail-safe.
@@ -308,6 +318,12 @@ function reopenTask(taskId) {
   try {
     const task = readTask_(taskId);
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
+    // Owner-gate (same gate as transitionToAttend/scan/paste/loadRoster): closing/reopening
+    // a task mutates attendance state (stamps ABSENT / resets it) - owner/admin only.
+    const isAdmin = isEditor_();
+    if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
+    }
     if (task.status !== TASK_STATUS.DONE) {
       return { ok: false, message: 'Task đang mở — không cần mở lại' };
     }

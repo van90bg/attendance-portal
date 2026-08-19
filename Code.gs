@@ -292,9 +292,15 @@ function getReportsApi() {
 
 /** Preload staffIndex vào cache sớm (khi mở app / tạo xong task). Fix #1: tên NV lạ
  *  hiện NGAY khi quét đầu thay vì về sau mới có (do StaffData index bị lazy + cache 5p).
- *  MỞ cho mọi nhân viên — chỉ đọc (KHÔNG ghi) nên an toàn cho mọi vai trò. */
+ *  GATED operator+ (was open to all staff; read-only) - staff index is HR
+ *  personnel data (name/Ca/Station/Team); only operator+ may warm it (viewers get ok:false). */
 function warmStaffCacheApi() {
   try {
+    // M1: gate at service layer - staff index exposes personnel data (name/Ca/Station/Team);
+    // any role (incl. viewer) used to receive it, bypassing the manager+ gate of viewStaff/viewStats.
+    if (!requireRole_('operator')) {
+      return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
+    }
     const index = readStaffIndex_(); // warm cache + tra index cho client
     // P1-2: chi tra field UI can (ten/Ca/Station/Team/Agency/Ngày) — boc cardIn/cardOut
     // (recon schedule nhan su) khoi payload; server van giu full index trong cache.

@@ -64,6 +64,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
   - **Chuyển điểm danh** (OPEN→ATTEND) chỉ owner/admin — non-owner gọi thẳng server bị chặn (M1 service-layer, đồng gate scan/paste/nạp roster).
+  - **Kết thúc / Mở lại task** chỉ owner/admin (đồng gate Chuyển điểm danh) — chống operator/manager gọi thẳng API đóng/đổi trạng thái task người khác; legacy `createdBy='web'` fail-open. `warmStaffCacheApi` (index nhân sự) giờ gate operator+.
   - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
   - **Phân quyền theo view (2026-08-17):**
 
@@ -119,7 +120,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 160 unit tests node --test
+├── tests/                 # 163 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
@@ -130,7 +131,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 160/160 unit tests (node:test)
+npm test                        # 163/163 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -170,7 +171,7 @@ clasp deploy
 - ✅ Portal shell: sidebar 8 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile); viewAdmin — nhật ký hoạt động (manager+, lọc ngày).
 - ✅ Tách frontend (index/styles + 9 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 160/160 unit tests + 11/11 CDP local mock.
+- ✅ 163/163 unit tests + 11/11 CDP local mock.
 - ✅ Mobile nhất quán: task/scan/staff/reports thành thẻ card 2 cột đồng bộ; a11y AA (contrast token, touch ≥44px); skill `ui-ux-audit` — audit UI/UX toàn diện 1 lần (design language + WCAG + perf + verify tự động).
 
 ---

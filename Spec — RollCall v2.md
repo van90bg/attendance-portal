@@ -5,6 +5,7 @@
 > **Ghi chú viết lại:** Spec viết lại **hoàn toàn theo codebase thực tế**.
 > v2.2 (2026-08-07): task mới luôn **FREE + Open + log rỗng** (A2), **3 trạng thái `open`/`attend`/`done` (2-phase quét)**, **role owner** cho scan phase Mở, **pasteCodesApi (dán danh sách mã)**, **view Giới thiệu (`viewAbout`)**.
 > v2.3 (2026-08-17): **shell UI 9 view** (viewHome/Stats/Tasks/Scan/Staff/Config/Reports/Admin/About — tách module `app-*.html`), **role 4 bậc viewer<operator<manager<admin** (roleMap qua Config sheet, gate `requireRole_` ở service layer), **viewReports** (báo cáo chấm công tháng theo email), **viewAdmin** (nhật ký hoạt động AuditLog — chỉ admin; bảng task mọi owner đã bỏ vì trùng viewTasks), **viewStats** (pivot StaffData), **AuditRepo/ReportRepo/ReportService**, **cache chunk StaffAttendance ≤100KB/key**.
+> v2.4 (2026-08-19): **owner-gate Kết thúc/Mở lại task** (completeTask/reopenTask — đồng gate transitionToAttend, chống operator đóng/đổi trạng thái task người khác; legacy `createdBy='web'` fail-open), **warmStaffCacheApi gate operator+** (trước mở mọi role → rò index nhân sự), **fix counter partition completeTask** (`scanned+absent = total` — task có NV Dư quét phase 2 giờ đóng được), **bottom nav Điểm danh hiện cho mọi role trên mobile** (trước ẩn theo canManager_ đúng quyền view).
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -308,6 +309,7 @@ Server tính `permission = {isAdmin, isOwner, canScanOpen}` **tươi (mới)** t
 - `!canScanOpen` + phase Mở → `scanInput.disabled = true` + banner "Chỉ owner mới quét được ở phase Mở" + ẩn nút **Chuyển điểm danh** + ẩn nút **Dán danh sách mã**; `submitScan` guard lại (defense barcode vật lý).
 - `updateFinishBtnState` / `updateQueueFullState` tôn trọng `scanOwnerLocked` (không vô tình bật lại).
 - **Chuyển điểm danh (`transitionToAttend`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — OPEN→ATTEND mở khoá phase 2 cho mọi người; non-owner gọi thẳng API bị reject, chống bypass owner-gate phase Mở qua console.
+- **Kết thúc (`completeTask`) / Mở lại (`reopenTask`) cũng owner-gate `canScanOpen_` (audit 2026-08-19)** — đóng task stamp Vắng cho toàn bộ NV chưa quét, mở lại reset Vắng → thay đổi trạng thái chấm công của task người khác nên chỉ owner/admin; non-owner gọi thẳng API bị reject `UI_LABELS.SCAN_OPEN_OWNER_ONLY`, legacy `createdBy='web'` fail-open.
 
 **Paste (T-2)** gate cùng rule (A5): `status === open` + `canScanOpen` — `pasteCodes` server reject nếu không thoả.
 
@@ -389,15 +391,15 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `getTaskListApi()` | `[{ taskId, station, slotCode, team, status, total, scanned, extra, createdAtText, createdBy }]` | — |
 | `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` — `task.permission = {isAdmin, isOwner, canScanOpen}` (§5.5) | — |
 | `scanStaffApi(taskId, staffId, clientEpoch?)` | `{ ok, message, status, phase, scannedAtText, scannedAtEpoch, listedAtText, listedAtEpoch, staffName, dateText, counters }` — **clientEpoch**: thời gian quét = giờ client chụp lúc quét (WYSIWYG — sheet ghi đúng giờ app hiển thị; fallback giờ server nếu thiếu/rác) | operator (service) |
-| `transitionToAttendApi(taskId)` | `{ ok, message }` — `open → attend` | operator (service) |
-| `completeTaskApi(taskId)` | `{ ok, message }` | operator (service) |
-| `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator (service) |
+| `transitionToAttendApi(taskId)` | `{ ok, message }` — `open → attend` | operator + owner (service) |
+| `completeTaskApi(taskId)` | `{ ok, message }` | operator + owner (service) |
+| `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator + owner (service) |
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 200 | operator (service) |
 | `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở phase 1; append PENDING + timeRef, **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN + owner) |
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
 | `searchTasksByQueryApi(q)` | `{ ok, rows }` — tìm task theo mã NV / mã task | — |
 | `getReportsApi()` | `{ ok, rows, email, opsId, staffName }` — báo cáo chấm công tháng theo email đăng nhập (viewReports) | **manager+** (service) |
-| `warmStaffCacheApi()` | `{ ok, index }` — preload staffIndex cache + trả index slim (kèm `date` — cột Ngày bảng quét) cho client | — |
+| `warmStaffCacheApi()` | `{ ok, index }` — preload staffIndex cache + trả index slim (kèm `date` — cột Ngày bảng quét) cho client | **operator+** (service) |
 
 > `google.script.run` **không trả `Date`** (serialize → null) → server trả text đã format; client check cả `xxx` + `xxxText`.
 > **`getAllTasksApi` đã bỏ (2026-08-17)** — bảng task mọi owner trong viewAdmin trùng với viewTasks (cùng `listTasks()`, nút Kết thúc/Mở lại gate operator) → viewAdmin chỉ còn AuditLog; xem task qua `getTaskListApi()`/`searchTasksByQueryApi()`.
@@ -515,7 +517,7 @@ Modal: tạo task · confirm dùng chung · pasteModal · rosterModal · vềAbo
 | :------- | :------ |
 | Runner | Node `node:test` (`npm test`) |
 | Files | **18 files** trong `tests/` (admin-audit · all-gs-load · create-free · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · paste-batch · report-repo · role-service · roster-load · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **160/160 pass** |
+| **Kết quả** | **163/163 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
@@ -606,12 +608,12 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 160/160 (18 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 163/163 (18 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |
 | Cooldown 15s | Có | **Không có** (chỉ chặn duplicate scan) |
-| URL deep-linking / bottom nav | Có | **Có bottom nav mobile** (`#bottomNav` — Trang chủ/Điểm danh/Quản trị/Cấu hình theo role); KHÔNG có URL deep-linking |
+| URL deep-linking / bottom nav | Có | **Có bottom nav mobile** (`#bottomNav` — Trang chủ/Điểm danh mọi role + Thống kê/Dữ liệu/Báo cáo manager+ + Cấu hình editor + Quản trị admin); KHÔNG có URL deep-linking |
 | Pipeline 5 bước | Validate→cooldown→Find→Execute→Flush | `classifyScan` 3 nhánh (update/append/reject) 2-phase + LockService + owner gate |
 
 ---
@@ -640,7 +642,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ viewReports (báo cáo chấm công tháng theo email) + viewStats (pivot) + viewStaff (20 cột)
 ✅ viewAdmin — nhật ký hoạt động AuditLog (chỉ admin, lọc ngày); bỏ bảng task trùng viewTasks (2026-08-17)
 ✅ A11y: skip-link, focus trap, aria-live, prefers-reduced-motion/contrast
-✅ Test Node 160/160 (18 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
+✅ Test Node 163/163 (18 files) + audit CSS/GS/style/UI · Deploy clasp (chỉ clasp deploy — không PUT deployments)
 ```
 
 **Rủi ro đã chấp nhận (biết rõ, cố tình bỏ qua):**

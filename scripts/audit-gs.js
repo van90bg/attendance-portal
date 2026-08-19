@@ -99,7 +99,7 @@ Object.keys(consts).forEach((name) => {
 const serverApis = Object.keys(funcs).filter((n) => n.endsWith('Api'));
 const treoApis = serverApis.filter((n) => {
   const re = new RegExp('\\b' + n + '\\b', 'g');
-  return !(sources.app.match(re) || []);
+  return (sources.app.match(re) || []).length === 0;
 });
 
 // ---- 4. In kết quả ----

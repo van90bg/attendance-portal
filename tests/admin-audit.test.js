@@ -9,6 +9,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { makeSandbox, loadAll } = require('./gas-sandbox');
+const fs = require('node:fs');
+const path = require('node:path');
+
+// Config.gs consts (STATUS/UI_LABELS) la lexical binding trong vm - khong phai property
+// cua sandbox object -> doc truc tiep Config.gs de lay gia tri so sanh.
+const CFG_SRC = fs.readFileSync(path.join(__dirname, '..', 'Config.gs'), 'utf8');
+function cfgVal(key) {
+  const m = CFG_SRC.match(new RegExp('(?:STATUS|UI_LABELS)\\s*=\\s*\\{[\\s\\S]*?\\b' + key + ":\\s*'([^']*)'"));
+  return m ? m[1] : null;
+}
+const ST = { PRESENT: cfgVal('PRESENT'), ABSENT: cfgVal('ABSENT'), EXTRA: cfgVal('EXTRA'), PENDING: cfgVal('PENDING') };
+const UI_SCAN_OWNER = cfgVal('SCAN_OPEN_OWNER_ONLY');
 
 test('audit_: ghi row AuditLog đúng cột (timestamp/email/action/targetId/detail)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'manager@spx.com' });
@@ -83,4 +95,45 @@ test('completeTask ghi audit (action=completeTask)', () => {
   const rows = ss.sheets.AuditLog.data;
   assert.equal(rows[rows.length - 1][2], 'completeTask');
   assert.equal(rows[rows.length - 1][3], 'R2026');
+});
+
+test('completeTask: task with scanned EXTRA rows still closes (regression counter partition)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'owner@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const t = new Date('2026-08-17T08:00:00+07:00');
+  // 1 PRESENT scanned, 1 PENDING (will be ABSENT), 1 EXTRA scanned in phase 2.
+  // Old bug: scanned+absent+extra double-counted the scanned EXTRA row -> task never closed.
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6219', 'NV A', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, t, ST.PRESENT, '2026-08-17']);
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6220', 'NV B', '08:00-17:00', 'HN SOC', 'Inbound', 'WS1', t, '', ST.PENDING, '2026-08-17']);
+  ss.sheets.AttendanceLog.appendRow(['R2026', 'Ops6221', 'NV C', '', '', '', '', '', t, ST.EXTRA, '']);
+  const res = svc.completeTask('R2026');
+  assert.equal(res.ok, true);
+  assert.equal(svc.readTask_('R2026').status, 'done');
+  const byId = {};
+  svc.readLogRows_('R2026').forEach((r) => { byId[r.staffId] = r.status; });
+  assert.equal(byId['Ops6219'], ST.PRESENT);
+  assert.equal(byId['Ops6220'], ST.ABSENT);
+  assert.equal(byId['Ops6221'], ST.EXTRA);
+});
+
+test('completeTask: non-owner rejected (owner gate)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'attend', '2026-08-17 08:00', 'owner@spx.com', '']);
+  const res = svc.completeTask('R2026');
+  assert.equal(res.ok, false);
+  assert.equal(res.message, UI_SCAN_OWNER);
+});
+
+test('reopenTask: non-owner rejected (owner gate)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  ss.sheets.AttendanceTask.appendRow(['R2026', 'HN SOC', '08:00-17:00', 'Inbound', 'Full', 'done', '2026-08-17 08:00', 'owner@spx.com', '2026-08-17 12:00']);
+  const res = svc.reopenTask('R2026');
+  assert.equal(res.ok, false);
+  assert.equal(res.message, UI_SCAN_OWNER);
 });
