@@ -780,6 +780,7 @@
     var btnTo = document.getElementById('btnToAttend');
     var btnPast = document.getElementById('btnPaste');
     var btnRos = document.getElementById('btnLoadRoster');
+    var btnCancel = document.getElementById('btnCancel');
     if (!btn) return;
     var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
     var done = phase === TASK_STATUS_C.DONE;
@@ -788,6 +789,13 @@
     if (btnTo) btnTo.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked) ? '' : 'none';
     if (btnRe) btnRe.style.display = done ? '' : 'none';
     if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
+    // "Hủy" chỉ ở phase Mở + log rỗng + owner — xóa hẳn task tạo nhầm/bỏ dở.
+    if (btnCancel) {
+      var canCancel = phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
+        && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen
+        && (!CURRENT_LOG || !CURRENT_LOG.length);
+      btnCancel.style.display = canCancel ? '' : 'none';
+    }
     // T-2: nút "Dán danh sách mã" chỉ hiện ở FREE + Mở + owner — cập nhật cả khi
     // chuyển phase KHÔNG re-render (transitionToAttend / reopen / complete).
     if (btnPast) {
@@ -803,9 +811,11 @@
     if (scanBusy()) {
       if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
       if (btnTo) { btnTo.disabled = true; btnTo.title = 'Đang xử lý quét — chờ xong rồi chuyển'; }
+      if (btnCancel) { btnCancel.disabled = true; btnCancel.title = 'Đang xử lý quét — chờ xong rồi hủy'; }
     } else {
       if (btn) { btn.disabled = false; btn.title = ''; }
       if (btnTo) { btnTo.disabled = false; btnTo.title = ''; }
+      if (btnCancel) { btnCancel.disabled = false; btnCancel.title = ''; }
     }
     updateQueueFullState();
   }
@@ -988,6 +998,39 @@
             showToast('Lỗi mở lại: ' + err.message, true);
           })
           .reopenTaskApi(taskId);
+      }
+    );
+  }
+
+  // Hủy task phase Mở còn rỗng (tạo nhầm / bỏ dở) — xóa hẳn task khỏi danh sách.
+  function cancelTask(taskId) {
+    if (BUSY || !taskId) return;
+    showConfirm(
+      'Hủy task',
+      'Hủy task ' + taskId + '?\nTask đang rỗng (chưa có dữ liệu quét) — sẽ bị XÓA khỏi danh sách. Không thể hoàn tác.',
+      function () {
+        BUSY = true;
+        showModalSpin('Đang hủy task…');
+        google.script.run
+          .withSuccessHandler(function (res) {
+            BUSY = false;
+            hideLoadingOverlay();
+            showToast(res.message, !res.ok);
+            if (res.ok) {
+              invalidateClientCaches_();
+              closeExternalScanner();   // task bị xóa — tự đóng tab scanner ngoài nếu mở cho task này
+              backToList();
+            } else {
+              loadTaskDetail(CURRENT_TASK.taskId, true);
+            }
+          })
+          .withFailureHandler(function (err) {
+            markServerFail();
+            BUSY = false;
+            hideLoadingOverlay();
+            showToast('Lỗi hủy task: ' + err.message, true);
+          })
+          .cancelTaskApi(taskId);
       }
     );
   }

@@ -415,6 +415,19 @@
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) t.status = 'done'; });
       return { ok: true, message: 'Đã kết thúc task ' + taskId };
     },
+    cancelTaskApi: function (taskId) {
+      // Khớp server cancelTask: chỉ OPEN + log rỗng → xóa hẳn khỏi MOCK_DATA.tasks.
+      var idx = -1;
+      for (var i = 0; i < MOCK_DATA.tasks.length; i++) {
+        if (MOCK_DATA.tasks[i].taskId === taskId) { idx = i; break; }
+      }
+      if (idx < 0) return { ok: false, message: 'Không tìm thấy task' };
+      if (MOCK_DATA.tasks[idx].status !== 'open') return { ok: false, message: 'Chỉ hủy được task đang ở phase Mở' };
+      var rows = getLog(taskId);
+      if (rows && rows.length) return { ok: false, message: 'Task đã có dữ liệu quét — không hủy được' };
+      MOCK_DATA.tasks.splice(idx, 1);
+      return { ok: true, message: 'Đã hủy task ' + taskId };
+    },
     getStaffStatsApi: function () {
       // Mock view StaffData: trả toàn bộ MOCK_DATA.staff (đã có agency/contractType).
       return { ok: true, staff: MOCK_DATA.staff };

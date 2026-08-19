@@ -230,6 +230,13 @@ open  →  attend  →  done
 - `listTasks()` → mới nhất lên đầu; merge counters (`total/scanned/extra`) từ AttendanceLog 1 lần + cache (`TASK_COUNTS` 30s) — không N+1.
 - `getTaskDetail(taskId)` → `{ok, task, log, counters}` qua cache `TASK_DETAIL` 15s. **`task.permission = {isAdmin, isOwner, canScanOpen}`** tính TƯƠI cho người đọc (sau cache, không lưu chung) — cache detail dùng chung mọi user nên không thể chứa permission theo email.
 
+### 4.8 Hủy task rỗng (`cancelTask`)
+
+- Chỉ hủy được task **`open` + log RỖNG** (tạo nhầm / bỏ dở) — xóa hẳn dòng task khỏi AttendanceTask (`deleteRow`), invalidate cache + audit `cancelTask`.
+- Gate: `requireRole_('operator')` + `canScanOpen_` (owner/admin — đồng gate transitionToAttend, §5.5).
+- Task đã có dữ liệu quét → **chặn** ('Task đã có dữ liệu quét — không hủy được. Hãy Chuyển điểm danh rồi Kết thúc.') — dữ liệu chấm công không bao giờ bị xóa nhầm.
+- Client: nút **Hủy** trong màn quét — hiện chỉ khi phase Mở + log rỗng + `permission.canScanOpen`; confirm trước khi gọi `cancelTaskApi`; thành công → `backToList()`.
+
 ---
 
 ## 5. Mô hình quét (Scan)
@@ -397,6 +404,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `scanStaffApi(taskId, staffId, clientEpoch?)` | `{ ok, message, status, phase, scannedAtText, scannedAtEpoch, listedAtText, listedAtEpoch, staffName, staffUnknown, dateText, counters }` — **clientEpoch**: thời gian quét = giờ client chụp lúc quét (WYSIWYG — sheet ghi đúng giờ app hiển thị; **chỉ chấp nhận ±60s so giờ server + không sớm hơn lúc tạo task** — fallback giờ server ngoài cửa sổ); **staffUnknown**: mã không có trong StaffData → client cảnh báo | operator (service) |
 | `transitionToAttendApi(taskId)` | `{ ok, message }` — `open → attend` | operator + owner (service) |
 | `completeTaskApi(taskId)` | `{ ok, message }` | operator + owner (service) |
+| `cancelTaskApi(taskId)` | `{ ok, message }` — hủy task **phase Mở + log rỗng** (xóa hẳn dòng task khỏi AttendanceTask; task có dữ liệu quét bị chặn) | operator (cancelTask — OPEN + owner) |
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator + owner (service) |
 | `pasteCodesApi(taskId, lines)` | `{ ok, total, success, failed, results[{code, ok, status, message}], counters }` — FREE + open + owner; clamp 200 | operator (service) |
 | `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở **phase Mở + Điểm danh** (NV đến trễ vẫn vào được danh sách — chỉ chặn DONE); append PENDING + timeRef, **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN/ATTEND + owner) |
@@ -636,6 +644,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ✅ 2-phase: Mở (LISTED_AT, FREE) → Chuyển điểm danh → Điểm danh (SCANNED_AT) → Kết thúc
 ✅ Quét barcode Ops (case-insensitive): Có mặt / Đã điểm danh / Đã ghi LISTED_AT / Dư / Task đã kết thúc
 ✅ Kết thúc task → NV chưa quét gán Vắng (batch 1 lần); Mở lại task → về Điểm danh, reset Vắng
+✅ Hủy task rỗng (2026-08-19): cancelTaskApi — phase Mở + log rỗng + owner/admin; xóa hẳn task khỏi AttendanceTask; task có dữ liệu bị chặn
 ✅ Role owner phase Mở (T-1): server gate `canScanOpen_` + permission tươi + client khoá input/banner
 ✅ Paste danh sách mã (T-2): pasteCodesApi batch (1 setValues + cache 1 put), clamp 200, dedupe trong batch
 ✅ Shell UI 9 view (viewHome/Stats/Tasks/Scan/Staff/Config/Reports/Admin/About) + sidebar 8 mục + showSection đủ 9 id + repairViewParents

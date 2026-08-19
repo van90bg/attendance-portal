@@ -47,6 +47,7 @@ function makeSheet(name) {
     getDataRange: () => makeRange(sheet, 1, 1, sheet.getLastRow(), Math.max(1, sheet.getLastColumn())),
     getRange: (r, c, nr, nc) => makeRange(sheet, r, c, nr === undefined ? 1 : nr, nc === undefined ? 1 : nc),
     appendRow: (vals) => { sheet.data.push(vals.slice()); },
+    deleteRow: (r) => { if (r >= 1 && r <= sheet.data.length) sheet.data.splice(r - 1, 1); return sheet; },
     insertColumnAfter: () => {},
   };
   return sheet;

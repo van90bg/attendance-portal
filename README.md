@@ -24,7 +24,7 @@
 
 Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình điểm danh trong ngày:
 
-1. **Tạo task** (luôn mở phase 1) — chọn Station / Ca / Team để nạp sẵn danh sách NV, hoặc Ca 'Tự do' để tạo rỗng rồi nạp sau.
+1. **Tạo task** (luôn mở phase 1, log rỗng) — chọn Station / Team / Ngày (metadata hiển thị); danh sách nạp sau qua **Thêm** (Lấy danh sách theo ca) hoặc quét / dán.
 2. **Quét LISTED_AT** (pha Mở) — ghi nhận nhân viên vào ca.
 3. **Chuyển điểm danh** (pha Điểm danh) — quét lần 2 ghi SCANNED_AT.
 4. **Kết thúc** — nhân viên chưa quét lần 2 tự tính là Vắng; có thể Mở lại để quét bổ sung.
@@ -61,6 +61,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
   - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Chuyển điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
     - Nạp roster theo ca (nút **Thêm**): append PENDING + LISTED_AT = lúc nạp; quét phase 2 = Có mặt / Dư.
     - **Đã đến ≠ Có mặt** — phase 1 ghi LISTED_AT hiện **Đã đến**; quét lần 2 ghi Giờ quét mới là **Có mặt** (điểm danh thật). Banner phase trong màn quét nhắc rõ 2 bước; đóng task khi **chưa ai quét lần 2** → confirm cảnh báo "tất cả sẽ tính Vắng" (không chặn cứng — Mở lại cứu được).
+- **Hủy task rỗng** — task phase Mở chưa có dữ liệu quét (tạo nhầm / bỏ dở): nút **Hủy** (owner/admin, hiện khi log rỗng) xóa hẳn task khỏi AttendanceTask; task đã có dữ liệu phải Chuyển điểm danh → Kết thúc bình thường.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
   - **Chuyển điểm danh** (OPEN→ATTEND) chỉ owner/admin — non-owner gọi thẳng server bị chặn (M1 service-layer, đồng gate scan/paste/nạp roster).
@@ -93,7 +94,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 ```
 RollCall_2/
 ├── appsscript.json         # manifest + webapp block
-├── Code.gs                # doGet (template) + 19 API endpoint *Api + editor tools
+├── Code.gs                # doGet (template) + 20 API endpoint *Api + editor tools
 ├── Config.gs              # hằng số sheet/cột/cache/status/labels
 ├── Auth.gs                # getActiveEmail_/isEditor_ — MỌI lấy email qua đây
 ├── Debug.gs               # ?debug=1 (editor-gated)

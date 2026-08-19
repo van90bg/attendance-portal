@@ -16,6 +16,7 @@
  *   getTaskDetailApi(taskId)     → { ok, task, log, counters }
  *   scanStaffApi(taskId, staffId) → { ok, message, status, counters }
  *   completeTaskApi(taskId)      → { ok, message }
+ *   cancelTaskApi(taskId)        → { ok, message } — hủy task Mở rỗng (xóa hẳn)
  *   transitionToAttendApi(taskId) → { ok, message, counters } — task open → attend
  *   reopenTaskApi(taskId)         → { ok, message } — task done → open (quét bổ sung)
  *   pasteCodesApi(taskId, lines)  → { ok, total, success, failed, results } — dán mã hàng loạt
@@ -202,6 +203,20 @@ function completeTaskApi(taskId) {
     return completeTask(taskId);
   } catch (e) {
     return { ok: false, message: e && e.message ? e.message : 'completeTask fail' };
+  }
+}
+
+/** Hủy task phase Mở với log rỗng (tạo nhầm / bỏ dở) — xóa hẳn task. Gate requireRole_('operator')
+ *  + canScanOpen_ bên trong cancelTask (TaskService) — đồng gate transitionToAttend.
+ */
+function cancelTaskApi(taskId) {
+  // Gate quyền THẬT nằm TRONG cancelTask (TaskService) — google.script.run gọi được hàm global
+  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
+  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
+  try {
+    return cancelTask(taskId);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'cancelTask fail' };
   }
 }
 
