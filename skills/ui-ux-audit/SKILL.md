@@ -130,3 +130,21 @@ TRƯỚC               SAU
 - Edit deterministic CRLF (project-skill §8); xong chạy 
 pm run test:css + 	est:style.
 - Không regression: giữ class chuẩn .view-topbar/.list-search/.empty/modal chung.
+**5. Confidence score** — mỗi finding có độ tin cậy 0–100 (review-gas):
+| Sev | Vấn đề | Vị trí | Conf | Đề xuất |
+|---|---|---|---|---|
+| 🔴 P0 | cache blind put mất write | Cache.gs:55 | 92 | read-merge-write |
+- Blocker/security: LUÔN report dù conf thấp. Major ≥70 · Minor/Nit ≥80 · dưới ngưỡng → bỏ im lặng.
+
+**6. Empty-state** — KHÔNG có issue thì in 1 dòng, không bỏ trống:
+✅ Sạch — 0 P0 · 0 P1 · 0 P2 (kèm scope đã quét: 	est:css + test:gs + audit-ui)
+
+**7. Anti-pattern (CẤM — đừng trả kết quả thế này)**
+`
+✗ Tôi đã đọc qua code và thấy có một số vấn đề nhỏ về giao diện,
+  cụ thể là màu sắc ở vài chỗ có vẻ không nhất quán, rồi còn chuyện
+  nút bấm hơi bé trên mobile nữa, bạn xem rồi sửa dùm tôi nhé...
+`
+Thay bằng:
+⚠️ Cần duyệt — 0 P0 · 2 P1 + bảng 2 hàng (vị trí + đề xuất cụ thể).
+Quy tắc: không tường thuật, không "vài chỗ/có vẻ", mỗi claim có ile:line.
