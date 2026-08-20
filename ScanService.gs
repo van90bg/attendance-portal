@@ -175,7 +175,10 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
   } catch (e) {
     // DEFENSE: bất kỳ lỗi runtime → trả ok:false (toast) thay vì crash "Server lỗi".
     console.error({ bench: 'scanStaff', taskId: taskId, staffId: staffId, error: e && e.message, stack: e && e.stack });
-    return { ok: false, message: 'Lỗi server: ' + (e && e.message ? e.message : 'unknown'), status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
+    // B10: lock timeout → message thân thiện (không báo "Lỗi server" gây hoảng loạn operator)
+    var msg = e && e.message ? String(e.message) : '';
+    var isLock = /timeout/i.test(msg) || /lock/i.test(msg) || /wait/i.test(msg);
+    return { ok: false, message: isLock ? 'Hệ thống bận, thử lại sau 2s' : ('Lỗi server: ' + msg), status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
   }
 }
 
