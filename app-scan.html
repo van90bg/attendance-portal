@@ -1053,34 +1053,45 @@
       scannedNow === 0 ? 'Cảnh báo — chưa ai điểm danh' : 'Kết thúc task',
       finishMsg,
       function () {
+        // Chốt ca chạy NỀN — không showModalSpin block toàn UI: khoá ô quét + indicator
+        // BG_TASKS.rpc; user vẫn xem/browse được. Rời task giữa chừng → chỉ toast, không
+        // reload view cũ; BUSY chặn re-entrant.
+        var finishTaskId = CURRENT_TASK.taskId;
         BUSY = true;
-        showModalSpin('Đang kết thúc task…');
-        var btn = document.getElementById('btnFinish');
-        if (btn) btn.disabled = true;
+        BG_TASKS.rpc = 1;
+        updateBgIndicator();
+        var input = document.getElementById('scanInput');
+        if (input) { input.disabled = true; input.title = 'Đang chốt ca…'; }
         google.script.run
           .withSuccessHandler(function (res) {
             BUSY = false;
+            BG_TASKS.rpc = 0;
+            updateBgIndicator();
             if (res.ok) {
               invalidateClientCaches_();
-              closeExternalScanner();   // task kết thúc → tự đóng tab scanner ngoài
               showToast(res.message, false);
-              // C: silent=true → KHÔNG reset UI (skeleton/ẩn table) — chỉ render view mới lên view cũ (mượt, không nháy toàn bộ)
-              loadTaskDetail(CURRENT_TASK.taskId, true);
+              if (CURRENT_TASK && CURRENT_TASK.taskId === finishTaskId) {
+                closeExternalScanner();   // task kết thúc → tự đóng tab scanner ngoài
+                // C: silent=true → KHÔNG reset UI (skeleton/ẩn table) — chỉ render view mới lên view cũ (mượt, không nháy toàn bộ)
+                loadTaskDetail(finishTaskId, true);
+              }
             } else {
-              hideModalSpin();
               showToast(res.message, true);
-              if (btn) btn.disabled = false;
+              if (input) { input.disabled = false; input.title = ''; }
+              updateQueueFullState();
             }
           })
           .withFailureHandler(function (err) {
             markServerFail();
             BUSY = false;
-            hideModalSpin();
+            BG_TASKS.rpc = 0;
+            updateBgIndicator();
             hideLoadingOverlay();
-            if (btn) btn.disabled = false;
+            if (input) { input.disabled = false; input.title = ''; }
+            updateQueueFullState();
             showToast('Lỗi kết thúc: ' + err.message, true);
           })
-          .completeTaskApi(CURRENT_TASK.taskId);
+          .completeTaskApi(finishTaskId);
       }
     );
   }
