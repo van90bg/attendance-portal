@@ -182,3 +182,24 @@ function readAttendanceRows_(opsId) {
   if (!requireRole_('manager')) return [];
   return filterAttendanceRows(readAttendanceRowsAll_(), opsId);
 }
+
+/** StaffInfo 1 dòng theo email (operator path — KHÔNG trả map PII; manager dùng readStaffInfoMap_ cache 1h). */
+function readStaffInfoByEmail_(email) {
+  if (!requireRole_('operator')) return null;  // M1: reader global — gate như các reader khác
+  const sheet = getSpreadsheet_().getSheetByName(SHEETS.STAFF_INFO);
+  if (!sheet) return null;
+  const map = buildStaffInfoMap(sheet.getDataRange().getValues());
+  return map[String(email || '').trim().toLowerCase()] || null;
+}
+
+/** Chấm công CỦA NGƯỜI DÙNG HIỆN TẠI (operator path — derive opsId từ session email,
+ * KHÔNG nhận input để không probe dữ liệu người khác; getReports wrap cache 60s). */
+function readAttendanceRowsSelf_() {
+  if (!requireRole_('operator')) return [];
+  const email = String(getActiveEmail_() || '').trim().toLowerCase();
+  const me = email ? readStaffInfoByEmail_(email) : null;
+  if (!me || !me.opsId) return [];
+  const sheet = getSpreadsheet_().getSheetByName(SHEETS.REPORT_ATTENDANCE);
+  const rows = sheet ? buildAttendanceRowsAll(sheet.getDataRange().getValues()) : [];
+  return filterAttendanceRows(rows, me.opsId);
+}

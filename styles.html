@@ -406,7 +406,7 @@
     /* ===== C4: form trang Cấu hình (Config Admin) ===== */
     .topbar-actions { display: flex; gap: var(--space-2); align-items: center; flex-shrink: 0; }  /* nhóm nút topbar viewConfig (Hủy thay đổi + Làm mới + Lưu cấu hình) */
     .cfg-discard-btn { border-color: var(--danger); color: var(--danger); }  /* nút "Hủy thay đổi" riêng khi dirty — không đổi nhãn Làm mới */
-    .cfg-card { padding: var(--space-3); }  /* đồng bộ .card chung (12px) — 2026-08-11 */
+    .cfg-card { padding: var(--space-4); }  /* đồng bộ .card chung (16px) */
     .cfg-hint { font-weight: 400; font-size: var(--text-xs); color: var(--muted); text-transform: none; letter-spacing: 0; }  /* hint không bị uppercase khi nằm trong .section-heading (toolbar CẤU HÌNH VẬN HÀNH) */
     /* viewConfig role = CARD rows (mockup 2026-08-16 — thay bảng): email + badge + icon ✎/✕,
        edit = input + select + ✓/✕ — hết ellipsis cắt nút mobile, hết grid cột. */
@@ -1120,8 +1120,9 @@
     #staffTable thead th:nth-child(-n+4) { position: sticky; top: 0; left: 0; z-index: 4; box-shadow: 1px 0 0 var(--border); }
     #staffTable tbody td:nth-child(-n+4) { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }    /* ===== Báo cáo (viewReports) — chấm công tháng theo email đăng nhập ===== */
     /* Topbar meta: tên NV đậm màu primary + email muted — to rõ hơn task-meta mặc định */
-    #reportsMeta { font-size: var(--text-md); font-weight: 600; color: var(--primary-dark); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-    #reportsMeta .reports-user-email, #reportsMeta .reports-user-count { font-weight: 400; font-size: var(--text-sm); color: var(--muted); }
+    #reportsMeta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }  /* base = .task-meta chung (12px muted) — đồng bộ tông các view khác */
+    #reportsMeta .reports-user-name { font-size: var(--text-sm); font-weight: 600; color: var(--text); }
+    #reportsMeta .reports-user-email, #reportsMeta .reports-user-count { font-weight: 400; font-size: var(--text-xs); color: var(--muted); }
 
     #reportsTable { font-size: var(--text-sm); table-layout: fixed; }
     #reportsTable thead th { position: sticky; top: 0; z-index: 2; }
@@ -1338,7 +1339,7 @@
       .home-hero { min-height: calc(100vh - var(--header-h) - var(--bottom-nav-h) - 24px); }
       /* Mobile: nút topbar gọn + title 1 dòng — tiết chiều dọc (scan topbar 151px quá cao, 2026-08-11) */
       .view-topbar { row-gap: var(--space-2); }
-      .view-topbar .btn { padding: var(--space-2) var(--space-4); min-height: 40px; font-size: var(--text-sm); }  /* touch 40px (audit 375px: trước 29px) */
+      .view-topbar .btn { padding: var(--space-2) var(--space-4); min-height: 44px; font-size: var(--text-sm); }  /* touch 44px (audit UX 2026-08-20: trước 40px) */
       #viewScan .view-topbar .btn { padding: var(--space-2) var(--space-2); }  /* 3 nút 375px xếp 2+1 (content 311px — space-3 đệm 313px vẫn wrap) */
       #viewScan .view-topbar-title { min-width: 40%; }  /* title giữ ≥40% — không bị nút "Nạp danh sách" ép nén thành 6px (CDP 2026-08-19) */
       .view-topbar .task-title { font-size: var(--text-lg); }

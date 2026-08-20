@@ -25,7 +25,7 @@
   * Editor tools (không phải *Api — chạy tay trong GAS editor): syncFromCsv(), setupSheets()
  */
 
-/** WebApp: template index.html — <?!= include() ?> nạp CSS/JS từ styles.html + app-*.html (7 module). */
+/** WebApp: template index.html — <?!= include() ?> nạp CSS/JS từ styles.html + app-*.html (9 module). */
 function doGet(e) {
   // Tự khởi tạo mọi sheet (kèm header) — không cần chạy setupSheets() tay.
   // getSheet_() chỉ set header khi sheet trống, nên gọi mỗi lần load rất rẻ.
@@ -280,7 +280,7 @@ function searchLogsByStaffApi(rawStaffId) {
 }
 
 /** Báo cáo chấm công tháng theo email đăng nhập (viewReports — StaffAttendance × StaffInfo).
- *  Gate requireRole_('manager') nằm TRONG getReports (ReportService) — chống bypass;
+ *  Gate requireRole_('operator') nằm TRONG getReports (ReportService) — chống bypass;
  *  wrapper chỉ giữ DEFENSE: catch mọi lỗi (kể cả sheet nguồn chưa có) → ok:false. */
 function getReportsApi() {
   try {

@@ -26,7 +26,7 @@ function readFile(rel) {
 }
 
 /**
- * Gộp index.html (<?!= include() ?>) + styles.html + app-*.html (7 module) → index.local.html.
+ * Gộp index.html (<?!= include() ?>) + styles.html + app-*.html (9 module) → index.local.html.
  * Bảo toàn trạng thái BOM đầu file: index.html hiện KHÔNG BOM (BOM ở đầu output serve
  * qua GAS gây khoảng trống phía trên header — lesson 9982293; AGENTS.md §3 bắt buộc
  * write utf-8 KHÔNG sig).
@@ -36,7 +36,7 @@ function build() {
   let html = readFile('index.html');
   const bom = html.charCodeAt(0) === 0xfeff ? html.charAt(0) : '';
   if (bom) html = html.slice(1);
-  // P2-2 (2026-08-13): app.html tách 7 module app-*.html — resolve MỌI directive
+  // P2-2 (2026-08-13): app.html tách nhiều module app-*.html — resolve MỌI directive
   // <?!= include('name') ?> bằng nội dung file name.html (styles + app-* chung 1 cơ chế).
   // Thứ tự include trong index.html = thứ tự khối script (chung global scope).
   let out = bom + html.replace(/<\?!= include\('([A-Za-z0-9_-]+)'\) \?>/g, function (m, name) {

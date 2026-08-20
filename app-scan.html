@@ -67,10 +67,6 @@
     renderCounters(CURRENT_COUNTERS);
     updateScanFilterLabel_();
 
-    // T-2: 1 nút "Nạp danh sách" (modal 2 tab: Theo ca / Dán mã) — hiện phase Mở + Điểm danh
-    // + canScanOpen (roster nạp cả phase Điểm danh — NV đến trễ; paste vẫn chặn phase 2 server).
-    // CHỈ task có station (nhóm Nạp danh sách) — task rỗng không có nút này.
-
     // Quét được khi: phase2 (Điểm danh) — phase1 ghi LISTED_AT, chuyển Điểm danh, phase2 ghi SCANNED_AT.
         // Phải bấm "Bắt đầu điểm danh" (phase2) mới quét được (tránh ghi LISTED_AT mà sheet thiếu SCANNED_AT).
         // P1: canScan chỉ dựa trên phase — source of truth.

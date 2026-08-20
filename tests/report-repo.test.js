@@ -4,7 +4,7 @@
  * Cover: buildStaffInfoMap (email → Ops ID, bỏ dòng thiếu); buildAttendanceRows (map cột
  * theo TÊN header — sheet thật có cột trống + "PMO formula" có khoảng trắng; lọc theo Ops ID
  * không phân biệt hoa thường + dự phòng phần số; "None"/rỗng → ''; sort giảm dần theo ngày);
- * getReports (manager+ gate, email chưa khai StaffInfo → rows rỗng + message, anonymous → rỗng);
+ * getReports (operator+ gate — báo cáo chính mình; viewer chặn; email chưa khai StaffInfo → rows rỗng + message; anonymous → ok + 'Chưa đăng nhập');
  * getReportsApi wrapper.
  *
  * Mock GAS + loader dùng chung: tests/gas-sandbox.js.
@@ -100,11 +100,11 @@ test('buildAttendanceRows: sheet trống / chỉ header → []', () => {
   assert.deepEqual(clone(svc.buildAttendanceRows(values, 'Ops237511')), []);
 });
 
-test('getReports: manager+ — email khớp StaffInfo → rows đúng của mình', () => {
+test('getReports: operator+ — email khớp StaffInfo → rows đúng của mình', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'manager' })]);
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'operator' })]);
   seedReportSheets(ss);
   const res = svc.getReports();
   assert.equal(res.ok, true);
@@ -119,7 +119,7 @@ test('getReports: email chưa khai StaffInfo → ok + rows rỗng + message hư�
   const { ctx, ss } = makeSandbox({ activeEmail: 'unknown@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'unknown@spx.com': 'manager' })]);
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'unknown@spx.com': 'operator' })]);
   seedReportSheets(ss);
   const res = svc.getReports();
   assert.equal(res.ok, true);
@@ -127,18 +127,20 @@ test('getReports: email chưa khai StaffInfo → ok + rows rỗng + message hư�
   assert.match(res.message, /StaffInfo/);
 });
 
-test('getReports: email rỗng (anonymous) → chặn gate (không lộ dữ liệu)', () => {
+test('getReports: email rỗng (anonymous) → ok + message hướng dẫn (không lộ dữ liệu)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: '' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedReportSheets(ss);
-  // anonymous luôn operator (Auth.gs: getRole_ rỗng → DEFAULT) — manager+ gate chặn
+  // anonymous luôn operator (Auth.gs: getRole_ rỗng → DEFAULT) — gate operator+ pass,
+  // nhưng không có email → không tra được StaffInfo (không lộ dữ liệu người khác).
   const res = svc.getReports();
-  assert.equal(res.ok, false);
+  assert.equal(res.ok, true);
   assert.deepEqual(clone(res.rows), []);
+  assert.match(res.message, /Chưa đăng nhập/);
 });
 
-test('getReports: viewer bị chặn (gate manager+ fail-closed)', () => {
+test('getReports: viewer bị chặn (gate operator+ fail-closed)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();  // tạo Config sheet trước khi ghi roleMap
@@ -154,7 +156,7 @@ test('getReportsApi wrapper: truyền thẳng kết quả service', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'manager' })]);
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'operator' })]);
   seedReportSheets(ss);
   const res = svc.getReportsApi();
   assert.equal(res.ok, true);
@@ -217,7 +219,7 @@ test('getReports: ambiguous phần số → rows rỗng + message báo admin (kh
   const { ctx, ss } = makeSandbox({ activeEmail: 'nv001.demo@spxexpress.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'manager' })]);
+  ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'nv001.demo@spxexpress.com': 'operator' })]);
   const info = ss.insertSheet('StaffInfo');
   info.appendRow(['No.', 'Staff ID', 'Ops ID', 'Staff Name', 'Staff Email', 'Rank', 'Joined Date', 'Working day']);
   info.appendRow([1, 'SPXVN00001', 'Ops12345', 'NV001', 'nv001.demo@spxexpress.com', 'Analyst', '2022-03-07', 1622]);

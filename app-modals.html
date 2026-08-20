@@ -334,18 +334,6 @@
       CREATE_FILTER.slotCode = CREATE_FILTER.slotCode.filter(function (s) { return avail.indexOf(s) !== -1; });
     }
   }
-  // Legacy SEL block (app-tasks.html) vẫn gọi 2 hàm này qua initSelEvents — giữ để không vỡ
-  // flow cũ (khối SEL là legacy inert, ngoài phạm vi A3). Create modal mới không dùng.
-  function isFreeSel() {
-    return SEL.slots.length === 1 && SEL.slots[0] === SLOT_FREE_MAGIC;
-  }
-  function refreshModeUI() {
-    var desc = document.getElementById('modeDesc');
-    if (desc) {
-      desc.innerHTML = 'Chọn Station/Ca/Hình thức/Phòng ban/Team/Ngày — danh sách NV nạp ngay lúc tạo task.';
-    }
-  }
-
   /* ===== T-1: Apply scan permission (owner gate) ===== */
   // Cờ khoá owner (non-owner ở phase OPEN) — các hàm UI khác (updateFinishBtnState,
   // updateQueueFullState) phải tôn trọng để không vô tình bật lại input/nút.

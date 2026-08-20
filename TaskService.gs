@@ -4,7 +4,7 @@
  * 2-phase attendance: tạo task → phase1 (Mở, quét LISTED_AT) → phase2 (Điểm danh,
  * quét SCANNED_AT) → Xong.
  * A3: danh sách NV nạp NGAY khi tạo task (createReconcileTask — theo ca hoặc dán mã);
- * không còn modal "Nạp danh sách" trong màn quét. Task rỗng = FREE + OPEN + log rỗng.
+ * NV đến trễ quét phase 1 (PENDING → LISTED_AT). Task rỗng = FREE + OPEN + log rỗng.
  * Phase 1 KHÔNG có Dư — Dư chỉ khi quét phase 2 ngoài danh sách. transitionToAttend
  * chuyển Mở→Điểm danh.
  */

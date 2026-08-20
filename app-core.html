@@ -793,8 +793,9 @@
     // không vượt được view ngoài quyền (trước chỉ ẩn nút, vào view vẫn chạy RPC rồi báo lỗi).
     if (page === 'admin' && !(typeof canAdmin_ === 'function' && canAdmin_())) return;
     if (page === 'config' && !(META && META.isEditor)) return;
-    if ((page === 'stats' || page === 'data' || page === 'reports')
+    if ((page === 'stats' || page === 'data')
       && !(typeof canManager_ === 'function' && canManager_())) return;
+    if (page === 'reports' && !(typeof canOperator_ === 'function' && canOperator_())) return;
     // Guard rời trang Cấu hình khi còn thay đổi chưa lưu → confirm
     if (page !== 'config' && ACTIVE_PAGE === 'config' && CFG_DIRTY) {
       showConfirm('Chưa lưu cấu hình', 'Có thay đổi cấu hình chưa lưu — rời trang sẽ mất thay đổi này. Tiếp tục?', function () {

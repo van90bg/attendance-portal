@@ -16,25 +16,25 @@
     var name = String(m.staffName || '').trim();
     var em = String(m.email || '').trim();
     var out = '';
-    if (name) out += '<span>' + esc(name) + '</span>';
+    if (name) out += '<span class="reports-user-name">' + esc(name) + '</span>';
     if (em) out += ' <span class="reports-user-email">' + esc(em) + '</span>';
     var extra = REPORT_ROWS.length ? ' — ' + REPORT_ROWS.length + ' dòng' : (m.message ? ' — ' + m.message : '');
     if (extra) out += ' <span class="reports-user-count">' + esc(extra) + '</span>';
     return out;
   }
 
-  // Tải báo cáo của user đang đăng nhập (getReportsApi — gate manager+ TRONG server).
+  // Tải báo cáo của user đang đăng nhập (getReportsApi — gate operator+ TRONG server — báo cáo chính mình).
   function loadReportsView(btn) {
-    // viewReports manager+ (getReports gate manager) — chặn sớm trước RPC
-    if (typeof canManager_ === 'function' && !canManager_()) {
+    // viewReports operator+ (getReports gate operator) — chặn sớm trước RPC
+    if (typeof canOperator_ === 'function' && !canOperator_()) {
       if (btn) restoreBtnLabel_(btn, '⟳ Cập nhật');
-      showToast('Không đủ quyền — cần role manager', true);
+      showToast('Không đủ quyền — cần role operator', true);
       var metaEl0 = document.getElementById('reportsMeta');
-      if (metaEl0) metaEl0.textContent = 'Không đủ quyền — cần role manager';
+      if (metaEl0) metaEl0.textContent = 'Không đủ quyền — cần role operator';
       var skelEl0 = document.getElementById('reportsSkeleton');
       if (skelEl0) skelEl0.style.display = 'none';
       var emptyEl0 = document.getElementById('reportsEmpty');
-      if (emptyEl0) { emptyEl0.style.display = ''; emptyEl0.textContent = 'Không đủ quyền — cần role manager'; }
+      if (emptyEl0) { emptyEl0.style.display = ''; emptyEl0.textContent = 'Không đủ quyền — cần role operator'; }
       return;
     }
     var skel = document.getElementById('reportsSkeleton');

@@ -67,8 +67,8 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
   - **Bắt đầu điểm danh** (OPEN→ATTEND) chỉ owner/admin — non-owner gọi thẳng server bị chặn (M1 service-layer, đồng gate scan/tạo task).
   - **Chốt ca / Mở lại / Sửa trạng thái log** chỉ owner/admin — gate **fail-closed `canMutateTask_`** (khác `canScanOpen_` fail-open): task legacy `createdBy='web'` không ai đóng/mở lại/sửa được ngoài admin. `warmStaffCacheApi` (index nhân sự) giờ gate operator+.
   - **Repo mutator gate (M1 2026-08-19)** — mọi hàm ghi/đọc StaffData-task-log (`batchInsertLogRows_`/`batchAppendLogRows_`/`batchUpdateLogRows_`/`transformLogStatuses_`/`setLogRowStatus_`/`writeBatchRuns_`/`insertTask_`/`updateTaskStatus_`/`readStaffList_`/`readStaffIndex_`) tự `requireRole_('operator')` (google.script.run gọi được global trực tiếp — gate *Api wrapper bị bypass); `getFilterOptionsApi`/`previewStaffApi` gate operator+; `roleMap` tách khỏi `getSettings_` → `getRoleMap_` (bản đồ quyền không lộ qua settings public).
-  - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
-  - **Phân quyền theo view (2026-08-17):**
+  - `getStaffStatsApi` (viewStats/viewStaff) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getReportsApi` (viewReports — báo cáo chấm công của chính mình theo email đăng nhập) operator+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
+  - **Phân quyền theo view (2026-08-20):**
 
 | View | viewer | operator | manager | admin |
 | :--- | :----: | :------: | :-----: | :---: |
@@ -78,7 +78,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewAbout (Giới thiệu) | ✅ | ✅ | ✅ | ✅ |
 | viewStats (Thống kê) | | | ✅ | ✅ |
 | viewStaff (Dữ liệu chấm công) | | | ✅ | ✅ |
-| viewReports (Báo cáo) | | | ✅ | ✅ |
+| viewReports (Báo cáo) | | ✅ | ✅ | ✅ |
 | viewConfig (Cấu hình) | | | | ✅ (editor) |
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
@@ -186,6 +186,7 @@ clasp deploy
 - ✅ Đợt 9 (2026-08-20): fix batch audit — CRLF app-modals.html · epoch ±60s đối xứng (client nhanh 30s vẫn WYSIWYG) · re-check race nhánh update (không đè giờ quét 2 thiết bị) · gate reader report StaffInfo/StaffAttendance manager+ · cache chunked >90KB + gen token unique · ISO date branch · optimistic field names · token --header-user-bg.
 - ✅ Đợt 2b (2026-08-20): cancelTask gate fail-closed (`canScanOpen_` → `canMutateTask_` — xóa hẳn task là mutation bất thuận nghịch) · mock `loadRosterApi` mirror server `noListedAt` (LISTED_AT rỗng — hết 'đã đến' giả khi test local) · wire `repo-integrity.test.js` vào `npm test` (212/212 — trước đó 11 tests row-integrity không bao giờ chạy).- ✅ Đợt 7 (2026-08-19): review integrity backend — **row-integrity mutators** (updateTaskStatus_ fallback theo taskId / setLogRowStatus_ chặn row lệch / batchUpdateLogRows_ lọc rowIndex thuộc taskId — không ghi nhầm dòng task khác) · **cache gen guard** (`CACHE_KEYS.CACHE_GEN` — mọi invalidate*_ bump; cachedJson_ skip put dữ liệu cũ khi gen đổi giữa load — hết stale-resurrection race cross-deploy) · **`ensureSheets_(strict)` header validation theo vị trí** (setupSheets fail-closed 'HEADER MISMATCH'; doGet non-strict chỉ log) · **overwriteStaffData_ LockService** (clear→write→invalidate atomic) · **report filter ambiguous phần số** (OPS12345 vs ABC12345 → chỉ khớp chính xác + message báo admin) · **getTaskListApi error contract** ({ok:false,message} — [] chỉ khi rỗng thật; client xử lý lỗi ở đợt 8) · **getStaffStatsApi cảnh báo ≥2000 NV** · **admin gate thật** (owner-gate `isEditor_()` → `requireRole_('admin')` — admin trong roleMap giờ bypass như deployer) · **clearListed độc lập** (ABSENT→PENDING xoá LISTED_AT — hết PENDING 'đã đến' giả) · **audit whitelist + lock** (action lạ qua google.script.run bị bỏ, append không interleave).
 - ✅ Đợt 8 (2026-08-19): review integrity frontend — **getTaskListApi error contract client** (lỗi hạ tầng → inline 'Thử lại', không đè cache cũ bằng [] — hết tạo task trùng) · **role gating UI** (`+ Task mới` operator+ · home shortcut Thống kê/Báo cáo manager+ · `selectPage` guard role — devtools không vượt view ngoài quyền) · **inline error states + Thử lại** (task list / staff / config / reports / roster modal) · **thead sr-only** thay `display:none` (5 bảng mobile — SR vẫn đọc header) · **modal focus a11y** (openCreateModal focus-in · Tab trap kéo về modal khi focus ngoài · spinModal save/restore focus) · **admin TZ** (auditRowDate_/fmtAuditTime_ → Intl Asia/Ho_Chi_Minh — hết lệch ngày theo TZ thiết bị) · **bỏ duplicate `min-height:32px`** (btn-icon-dark giữ 40px touch) · **About hướng dẫn khớp UX** (Nạp danh sách/Task rỗng · Chốt ca) · **restoreScanCard DONE theo SCANNED_AT** (mở task đã chốt khôi phục lượt điểm danh cuối).
+- ✅ Đợt 10 (2026-08-20): **viewReports hạ gate manager+ → operator+** (báo cáo chấm công của chính mình — filter theo email đăng nhập; operator đọc qua `readStaffInfoByEmail_`/`readAttendanceRowsSelf_` self-only, reader manager+ giữ nguyên — không rò map email→Ops + chấm công toàn bộ; khớp Spec v2.15) · **xóa appendStaff dead** (A3: không còn nút "Nạp danh sách" — server function chưa API/UI nối; sửa luôn doc comment completeTask thiếu `/**` từ edit dở) + **SEL legacy stubs** (app-tasks/app-modals) · sửa comment "7 module" lỗi thời (Code.gs/build-local/audit-css → 9 module).
 
 ---
 

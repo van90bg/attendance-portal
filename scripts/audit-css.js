@@ -7,7 +7,7 @@
  *
  * Cách hoạt động:
  *   1. Trích mọi class token từ selector trong styles.html (bỏ @keyframes, data-URI SVG).
- *   2. Gom nguồn dùng: index.html + app-*.html (7 module client) với các pattern:
+ *   2. Gom nguồn dùng: index.html + app-*.html (9 module client) với các pattern:
  *      - class="..." (HTML tĩnh + chuỗi JS literal)
  *      - classList.add/remove/toggle/contains/replace('x')
  *      - className = 'x' / 'a b' (literal)
