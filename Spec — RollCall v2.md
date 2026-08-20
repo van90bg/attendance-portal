@@ -16,7 +16,8 @@
 > v2.11 (2026-08-19): **frontend P1** — nhãn mobile card bảng task `'Đã điểm danh'` (khớp `data-label` JS; trước CSS còn `'Đã quét lần 2'` → card mất nhãn + lệch grid) · **bottom nav thêm mục 'Dữ liệu'** (`bottomDataItem` — navMap treo vì thiếu button, manager+ mobile không vào được viewStaff) · **`#scanPagination` ra ngoài `.table-wrap`** (không cuộn theo bảng) · **viewReports/viewAdmin/viewAbout vào trong `<main>`** (repairViewParents không còn phải kéo section). · **v2.9.1 (2026-08-20)**: cancelTask gate fail-closed (`canScanOpen_` → `canMutateTask_` — xóa hẳn task là mutation bất thuận nghịch) · mock `loadRosterApi` mirror `noListedAt` (LISTED_AT rỗng) · wire `repo-integrity.test.js` vào `npm test` (**212/212**).
 > v2.12 (2026-08-19): **review integrity backend** — **row-integrity mutators** (updateTaskStatus_ rowIndex lệch → fallback tìm theo taskId; setLogRowStatus_ chặn row không thuộc taskId; batchUpdateLogRows_ lọc rowIndex theo cột TASK_ID dải min..max trước khi ghi — KHÔNG ghi nhầm dòng task khác) · **cache gen guard** (`CACHE_KEYS.CACHE_GEN` — mọi `invalidate*_` bump sau remove; `cachedJson_` skip put khi gen đổi giữa load — hết stale-resurrection race khi cross-deploy) · **`ensureSheets_(strict)` header validation theo vị trí** (`validateColumnHeaders_` — strict chỉ ở `setupSheets` → throw fail-closed 'HEADER MISMATCH'; doGet chạy non-strict chỉ console.error) · **`overwriteStaffData_` LockService** (clear→write→invalidate atomic — không đọc phải trạng thái rỗng/nửa chừng) · **report filter ambiguous phần số** (`ambiguousOpsId_` — OPS12345 vs ABC12345 cùng suffix → chỉ khớp chính xác, fallback phần số chỉ khi suffix unique; getReports message báo admin) · **`getTaskListApi` error contract** ({ok:false,message} khi lỗi hạ tầng — [] chỉ khi danh sách rỗng thật) · **`getStaffStatsApi` cảnh báo ≥2000 NV** (ngưỡng full-payload cần server-side pagination) · **`isAdmin` owner-gate → `requireRole_('admin')`** (TaskService/ScanService 9 chỗ — admin trong roleMap bypass như deployer; `isEditor_` còn lại đúng nghĩa deployer-capability: settings/sync/setupSheets) · **clearListed độc lập** (updateLogRowStatus ABSENT→PENDING xoá LISTED_AT — PENDING không còn nằm filter 'Đã đến'; branch clearListed-only mới trong setLogRowStatus_ — 2 setValues vì LISTED_AT+STATUS không liền cột) · **audit whitelist** (`AUDIT_ACTIONS_` 10 action — action lạ qua google.script.run bị bỏ, chống log poisoning) + **LockService** cho append.
 > v2.13 (2026-08-19): **review integrity frontend** — client xử lý **getTaskListApi error contract** (`{ok:false,message}` → inline 'Không tải được danh sách task' + Thử lại, KHÔNG đè cache cũ bằng [] — trước lỗi hạ tầng hiện 'Chưa có task nào' và user tạo task trùng) · **role gating UI** (`#btnCreate` operator+ · home shortcut Thống kê/Báo cáo manager+ · `selectPage` guard — admin/config/stats+data+reports theo role/editor, khớp gate server; sidebar ẩn từ trước nhưng devtools vẫn vào được) · **inline error + Thử lại** cho task list / staff (`#staffEmpty`) / config (`#configEmpty` — trước hiện nhầm thông điệp phân quyền) / reports (`#reportsEmpty`) / roster modal (`#rosterError`) · **thead mobile → sr-only** (position:absolute + clip — 5 bảng: task/scan/audit/reports/staff; SR không còn mất header) · **modal focus a11y** (openCreateModal focus-in; Tab trap kéo về first khi focus ngoài dialog; spinModal save/restore focus) · **admin timezone** (`auditRowDate_`/`fmtAuditTime_` → Intl `Asia/Ho_Chi_Minh` — trước new Date local TZ thiết bị, lệch ngày filter so server) · **bỏ duplicate `min-height:32px`** trong `.btn-icon-dark` (giữ 40px touch — header 59px) · **About hướng dẫn khớp UX hiện tại** (Nạp danh sách/Task rỗng qua menu + Task mới; Chốt ca thay Kết thúc) · **`restoreScanCard` DONE theo SCANNED_AT** (trước task DONE rơi nhánh phase1 — khôi phục lượt quét vào danh sách thay vì lượt điểm danh cuối).
-> v2.14 (2026-08-20): **A3 — nạp danh sách NGAY lúc tạo task** — createReconcileTaskApi pre-fill roster khi tạo (theo ca: Station/Ca/Hình thức/Phòng ban/Team/Ngày + department · dán mã: `codes` + `skippedCodes` · rỗng: noList); xóa pasteCodesApi / loadRosterApi + paste modal (`loadListModal`) + nút 'Nạp danh sách' màn quét; createModal 2 tab Theo ca / Dán mã; audit createTask {count, skippedCodes}; LISTED_AT rỗng khi pre-fill (noListedAt)
+> v2.14 (2026-08-20): **A3 — nạp danh sách NGAY lúc tạo task** — createReconcileTaskApi pre-fill roster khi tạo (theo ca: Station/Ca/Hình thức/Phòng ban/Team/Ngày + department · dán mã: `codes` + `skippedCodes` · rỗng: noList); xóa pasteCodesApi / loadRosterApi + paste modal (`loadListModal`) + nút 'Nạp danh sách' màn quét; createModal 2 tab Theo ca / Dán mã; audit createTask {count, skippedCodes}.
+> v2.15 (2026-08-20): **Fix noListedAt regression + modal 'Đã tạo task'** — listedAt = createdAt khi pre-fill roster (tình huống 2,3: danh sách đã sẵn, không cần quét phase 1 trước); modal 'Đã tạo task' hiện sau khi tạo task có roster (Task ID / số lượng NV / Team / Ca + 2 nút: 'Chuyển sang điểm danh' → transitionToAttend + openScan, 'Xem danh sách' → openScan); task rỗng giữ toast + mở scan trực tiếp.
 > Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong code** và đã bị loại bỏ khi viết lại (xem [§14](#14-thay-đổi-so-với-spec-200)).
 
 ---
@@ -38,8 +39,8 @@
 **Luồng nghiệp vụ cốt lõi (1 vòng khép kín):**
 
 [Tạo task 1 modal (2 tab): **Theo ca** (chọn Station + Ca/Hình thức/Phòng ban/Team/Ngày) hoặc **Dán mã** (dán mã NV) hoặc để trống → task FREE + Mở
- | Roster nạp NGAY lúc tạo (createReconcileTaskApi pre-fill PENDING — LISTED_AT rỗng); mã không có trong dữ liệu → skippedCodes]
- | Danh sách xây sau ở phase 1: quét / dán / nạp roster theo ca (nút **Nạp danh sách**, loadRosterApi)]
+ | Roster nạp NGAY lúc tạo (createReconcileTaskApi pre-fill PENDING — LISTED_AT = createdAt); mã không có trong dữ liệu → skippedCodes]
+ | Danh sách xây sau ở phase 1: quét (task rỗng, noList)]
 → Quét barcode NV → phase Mở: ghi LISTED_AT · phase Điểm danh: ghi SCANNED_AT (Có mặt / Dư / reject)
 → Bắt đầu điểm danh (FREE) → Chốt ca → NV chưa quét gán Vắng
 → (tuỳ chọn) Mở lại task (về Điểm danh) → quét tiếp
@@ -183,7 +184,8 @@ Nhật ký hoạt động quản trị (viewAdmin — chỉ admin): mọi mutati
 
 **A3 (2026-08-20):** task mới tạo qua **createReconcileTaskApi** — roster **pre-fill NGAY lúc tạo**: tổ hợp theo ca (Station/Ca/Hình thức/Phòng ban/Team/Ngày — có department) hoặc danh sách mã dán (`codes`, mã lạ/trùng → `skippedCodes`); không chọn gì → task rỗng (`noList = !station && !codes.length`). TaskType đã xóa — không còn phân biệt `reconcile`/`free`.
 
-- `free` — task mới **rỗng** (0 dòng log, tạo khi không chọn Station/không dán mã): danh sách xây ở phase 1 qua **quét**; pre-fill roster (lúc tạo task) append PENDING — LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1.
+- `free` — task mới **rỗng** (0 dòng log, tạo khi không chọn Station/không dán mã): danh sách xây ở phase 1 qua **quét** (LISTED_AT ghi khi NV quét).
+- **Roster pre-fill** — task tạo kèm danh sách (theo ca / dán mã): append PENDING, LISTED_AT = createdAt (danh sách đã sẵn).
 - **Phase 1 KHÔNG có Dư** — Dư (EXTRA) chỉ khi quét phase 2 mà NV không có dòng PENDING trong log (bất kể nguồn: quét phase 1 · dán · roster).
 
 ### 4.2 Task ID
@@ -207,7 +209,7 @@ open  →  attend  →  done
 | `attend` | 2 — Điểm danh | Quét ghi **SCANNED_AT** (TIME_SCAN); mọi người quét được |
 | `done` | — | Đã kết thúc — quét reject `task-closed` |
 
-Đặc điểm tạo task: task mới sinh ra ở `open`; tạo kèm roster (Theo ca / Dán mã) → log pre-fill PENDING (LISTED_AT rỗng); tạo rỗng → log RỖNG (danh sách xây sau qua quét ở phase 1); bấm **Bắt đầu điểm danh** (cảnh báo nếu log rỗng) → quét lần 2; NV lạ phase 2 → Dư.
+Đặc điểm tạo task: task mới sinh ra ở `open`; tạo kèm roster (Theo ca / Dán mã) → log pre-fill PENDING (LISTED_AT = createdAt — danh sách đã sẵn); tạo rỗng → log RỖNG (danh sách xây sau qua quét ở phase 1); bấm **Bắt đầu điểm danh** → quét phase 2; NV lạ phase 2 → Dư. Modal 'Đã tạo task' hiện sau khi tạo có roster (2 nút: Chuyển sang điểm danh / Xem danh sách).
 
 `transitionToAttend(taskId)` - `open → attend`, guard `status === OPEN`; không sửa log (NV đã có LISTED_AT giữ nguyên), mở nút Kết thúc. Gate `requireRole_('operator')` + **owner-gate `canScanOpen_` (audit 2026-08-19)**: chuyển OPEN→ATTEND mở khoá quét phase 2 cho mọi người nên chỉ owner/admin được phép - chống non-owner gọi thẳng API qua console để vô hiệu owner-gate phase Mở.
 
@@ -215,7 +217,7 @@ open  →  attend  →  done
 
 1. **A3:** server pre-fill log khi tạo task: station+ca → `filterStaffByGroup` (gồm `department`); `codes` → `readStaffIndex_` (uppercase, mã lạ/trùng → `skippedCodes`); rỗng → `noList = true` (KHÔNG đọc StaffData). Client: nút **+ Task mới** mở createModal 2 tab.
 2. Task lưu: `status='open'`, `slotCode='Tự do'` (`SLOT_FREE_MAGIC`) + `team`/`contractType` client gửi (metadata hiển thị).
-3. Ghi log TRƯỚC: `batchInsertLogRows_(..., { noListedAt: true })` (pre-fill PENDING, LISTED_AT rỗng) → `insertTask_` (append 1 dòng) — fail-safe (mutation phụ trước, trạng thái chính sau).
+3. Ghi log TRƯỚC: `batchInsertLogRows_(..., now)` (pre-fill PENDING, LISTED_AT = createdAt — danh sách đã sẵn) → `insertTask_` (append 1 dòng) — fail-safe (mutation phụ trước, trạng thái chính sau).
 4. Status khởi tạo: **luôn `OPEN`** (A2 — mọi task qua phase 1).
 5. Toàn bộ nằm trong `LockService.waitLock(10000)`.
 
@@ -399,7 +401,6 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `getSettingsApi()` | `{ ok, settings }` — toàn bộ cấu hình (viewConfig) | editor |
 | `saveSettingsApi(patch)` | `{ ok, saved, ignored, message }` — whitelist key | editor (saveSettings_) |
 | `getAuditLogApi(limit)` | `{ ok, rows[{timestamp, email, action, targetId, detail}] }` — nhật ký hoạt động viewAdmin | **admin** (TRONG try) |
-| `createReconcileTaskApi(input)` | `{ ok, taskId, count, message }` | operator (service) |
 | `getTaskListApi()` | `[{ taskId, ... }]` — **error contract 2026-08-19**: `[]` chỉ khi danh sách rỗng thật; lỗi hạ tầng (sheet/quota/cache) → `{ ok:false, message }` (client phân biệt, không tạo task trùng khi tưởng rỗng) | — |
 | `getTaskDetailApi(taskId)` | `{ ok, task, log[], counters }` — `task.permission = {isAdmin, isOwner, canScanOpen}` (§5.5) | — |
 | `scanStaffApi(taskId, staffId, clientEpoch?)` | `{ ok, message, status, phase, scannedAtText, scannedAtEpoch, listedAtText, listedAtEpoch, staffName, staffUnknown, dateText, counters }` — **clientEpoch**: thời gian quét = giờ client chụp lúc quét (WYSIWYG — sheet ghi đúng giờ app hiển thị; **chỉ chấp nhận ±60s so giờ server + không sớm hơn lúc tạo task** — fallback giờ server ngoài cửa sổ); **staffUnknown**: mã không có trong StaffData → client cảnh báo | operator (service) |
@@ -407,7 +408,7 @@ Gate đặt **TRONG service layer** (`requireRole_` ở đầu mỗi hàm nhận
 | `completeTaskApi(taskId)` | `{ ok, message }` | operator + owner (service) |
 | `cancelTaskApi(taskId)` | `{ ok, message }` — hủy task **phase Mở + log rỗng** (xóa hẳn dòng task khỏi AttendanceTask; task có dữ liệu quét bị chặn) | operator (cancelTask — OPEN + owner) |
 | `reopenTaskApi(taskId)` | `{ ok, message }` — `done → attend` | operator + owner (service) |
-| `createReconcileTaskApi(input)` | `{ ok, taskId, count, skippedCodes, message }` — A3: pre-fill roster NGAY lúc tạo — theo ca `{station, slotCode[], team[], contractType[], department[], date[]}` / dán mã `{codes}` (mã lạ/trùng → skippedCodes) / rỗng `{}` (noList — quét tự do); pre-fill LISTED_AT rỗng (noListedAt); audit createTask {count, skippedCodes} | operator (service) |
+| `createReconcileTaskApi(input)` | `{ ok, taskId, count, skippedCodes, message }` — A3: pre-fill roster NGAY lúc tạo — theo ca `{station, slotCode[], team[], contractType[], department[], date[]}` / dán mã `{codes}` (mã lạ/trùng → skippedCodes) / rỗng `{}` (noList — quét tự do); pre-fill LISTED_AT = createdAt (danh sách đã sẵn); audit createTask {count, skippedCodes} | operator (service) |
 | `loadRosterApi(taskId, filters)` | `{ ok, total, added, skipped, message, counters }` — nạp roster theo ca (Station/Ca/Team/Ngày) ở **phase Mở + Điểm danh** (NV đến trễ vẫn vào được danh sách — chỉ chặn DONE); append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1), **bỏ qua NV đã có** (idempotent, không clamp) | operator (loadRoster — OPEN/ATTEND + owner) |
 | `updateLogRowStatusApi(taskId, staffId, newStatus)` | `{ ok, message, counters }` — sửa trạng thái 1 dòng log theo mã NV (sửa Dư/Vắng nhầm, bổ sung người); **PRESENT/EXTRA trên dòng CHƯA quét tự fill TIME_SCAN = now** (B-P1-2: EXTRA chưa quét phá partition `scanned+absent=total` → task kẹt không đóng được); **đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT** (counter đúng), về PENDING clear luôn LISTED_AT, **EXTRA giữ SCANNED_AT** (thiết kế partition); cùng status / NV không có / status không hợp lệ → ok:false; audit `fixLogRowStatus` (kèm fillScanTime/clearScanTime/clearListedAt) | operator + **owner/admin** (`canMutateTask_` fail-closed — hoạt động cả task DONE) |
 | `searchLogsByStaffApi(staffId)` | `{ ok, rows }` — lịch sử chấm công 1 NV xuyên task (F-search) | **manager+** (TRONG try) |
@@ -481,7 +482,8 @@ Modal: **tạo task (A3 — 2 tab Theo ca / Dán mã)** · confirm dùng chung �
 
 ### 9.2 Modal tạo task (A3 — 2 tab Theo ca / Dán mã)
 
-- **Modal tạo task (A3):** tab **Theo ca** — Station (single) / Ca / Hình thức / Phòng ban / Team / Ngày (chips đa chọn, cascade slot theo station) → preview số NV khớp (`previewStaffApi`) → **Tạo** pre-fill roster NGAY (LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1). Tab **Dán mã** — textarea mã NV (≤200 dòng) → **Tạo** pre-fill theo mã. Không chọn gì → task rỗng (FREE, quét tự do) — nút Tạo chỉ tắt khi chọn Station mà 0 NV khớp.
+- **Modal tạo task (A3):** tab **Theo ca** — Station (single) / Ca / Hình thức / Phòng ban / Team / Ngày (chips đa chọn, cascade slot theo station) → preview số NV khớp (`previewStaffApi`) → **Tạo** pre-fill roster NGAY (LISTED_AT = createdAt — danh sách đã sẵn). Tab **Dán mã** — textarea mã NV (≤200 dòng) → **Tạo** pre-fill theo mã. Không chọn gì → task rỗng (FREE, quét tự do) — nút Tạo chỉ tắt khi chọn Station mà 0 NV khớp.
+- **Modal 'Đã tạo task'** (v2.15): hiển thị sau khi tạo task thành công có roster (count > 0). Hiển thị Task ID / số lượng NV / Team / Ca. 2 nút: **'Chuyển sang điểm danh'** → `transitionToAttend` + `openScan`; **'Xem danh sách'** → `openScan` (không tự chuyển phase). Task rỗng (noList) giữ toast + mở scan trực tiếp.
 - **Ca 'Tự do'** (`SLOT_FREE_MAGIC`): task rỗng (không chọn Station / không dán mã) → server `noList = true` (KHÔNG đọc StaffData), ca lưu = `SLOT_FREE_MAGIC`. Tạo kèm ca thật → ca lưu = ca chọn.
 - Preview số NV khớp khi đổi chips (debounce 200ms) — footer đếm "N nhân viên khớp".
 - **Guards**: `SCAN_CARD_SEQ` (response cũ không đè scan card mới), capture `taskId` lúc enqueue (response task cũ không đụng UI), chặn **Kết thúc** và **backToList** khi còn scan đang xử lý.
@@ -527,7 +529,7 @@ Modal: **tạo task (A3 — 2 tab Theo ca / Dán mã)** · confirm dùng chung �
 ## 10. Testing
 - Roster nạp **NGAY lúc tạo task** (tab Theo ca trong createModal) — KHÔNG còn nút 'Nạp danh sách' ở màn quét; NV đến trễ phase 1 quét bình thường (PENDING → LISTED_AT).
 - Preview số NV khớp qua `previewStaffApi` khi đổi chips → nút **Tạo** bật khi count > 0 (tắt khi chọn Station mà 0 NV khớp).
-- Gọi `createReconcileTaskApi(filters)` → pre-fill PENDING + LISTED_AT rỗng (`noListedAt: true` — thời điểm đến ghi khi NV quét phase 1); toast message + mở thẳng màn quét task mới. Gate server: operator+.
+- Gọi `createReconcileTaskApi(filters)` → pre-fill PENDING + LISTED_AT = createdAt (danh sách đã sẵn); modal 'Đã tạo task' hiện 2 nút: 'Chuyển sang điểm danh' (transitionToAttend + openScan) / 'Xem danh sách' (openScan). Gate server: operator+.
 - Tab **Dán mã**: textarea 1 dòng = 1 mã; bỏ dòng rỗng; giới hạn **200 dòng** (client clamp — A4); mã trùng cùng lần dán dedupe client.
 - `createReconcileTaskApi({ codes })` → mã lạ/trùng → `skippedCodes` (toast kèm số bỏ qua); toàn bộ mã lạ → `{ok:false}` không tạo task.
 | **Kết quả** | **212/212 pass** |
