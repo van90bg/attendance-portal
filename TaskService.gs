@@ -348,8 +348,10 @@ function getTaskDetail(taskId) {
   const isOwner = String(detail.task.createdBy || '').trim().toLowerCase() === String(activeEmail || '').trim().toLowerCase()
     && String(detail.task.createdBy || '').trim().toLowerCase() !== 'web'
     && String(detail.task.createdBy || '').trim().includes('@');
-  const canScanOpen = canScanOpen_({ TASK_STATUS: TASK_STATUS }, detail.task.createdBy, activeEmail, isAdmin);
-  detail.task.permission = { isAdmin: isAdmin, isOwner: isOwner, canScanOpen: canScanOpen };
+  const isOpen = detail.task.status === TASK_STATUS.OPEN;
+  const canScanOpen = isOpen ? canScanOpen_({ TASK_STATUS: TASK_STATUS }, detail.task.createdBy, activeEmail, isAdmin) : true;
+  const canMutate = canMutateTask_(detail.task.createdBy, activeEmail, isAdmin);
+  detail.task.permission = { isAdmin: isAdmin, isOwner: isOwner, canScanOpen: canScanOpen, canMutate: canMutate };
   return { ok: true, task: detail.task, log: detail.log, counters: detail.counters };
 }
 

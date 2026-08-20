@@ -86,7 +86,9 @@ function buildAttendanceRowsAll(values) {
     });
   }
   out.sort(function (a, b) {
-    return (a.reportDate < b.reportDate) ? 1 : (a.reportDate > b.reportDate) ? -1 : 0;
+    var da = (typeof normalizeStaffDate_ === 'function' ? normalizeStaffDate_(a.reportDate) : a.reportDate) || a.reportDate;
+    var db = (typeof normalizeStaffDate_ === 'function' ? normalizeStaffDate_(b.reportDate) : b.reportDate) || b.reportDate;
+    return (da < db) ? 1 : (da > db) ? -1 : 0;
   });
   return out;
 }

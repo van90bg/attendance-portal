@@ -81,6 +81,7 @@ function normalizeStaffDate_(date) {
   if (date === undefined || date === null) return '';
   // Dạng 1: Date object thật — format trực tiếp (getFullYear/getMonth/getDate local)
   if (date instanceof Date && !isNaN(date.getTime())) {
+    try { if (typeof Utilities !== 'undefined' && Utilities.formatDate && typeof Session !== 'undefined') return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd'); } catch(e) {}
     return date.getFullYear() + '-'
       + ('0' + (date.getMonth() + 1)).slice(-2) + '-'
       + ('0' + date.getDate()).slice(-2);

@@ -404,7 +404,7 @@
     var badge = badgeFor(r.status, r);
     var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
     // Fix thủ công 1 dòng (updateLogRowStatusApi) — chỉ owner/admin (canScanOpen), mọi phase.
-    var canFix = CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen;
+    var canFix = CURRENT_TASK && CURRENT_TASK.permission && (CURRENT_TASK.permission.canMutate !== undefined ? CURRENT_TASK.permission.canMutate : (CURRENT_TASK.permission.isOwner || CURRENT_TASK.permission.isAdmin));
     return [
       '<td class="stt" data-label="STT">' + (idx + 1) + '</td>',
       '<td data-label="Mã NV"><b>' + esc(r.staffId) + '</b></td>',

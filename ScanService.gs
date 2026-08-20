@@ -109,8 +109,9 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     // (V1-2026-08-19: thu tu ±3 phut → 60s — queue toi da 8 item x 2.5s ≈ 20s + latency,
     // 60s van du an toan; hep hon = gio lui/tới tuong lai it hon); ngoai cua so, gio truoc khi tao
     // task (createdAtText), hoac gio tuong lai → server-authoritative (gio server hien tai).
+    const drift = Date.now() - clientEpoch;
     const clientEpochOk = typeof clientEpoch === 'number' && isFinite(clientEpoch) && clientEpoch > 0
-      && Math.abs(clientEpoch - Date.now()) <= 60000;
+      && drift >= 0 && drift <= 60000;
     let scanNow = clientEpochOk ? new Date(clientEpoch) : new Date();
     const taskCreatedAt = safeDate_(task.createdAtText);
     if ((taskCreatedAt && scanNow.getTime() < taskCreatedAt.getTime()) || scanNow.getTime() > Date.now()) {

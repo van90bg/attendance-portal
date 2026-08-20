@@ -739,11 +739,13 @@
           try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {}
         } else {
           showToast(res.message, true);
+          var eb = document.getElementById('btnCreateEmpty'); if (eb) { eb.disabled = false; eb.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
         }
       })
       .withFailureHandler(function (err) {
         markServerFail();
         BUSY = false;
+        var eb2 = document.getElementById('btnCreateEmpty'); if (eb2) { eb2.disabled = false; eb2.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
         if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
         showToast('Lỗi tạo task: ' + err.message, true);
       })

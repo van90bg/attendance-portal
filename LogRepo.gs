@@ -184,7 +184,8 @@ function batchAppendLogRows_(rows) {
   // nen cac goi catch/ngoai try (invalidateLogRows_/invalidateTaskDetailCache_) throw
   // ReferenceError: taskId is not defined SAU khi setValues da ghi xong -> sheet co data
   // nếu ghi fail sau setValues: client không loadTaskDetail -> danh sách không refresh.
-  const taskId = String(rows[0][0] || '').trim(); // taskId is first column
+  const taskIds = {}; rows.forEach(function(r){ var tid=String(r[0]||'').trim(); if(tid) taskIds[tid]=true; });
+  const taskId = String(rows[0][0] || '').trim(); // taskId is first column (primary)
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
   // Build row indices for cache update
   const rowIndices = [];
@@ -226,7 +227,11 @@ function batchAppendLogRows_(rows) {
     console.warn('batchAppendLogRows_ cache update fail', e.message);
     invalidateLogRows_(taskId); // force rebuild
   }
-  invalidateTaskDetailCache_(taskId);
+  if (Object.keys(taskIds).length === 1) {
+    invalidateTaskDetailCache_(taskId);
+  } else {
+    Object.keys(taskIds).forEach(function(tid){ try{invalidateTaskDetailCache_(tid);}catch(e){} try{invalidateLogRows_(tid);}catch(e){} });
+  }
   invalidateTaskListCache_();
   return { startRow: startRow, count: rows.length, rowIndices: rowIndices };
 }
