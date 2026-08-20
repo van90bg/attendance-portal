@@ -33,17 +33,21 @@ function getSheet_(name, header) {
  * Thứ tự ưu tiên: DEFAULT_SPREADSHEET_ID (Config) → Script Properties 'SPREADSHEET_ID'
  * → spreadsheet bind → tạo mới 'RollCall v2 DB'.
  */
+// Memo per-request: doGet + mọi api (getSheet_/ensureSheets_) mở spreadsheet nhiều lần —
+// openById là RPC chậm. GAS reset module-var mỗi request nên không stale.
+var _ssCache_ = null;
 function getSpreadsheet_() {
+  if (_ssCache_) return _ssCache_;
   if (DEFAULT_SPREADSHEET_ID) {
-    try { return SpreadsheetApp.openById(DEFAULT_SPREADSHEET_ID); } catch (e) { /* fallthrough */ }
+    try { return _ssCache_ = SpreadsheetApp.openById(DEFAULT_SPREADSHEET_ID); } catch (e) { /* fallthrough */ }
   }
   const props = PropertiesService.getScriptProperties();
   const id = props.getProperty('SPREADSHEET_ID');
   if (id) {
-    try { return SpreadsheetApp.openById(id); } catch (e) { /* fallthrough */ }
+    try { return _ssCache_ = SpreadsheetApp.openById(id); } catch (e) { /* fallthrough */ }
   }
   const active = SpreadsheetApp.getActiveSpreadsheet();
-  if (active) return active;
+  if (active) return _ssCache_ = active;
   // m7 (audit): fail cứng thay vì tự tạo DB mới rỗng âm thầm. Deploy sai cấu hình
   // (chưa set DEFAULT_SPREADSHEET_ID + Script Properties, không có active) phải ném
   // lỗi rõ ràng để operator sửa ngay — tránh phân mảnh dữ liệu sang DB mới.
@@ -53,6 +57,7 @@ function getSpreadsheet_() {
   }
   const created = SpreadsheetApp.create('RollCall v2 DB');
   props.setProperty('SPREADSHEET_ID', created.getId());
+  _ssCache_ = created;
   return created;
 }
 

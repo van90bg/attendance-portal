@@ -40,8 +40,14 @@ function getSettings_() {
 /** Đọc roleMap (map email → role) — tách riêng settings, cache riêng (CACHE_KEYS.ROLE_MAP).
  * getRole_ (Auth) đọc mỗi lần xác thực; editor lấy qua getSettingsApi (merge riêng bên
  * Code.gs — client Config không gọi thẳng getSettings_). Invalidate cùng saveSettings_. */
+// Memo per-request: requireRole_ → getRole_ → getRoleMap_ chạy 2-4 lần/request; GAS
+// reset module-var mỗi request nên không stale. saveSettings_ gọi invalidateSettingsCache_
+// reset memo cùng request.
+var _roleMapCache_ = null;
+var _roleMapCached_ = false;
 function getRoleMap_() {
-  return cachedJson_(CACHE_KEYS.ROLE_MAP, function () {
+  if (_roleMapCached_) return _roleMapCache_;
+  _roleMapCache_ = cachedJson_(CACHE_KEYS.ROLE_MAP, function () {
     const sheet = getSheet_(SHEETS.CONFIG);
     const values = sheet.getDataRange().getValues();
     for (let i = 1; i < values.length; i++) {
@@ -52,6 +58,8 @@ function getRoleMap_() {
     }
     return {};
   }, CACHE_TTL.SETTINGS);
+  _roleMapCached_ = true;
+  return _roleMapCache_;
 }
 
 /** Đọc 1 setting — thuận tiện cho caller (P1: scan/task đọc defaultStation...). */
@@ -127,6 +135,7 @@ function saveSettings_(patch) {
 function invalidateSettingsCache_() {
   cache_().remove(CACHE_KEYS.SETTINGS);
   cache_().remove(CACHE_KEYS.ROLE_MAP);  // roleMap cache riêng — saveSettings_({roleMap}) phải clear cùng
+  _roleMapCache_ = null; _roleMapCached_ = false;  // reset memo per-request
   cache_().remove(CACHE_KEYS.FILTER_OPTIONS);  // lists settings feed getFilterOptionsApi
   bumpCacheGen_();
 }

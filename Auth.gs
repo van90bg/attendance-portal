@@ -107,10 +107,16 @@ function isEditor_() {
 }
 
 /** Email deployer (owner của script) — từ Script Properties (không hardcode). */
+// Memo per-request (isEditor_/getRole_ gọi nhiều lần — PropertiesService là RPC chậm).
+var _deployerEmailCache_ = '';
+var _deployerEmailCached_ = false;
 function getDeployerEmail_() {
+  if (_deployerEmailCached_) return _deployerEmailCache_;
   try {
-    return PropertiesService.getScriptProperties().getProperty('DEPLOYER_EMAIL') || '';
+    _deployerEmailCache_ = PropertiesService.getScriptProperties().getProperty('DEPLOYER_EMAIL') || '';
   } catch (e) {
-    return '';
+    _deployerEmailCache_ = '';
   }
+  _deployerEmailCached_ = true;
+  return _deployerEmailCache_;
 }
