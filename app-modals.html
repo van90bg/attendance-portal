@@ -18,6 +18,7 @@
   function openCreateModal() {
     var m = document.getElementById('createModal');
     if (!m) return;
+    if (typeof resetCreateModal_ === 'function') resetCreateModal_();
     CREATE_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
     _lastCreateCount = 0;
     var err = document.getElementById('createRosterError');
@@ -220,7 +221,8 @@
   function submitCreateTask() {
     var submitBtn = document.getElementById('btnCreateSubmit');
     if (submitBtn && submitBtn.disabled) return;
-    closeCreateModal();
+    // KHÔNG closeCreateModal() ở đây — createTaskWithMeta_ giữ modal mở
+    // nếu có roster (hiện 'Đã tạo task'), chỉ đóng khi noList.
     createTaskWithMeta_({
       station: CREATE_FILTER.station,
       slotCode: CREATE_FILTER.slotCode,
@@ -256,7 +258,7 @@
       if (seen[k]) return;
       seen[k] = 1; uniq.push(l);
     });
-    closeCreateModal();
+    // KHÔNG closeCreateModal() — createTaskWithMeta_ giữ modal mở nếu có roster.
     createTaskWithMeta_({ codes: uniq });
   }
   // Chips generic — "Tất cả" (roster-all) + giá trị (roster-val); tên data-col giữ legacy.
