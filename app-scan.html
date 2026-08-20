@@ -500,6 +500,17 @@
   // B: recount theo timeScan (khớp server computeCounters — ScanLogic.gs) thay vì
   // đếm theo status text: tránh lệch khi dòng có timeScan nhưng status chưa cập nhật.
   // Dùng cho: optimistic bump (submitScan), rollback/sync (processScanQueue).
+  // A.3: so sánh counters — bỏ renderCounters khi server counters bằng optimistic
+  // (mỗi lượt quét trước đây đều set textContent + swap class phase = layout thrashes).
+  function sameCounters_(a, b) {
+    if (!a || !b) return false;
+    return (a.scanned || 0) === (b.scanned || 0)
+      && (a.absent || 0) === (b.absent || 0)
+      && (a.extra || 0) === (b.extra || 0)
+      && (a.total || 0) === (b.total || 0)
+      && (a.presentAt || 0) === (b.presentAt || 0);
+  }
+
   function recountFromLog() {
     var s = 0, e = 0, a = 0, p = 0;
     (CURRENT_LOG || []).forEach(function (r) {
@@ -788,13 +799,22 @@
     //     CURRENT_LOG để đồng bộ với rollback vừa chạy.
     function syncCounters(serverCounters) {
       if (SCAN_QUEUE.length > 0) { recountFromLog(); return; }
-      if (serverCounters) { CURRENT_COUNTERS = serverCounters; renderCounters(serverCounters); }
+      if (serverCounters) {
+        if (!sameCounters_(CURRENT_COUNTERS, serverCounters)) renderCounters(serverCounters);
+        CURRENT_COUNTERS = serverCounters;
+      }
       else { recountFromLog(); }
     }
 
     google.script.run
       .withSuccessHandler(function (res) {
         SCAN_PROCESSING = false;
+        // A.3: so khớp response với optimistic (tính TRƯỚC khi patch target) — server
+        // xác nhận đúng status + epoch đã render thì bỏ renderScanTable lặp lại toàn bảng.
+        var serverUnchanged = res.ok && item.target && !res.staffUnknown
+          && res.status === item.optimisticStatus
+          && (!res.scannedAtText || res.scannedAtEpoch === item.target.scannedAtEpoch)
+          && (!res.listedAtText || res.listedAtEpoch === item.target.listedAtEpoch);
         // F1: response của scan enqueue ở task khác (user đã thoát/đổi task giữa chừng —
         // thực tế bị chặn bởi scanBusy(), guard này là defense cho đường thoát tương lai:
         // browser back, tab mới). Scan đã ghi server-side — chỉ drain queue, không đụng UI.
@@ -857,7 +877,7 @@
           });
         }
         syncCounters(res.counters);
-        renderScanTable(CURRENT_LOG);
+        if (!serverUnchanged) renderScanTable(CURRENT_LOG);
         updateFinishBtnState();
         BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
         updateBgIndicator();
