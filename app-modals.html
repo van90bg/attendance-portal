@@ -134,7 +134,7 @@
     var tmEl = document.getElementById('createChipsTeam');
     var dtEl = document.getElementById('createChipsDate');
     if (!stEl || !_createOptsData) return;
-    stEl.innerHTML = chipsHtml_(createStationOptions_(), CREATE_FILTER.station ? [CREATE_FILTER.station] : []);
+    stEl.innerHTML = chipsHtmlStation_(createStationOptions_(), CREATE_FILTER.station || '');
     if (slotEl) slotEl.innerHTML = chipsHtml_(createSlotOptions_(), CREATE_FILTER.slotCode);
     if (ctEl) ctEl.innerHTML = chipsHtml_(createContractOptions_(), CREATE_FILTER.contractType);
     if (deptEl) deptEl.innerHTML = chipsHtml_(createDeptOptions_(), CREATE_FILTER.department);
@@ -148,9 +148,9 @@
     var submitBtn = document.getElementById('btnCreateSubmit');
     var hasStation = !!CREATE_FILTER.station;
     var hasCount = _lastCreateCount > 0;
-    // Disable chỉ khi chọn Station mà 0 NV khớp (server từ chối)
-    if (submitBtn) submitBtn.disabled = hasStation && !hasCount;
-    // Toggle hiển thị: có danh sách vs task rỗng
+    // Disable khi: chưa chọn Station, hoặc chọn Station mà 0 NV khớp
+    if (submitBtn) submitBtn.disabled = !hasStation || !hasCount;
+    // Toggle hiển thị: có danh sách vs chưa chọn Station
     var totalEl = document.getElementById('createRosterTotal');
     var freeEl = document.getElementById('createRosterFree');
     var num = document.getElementById('createRosterTotalNum');
@@ -159,10 +159,17 @@
       if (freeEl) freeEl.style.display = 'none';
       if (num) num.textContent = String(_lastCreateCount);
       if (submitBtn) submitBtn.textContent = 'Tạo (' + _lastCreateCount + ' NV)';
+    } else if (hasStation && !hasCount) {
+      // Đã chọn Station nhưng 0 NV khớp
+      if (totalEl) totalEl.style.display = '';
+      if (freeEl) freeEl.style.display = 'none';
+      if (num) num.textContent = '0';
+      if (submitBtn) submitBtn.textContent = 'Tạo';
     } else {
+      // Chưa chọn Station
       if (totalEl) totalEl.style.display = 'none';
       if (freeEl) freeEl.style.display = '';
-      if (submitBtn) submitBtn.textContent = 'Tạo task rỗng';
+      if (submitBtn) submitBtn.textContent = 'Chọn Station';
     }
   }
   // Preview số NV khớp bộ lọc (server previewStaffApi) — debounce 200ms.
@@ -259,11 +266,11 @@
       hint.textContent = n > 0 ? ('Đã phát hiện ' + n + ' mã NV') : 'Nhập mã NV để đếm tự động';
       hint.style.color = n > 0 ? 'var(--success)' : 'var(--muted)';
     }
-    // Toggle: có mã → hiện count, không có → hiện "Task rỗng"
+    // Toggle: có mã → hiện count, không có → hiện hướng dẫn
     if (freeEl) freeEl.style.display = n > 0 ? 'none' : '';
     if (sb) {
       sb.disabled = n === 0;
-      sb.textContent = n > 0 ? ('Tạo (' + n + ' NV)') : 'Tạo task rỗng';
+      sb.textContent = n > 0 ? ('Tạo (' + n + ' NV)') : 'Dán mã NV';
     }
   }
   function submitCreateTaskPaste() {
@@ -281,6 +288,15 @@
     });
     // KHÔNG closeCreateModal() — createTaskWithMeta_ giữ modal mở nếu có roster.
     createTaskWithMeta_({ codes: uniq });
+  }
+  // Chips Station — KHÔNG có "Tất cả" (Station là bắt buộc cho tab Theo ca).
+  function chipsHtmlStation_(opts, selected) {
+    var html = '';
+    opts.forEach(function (v) {
+      var on = selected === v;
+      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="station" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
+    });
+    return html;
   }
   // Chips generic — "Tất cả" (roster-all) + giá trị (roster-val); tên data-col giữ legacy.
   function chipsHtml_(opts, selectedArr) {
