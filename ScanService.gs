@@ -140,7 +140,26 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     const listedAtEpoch = outcome ? outcome.listedAtEpoch : 0;
     const scannedName = outcome ? outcome.staffName : null;
     const staffUnknown = outcome ? !!outcome.staffUnknown : false;
-    const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));
+    let counters;
+    try {
+      const updatedRows = logRows.slice();
+      if (outcome) {
+        const needle = String(staffId).toUpperCase();
+        let idx = -1;
+        for (let i = 0; i < updatedRows.length; i++) { if (String(updatedRows[i].staffId || '').toUpperCase() === needle) { idx = i; break; } }
+        if (idx >= 0) {
+          const r = Object.assign({}, updatedRows[idx]);
+          if (outcome.scannedAtText) { r.scannedAtText = outcome.scannedAtText; r.scannedAtEpoch = outcome.scannedAtEpoch; }
+          if (outcome.listedAtText) { r.listedAtText = outcome.listedAtText; r.listedAtEpoch = outcome.listedAtEpoch; }
+          if (outcome.status) r.status = outcome.status;
+          if (outcome.staffName) r.staffName = outcome.staffName;
+          updatedRows[idx] = r;
+        } else {
+          updatedRows.push({ staffId: staffId, staffName: outcome.staffName || '', slotCode: outcome.slotCode || '', station: outcome.station || '', team: outcome.team || '', workstation: outcome.workstation || '', listedAtText: outcome.listedAtText || '', listedAtEpoch: outcome.listedAtEpoch || 0, scannedAtText: outcome.scannedAtText || '', scannedAtEpoch: outcome.scannedAtEpoch || 0, status: outcome.status || STATUS.EXTRA, dateText: outcome.dateText || '' });
+        }
+      }
+      counters = computeCounters({ STATUS: STATUS }, updatedRows);
+    } catch (e) { counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId)); }
     // P2 benchmark: tổng + tách giai đoạn — QA prod đọc Stackdriver biết ngay
     // bottleneck (read sheet vs write). Phân tích: t1→t2 = đọc task+log (full sheet),
     // t2→t3 = classify + write. Nếu read > 1.5s → cần index log (xem Database.gs).

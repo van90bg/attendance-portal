@@ -726,8 +726,8 @@
       btnCancel.style.display = canCancel ? '' : 'none';
     }
     if (scanBusy()) {
-      if (btn) { btn.disabled = true; btn.title = 'Đang xử lý quét — chờ xong rồi kết thúc'; }
-      if (btnTo) { btnTo.disabled = true; btnTo.title = 'Đang xử lý quét — chờ xong rồi chuyển'; }
+      if (btn) { btn.disabled = false; btn.title = 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chốt'; }
+      if (btnTo) { btnTo.disabled = false; btnTo.title = 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chuyển'; }
       if (btnCancel) { btnCancel.disabled = true; btnCancel.title = 'Đang xử lý quét — chờ xong rồi hủy'; }
     } else {
       if (btn) { btn.disabled = false; btn.title = ''; }
@@ -960,7 +960,11 @@
   function transitionToAttend(taskId) {
     if (BUSY || !taskId) return;
     if (scanBusy()) {
-      showToast('Đang xử lý quét — chờ xong rồi chuyển', true);
+      showToast('Còn ' + (SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0)) + ' lượt quét đang xử lý — sẽ tự chuyển khi xong', false);
+      var _waitT = setInterval(function () {
+        if (!scanBusy()) { clearInterval(_waitT); transitionToAttend(taskId); }
+      }, 400);
+      setTimeout(function () { clearInterval(_waitT); }, 12000);
       return;
     }
     if (!CURRENT_LOG || !CURRENT_LOG.length) {
@@ -974,7 +978,11 @@
   function doTransitionToAttend(taskId) {
     if (BUSY || !taskId) return;
     if (scanBusy()) {
-      showToast('Đang xử lý quét — chờ xong rồi chuyển', true);
+      showToast('Còn quét đang xử lý — sẽ tự chuyển khi xong', false);
+      var _waitD = setInterval(function () {
+        if (!scanBusy()) { clearInterval(_waitD); doTransitionToAttend(taskId); }
+      }, 400);
+      setTimeout(function () { clearInterval(_waitD); }, 12000);
       return;
     }
     BUSY = true;
@@ -1033,10 +1041,12 @@
 
   function finishTask() {
     if (BUSY || !CURRENT_TASK) return;
-    // P1: chặn Kết thúc khi scan đang chờ server (SCAN_PROCESSING) hoặc trong queue —
-    // nếu không, completeTask chạy trước scanStaff → NV vừa quét bị đánh Vắng nhầm.
     if (scanBusy()) {
-      showToast('Đang xử lý quét — chờ xong rồi kết thúc', true);
+      showToast('Còn ' + (SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0)) + ' lượt quét đang xử lý — sẽ tự chốt khi xong', false);
+      var _waitF = setInterval(function () {
+        if (!scanBusy()) { clearInterval(_waitF); finishTask(); }
+      }, 400);
+      setTimeout(function () { clearInterval(_waitF); }, 15000);
       return;
     }
     // Modal confirm thay cho confirm() trình duyệt — giữ UX đồng nhất với các modal khác

@@ -264,7 +264,7 @@
           <div class="att-toolbar">
             <h2 class="section-heading">DANH SÁCH NHÂN VIÊN <span id="staffCount" class="task-count-badge">0 NV</span></h2>
             <div class="list-search" role="search" aria-label="Tìm nhân viên">
-              <input type="search" id="staffSearch" placeholder="Tìm mã NV, tên, agency…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false" oninput="STAFF_PAGE=1; renderStaffDataTable()">
+              <input type="search" id="staffSearch" placeholder="Tìm mã NV, tên, agency…" aria-label="Tìm nhân viên" autocomplete="off" spellcheck="false" oninput="debouncedStaffSearch_()">
             </div>
           </div>
           <div class="table-wrap">
@@ -356,7 +356,7 @@
     <div class="task-list-toolbar">
       <div class="task-title">Chấm công tháng</div>
       <div class="list-search" role="search" aria-label="Tìm báo cáo">
-        <input type="search" id="reportsSearch" placeholder="Tìm ngày, station, kết quả…" aria-label="Tìm báo cáo" autocomplete="off" spellcheck="false" oninput="renderReportsTable()" onkeydown="if(event.key==='Escape'){this.value='';renderReportsTable();}">
+        <input type="search" id="reportsSearch" placeholder="Tìm ngày, station, kết quả…" aria-label="Tìm báo cáo" autocomplete="off" spellcheck="false" oninput="debouncedReportsSearch_()" onkeydown="if(event.key==='Escape'){this.value='';renderReportsTable();}">
       </div>
     </div>
     <div class="table-wrap" id="reportsTableWrap" style="display:none;">

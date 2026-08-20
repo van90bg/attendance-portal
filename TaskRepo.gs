@@ -74,9 +74,11 @@ function invalidateTaskCache_(taskId) {
 
 /** Xoá mọi cache task sau khi ghi AttendanceTask — thêm TASK cache chỉ đổi ở 1 chỗ. */
 function invalidateTaskCaches_(taskId) {
-  invalidateTaskListCache_();
-  invalidateTaskDetailCache_(taskId);
-  invalidateTaskCache_(taskId);
+  try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all'); } catch (e) {}
+  try { if (taskId) cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
+  try { if (taskId) cache_().remove(CACHE_KEYS.TASK + taskId); } catch (e) {}
+  bumpCacheGen_();
 }
 
 /** Ghi task mới (append — tần suất thấp, chấp nhận appendRow). */

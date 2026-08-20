@@ -199,6 +199,7 @@
   }
   // Render toàn bộ 4 cột (gọi khi đổi station — cascade reset team/slot/date).
   function renderAllCols() {
+    if (!document.getElementById('chipsStation')) return;
     renderAllSelects();
   }
   // Commit 2026-08-08: dropdown thay 5 cây checkbox
@@ -726,11 +727,19 @@
           var input_ = input || {};
           res.team = input_.team || '';
           res.slotCode = input_.slotCode || '';
-          // Tình huống 2,3 (roster): cập nhật createModal thành "Đã tạo task" tại chỗ.
-          // Tình huống 1 (noList/task rỗng): đóng modal + mở scan trực tiếp.
           if (!showTaskCreatedInModal(res)) {
             closeCreateModal();
             openScan(res.taskId);
+          } else {
+            // #5: roster tạo xong đã hiện "Đã tạo task" — tự động chuyển sang Điểm danh sau 600ms nếu user không bấm
+            // (tiết kiệm 1 click cho flow phổ biến: tạo theo ca -> điểm danh ngay)
+            setTimeout(function () {
+              var m = document.getElementById('createModal');
+              if (m && m.classList.contains('open') && _taskCreatedTaskId === res.taskId) {
+                var btn = document.getElementById('btnTaskCreatedAttend');
+                if (btn && !btn.disabled) btn.click();
+              }
+            }, 900);
           }
           try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {}
          } else {

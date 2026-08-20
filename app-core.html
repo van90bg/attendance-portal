@@ -282,7 +282,6 @@
     initNetworkStatus();
     initTabSync();       // #12: quay lại tab → silent reload task đang mở (data không stale)
     initBgIndicator();   // indicator tác vụ nền (header) — ẩn ban đầu, hiện khi có scan/RPC/silent
-    initSelEvents();
     startAutoFocusLoop();
     initScanTopbarStuck();
     initScanFilters();
@@ -310,11 +309,16 @@
         statusEl.appendChild(o);
       });
     }
+    var _scanSearchDebounce = null;
     if (searchEl) searchEl.addEventListener('input', function () {
-      SCAN_FILTER.q = searchEl.value;
-      SCAN_PAGE = 1; // bộ lọc đổi → về trang đầu
-      _scanSortDirty = true; // F4: filter đổi → đánh dấu dirty
-      renderScanTable(CURRENT_LOG);
+      if (_scanSearchDebounce) clearTimeout(_scanSearchDebounce);
+      var v = searchEl.value;
+      _scanSearchDebounce = setTimeout(function () {
+        SCAN_FILTER.q = v;
+        SCAN_PAGE = 1;
+        _scanSortDirty = true;
+        renderScanTable(CURRENT_LOG);
+      }, 180);
     });
     if (statusEl) statusEl.addEventListener('change', function () {
       SCAN_FILTER.status = statusEl.value;
@@ -358,6 +362,17 @@
       });
     }
     updateSortIndicators();
+  }
+
+  var _staffSearchDebounce = null;
+  var _reportsSearchDebounce = null;
+  function debouncedStaffSearch_() {
+    if (_staffSearchDebounce) clearTimeout(_staffSearchDebounce);
+    _staffSearchDebounce = setTimeout(function () { STAFF_PAGE = 1; renderStaffDataTable(); }, 180);
+  }
+  function debouncedReportsSearch_() {
+    if (_reportsSearchDebounce) clearTimeout(_reportsSearchDebounce);
+    _reportsSearchDebounce = setTimeout(function () { renderReportsTable(); }, 180);
   }
 
   /* ===== Topbar sticky (.view-topbar chung) — thêm viền/bóng khi dính ===== */

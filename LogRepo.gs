@@ -161,11 +161,11 @@ function batchInsertLogRows_(taskId, staffList, createdAt, opts) {
     ];
   });
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
-  invalidateLogRows_(taskId); // U2: nạp roster tạo dòng mới — xoá cache cũ nếu taskId tái sử dụng
-  // P1 (B-P1-1): ghi dòng mới cũng invalidate detail + list (counters) — trước chỉ LOG_ROWS
-  // → readTaskDetailCached_/readTaskList_ giữ data cũ 15s/30s sau khi nạp roster (A3 lúc tạo task).
-  invalidateTaskDetailCache_(taskId);
-  invalidateTaskListCache_();
+  try { cache_().remove(CACHE_KEYS.LOG_ROWS + taskId); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all'); } catch (e) {}
+  bumpCacheGen_();
   return rows.length;
 }
 
@@ -322,8 +322,9 @@ function transformLogStatuses_(taskId, mutate) {
     for (let r = run.start; r <= run.end; r++) { col.push([changed[ci].v]); ci++; }
     sheet.getRange(run.start, statusCol, col.length, 1).setValues(col);
   });
-  invalidateTaskDetailCache_(taskId);
-  invalidateLogRows_(taskId); // u2: status hàng loạt đổi → cache log rows cũ lệch, xoá
+  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.LOG_ROWS + taskId); } catch (e) {}
+  bumpCacheGen_();
   return changed.length;
 }
 
@@ -392,8 +393,10 @@ function batchUpdateLogRows_(taskId, updates) {
   // timeScan → 2 cột TIME_SCAN+STATUS (khớp updateLogRowRef_/updateLogRowScan_ cũ).
   writeBatchRuns_(sheet, valid, 'listedAt');
   writeBatchRuns_(sheet, valid, 'scannedAt');
-  invalidateTaskDetailCache_(taskId);
-  invalidateTaskListCache_();
+  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all'); } catch (e) {}
+  bumpCacheGen_();
   try {
     const key = CACHE_KEYS.LOG_ROWS + taskId;
     const cached = cacheGet_(key);
@@ -491,7 +494,9 @@ function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime, clearScanned, c
   } else {
     sheet.getRange(rowIndex, LOG_COLS.STATUS + 1, 1, 1).setValues([[newStatus]]);
   }
-  invalidateTaskDetailCache_(taskId);
-  invalidateLogRows_(taskId);
-  invalidateTaskListCache_();
+  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.LOG_ROWS + taskId); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
+  try { cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all'); } catch (e) {}
+  bumpCacheGen_();
 }
