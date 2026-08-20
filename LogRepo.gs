@@ -294,20 +294,20 @@ function invalidateTaskDetailCache_(taskId) {
  *   hoặc null (không đổi)
  * @returns {number} số dòng đã đổi
  */
-function transformLogStatuses_(taskId, mutate) {
+function transformLogStatuses_(taskId, mutate, logRows) {
   if (!requireRole_('operator')) return 0;  // M1: dùng chung markUnscannedAbsent_/resetAbsentToPending_ — chặn gọi trực tiếp
   const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
-  const values = sheet.getDataRange().getValues();
-  // m6 (audit 2026-08-11): thu thập CHỈ dòng task bị đổi → gom run liên tiếp → 1 setValues/run.
+  // F3 (perf): nhận logRows đã đọc (từ completeTask) thay vì getDataRange().getValues() toàn
+  // sheet lần 2. Không truyền → fallback readLogRows_. Epoch là nguồn sự thật cho hasScan.
+  const rows = logRows || readLogRows_(taskId);
   const changed = [];
-  for (let i = 1; i < values.length; i++) {
-    const row = values[i];
-    if (String(row[LOG_COLS.TASK_ID] || '').trim() !== taskId) continue;
-    const timeScan = row[LOG_COLS.SCANNED_AT];
-    const status = String(row[LOG_COLS.STATUS] || '');
+  rows.forEach(function (row) {
+    if (String(row.taskId || '').trim() !== taskId) return;
+    const timeScan = Number(row.scannedAtEpoch) || 0;
+    const status = String(row.status || '');
     const next = mutate(status, timeScan);
-    if (next !== null && next !== status) changed.push({ r: i + 1, v: next });
-  }
+    if (next !== null && next !== status) changed.push({ r: row._rowIndex, v: next });
+  });
   if (!changed.length) return 0;
   const statusCol = LOG_COLS.STATUS + 1;
   const runs = [];
@@ -329,22 +329,20 @@ function transformLogStatuses_(taskId, mutate) {
 }
 
 /** Khi kết thúc task: chuyển dòng chưa quét (timeScan rỗng, status '-') thành 'Vắng'. */
-function markUnscannedAbsent_(taskId) {
+function markUnscannedAbsent_(taskId, logRows) {
   return transformLogStatuses_(taskId, function (status, timeScan) {
-    // P2 (B-P1-6): epoch là nguồn sự thật — cell timeScan junk (safeDate_ parse fail)
-    // KHÔNG tính là đã quét; trước dùng truthiness (cell có giá trị lạ → nhầm thành PRESENT).
-    const dScan = safeDate_(timeScan);
-    const hasScan = dScan ? dScan.getTime() > 0 : false;
+    // Epoch là nguồn sự thật — timeScan truyền vào là scannedAtEpoch (number). cell junk
+    // parse fail → epoch 0 → KHÔNG tính là đã quét (trước dùng truthiness cell lạ → nhầm PRESENT).
+    const hasScan = Number(timeScan) > 0;
     if (hasScan && status === STATUS.PENDING) {
-      // P1: insurance data-repair — dòng có timeScan nhưng status còn '-' (data legacy/
-      // sửa tay; mọi write path đều ghi 2 cột trong 1 setValues atomic dưới LockService
-      // nên luồng bình thường không sinh ra state này). KHÔNG đánh Vắng — chuẩn hóa
-      // thành Có mặt.
+      // Insurance data-repair — dòng có timeScan nhưng status còn '-' (data legacy/sửa tay;
+      // mọi write path ghi 2 cột atomic dưới LockService → luồng bình thường không sinh state này).
+      // KHÔNG đánh Vắng — chuẩn hóa thành Có mặt.
       return STATUS.PRESENT;
     }
     if (!hasScan && status === STATUS.PENDING) return STATUS.ABSENT;
     return null;
-  });
+  }, logRows);
 }
 
 /** Mở lại task: reset NV Vắng (ABSENT) về Chưa điểm danh (PENDING). NV Có mặt giữ nguyên. */

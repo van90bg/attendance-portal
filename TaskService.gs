@@ -199,7 +199,7 @@ function completeTask(taskId) {
     // Nếu updateTaskStatus_ fail: task vẫn ATTEND → retry, mark idempotent (dòng đã
     // ABSENT/PRESENT không chạm lại). Thứ tự cũ (DONE trước) → mark fail = task đã
     // đóng nhưng log chưa chuyển Vắng, retry bị chặn "Task đã kết thúc".
-    const absentCount = markUnscannedAbsent_(taskId);
+    const absentCount = markUnscannedAbsent_(taskId, logRows);
     updateTaskStatus_(taskId, TASK_STATUS.DONE, new Date(), task._rowIndex, task.contractType || '');
     audit_('completeTask', taskId, { absentCount: absentCount, counters: counters });
     return {
@@ -417,8 +417,15 @@ function updateLogRowStatus(taskId, rawStaffId, newStatus) {
       const scanTime = ((newStatus === STATUS.PRESENT || newStatus === STATUS.EXTRA) && !hasScan) ? new Date() : null;
       setLogRowStatus_(taskId, row._rowIndex, newStatus, scanTime, clearScanned, clearListed);
       audit_('fixLogRowStatus', taskId, { staffId: staffId, oldStatus: row.status, newStatus: newStatus, fillScanTime: !!scanTime, clearScanTime: clearScanned, clearListedAt: clearListed });
-      const counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId));
-      return { ok: true, message: 'Đã cập nhật ' + staffId + ' → ' + newStatus, counters: counters };
+      // F3 (perf): tái dùng mảng rows đã đọc thay vì readLogRowsCached_ (bị invalidate → đọc
+      // lại toàn sheet). Patch dòng đổi tại chỗ rồi computeCounters — không đọc sheet lần 2.
+      row.status = newStatus;
+      if (scanTime) { row.scannedAtText = formatTime_(scanTime); row.scannedAtEpoch = scanTime.getTime(); }
+      if (clearScanned) { row.scannedAtText = ''; row.scannedAtEpoch = 0; }
+      if (clearListed) { row.listedAtText = ''; row.listedAtEpoch = 0; }
+      const counters = computeCounters({ STATUS: STATUS }, rows);
+      const outRow = { staffId: row.staffId, status: row.status, scannedAtText: row.scannedAtText, scannedAtEpoch: row.scannedAtEpoch, listedAtText: row.listedAtText, listedAtEpoch: row.listedAtEpoch };
+      return { ok: true, message: 'Đã cập nhật ' + staffId + ' → ' + newStatus, counters: counters, row: outRow };
     } finally {
       lock.releaseLock();
     }

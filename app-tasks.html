@@ -488,7 +488,6 @@
          if (res.ok) {
           invalidateClientCaches_();
           showToast(res.message, false);
-          loadTaskList();
           var input_ = input || {};
           res.team = input_.team || '';
           res.slotCode = input_.slotCode || '';
@@ -496,6 +495,7 @@
             closeCreateModal();
             openScan(res.taskId);
           } else {
+            loadTaskList();
             // #5: roster tạo xong đã hiện "Đã tạo task" — tự động chuyển sang Điểm danh sau 600ms nếu user không bấm
             // (tiết kiệm 1 click cho flow phổ biến: tạo theo ca -> điểm danh ngay)
             setTimeout(function () {

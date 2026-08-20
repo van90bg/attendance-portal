@@ -1453,7 +1453,22 @@
         closeFixStatusModal();
         showToast(res.message, false);
         if (res.counters) { CURRENT_COUNTERS = res.counters; renderCounters(res.counters); }
-        loadTaskDetail(CURRENT_TASK.taskId, true);
+        if (res.row) {
+          var fr = res.row;
+          for (var i = 0; i < CURRENT_LOG.length; i++) {
+            if (String(CURRENT_LOG[i].staffId || '').toUpperCase() === String(fr.staffId || '').toUpperCase()) {
+              CURRENT_LOG[i].status = fr.status;
+              CURRENT_LOG[i].scannedAtText = fr.scannedAtText;
+              CURRENT_LOG[i].scannedAtEpoch = fr.scannedAtEpoch;
+              CURRENT_LOG[i].listedAtText = fr.listedAtText;
+              CURRENT_LOG[i].listedAtEpoch = fr.listedAtEpoch;
+              break;
+            }
+          }
+          renderScanTable();
+        } else {
+          loadTaskDetail(CURRENT_TASK.taskId, true);
+        }
       })
       .withFailureHandler(function (err) {
         if (btn) btn.disabled = false;
