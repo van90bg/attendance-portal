@@ -195,7 +195,7 @@ function batchAppendLogRows_(rows) {
   // Update LOG_ROWS cache in ONE put (not per-row pushLogRowToCache_)
     try {
       const key = CACHE_KEYS.LOG_ROWS + taskId;
-      const cached = cache_().get(key);
+      const cached = cacheGet_(key);
       if (cached !== null) {
         const cachedRows = JSON.parse(cached);
         // Append slim versions of new rows
@@ -221,7 +221,7 @@ function batchAppendLogRows_(rows) {
             _rowIndex: rowIndices[idx],
           });
         });
-        cache_().put(key, JSON.stringify(cachedRows), CACHE_TTL.LOG_ROWS);
+        cachePut_(key, JSON.stringify(cachedRows), CACHE_TTL.LOG_ROWS);
       }
     } catch (e) {
     console.warn('batchAppendLogRows_ cache update fail', e.message);
@@ -396,7 +396,7 @@ function batchUpdateLogRows_(taskId, updates) {
   invalidateTaskListCache_();
   try {
     const key = CACHE_KEYS.LOG_ROWS + taskId;
-    const cached = cache_().get(key);
+    const cached = cacheGet_(key);
     if (cached !== null) {
       const rows = JSON.parse(cached);
       valid.forEach(function (u) {
@@ -416,7 +416,7 @@ function batchUpdateLogRows_(taskId, updates) {
           }
         }
       });
-      cache_().put(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
+      cachePut_(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
     }
   } catch (e) {
     console.warn('batchUpdateLogRows_ cache fail', taskId, e.message);

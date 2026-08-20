@@ -16,8 +16,42 @@ function cache_() {
  * @param {Function} load — trả về value khi cache miss
  * @param {number} ttlSeconds
  */
+/**
+ * Đọc/ghi cache có thể vượt 100KB/key (CacheService giới hạn): chuỗi >90KB tự chia
+ * chunk (`key#c0..#cn-1` + `key#n`), đọc nối lại. Giá trị rỗng `''` = sentinel chunked.
+ * Trước đây put >100KB throw → warn → miss âm thầm → đọc lại sheet mỗi request
+ * (task lớn / StaffData full: TASK_DETAIL, STAFF_STATS dính).
+ */
+var _CACHE_CHUNK_BYTES_ = 90000;
+
+function cachePut_(key, json, ttlSeconds) {
+  if (json.length <= _CACHE_CHUNK_BYTES_) { cache_().put(key, json, ttlSeconds); return; }
+  var n = Math.ceil(json.length / _CACHE_CHUNK_BYTES_);
+  for (var i = 0; i < n; i++) {
+    cache_().put(key + '#c' + i, json.slice(i * _CACHE_CHUNK_BYTES_, (i + 1) * _CACHE_CHUNK_BYTES_), ttlSeconds);
+  }
+  cache_().put(key + '#n', String(n), ttlSeconds);
+  cache_().put(key, '', ttlSeconds);
+}
+
+function cacheGet_(key) {
+  var v = cache_().get(key);
+  if (v === null || v !== '') return v;
+  var nRaw = cache_().get(key + '#n');
+  if (nRaw === null) return null;
+  var n = parseInt(nRaw, 10);
+  if (!(n > 0)) return null;
+  var json = '';
+  for (var i = 0; i < n; i++) {
+    var part = cache_().get(key + '#c' + i);
+    if (part === null) return null;
+    json += part;
+  }
+  return json;
+}
+
 function cachedJson_(key, load, ttlSeconds) {
-  const cached = cache_().get(key);
+  const cached = cacheGet_(key);
   if (cached !== null) {
     try { return JSON.parse(cached); }
     catch (e) { console.warn('cache parse fail', key, e.message); }  // F8: cache hỏng → rebuild, log để biết nếu lặp
@@ -28,18 +62,19 @@ function cachedJson_(key, load, ttlSeconds) {
   const value = load();
   const genAfter = cache_().get(CACHE_KEYS.CACHE_GEN);
   if (genAfter === genBefore) {
-    try { cache_().put(key, JSON.stringify(value), ttlSeconds); }
+    try { cachePut_(key, JSON.stringify(value), ttlSeconds); }
     catch (e) { console.warn('cache put fail', key, e.message); }  // F3: put >100KB/entry throw — log để biết cache đang miss âm thầm
   }
   return value;
 }
 
 /** Bump generation token — mọi invalidate*_ phải gọi SAU khi remove key.
- * Counter đơn điệu (tránh trùng timestamp ms); TTL 1h — hết hạn = gen null = không chặn put. */
+ * Giá trị UNIQUE mỗi lần bump (không dùng counter — read-modify-write mất update khi 2
+ * writer đồng thời bump); chỉ so sánh bằng trong cachedJson_ nên unique là đủ.
+ * TTL 1h — hết hạn = gen null = không chặn put. */
 function bumpCacheGen_() {
   try {
-    const cur = parseInt(cache_().get(CACHE_KEYS.CACHE_GEN) || '0', 10) || 0;
-    cache_().put(CACHE_KEYS.CACHE_GEN, String(cur + 1), 3600);
+    cache_().put(CACHE_KEYS.CACHE_GEN, String(Date.now()) + '-' + Math.floor(Math.random() * 1e9), 3600);
   } catch (e) { console.warn('bumpCacheGen_ fail', e && e.message); }
 }
 

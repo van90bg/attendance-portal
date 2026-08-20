@@ -129,6 +129,7 @@ function buildAttendanceRows(values, rawOpsId) {
 
 /** StaffInfo map email→Ops (cache 1h — version-key REPORT_INFO). */
 function readStaffInfoMap_() {
+  if (!requireRole_('manager')) return {};  // M1: reader global — bản đồ email→Ops là PII, gate service-layer như readStaffIndex_
   return cachedJson_(CACHE_KEYS.REPORT_INFO, function () {
     const sheet = getSpreadsheet_().getSheetByName(SHEETS.STAFF_INFO);
     if (!sheet) return {};
@@ -142,6 +143,7 @@ function readStaffInfoMap_() {
  * Mọi user dùng 1 bản — không mỗi user đọc lại full sheet.
  */
 function readAttendanceRowsAll_() {
+  if (!requireRole_('manager')) return [];  // M1: reader global — dữ liệu chấm công chỉ manager+ (không chỉ getReports gate)
   const nKey = CACHE_KEYS.REPORTS + 'all_n';
   const nRaw = cache_().get(nKey);
   if (nRaw !== null) {
