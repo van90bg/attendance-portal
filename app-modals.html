@@ -346,6 +346,48 @@
     if (camPhoto) camPhoto.style.display = scanOwnerLocked ? 'none' : '';
   }
 
+  /* ===== Task created modal — hiển thị sau khi tạo task thành công có roster ===== */
+  var _taskCreatedTaskId = null;
+  function showTaskCreatedModal(res) {
+    // res = { ok, taskId, count, skippedCodes, message, station, slotCode, team }
+    if (!res || !res.ok || !res.taskId) return false;
+    // Task rỗng (noList) → không hiện modal, giữ toast + mở scan như cũ
+    if (!res.count || res.count === 0) return false;
+    _taskCreatedTaskId = res.taskId;
+    document.getElementById('taskCreatedId').textContent = res.taskId;
+    document.getElementById('taskCreatedCount').textContent = res.count + ' NV' + (res.skippedCodes ? ' (bỏ ' + res.skippedCodes + ' mã)' : '');
+    var teamEl = document.getElementById('taskCreatedTeam');
+    var teamRow = document.getElementById('taskCreatedTeamRow');
+    if (res.team) { teamEl.textContent = res.team; teamRow.style.display = ''; }
+    else { teamRow.style.display = 'none'; }
+    var slotEl = document.getElementById('taskCreatedSlot');
+    var slotRow = document.getElementById('taskCreatedSlotRow');
+    if (res.slotCode && res.slotCode !== SLOT_FREE_MAGIC) { slotEl.textContent = res.slotCode; slotRow.style.display = ''; }
+    else { slotRow.style.display = 'none'; }
+    document.getElementById('taskCreatedModal').classList.add('open');
+    document.getElementById('taskCreatedModal').setAttribute('aria-hidden', 'false');
+    document.getElementById('btnTaskCreatedAttend').focus();
+    return true;
+  }
+  function closeTaskCreatedModal() {
+    var m = document.getElementById('taskCreatedModal');
+    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+    if (_taskCreatedTaskId) { openScan(_taskCreatedTaskId); _taskCreatedTaskId = null; }
+  }
+  function onTaskCreatedAttend() {
+    var tid = _taskCreatedTaskId;
+    closeTaskCreatedModal(); // đóng modal trước
+    if (!tid) return;
+    // Chuyển OPEN→ATTEND rồi mở scan
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res.ok) { openScan(tid); }
+        else { showToast(res.message, true); openScan(tid); }
+      })
+      .withFailureHandler(function () { openScan(tid); })
+      .transitionToAttendApi(tid);
+  }
+
   // Modal confirm dùng chung — thay alert/confirm trình duyệt.
   // showConfirm(title, message, onConfirm): mở modal, bấm "Đồng ý" → chạy onConfirm.
   var confirmOnOk = null;
@@ -390,6 +432,8 @@
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('fixStatusModal');
       if (m && m.classList.contains('open')) { closeFixStatusModal(); return; }
+      m = document.getElementById('taskCreatedModal');
+      if (m && m.classList.contains('open')) { closeTaskCreatedModal(); return; }
       // viewAbout is now a section, not a modal - go back to previous view
       var aboutV = document.getElementById('viewAbout');
       if (aboutV && !aboutV.classList.contains('hidden')) {

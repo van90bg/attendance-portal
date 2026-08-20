@@ -128,8 +128,9 @@ function createReconcileTask(input) {
       date: date,  // ngày vào làm — pre-fill roster
     };
     // S2 (idempotency): ghi log TRƯỚC insertTask_ — batchInsert fail → không để lại task ATTEND rỗng.
-    // noListedAt: LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1.
-    const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now, { noListedAt: true });
+    // Tình huống 2,3 (roster/dán mã): listedAt = createdAt — danh sách đã sẵn tại thời điểm tạo.
+    // Tình huống 1 (noList): log rỗng, quét phase 1 mới ghi listedAt.
+    const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
     insertTask_(task);
     audit_('createTask', taskId, { count: count, skippedCodes: skippedCodes });
     let message = 'Tạo task' + (noList ? ' quét tự do' : '') + ' thành công: ' + taskId;

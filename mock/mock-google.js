@@ -221,8 +221,8 @@
     },
     createReconcileTaskApi: function (input) {
       // Khớp server createReconcileTask (TaskService A3): tạo task + pre-fill roster NGAY lúc
-      // tạo — theo ca (lọc StaffData) / dán mã (tra staffIndex). Dòng PENDING LISTED_AT rỗng
-      // (noListedAt — thời điểm đến ghi khi NV quét phase 1). Task rỗng → log rỗng.
+      // tạo — theo ca (lọc StaffData) / dán mã (tra staffIndex). Dòng PENDING LISTED_AT = createdAt
+      // (tình huống 2,3: danh sách đã sẵn). Task rỗng → log rỗng.
       var taskId = 'R' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-0' + (MOCK_DATA.tasks.length + 1);
       var slotCode = Array.isArray(input && input.slotCode) ? (input.slotCode || []).join(', ') : String((input && input.slotCode) || '').trim();
       var team = Array.isArray(input && input.team) ? (input.team || []).join(', ') : String((input && input.team) || '').trim();
@@ -234,8 +234,10 @@
       var log = [];
       var skippedCodes = 0;
       var codes = Array.isArray(input && input.codes) ? (input.codes || []) : [];
+      var nowMs = Date.now();
+      var nowText = new Date().toISOString().slice(11, 19).replace('T', '');
       function pushRow(s) {
-        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: '', listedAtEpoch: 0, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' });
+        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: nowText, listedAtEpoch: nowMs, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' });
       }
       if (input && input.station && codes.length === 0) {
         var rows = mockDedupe(mockFilterStaff({ station: input.station, slotCode: input.slotCode || [], team: input.team || [], contractType: input.contractType || [], date: input.date || '' }));

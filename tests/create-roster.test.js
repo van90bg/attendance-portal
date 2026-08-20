@@ -2,8 +2,8 @@
  * (createReconcileTaskApi — theo ca / dán mã / task rỗng). Thay cho roster-load.test.js
  * (loadRosterApi đã xóa) + paste-batch.test.js (pasteCodes đã xóa).
  *
- * Cover: pre-fill PENDING + LISTED_AT rỗng (noListedAt) · quét phase 1 sau khi tạo kèm
- * roster · dedupe nội bộ · filter rỗng → ok:false · dán mã (mã lạ/trùng → skipped)
+ * Cover: pre-fill PENDING + LISTED_AT ghi createdAt (tình huống 2,3) · quét phase 1
+ * · dedupe nội bộ · filter rỗng → ok:false · dán mã (mã lạ/trùng → skipped)
  * · task rỗng count 0 · gate viewer · audit. Mock GAS + loader: tests/gas-sandbox.js.
  */
 const test = require('node:test');
@@ -28,7 +28,7 @@ function taskRows(ss) {
   return ss.sheets.AttendanceTask.data;
 }
 
-test('createReconcileTaskApi theo ca: pre-fill PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1)', () => {
+test('createReconcileTaskApi theo ca: pre-fill PENDING + LISTED_AT = createdAt (danh sách đã sẵn)', () => {
   const { ctx, ss } = makeSandbox();  // admin (DEPLOYER_EMAIL) → editor
   const svc = loadAll(ctx);
   svc.ensureSheets_();
@@ -39,22 +39,21 @@ test('createReconcileTaskApi theo ca: pre-fill PENDING — LISTED_AT rỗng (th�
   const rows = logRows(ss, res.taskId);
   assert.equal(rows.length, 2);
   assert.equal(rows[0][9], '-', 'status PENDING');
-  assert.equal(String(rows[0][7]), '', 'LISTED_AT rỗng — roster chỉ pre-fill, thời điểm đến ghi khi NV quét phase 1');
+  assert.equal(String(rows[0][7]).length > 0, true, 'LISTED_AT = createdAt — danh sách đã sẵn tại thời điểm tạo');
   const t = taskRows(ss)[taskRows(ss).length - 1];
   assert.equal(t[2], '08:00-17:00', 'ca lưu = ca chọn (không ép Tự do)');
 });
 
-test('createReconcileTaskApi: quét phase 1 sau khi tạo kèm roster → ghi LISTED_AT (thời điểm đến)', () => {
+test('createReconcileTaskApi: quét phase 1 sau khi tạo kèm roster → reject already-present (đã có LISTED_AT)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
   const res = svc.createReconcileTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
-  assert.equal(String(logRows(ss, res.taskId)[0][7]), '', 'tạo task không ghi LISTED_AT');
+  assert.ok(String(logRows(ss, res.taskId)[0][7]).length > 0, 'tạo task ghi LISTED_AT = createdAt');
   const sc = svc.scanStaffApi(res.taskId, 'Ops001');
-  assert.equal(sc.ok, true, sc.message);
-  assert.equal(String(logRows(ss, res.taskId)[0][7]).length > 0, true, 'quét phase 1 ghi LISTED_AT = thời điểm đến');
+  assert.equal(sc.ok, false, 'quét phase 1 → reject already-present (đã có LISTED_AT)');
 });
 
 test('createReconcileTaskApi: dedupe nội bộ — NV 2 dòng StaffData → 1 dòng', () => {
@@ -80,7 +79,7 @@ test('createReconcileTaskApi: filter rỗng → ok:false (CREATE_FAILED_EMPTY)',
   assert.equal(taskRows(ss).slice(1).filter(function (t) { return t[0]; }).length, 0, 'không tạo task khi roster rỗng');
 });
 
-test('createReconcileTaskApi dán mã: mã hợp lệ → pre-fill, mã lạ/trùng → skipped', () => {
+test('createReconcileTaskApi dán mã: mã hợp lệ → pre-fill + LISTED_AT = createdAt, mã lạ/trùng → skipped', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
@@ -92,7 +91,7 @@ test('createReconcileTaskApi dán mã: mã hợp lệ → pre-fill, mã lạ/tr�
   const rows = logRows(ss, res.taskId);
   assert.deepEqual(rows.map(function (r) { return r[1]; }), ['OPS001', 'OPS003'], 'đúng thứ tự + không trùng (staffId chuẩn hóa UPPER)');
   rows.forEach(function (r) {
-    assert.equal(String(r[7]), '', 'dán mã không ghi LISTED_AT');
+    assert.equal(String(r[7]).length > 0, true, 'dán mã ghi LISTED_AT = createdAt — danh sách đã sẵn');
     assert.equal(r[9], '-', 'PENDING');
   });
   const t = taskRows(ss)[taskRows(ss).length - 1];

@@ -727,7 +727,14 @@
           invalidateClientCaches_();
           showToast(res.message, false);
           loadTaskList();
-          openScan(res.taskId);
+          // Tình huống 2,3 (roster): hiện modal "Đã tạo task" với 2 nút.
+          // Tình huống 1 (noList/task rỗng): mở scan trực tiếp.
+          var input_ = input || {};
+          res.team = input_.team || '';
+          res.slotCode = input_.slotCode || '';
+          if (!showTaskCreatedModal(res)) {
+            openScan(res.taskId);
+          }
           try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {}
         } else {
           showToast(res.message, true);
