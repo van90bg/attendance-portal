@@ -1,4 +1,4 @@
----
+﻿---
 name: debug-systematic
 description: 4-phase systematic debugging — root cause BEFORE fix. Use for EVERY technical bug: test fail, production bug, weird behavior, perf. Required when: emergency, 'quick fix only', many failed fixes, unclear problem.
 ---
@@ -60,3 +60,30 @@ description: 4-phase systematic debugging — root cause BEFORE fix. Use for EVE
 - Kết hợp TDD: RED (test tái hiện) → debug → GREEN.
 
 **Trong repo này:** CDP geometry (`getBoundingClientRect`, parent chain) là truth, screenshot chỉ cảm nhận. Kiểm SHA GAS đang chạy trước khi kết luận "fix không ăn" (user có thể test stale build).
+## Output format (chuẩn chung — BẮT BUỘC khi trả kết quả)
+
+Khi in kết quả chạy skill, TUÂN THỦ format này — dễ quét, có marker, không tường thuật.
+
+**1. TL;DR 1 dòng** — verdict + đếm issue:
+✅ Approve — 0 P0 · 2 P1 · 5 P2 | ⚠️ Cần duyệt — 1 P0 | 🔴 Blocked — 3 P0
+
+**2. Bảng findings** (audit/review/debug) — mỗi dòng = 1 issue, cell ≤1 dòng:
+| Sev | Vấn đề | Vị trí | Đề xuất |
+|---|---|---|---|
+| 🔴 P0 | quét ngoài DS ghi PRESENT | ScanLogic.gs:142 | mirror server EXTRA |
+| 🟠 P1 | card mobile lệch tông | styles.html:88 | override 	body td:nth-child(n) |
+| 🟡 P2 | comment thừa | Code.gs:30 | xóa |
+
+Marker: 🔴 P0 (blocker/sai data) · 🟠 P1 (break/khó dùng) · 🟡 P2 (cosmetic).
+
+**3. Nhóm theo chủ đề** chỉ khi >5 issue — ### Nhóm + bullet 1 dòng/cái.
+
+**4. Khối hành động cuối:**
+> **Tiếp theo:** [làm gì] · [ai] · [duyệt?]
+
+**Quy tắc vàng**
+- Không tóm tắt lại nội dung skill — chỉ in kết quả.
+- Không đoạn văn >3 dòng không chia ý.
+- Dùng marker 🔴🟠🟡 ✅ ⚠️ ✓ thay chữ "lỗi/nghiêm trọng/đã xong".
+- Số liệu đi đầu (đếm trước, kể sau): 5 P2 chứ không "có vài issue nhỏ".
+- Mỗi finding có ile:line cụ thể — không "ở đâu đó trong scan".
