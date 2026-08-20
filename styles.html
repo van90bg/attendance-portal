@@ -24,6 +24,7 @@
       --header-bg: #0d111a;        /* header command center v1 */
       --header-text: #f4f7fb;
       --header-border: #3a4a66;
+      --header-user-bg: rgba(255, 255, 255, .08);   /* pill email trên header dark — token hóa (hết rgba rời rạc) */
       --surface-muted: #f1f3f4;    /* badge pending, counter lbl, th */
       --focus-ring: rgba(11, 87, 208, .45);  /* focus = primary (nhất quán 1 accent tương tác — hết cam) */
       --primary-bright: #1a73e8;         /* primary sáng trên nền dark (sidebar/bottom-nav active — P1 2026-08-16) */
@@ -128,7 +129,7 @@
       color: var(--header-text, #e2e8f0);
       font-size: var(--text-sm); font-weight: 600;
       padding: 2px var(--space-2); border-radius: var(--radius-full);
-      background: rgba(255,255,255,.08);
+      background: var(--header-user-bg);
       max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     @media (max-width: 700px) { .header-user { display: none; } }  /* giữ header 1 hàng khi hẹp (tránh tràn header) */

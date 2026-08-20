@@ -87,7 +87,13 @@ function normalizeStaffDate_(date) {
       + ('0' + date.getDate()).slice(-2);
   }
   const s = String(date).trim();
-  // Dạng 2: "8/1/2026" / "26-07-2026" / "2026-01-08"
+  // Dạng 2a: "2026-08-02" (ISO yyyy-MM-dd — sheet đã format sẵn) — parse trực tiếp,
+  // không qua Date.parse (tránh lệch TZ) và không rơi vào regex dd/mm đảo thứ tự.
+  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) {
+    return iso[1] + '-' + ('0' + iso[2]).slice(-2) + '-' + ('0' + iso[3]).slice(-2);
+  }
+  // Dạng 2: "8/1/2026" / "26-07-2026" (dd/mm — chuẩn VN)
   const m = s.match(/^(\d{1,2})[/\-.]?(\d{1,2})[/\-.]?(\d{2,4})$/);
   if (m) {
     const dd = ('0' + m[1]).slice(-2);

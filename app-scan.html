@@ -611,8 +611,8 @@
           phase2: phase2,
           clientEpoch: now.getTime(),  // WYSIWYG: gửi giờ chụp lúc quét → sheet ghi đúng giờ app hiển thị
           oldStatus: null,
-          oldTimeRefText: null, oldTimeRefEpoch: null,
-          oldTimeScanText: null, oldTimeScanEpoch: null,
+          oldListedAtText: null, oldListedAtEpoch: null,
+          oldScannedAtText: null, oldScannedAtEpoch: null,
         };  // scanSeq gán sau khi enqueue (2990) — tránh dead assignment (review 2026-08-11)
       if (target) {
       item.oldStatus = target.status;
