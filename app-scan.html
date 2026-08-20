@@ -406,8 +406,9 @@
   function scanRowCells(r, idx) {
     var badge = badgeFor(r.status, r);
     var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
-    // Fix thủ công 1 dòng (updateLogRowStatusApi) — chỉ owner/admin (canScanOpen), mọi phase.
-    var canFix = CURRENT_TASK && CURRENT_TASK.permission && (CURRENT_TASK.permission.canMutate !== undefined ? CURRENT_TASK.permission.canMutate : (CURRENT_TASK.permission.isOwner || CURRENT_TASK.permission.isAdmin));
+    // Fix thủ công 1 dòng — chỉ owner/admin và KHÔNG ở phase DONE (đã chốt không cho sửa).
+    var isDone = CURRENT_TASK && (CURRENT_TASK.phase === TASK_STATUS_C.DONE || CURRENT_TASK.status === TASK_STATUS_C.DONE);
+    var canFix = !isDone && CURRENT_TASK && CURRENT_TASK.permission && (CURRENT_TASK.permission.canMutate !== undefined ? CURRENT_TASK.permission.canMutate : (CURRENT_TASK.permission.isOwner || CURRENT_TASK.permission.isAdmin));
     return [
       '<td class="stt" data-label="STT">' + (idx + 1) + '</td>',
       '<td data-label="Mã NV"><b>' + esc(r.staffId) + '</b></td>',
@@ -1077,6 +1078,33 @@
                 showToast(res.message, false);
                 if (CURRENT_TASK && CURRENT_TASK.taskId === finishTaskId) {
                   closeExternalScanner();
+                  // Optimistic DONE — cập nhật UI ngay, không chờ loadTaskDetail nền
+                  CURRENT_TASK.phase = TASK_STATUS_C.DONE;
+                  CURRENT_TASK.status = TASK_STATUS_C.DONE;
+                  _scanSortDirty = true;
+                  for (var _fi = 0; _fi < CURRENT_LOG.length; _fi++) {
+                    var _r = CURRENT_LOG[_fi];
+                    if (_r.status === STATUS_C.PENDING) {
+                      if (Number(_r.scannedAtEpoch) > 0) _r.status = STATUS_C.PRESENT;
+                      else _r.status = STATUS_C.ABSENT;
+                    }
+                  }
+                  recountFromLog();
+                  renderScanTable(CURRENT_LOG);
+                  updateScanFilterLabel_();
+                  updateSortIndicators();
+                  applyScanPermission();
+                  updateFinishBtnState();
+                  var _metaEl = document.getElementById('scanTaskMeta');
+                  if (_metaEl) {
+                    var _parts = [];
+                    if (CURRENT_TASK.station) _parts.push(esc(CURRENT_TASK.station));
+                    if (CURRENT_TASK.slotCode && CURRENT_TASK.slotCode !== SLOT_FREE_MAGIC) _parts.push(esc(CURRENT_TASK.slotCode));
+                    if (CURRENT_TASK.team) _parts.push(esc(CURRENT_TASK.team));
+                    _metaEl.innerHTML = _parts.join(' \u00b7 ') + (_parts.length ? ' \u2014 ' : '') + '<b>' + esc(TASK_PHASE_LABEL[TASK_STATUS_C.DONE]) + '</b>';
+                  }
+                  var _inp = document.getElementById('scanInput');
+                  if (_inp) { _inp.disabled = true; _inp.placeholder = 'Task \u0111\u00e3 k\u1ebft th\u00fac \u2014 kh\u00f4ng th\u1ec3 qu\u00e9t'; _inp.title = ''; }
                   loadTaskDetail(finishTaskId, true);
                 }
               } else {
@@ -1441,7 +1469,8 @@
   // ===== Sửa trạng thái 1 dòng log (fix thủ công — owner/admin, có audit server) =====
   var FIX_STATUS_TARGET = null; // { staffId, status }
   function openFixStatusModal(staffId) {
-    if (!CURRENT_TASK || !CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
+    if (!CURRENT_TASK || CURRENT_TASK.phase === TASK_STATUS_C.DONE || CURRENT_TASK.status === TASK_STATUS_C.DONE) return;
+    if (!CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
     var m = document.getElementById('fixStatusModal');
     if (!m) return;
     var sel = document.getElementById('fixStatusSelect');
