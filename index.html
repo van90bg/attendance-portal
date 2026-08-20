@@ -521,7 +521,8 @@
       </div>
       <div class="empty" id="createRosterError" style="display:none;"></div>
       <div class="create-footer">
-        <div class="create-total"><b id="createRosterTotalNum">0</b> <span>nhân viên khớp</span></div>
+        <div class="create-total" id="createRosterTotal"><b id="createRosterTotalNum">0</b> <span>nhân viên khớp</span></div>
+        <div class="create-total" id="createRosterFree" style="display:none"><span class="create-badge-free">Task rỗng</span> <span class="muted">— quét tự do, không có danh sách</span></div>
         <div class="create-actions">
           <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
           <button class="btn" id="btnCreateSubmit" onclick="submitCreateTask()" disabled>Tạo</button>
@@ -532,6 +533,7 @@
       <p class="muted paste-hint">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần — mã không có trong dữ liệu sẽ bị bỏ qua.</p>
       <textarea id="createPasteTextarea" class="paste-textarea" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
       <div id="createPasteCountHint" class="paste-count-hint">Nhập mã NV để đếm tự động</div>
+      <div class="create-total" id="createPasteFree" style="display:none"><span class="create-badge-free">Task rỗng</span> <span class="muted">— quét tự do, không có danh sách</span></div>
       <div id="createPasteError" class="empty" style="display:none;"></div>
       <div class="paste-footer">
         <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>

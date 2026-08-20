@@ -143,12 +143,27 @@
     updateCreateSubmit_();
   }
   // Nút Tạo chỉ tắt khi chọn Station mà 0 NV khớp (server sẽ từ chối).
-  // Không chọn gì → task rỗng hợp lệ (quét tự do).
+  // Không chọn gì → task rỗng hợp lệ (quét tự do) — hiển thị rõ "Task rỗng".
   function updateCreateSubmit_() {
     var submitBtn = document.getElementById('btnCreateSubmit');
-    if (submitBtn) submitBtn.disabled = !!(CREATE_FILTER.station && _lastCreateCount === 0);
+    var hasStation = !!CREATE_FILTER.station;
+    var hasCount = _lastCreateCount > 0;
+    // Disable chỉ khi chọn Station mà 0 NV khớp (server từ chối)
+    if (submitBtn) submitBtn.disabled = hasStation && !hasCount;
+    // Toggle hiển thị: có danh sách vs task rỗng
+    var totalEl = document.getElementById('createRosterTotal');
+    var freeEl = document.getElementById('createRosterFree');
     var num = document.getElementById('createRosterTotalNum');
-    if (num) num.textContent = String(_lastCreateCount || 0);
+    if (hasStation && hasCount) {
+      if (totalEl) totalEl.style.display = '';
+      if (freeEl) freeEl.style.display = 'none';
+      if (num) num.textContent = String(_lastCreateCount);
+      if (submitBtn) submitBtn.textContent = 'Tạo (' + _lastCreateCount + ' NV)';
+    } else {
+      if (totalEl) totalEl.style.display = 'none';
+      if (freeEl) freeEl.style.display = '';
+      if (submitBtn) submitBtn.textContent = 'Tạo task rỗng';
+    }
   }
   // Preview số NV khớp bộ lọc (server previewStaffApi) — debounce 200ms.
   var _createPreviewTimer = null;
@@ -237,13 +252,19 @@
     var ta = document.getElementById('createPasteTextarea');
     var hint = document.getElementById('createPasteCountHint');
     var sb = document.getElementById('btnCreatePasteSubmit');
+    var freeEl = document.getElementById('createPasteFree');
     if (!ta) return;
     var n = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; }).length;
     if (hint) {
       hint.textContent = n > 0 ? ('Đã phát hiện ' + n + ' mã NV') : 'Nhập mã NV để đếm tự động';
       hint.style.color = n > 0 ? 'var(--success)' : 'var(--muted)';
     }
-    if (sb) sb.disabled = n === 0;
+    // Toggle: có mã → hiện count, không có → hiện "Task rỗng"
+    if (freeEl) freeEl.style.display = n > 0 ? 'none' : '';
+    if (sb) {
+      sb.disabled = n === 0;
+      sb.textContent = n > 0 ? ('Tạo (' + n + ' NV)') : 'Tạo task rỗng';
+    }
   }
   function submitCreateTaskPaste() {
     var ta = document.getElementById('createPasteTextarea');
