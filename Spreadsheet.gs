@@ -92,9 +92,17 @@ function ensureSheets_(strict) {
   ]);
   // Migration an toàn (B-P1-5): sheet AttendanceTask cũ 9 cột (trước cột date) — thêm cột
   // 10 + header 'date' (insertTask_ ghi 10 giá trị theo TASK_COL_COUNT; thiếu cột → vỡ).
-  while (taskSheet.getLastColumn() < TASK_COL_COUNT) {
-    taskSheet.insertColumnAfter(taskSheet.getLastColumn());
-    taskSheet.getRange(1, taskSheet.getLastColumn()).setValue('date');
+  // B12/P1: guard hàng rỗng/format — insertColumnAfter tính (lastRow×cols) full sheet
+  // → nếu sheet có hàng rỗng được đánh dấu "used" (format/copy) dễ vượt 10M cells.
+  // Chỉ chèn khi getLastRow() thực sự có data.
+  const _tr = taskSheet.getLastRow();
+  if (_tr >= 2) {
+    while (taskSheet.getLastColumn() < TASK_COL_COUNT) {
+      taskSheet.insertColumnAfter(taskSheet.getLastColumn());
+      taskSheet.getRange(1, taskSheet.getLastColumn()).setValue('date');
+    }
+  } else {
+    console.warn('AttendanceTask hàng rỗng format — migration chèn cột bỏ qua để tránh vượt 10M cells');
   }
   if (!validateColumnHeaders_(taskSheet, ['taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt', 'date'], SHEETS.ATTENDANCE_TASK)) fails.push(SHEETS.ATTENDANCE_TASK);
   const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG, [
@@ -111,10 +119,16 @@ function ensureSheets_(strict) {
   // đặt 'date' nên sheet cũ 9 cột bị đặt nhầm header cột status (10) thành 'date'.
   // Cột 1-based: STATUS=10 ('status'), DATE=11 ('date').
   const LOG_HEADER_BY_COL = { '10': 'status', '11': 'date' };
-  while (logSheet.getLastColumn() < LOG_COL_COUNT) {
-    const colIdx = logSheet.getLastColumn() + 1; // cột mới (1-based)
-    logSheet.insertColumnAfter(logSheet.getLastColumn());
-    logSheet.getRange(1, colIdx).setValue(LOG_HEADER_BY_COL[String(colIdx)] || '');
+  // B12/P1: tương tự taskSheet — guard hàng rỗng format trước khi chèn cột log
+  const _lr = logSheet.getLastRow();
+  if (_lr >= 2) {
+    while (logSheet.getLastColumn() < LOG_COL_COUNT) {
+      const colIdx = logSheet.getLastColumn() + 1; // cột mới (1-based)
+      logSheet.insertColumnAfter(logSheet.getLastColumn());
+      logSheet.getRange(1, colIdx).setValue(LOG_HEADER_BY_COL[String(colIdx)] || '');
+    }
+  } else {
+    console.warn('AttendanceLog hàng rỗng format — migration chèn cột bỏ qua để tránh vượt 10M cells');
   }
   // D3 (review 2026-08-11): inverse branch — sheet legacy >11 cột (thời cardIn/cardOut,
   // Config.gs ghi chú bỏ 2026-08-03) không bao giờ bị check. Writer dùng LOG_COL_COUNT=11
