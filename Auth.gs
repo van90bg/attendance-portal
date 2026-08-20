@@ -16,13 +16,20 @@
  *   áp qua requireRole_ — KHÔNG fail-closed anonymous thành viewer.
  */
 
+// Memo per-invocation: scanStaff/getTaskDetail gọi getActiveEmail_ 3-5 lần/request qua
+// requireRole_ -> getRole_ -> isEditor_; GAS reset module-var mỗi request nên không stale.
+var _activeEmailCache_ = null;
+var _activeEmailCached_ = false;
 /** Email người đang truy cập webapp ('' khi anonymous / không lấy được). */
 function getActiveEmail_() {
+  if (_activeEmailCached_) return _activeEmailCache_;
   try {
-    return Session.getActiveUser().getEmail() || '';
+    _activeEmailCache_ = Session.getActiveUser().getEmail() || '';
   } catch (e) {
-    return '';
+    _activeEmailCache_ = '';
   }
+  _activeEmailCached_ = true;
+  return _activeEmailCache_;
 }
 
 /**

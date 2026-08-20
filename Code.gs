@@ -18,7 +18,7 @@
   *   cancelTaskApi(taskId)        → { ok, message }
   *   transitionToAttendApi(taskId) → { ok, message }
   *   reopenTaskApi(taskId)         → { ok, message }
-  *   updateLogRowStatusApi(taskId, staffId, newStatus) → { ok, message, counters }
+  *   updateLogRowStatusApi(taskId, staffId, newStatus) → { ok, message, counters, row }
   *   searchLogsByStaffApi(staffId) → { ok, rows } — manager+
   *   getReportsApi()               → { ok, rows, email, opsId } — manager+
   *   warmStaffCacheApi()           → { ok, index } — operator+ (preload)

@@ -304,7 +304,11 @@
         hit.scannedAtText = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
         hit.scannedAtEpoch = nowMs;
       }
-      return { ok: true, message: 'Đã cập nhật ' + staffId + ' → ' + newStatus, counters: counters(getLog(taskId)) };
+      // Khớp server updateLogRowStatus: đổi ngược PRESENT→ABSENT/PENDING clear SCANNED_AT, về PENDING clear LISTED_AT.
+      if ((newStatus === 'Vắng' || newStatus === '-') && Number(hit.scannedAtEpoch) > 0) { hit.scannedAtText = ''; hit.scannedAtEpoch = 0; }
+      if (newStatus === '-') { hit.listedAtText = ''; hit.listedAtEpoch = 0; }
+      return { ok: true, message: 'Đã cập nhật ' + staffId + ' → ' + newStatus, counters: counters(getLog(taskId)),
+        row: { staffId: hit.staffId, status: hit.status, scannedAtText: hit.scannedAtText || '', scannedAtEpoch: hit.scannedAtEpoch || 0, listedAtText: hit.listedAtText || '', listedAtEpoch: hit.listedAtEpoch || 0 } };
     },
     searchLogsByStaffApi: function (rawStaffId) {
       // Mock F-search: quét toàn bộ task log + roster NV, filter staffId (case-insensitive).
