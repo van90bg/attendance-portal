@@ -127,9 +127,17 @@ function buildAttendanceRows(values, rawOpsId) {
   return filterAttendanceRows(buildAttendanceRowsAll(values), rawOpsId);
 }
 
-/** StaffInfo map email→Ops (cache 1h — version-key REPORT_INFO). */
-function readStaffInfoMap_() {
-  if (!requireRole_('manager')) return {};  // M1: reader global — bản đồ email→Ops là PII, gate service-layer như readStaffIndex_
+/** Whitelist gate cho shared reader — role truyền qua RPC bị client điều khiển, nên
+ * CHỈ chấp nhận 2 giá trị cố định (manager/operator), gõ sai/thiếu → fail-closed. */
+function gateShared_(minRole) {
+  return (minRole === 'manager' || minRole === 'operator') && requireRole_(minRole);
+}
+
+/** StaffInfo map email→Ops — shared (cache 1h — version-key REPORT_INFO).
+ * Manager lấy full map (readStaffInfoMap_); operator đi qua readStaffInfoByEmail_
+ * lấy 1 dòng — DÙNG CHUNG cache để operator không đọc lại sheet mỗi lần. */
+function readStaffInfoMapShared_(minRole) {
+  if (!gateShared_(minRole)) return {};  // M1: reader global — bản đồ email→Ops là PII, gate service-layer như readStaffIndex_
   return cachedJson_(CACHE_KEYS.REPORT_INFO, function () {
     const sheet = getSpreadsheet_().getSheetByName(SHEETS.STAFF_INFO);
     if (!sheet) return {};
@@ -137,13 +145,19 @@ function readStaffInfoMap_() {
   }, CACHE_TTL.REPORT_INFO);
 }
 
-/** Toàn bộ dòng StaffAttendance đã parse — cache CHUNG 60s, chia CHUNK theo dung
- * lượng (CacheService giới hạn 100KB/key — sheet tháng thật vượt 1 key → put fail
+/** StaffInfo map email→Ops (wrapper manager — giữ chữ ký cũ cho client/test). */
+function readStaffInfoMap_() {
+  return readStaffInfoMapShared_('manager');
+}
+
+/** Toàn bộ dòng StaffAttendance đã parse — shared (cache CHUNG 60s, chia CHUNK theo
+ * dung lượng: CacheService giới hạn 100KB/key — sheet tháng thật vượt 1 key → put fail
  * âm thầm + đọc lại sheet mỗi request). Meta '_all_n' = số chunk; '_all_i' = dữ liệu.
- * Mọi user dùng 1 bản — không mỗi user đọc lại full sheet.
+ * Manager dùng trực tiếp; operator qua readAttendanceRowsSelf_ dùng CHUNG cache —
+ * 1 lần đọc sheet cho mọi role, không mỗi user đọc lại full sheet.
  */
-function readAttendanceRowsAll_() {
-  if (!requireRole_('manager')) return [];  // M1: reader global — dữ liệu chấm công chỉ manager+ (không chỉ getReports gate)
+function readAttendanceRowsAllShared_(minRole) {
+  if (!gateShared_(minRole)) return [];  // M1: reader global — dữ liệu chấm công chỉ manager/operator (không chỉ getReports gate)
   const nKey = CACHE_KEYS.REPORTS + 'all_n';
   const nRaw = cache_().get(nKey);
   if (nRaw !== null) {
@@ -172,34 +186,37 @@ function readAttendanceRowsAll_() {
     }
     cache_().put(nKey, String(n), CACHE_TTL.REPORTS);
   } catch (e) {
-    console.warn('readAttendanceRowsAll_ cache put fail', e && e.message);
+    console.warn('readAttendanceRowsAllShared_ cache put fail', e && e.message);
   }
   return rows;
+}
+
+/** Toàn bộ dòng StaffAttendance — wrapper manager (giữ chữ ký cũ cho client/test). */
+function readAttendanceRowsAll_() {
+  return readAttendanceRowsAllShared_('manager');
 }
 
 /** Chấm công của 1 Ops ID — filter từ cache chung (không đọc lại sheet). */
 function readAttendanceRows_(opsId) {
   if (!requireRole_('manager')) return [];
-  return filterAttendanceRows(readAttendanceRowsAll_(), opsId);
+  return filterAttendanceRows(readAttendanceRowsAllShared_('manager'), opsId);
 }
 
-/** StaffInfo 1 dòng theo email (operator path — KHÔNG trả map PII; manager dùng readStaffInfoMap_ cache 1h). */
+/** StaffInfo 1 dòng theo email (operator path — KHÔNG trả map PII; manager dùng
+ * readStaffInfoMap_ cache 1h). Dùng shared cache — không đọc lại sheet riêng. */
 function readStaffInfoByEmail_(email) {
   if (!requireRole_('operator')) return null;  // M1: reader global — gate như các reader khác
-  const sheet = getSpreadsheet_().getSheetByName(SHEETS.STAFF_INFO);
-  if (!sheet) return null;
-  const map = buildStaffInfoMap(sheet.getDataRange().getValues());
+  const map = readStaffInfoMapShared_('operator');
   return map[String(email || '').trim().toLowerCase()] || null;
 }
 
 /** Chấm công CỦA NGƯỜI DÙNG HIỆN TẠI (operator path — derive opsId từ session email,
- * KHÔNG nhận input để không probe dữ liệu người khác; getReports wrap cache 60s). */
+ * KHÔNG nhận input để không probe dữ liệu người khác; getReports wrap cache 60s).
+ * Filter từ shared chunked cache — không đọc lại full sheet cho riêng mình. */
 function readAttendanceRowsSelf_() {
   if (!requireRole_('operator')) return [];
   const email = String(getActiveEmail_() || '').trim().toLowerCase();
   const me = email ? readStaffInfoByEmail_(email) : null;
   if (!me || !me.opsId) return [];
-  const sheet = getSpreadsheet_().getSheetByName(SHEETS.REPORT_ATTENDANCE);
-  const rows = sheet ? buildAttendanceRowsAll(sheet.getDataRange().getValues()) : [];
-  return filterAttendanceRows(rows, me.opsId);
+  return filterAttendanceRows(readAttendanceRowsAllShared_('operator'), me.opsId);
 }

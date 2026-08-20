@@ -514,7 +514,7 @@ Modal: tạo task (2 tab Theo ca/Dán mã) · confirm dùng chung · vềAbout k
 - `createReconcileTaskApi({ codes })` → mã lạ/trùng → `skippedCodes` (toast kèm số bỏ qua); toàn bộ mã lạ → `{ok:false}` không tạo task.
 
 ## 10. Testing
-| **Kết quả** | **197/197 pass** |
+| **Kết quả** | **199/199 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
@@ -523,7 +523,7 @@ Nhóm test: `distinctValues` · `isValidBarcodeId` · `dedupeStaffByGroup` · `f
 
 > Chỉ test **logic thuần** (CsvUtil/ScanLogic — không gọi GAS) + smoke-load toàn bộ .gs với mock GAS; GAS API thật không test được trong Node. Không Jest/Playwright.
 | Files | **19 files** trong `tests/` (admin-audit · all-gs-load · cancel-task · create-free · create-roster · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · report-repo · repo-integrity · role-service · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **197/197 pass** |
+| **Kết quả** | **199/199 pass** |
 
 ## 11. Deploy (clasp)
 
@@ -616,7 +616,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ---
 
 ## 15. Scope & lộ trình
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 197/197 (19 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 199/199 (19 files), mock `mock-google.js` + contract test mock↔server |
 ### Đã hoàn thành (MVP — khớp code)
 
 ```plain

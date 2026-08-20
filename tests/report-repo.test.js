@@ -233,6 +233,20 @@ test('getReports: ambiguous phần số → rows rỗng + message báo admin (kh
   assert.equal(res.rows[0].bizStaffId, 'Ops12345');
 });
 
+test('shared reader: whitelist gate — role lạ/thiếu → fail-closed (RPC gọi trực tiếp không bypass)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  seedReportSheets(ss);
+  assert.deepEqual(clone(svc.readStaffInfoMapShared_()), {}, 'thiếu role → {}');
+  assert.deepEqual(clone(svc.readStaffInfoMapShared_('viewer')), {}, 'role ngoài whitelist → {}');
+  assert.equal(svc.readAttendanceRowsAllShared_().length, 0, 'thiếu role → []');
+  assert.equal(svc.readAttendanceRowsAllShared_('admin').length, 0, 'admin không có trong whitelist → []');
+  const map = svc.readStaffInfoMapShared_('manager');
+  assert.equal(map['nv001.demo@spxexpress.com'].opsId, 'Ops237511', 'manager → map đầy đủ');
+  assert.equal(svc.readAttendanceRowsAllShared_('manager').length, 4, 'manager → rows đầy đủ');
+  assert.equal(svc.readAttendanceRowsAllShared_('operator').length, 4, 'operator → rows đầy đủ (dùng chung cache)');
+});
+
 test('readAttendanceRowsAll_: sheet lớn >1 chunk (vượt 100KB/key)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);

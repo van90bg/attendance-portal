@@ -133,7 +133,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 197/197 unit tests (node:test)
+npm test                        # 199/199 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -173,7 +173,7 @@ clasp deploy
 - ✅ Portal shell: sidebar 8 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile); viewAdmin — nhật ký hoạt động (manager+, lọc ngày).
 - ✅ Tách frontend (index/styles + 9 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 197/197 unit tests + 11/11 CDP local mock.
+- ✅ 199/199 unit tests + 11/11 CDP local mock.
 - ✅ Đợt 1 (2026-08-19): force-close admin (completeTask counter lệch) · loadRoster ở phase Điểm danh (chặn DONE) · sửa trạng thái dòng log (updateLogRowStatusApi + cột Sửa bảng quét) · chống gian lận giờ quét (±60s + không sớm hơn tạo task) · cảnh báo mã quét không có trong StaffData (staffUnknown) · **L1 fix** (đổi ngược PRESENT→ABSENT/PENDING clear TIME_SCAN — counter đúng; về PENDING clear LISTED_AT; EXTRA giữ SCANNED_AT — partition invariant).
 - ✅ Đợt 2 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy — owner/admin, log rỗng mới hủy được, audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không còn thổi phồng) · label phase 1 'Đã có mặt' → 'Đã đến' (khớp 2-phase: đến ≠ điểm danh).
 - ✅ Đợt 3 (2026-08-19): thuật ngữ operator — **Bắt đầu điểm danh** / **Chốt ca** / **Đang ghi danh sách** / **Đã chốt điểm danh** / **Đã điểm danh** (bỏ "quét lần 2") · gộp Dán mã + Lấy theo ca → **1 nút "Nạp danh sách"** (modal 2 tab — bỏ menu "Thêm" + CSS topbar-more) · ẩn cột Tạo lúc/Người tạo bảng task (list + F-search) · nudge quên chuyển phase (quét trùng phase Mở → toast gợi ý) · Dư → "Dư — không có trong danh sách".
