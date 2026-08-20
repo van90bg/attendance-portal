@@ -123,6 +123,8 @@
       contractTypes: ((res.lists && res.lists.contractTypes) || []).slice(),
       departments: ((res.lists && res.lists.departments) || []).slice(),
       stationGroups: res.stationGroups || [],
+      // B3: staff list đầy đủ cho preview count client-side (không cần RPC previewStaffApi).
+      staffList: safeArr(res.staffList),
     };
     renderCreateChips_();
   }
@@ -172,37 +174,40 @@
       if (submitBtn) submitBtn.textContent = 'Chọn Station';
     }
   }
-  // Preview số NV khớp bộ lọc (server previewStaffApi) — debounce 200ms.
-  var _createPreviewTimer = null;
-  function refreshCreatePreview() {
-    if (_createPreviewTimer) clearTimeout(_createPreviewTimer);
-    _createPreviewTimer = setTimeout(_doCreatePreview, 200);
-  }
+  // Preview số NV khớp bộ lọc — client-side từ _createOptsData.staffList (không cần RPC).
   function _doCreatePreview() {
     if (!CREATE_FILTER.station) {
       _lastCreateCount = 0;
       updateCreateSubmit_();
       return;
     }
-    google.script.run
-      .withSuccessHandler(function (res) {
-        _lastCreateCount = (res && res.ok) ? (res.count || 0) : 0;
-        updateCreateSubmit_();
-        var err = document.getElementById('createRosterError');
-        if (err && res && !res.ok) {
-          err.style.display = '';
-          err.innerHTML = esc(res.message || 'Không có nhân viên nào khớp bộ lọc');
-        }
-      })
-      .withFailureHandler(function () { _lastCreateCount = 0; updateCreateSubmit_(); })
-      .previewStaffApi({
-        station: CREATE_FILTER.station,
-        slotCode: CREATE_FILTER.slotCode,
-        team: CREATE_FILTER.team,
-        contractType: CREATE_FILTER.contractType,
-        department: CREATE_FILTER.department,
-        date: CREATE_FILTER.date.length === 1 ? CREATE_FILTER.date[0] : '',
-      });
+    var staffList = _createOptsData && _createOptsData.staffList ? _createOptsData.staffList : [];
+    var filtered = filterStaffByGroup(staffList, {
+      station: CREATE_FILTER.station,
+      slotCode: CREATE_FILTER.slotCode,
+      team: CREATE_FILTER.team,
+      contractType: CREATE_FILTER.contractType,
+      department: CREATE_FILTER.department,
+      date: CREATE_FILTER.date.length === 1 ? CREATE_FILTER.date[0] : '',
+    });
+    var deduped = {};
+    var count = 0;
+    filtered.forEach(function (s) {
+      var key = String(s.staffId || '').trim().toUpperCase();
+      if (!key || deduped[key]) return;
+      deduped[key] = true;
+      count++;
+    });
+    _lastCreateCount = count;
+    updateCreateSubmit_();
+    var err = document.getElementById('createRosterError');
+    if (err && count === 0) {
+      err.style.display = '';
+      err.innerHTML = 'Không có nhân viên nào khớp bộ lọc';
+    } else if (err) {
+      err.style.display = 'none';
+      err.innerHTML = '';
+    }
   }
   // Create modal: delegate click chip — Station single-select, còn lại đa chọn (Tất cả = rỗng).
   function initCreateEvents() {
@@ -235,7 +240,7 @@
       var err = document.getElementById('createRosterError');
       if (err) { err.style.display = 'none'; err.innerHTML = ''; }
       renderCreateChips_();
-      refreshCreatePreview();
+      _doCreatePreview();
     });
     var ta = document.getElementById('createPasteTextarea');
     if (ta) ta.addEventListener('input', updateCreatePaste_);
@@ -244,9 +249,9 @@
      var submitBtn = document.getElementById('btnCreateSubmit');
      if (submitBtn && submitBtn.disabled) return;
      // FEEDBACK: disable nút Tạo trong modal + text "Đang tạo…" — tránh click nhiều lần.
-     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
-     setCreateModalSpin(true); // FEEDBACK: spinner trong modal
-     // KHÔNG closeCreateModal() ở đây — createTaskWithMeta_ giữ modal mở
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
+      showModalSpin('Đang tạo…');
+      // KHÔNG closeCreateModal() ở đây — createTaskWithMeta_ giữ modal mở
     // nếu có roster (hiện 'Đã tạo task'), chỉ đóng khi noList.
     createTaskWithMeta_({
       station: CREATE_FILTER.station,
@@ -277,34 +282,30 @@
    }
    }
    // FEEDBACK: spinner overlay trong createModal — hiện khi đang gọi server tạo task.
-   function setCreateModalSpin(on) {
-     var sp = document.getElementById('createModalSpinner');
-     if (sp) sp.style.display = on ? '' : 'none';
+   function submitCreateEmptyTask() {
+     var btn = document.getElementById('btnCreateEmpty');
+      if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo…'; }
+      showModalSpin('Đang tạo…');
+      createTaskWithMeta_({});
    }
-  function submitCreateEmptyTask() {
-    var btn = document.getElementById('btnCreateEmpty');
-     if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo…'; }
-     setCreateModalSpin(true); // FEEDBACK: spinner trong modal
-     createTaskWithMeta_({});
-  }
-  function submitCreateTaskPaste() {
-    var ta = document.getElementById('createPasteTextarea');
-    var submitBtn = document.getElementById('btnCreatePasteSubmit');
-    if (!ta || (submitBtn && submitBtn.disabled)) return;
-    var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
-    if (lines.length > 200) { lines = lines.slice(0, 200); showToast('Đã giới hạn 200 dòng đầu', true); }
-    // Dedup client-side — mã trùng cùng lần dán chỉ gửi 1 (server chặn qua skippedCodes).
-    var seen = {}, uniq = [];
-    lines.forEach(function (l) {
-      var k = l.toLowerCase();
-      if (seen[k]) return;
-      seen[k] = 1; uniq.push(l);
-    });
-    // KHÔNG closeCreateModal() — createTaskWithMeta_ giữ modal mở nếu có roster.
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
-    setCreateModalSpin(true); // FEEDBACK: spinner trong modal
-    createTaskWithMeta_({ codes: uniq });
-  }
+   function submitCreateTaskPaste() {
+     var ta = document.getElementById('createPasteTextarea');
+     var submitBtn = document.getElementById('btnCreatePasteSubmit');
+     if (!ta || (submitBtn && submitBtn.disabled)) return;
+     var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
+     if (lines.length > 200) { lines = lines.slice(0, 200); showToast('Đã giới hạn 200 dòng đầu', true); }
+     // Dedup client-side — mã trùng cùng lần dán chỉ gửi 1 (server chặn qua skippedCodes).
+     var seen = {}, uniq = [];
+     lines.forEach(function (l) {
+       var k = l.toLowerCase();
+       if (seen[k]) return;
+       seen[k] = 1; uniq.push(l);
+     });
+     // KHÔNG closeCreateModal() — createTaskWithMeta_ giữ modal mở nếu có roster.
+     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
+     showModalSpin('Đang tạo…');
+     createTaskWithMeta_({ codes: uniq });
+   }
   // Chips Station — KHÔNG có "Tất cả" (Station là bắt buộc cho tab Theo ca).
   function chipsHtmlStation_(opts, selected) {
     var html = '';

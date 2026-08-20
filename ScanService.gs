@@ -61,8 +61,8 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
         };
       }
     }
-    // U2: dùng cache log rows (30s + incremental) — scan liên tiếp không getDataRange
-    // full sheet log mỗi lần (v1 lesson: dynamic tail → v2 cache vì update-in-place).
+    // B7 (fix): chỉ đọc log rows 1 lần — lock đã giữ từ đầu hàm, không có
+    // device nào khác có thể ghi giữa 2 lần read. logRows dùng chung cho classify + plan.
     const logRows = readLogRowsCached_(taskId);
     const t2 = Date.now();
     // F1 (simplify): KHÔNG đọc staffIndex mỗi scan — chỉ cần ở nhánh append (NV lạ,
@@ -76,14 +76,11 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
         );
 
     if (result.action === 'reject') {
-      // F: lookup thay ternary 3 tầng — lý do reject → message (reason không có → STAFF_NOT_FOUND)
       const REJECT_MSG = {
         'task-closed': UI_LABELS.TASK_CLOSED,
         'already-scanned': UI_LABELS.ALREADY_SCANNED,
         'already-present': UI_LABELS.ALREADY_PRESENT,
       };
-      // P2 benchmark: reject path KHÔNG log — quét trùng/task đóng chiếm phần lớn
-      // lượt quét, log chúng sẽ drown các warn thật (cache fail) trong Stackdriver.
       return {
         ok: false,
         message: REJECT_MSG[result.reason] || UI_LABELS.STAFF_NOT_FOUND,
@@ -96,9 +93,8 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     // planScanCommits (ScanLogic) — seam commit gom re-check race + enrich staffIndex + batch (architecture review B).
     const field = result.field;
     const needsAppend = result.action === 'append';
-    // Re-check race: đọc lại cache sau lock (thiết bị khác có thể vừa ghi cùng staffId).
-    // Cả nhánh update lẫn append — update mà epoch đã set (planScanCommits skip) không đè giờ.
-    const freshLogRows = readLogRowsCached_(taskId) || [];
+    // Race: logRows đã đọc trong lock — planScanCommits xử lý re-check bằng existingMap
+    // (so sánh epoch hiện hữu với planned action, không đè giờ).
     let staffIndex = null;
     if (needsAppend) {
       // Đọc staffIndex CHỈ khi cần append (lazy). G: wrap try/catch — StaffData lỗi
@@ -127,7 +123,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
       { STATUS: STATUS, TASK_STATUS: TASK_STATUS },
       task,
       [{ code: staffId, action: result.action, field: result.field, status: result.status, row: result.row }],
-      freshLogRows, staffIndex, scanNow, formatTime_
+      logRows, staffIndex, scanNow, formatTime_
     );
     if (commit.updates.length) batchUpdateLogRows_(taskId, commit.updates);
     if (commit.appends.length) {

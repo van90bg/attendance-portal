@@ -160,27 +160,25 @@ function readTaskList_() {
 
 /** Đếm total/scanned/extra theo taskId cho DANH SÁCH task (cache 30s).
  * Đọc AttendanceLog 1 lần rồi group — tránh N+1. scanned theo epoch
- * (nguồn sự thật — khớp computeCounters). */
+ * (nguồn sự thật — khớp computeCounters). Dùng chung computeCounters (ScanLogic)
+ * để không drift giữa list + detail + scan. */
 function taskCountersForList_() {
   return cachedJson_(CACHE_KEYS.TASK_COUNTS + 'all', function () {
     const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
     const values = sheet.getDataRange().getValues();
-    const out = {};
+    const byTask = {};
     for (let i = 1; i < values.length; i++) {
       const row = values[i];
-      const taskId = String(row[LOG_COLS.TASK_ID] || '').trim();
-      if (!taskId) continue;
-      const st = String(row[LOG_COLS.STATUS] || '');
-      // S3/D1 (review 2026-08-11): epoch là nguồn sự thật — khớp computeCounters
-      // (Number(scannedAtEpoch)>0, ScanLogic.gs:124). Trước dùng !!cell — cell junk/
-      // string legacy (safeDate_ parse fail) vẫn tính scanned → list lệch detail.
-      const dScan = safeDate_(row[LOG_COLS.SCANNED_AT]);
-      const hasScan = dScan ? dScan.getTime() > 0 : false;
-      if (!out[taskId]) out[taskId] = { total: 0, scanned: 0, extra: 0 };
-      out[taskId].total++;
-      if (hasScan) out[taskId].scanned++;
-      if (st === STATUS.EXTRA) out[taskId].extra++;
+      const tid = String(row[LOG_COLS.TASK_ID] || '').trim();
+      if (!tid) continue;
+      if (!byTask[tid]) byTask[tid] = [];
+      byTask[tid].push(logFromRow_(tid, row));
     }
+    const out = {};
+    Object.keys(byTask).forEach(function (tid) {
+      const c = computeCounters({ STATUS: STATUS }, byTask[tid]);
+      out[tid] = { total: c.total, scanned: c.scanned, extra: c.extra };
+    });
     return out;
   }, CACHE_TTL.TASK_COUNTS);
 }
@@ -191,25 +189,4 @@ function invalidateTaskListCache_() {
   // task mới/reopen hiển thị total/scanned sai đến 30s (2 key độc lập không sync).
   cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all');
   bumpCacheGen_();
-}
-
-/**
- * Tìm kiếm task theo mã (prefix/contains, case-insensitive) — cho ô tìm header mở rộng.
- * Dùng readTaskList_ (đã cache 30s + counters) → KHÔNG đọc sheet riêng. Logic lọc do
- * matchTasksByQuery (ScanLogic.gs, pure) — test Node được.
- *
- * @param {string} rawQ — chuỗi nhập (mã task, ví dụ "R202608" / "2352")
- * @returns {Array<Object>} — tasks khớp (giữ counters từ readTaskList_), limit 50
- */
-function searchTasksByQuery(rawQ) {
-  if (!requireRole_('viewer')) return [];
-  const q = String(rawQ || '').trim();
-  if (!q) return [];
-  try {
-    const tasks = readTaskList_() || [];
-    return matchTasksByQuery(tasks, q);
-  } catch (e) {
-    console.error({ bench: 'searchTasksByQuery', q: q, error: e && e.message });
-    return [];
-  }
 }

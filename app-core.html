@@ -313,11 +313,13 @@
     if (searchEl) searchEl.addEventListener('input', function () {
       SCAN_FILTER.q = searchEl.value;
       SCAN_PAGE = 1; // bộ lọc đổi → về trang đầu
+      _scanSortDirty = true; // F4: filter đổi → đánh dấu dirty
       renderScanTable(CURRENT_LOG);
     });
     if (statusEl) statusEl.addEventListener('change', function () {
       SCAN_FILTER.status = statusEl.value;
       SCAN_PAGE = 1; // bộ lọc đổi → về trang đầu
+      _scanSortDirty = true; // F4: filter đổi → đánh dấu dirty
       renderScanTable(CURRENT_LOG);
     });
     if (clearEl) clearEl.addEventListener('click', function () {
@@ -326,6 +328,7 @@
       if (searchEl) searchEl.value = '';
       if (statusEl) statusEl.value = '';
       SCAN_PAGE = 1; // xoá lọc → về trang đầu
+      _scanSortDirty = true; // F4: filter xoá → đánh dấu dirty
       renderScanTable(CURRENT_LOG);
     });
     if (scanTbl) {
@@ -342,6 +345,7 @@
         else { SCAN_SORT.col = col; SCAN_SORT.asc = true; }
         SCAN_SORT.userSet = true;  // F: user tự chọn cột → bỏ ép-theo-phase
         SCAN_PAGE = 1; // sort đổi thứ tự → về trang đầu
+        _scanSortDirty = true; // F4: sort đổi → đánh dấu dirty cho filterAndSortScan
         updateSortIndicators();
         renderScanTable(CURRENT_LOG);
       });
@@ -402,7 +406,7 @@
           input.focus();
         }
       }
-    }, 3000);
+    }, 5000);  // F3: giảm polling từ 3s → 5s (vẫn đủ responsive, tiết kiệm CPU)
   }
   function stopAutoFocusLoop() {
     if (AUTO_FOCUS_TIMER) { clearInterval(AUTO_FOCUS_TIMER); AUTO_FOCUS_TIMER = null; }

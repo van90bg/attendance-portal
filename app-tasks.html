@@ -621,33 +621,28 @@
             })
             .searchLogsByStaffApi(q2);
         }
-        // Tìm theo mã task — dùng taskHeadHtml_ + renderTaskList_ (giữ nút Quét/Xem + counters).
+        // Tìm theo mã task — lọc client-side từ cache LAST_TASK_LIST (không cần RPC).
         function runSearchTask(q) {
-          LIST_PAGE = 1; // dữ liệu mới → về trang đầu
+          LIST_PAGE = 1;
           showSection("viewTasks");
           setListMode("task");
-      var skel = document.getElementById("taskSkeleton");
-      var tbl = document.getElementById("taskListTable");
-      var body = document.getElementById("taskListBody");
-      if (skel) skel.style.display = "";
-      if (tbl) tbl.style.display = "none";
-      if (body) body.innerHTML = "";
-      var cnt = document.getElementById("taskCount");
-      if (cnt) cnt.textContent = "…";
-      google.script.run
-              .withSuccessHandler(function (rows) {
-                LAST_TASK_SEARCH = safeArr(rows);
-                renderTaskList_(LAST_TASK_SEARCH);
-                markServerOk();
-              })
-              .withFailureHandler(function (err) {
-                markServerFail();
-                LAST_TASK_SEARCH = [];
-                renderTaskList_([]);
-                showToast("Lỗi tìm kiếm task: " + (err && err.message ? err.message : err), true);
-              })
-              .searchTasksByQueryApi(q);
-          }
+          var skel = document.getElementById("taskSkeleton");
+          var tbl = document.getElementById("taskListTable");
+          var body = document.getElementById("taskListBody");
+          if (skel) skel.style.display = "";
+          if (tbl) tbl.style.display = "none";
+          if (body) body.innerHTML = "";
+          var cnt = document.getElementById("taskCount");
+          if (cnt) cnt.textContent = "…";
+          var qUp = String(q || '').trim().toUpperCase();
+          var source = safeArr(LAST_TASK_LIST.tasks);
+          var hits = source.filter(function (t) {
+            return t.taskId && String(t.taskId).toUpperCase().indexOf(qUp) >= 0;
+          }).slice(0, 50);
+          LAST_TASK_SEARCH = hits;
+          renderTaskList_(hits);
+          markServerOk();
+        }
   // F-search: render kết quả tìm kiếm vào #taskListBody (reuse #taskListTable + skeleton + empty).
     function renderSearchResults_(rows) {
       var skel = document.getElementById("taskSkeleton");
@@ -723,7 +718,7 @@
        .withSuccessHandler(function (res) {
          BUSY = false;
          if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
-         if (typeof setCreateModalSpin === 'function') setCreateModalSpin(false); // hide spinner trong modal
+          if (typeof hideModalSpin === 'function') hideModalSpin(); // hide spinner
          if (res.ok) {
           invalidateClientCaches_();
           showToast(res.message, false);
@@ -748,7 +743,7 @@
       .withFailureHandler(function (err) {
         markServerFail();
         BUSY = false;
-        if (typeof setCreateModalSpin === 'function') setCreateModalSpin(false); // hide spinner trong modal
+        if (typeof hideModalSpin === 'function') hideModalSpin(); // hide spinner
          var eb2 = document.getElementById('btnCreateEmpty'); if (eb2) { eb2.disabled = false; eb2.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
          var sb2 = document.getElementById('btnCreateSubmit'); if (sb2) { sb2.disabled = false; sb2.textContent = 'Tạo'; }
          var pb2 = document.getElementById('btnCreatePasteSubmit'); if (pb2) { pb2.disabled = false; pb2.textContent = 'Tạo'; }

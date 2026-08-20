@@ -208,8 +208,6 @@ test('batchAppendLogRows_ + updateLogRowScan_ + searchLogsByStaff/searchTasksByQ
   const hits = svc.searchLogsByStaff('ops000001');
   assert.equal(hits.length >= 1, true);
   assert.equal(hits[0].staffId, 'OPS000001');
-  const taskHits = svc.searchTasksByQuery('R20260811');
-  assert.equal(taskHits.length, 1);
 });
 
 test('doGet wiring: khong debug → tra HtmlOutput index; debug=1 editor → tra JSON TextOutput', () => {

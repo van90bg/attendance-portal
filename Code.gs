@@ -3,27 +3,26 @@
  * Debug URL (?debug=1 / ?debug=createTask) xử lý trong Debug.gs (editor-gated);
  * quyền/định danh trong Auth.gs.
  *
- * API (gọi từ client index.html — 20 endpoint, tên chuẩn hậu tố *Api):
- *   getMetaApi()                 → { ok, appTitle, userEmail }
- *   getFilterOptionsApi()        → { ok, stationGroups }
- *   previewStaffApi(input)       → { ok, matched, missing, count } — preview tạo task
- *   getStaffStatsApi()           → { ok, counts } — thống kê StaffData
- *   getSettingsApi()             → { ok, settings } — editor-only (trang Config Admin)
- *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
- *   getAuditLogApi(limit)        → { ok, rows } — nhật ký hoạt động viewAdmin (admin+)
- *   createReconcileTaskApi(input) → { ok, taskId, count, skippedCodes, message } — tạo task + nạp roster (theo ca / dán mã / rỗng)
- *   getTaskListApi()             → [{ taskId, station, slotCode, team, status, createdAt }]
- *   getTaskDetailApi(taskId)     → { ok, task, log, counters }
- *   scanStaffApi(taskId, staffId) → { ok, message, status, counters }
- *   completeTaskApi(taskId)      → { ok, message }
- *   cancelTaskApi(taskId)        → { ok, message } — hủy task Mở rỗng (xóa hẳn)
- *   transitionToAttendApi(taskId) → { ok, message, counters } — task open → attend
- *   reopenTaskApi(taskId)         → { ok, message } — task done → open (quét bổ sung)
- *   searchLogsByStaffApi(staffId) → { ok, rows } — manager+ (báo cáo tháng theo mail)
- *   getReportsApi()               → { ok, rows, email, opsId } — báo cáo chấm công tháng theo mail đăng nhập (StaffAttendance × StaffInfo)
- *   searchTasksByQueryApi(q)      → { ok, rows } — tìm task theo mã NV / mã task
- *   warmStaffCacheApi()          → { ok, index } — preload staffIndex cache (fire-and-forget)
- * Editor tools (không phải *Api — chạy tay trong GAS editor): syncFromCsv(), setupSheets()
+  * API (gọi từ client index.html — 18 endpoint, tên chuẩn hậu tố *Api):
+  *   getMetaApi()                 → { ok, appTitle, userEmail, role, isEditor }
+  *   getFilterOptionsApi()        → { ok, stationGroups, defaults, lists }
+  *   getStaffStatsApi()           → { ok, staff[] } — StaffData full (manager+)
+  *   getSettingsApi()             → { ok, settings } — editor-only
+  *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
+  *   getAuditLogApi(limit)        → { ok, rows } — admin
+  *   createReconcileTaskApi(input) → { ok, taskId, count, skippedCodes, message }
+  *   getTaskListApi()             → [{ taskId, station, slotCode, team, status, createdAt }]
+  *   getTaskDetailApi(taskId)     → { ok, task, log, counters }
+  *   scanStaffApi(taskId, staffId, clientEpoch?) → { ok, message, counters, ... }
+  *   completeTaskApi(taskId)      → { ok, message }
+  *   cancelTaskApi(taskId)        → { ok, message }
+  *   transitionToAttendApi(taskId) → { ok, message }
+  *   reopenTaskApi(taskId)         → { ok, message }
+  *   updateLogRowStatusApi(taskId, staffId, newStatus) → { ok, message, counters }
+  *   searchLogsByStaffApi(staffId) → { ok, rows } — manager+
+  *   getReportsApi()               → { ok, rows, email, opsId } — manager+
+  *   warmStaffCacheApi()           → { ok, index } — operator+ (preload)
+  * Editor tools (không phải *Api — chạy tay trong GAS editor): syncFromCsv(), setupSheets()
  */
 
 /** WebApp: template index.html — <?!= include() ?> nạp CSS/JS từ styles.html + app-*.html (7 module). */
@@ -78,19 +77,12 @@ function getFilterOptionsApi() {
       const staffList = readStaffList_();
       return {
         ok: true,
-        // Cây 4 cột: stationGroups = [{ station, slotCodes: [{slotCode, teams}], dates }]
-        // — modal tạo task render checkbox, cascade theo station. 1 nguồn duy nhất.
         stationGroups: buildStationGroups(staffList),
-        // defaults (Config sheet qua SettingsService) — pre-select modal tạo task cho MỌI user
-        // (operator không phải editor vẫn được pre-select; getSettings_ không gate).
         defaults: {
           station: getSetting_('defaultStation'),
           slotCode: getSetting_('defaultSlotCode'),
           team: getSetting_('defaultTeam'),
         },
-        // lists (Config sheet qua SettingsService) — danh sách lựa chọn Admin khai báo.
-        // Client MERGE với distinct StaffData (union, dedup) để không mất giá trị thực
-        // có trong dữ liệu NV mà Admin chưa kịp khai báo. getSettings_ không gate → operator OK.
         lists: {
           stations: settingsList_('stations'),
           teams: settingsList_('teams'),
@@ -99,38 +91,13 @@ function getFilterOptionsApi() {
           agencies: settingsList_('agencies'),
           contractTypes: settingsList_('contractTypes'),
         },
+        // B3: staff list đầy đủ (đã dedupe theo staffId) — client dùng cho preview
+        // count khi đổi chips (không cần RPC previewStaffApi nữa).
+        staffList: staffList,
       };
     }, CACHE_TTL.FILTER_OPTIONS);
   } catch (e) {
     return { ok: false, stationGroups: [], defaults: null, lists: null, message: e && e.message ? e.message : 'getFilterOptions fail' };
-  }
-}
-
-/** Xem truoc so NV khop bo loc truoc khi tao task (modal) — khong tao gi ca. */
-function previewStaffApi(input) {
-  // Gate operator TRONG hàm (M1) — preview đếm theo StaffData (dữ liệu HR), chặn gọi
-  // trực tiếp qua console. Client chỉ gọi từ modal tạo task (operator+).
-  try {
-    if (!requireRole_('operator')) {
-      return { ok: false, count: 0, message: 'Không đủ quyền (cần role operator trở lên)' };
-    }
-    const staffList = readStaffList_();
-    const filtered = filterStaffByGroup(staffList, {
-      station: input && input.station,
-      slotCode: input && input.slotCode,
-      team: input && input.team,
-      date: input && input.date,
-      contractType: input && input.contractType,
-      department: input && input.department,
-    });
-    // Tái dùng dedupeStaffByGroup (đã test) — đảm bảo count preview khớp count tạo task thật.
-    const deduped = dedupeStaffByGroup(filtered);
-    return {
-      ok: true,
-      count: deduped.length,  // chi tra count — khong gui sample (user bo hien thi 10 NV dau)
-    };
-  } catch (e) {
-    return { ok: false, count: 0, message: e && e.message ? e.message : 'previewStaff fail' };
   }
 }
 
@@ -309,12 +276,6 @@ function searchLogsByStaffApi(rawStaffId) {
   } catch (e) {
     return { ok: false, rows: [], message: e && e.message ? e.message : 'searchLogsByStaff fail' };
   }
-}
-
-/** F-search mở rộng: tìm task theo mã (prefix/contains). Mở cho operator — chỉ đọc
- *  (dùng readTaskList_ cache + counters, không đọc sheet riêng). */
-function searchTasksByQueryApi(rawQ) {
-  return searchTasksByQuery(rawQ);
 }
 
 /** Báo cáo chấm công tháng theo email đăng nhập (viewReports — StaffAttendance × StaffInfo).

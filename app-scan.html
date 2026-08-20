@@ -39,6 +39,7 @@
       CURRENT_TASK.phase = CURRENT_TASK.status === TASK_STATUS_C.ATTEND ? 'attend'
         : (CURRENT_TASK.status === TASK_STATUS_C.DONE ? 'done' : 'open');
     }
+    _scanSortDirty = true; // F4: task mới / phase đổi → cần sort lại
     // Task kết thúc → tự đóng tab scanner ngoài (nếu mở cho chính task này).
     // V3: user mở task KHÁC giữa chừng → scanner gắn task cũ phải đóng (quét mã task cũ là sai ca).
     if (CURRENT_TASK && EXTERNAL_SCAN_TASK_ID
@@ -250,6 +251,7 @@
   // phase1 (Mở) → LISTED_AT (col 7) mới nhất; phase2 (Điểm danh) → SCANNED_AT (col 8).
   var SCAN_FILTER = { q: '', status: '' };
   var SCAN_SORT = { col: 7, asc: false, userSet: false };  // userSet=true khi user chọn cột; false=mặc định theo phase
+  var _scanSortDirty = true;  // F4: lazy sort — chỉ sort khi dirty (user đổi cột/filter), không mỗi optimistic update
   var STATUS_ORDER = {};  // P3: dựng từ STATUS_C — tránh hardcode label
   STATUS_ORDER[STATUS_C.PENDING] = 0;
   STATUS_ORDER[''] = 0;
@@ -286,7 +288,10 @@
       }
       out.push(r);
     });
-    out.sort(function (a, b) {
+    // F4: lazy sort — chỉ sort khi dirty (lần đầu / user đổi cột / filter đổi).
+    // Optimistic updates (quét tiếp) chỉ đổi epoch/status trên row hiện hữu — không đổi thứ tự.
+    if (_scanSortDirty || out.length !== (CURRENT_LOG || []).length) {
+      out.sort(function (a, b) {
       var va, vb;
       if (col === 9) {
         va = statusRank(a.status);
@@ -309,8 +314,10 @@
       var cmp = va < vb ? -1 : 1;
       return asc ? cmp : -cmp;
     });
-    return out;
+    _scanSortDirty = false;
   }
+  return out;
+}
 
   function renderScanTable(log) {
       var body = document.getElementById('scanTableBody');
@@ -984,6 +991,7 @@
           if (CURRENT_TASK && CURRENT_TASK.taskId === taskId) {
             CURRENT_TASK.phase = TASK_STATUS_C.ATTEND;
             CURRENT_TASK.status = TASK_STATUS_C.ATTEND;
+            _scanSortDirty = true; // F4: phase đổi (OPEN→ATTEND) → default sort col đổi 7→8
             var metaEl = document.getElementById('scanTaskMeta');
             if (metaEl) {
               var phaseHint = ' (đang điểm danh)';

@@ -154,18 +154,14 @@
       return { ok: true, index: slim };
     },
     getFilterOptionsApi: function () {
-      // Khớp server: trả cây stationGroups cho modal tạo task + defaults (pre-select) + lists
-      // (danh sách Admin khai báo — client merge với distinct StaffData qua mergeOpts_).
       return {
         ok: true,
         defaults: {
-          // pre-select modal tạo task — đọc MOCK_SETTINGS (đã lưu qua trang Cấu hình local)
           station: (MOCK_SETTINGS.defaultStation || ''),
           slotCode: (MOCK_SETTINGS.defaultSlotCode || ''),
           team: (MOCK_SETTINGS.defaultTeam || ''),
         },
         lists: {
-          // khớp server getFilterOptionsApi.lists (SettingsService settingsList_)
           stations: (MOCK_SETTINGS.stations || []).slice(),
           teams: (MOCK_SETTINGS.teams || []).slice(),
           slotcodes: (MOCK_SETTINGS.slotcodes || []).slice(),
@@ -186,19 +182,8 @@
             dates: ['2026-08-01', '2026-08-02', '2026-08-03'],
           },
         ],
+        staffList: (MOCK_DATA.staff || []).slice(),
       };
-    },
-    previewStaffApi: function (input) {
-      // chuẩn hoá: đếm NV khớp filter (giống server previewStaffApi)
-      var base = {
-        station: input && input.station,
-        slotCode: (input && input.slotCode) || [],
-        team: (input && input.team) || [],
-        contractType: (input && input.contractType) || [],
-        date: input && input.date,
-      };
-      var filtered = mockFilterStaff(base);
-      return { ok: true, count: mockDedupe(filtered).length };
     },
     getTaskListApi: function () {
       return MOCK_DATA.tasks.slice();
@@ -355,14 +340,6 @@
       });
       out.sort(function (a, b) { return b.createdAtText < a.createdAtText ? -1 : (b.createdAtText > a.createdAtText ? 1 : 0); });
       return { ok: true, rows: out.slice(0, 200) };
-    },
-    searchTasksByQueryApi: function (rawQ) {
-      // Mock tìm kiếm task theo mã (prefix/contains, case-insensitive) — copy matchTasksByQuery.
-      var q = String(rawQ || '').trim().toUpperCase();
-      if (!q) return [];
-      return MOCK_DATA.tasks.filter(function (t) {
-        return t.taskId && String(t.taskId).toUpperCase().indexOf(q) >= 0;
-      }).slice(0, 50);
     },
     transitionToAttendApi: function (taskId) {
       // Khớp server transitionToAttend: chỉ OPEN → ATTEND (phase2)

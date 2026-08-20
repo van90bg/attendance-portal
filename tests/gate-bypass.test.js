@@ -48,14 +48,11 @@ test('M3 repo mutators chặn gọi trực tiếp khi role < operator (bypass-pr
   assert.deepEqual(svc.readStaffIndex_(), {});
 });
 
-test('M4 getFilterOptionsApi/previewStaffApi chặn viewer (role < operator)', () => {
+test('M4 getFilterOptionsApi chặn viewer (role < operator)', () => {
   const svc = sandboxWithRole('viewer');
   const f = svc.getFilterOptionsApi();
   assert.equal(f.ok, false);
   assert.deepEqual(f.stationGroups, []);
-  const p = svc.previewStaffApi({ station: 'HN SOC' });
-  assert.equal(p.ok, false);
-  assert.equal(p.count, 0);
 });
 
 test('M5 getSettings_ không lộ roleMap cho mọi role (P0)', () => {
