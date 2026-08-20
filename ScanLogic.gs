@@ -164,6 +164,26 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
     if (!sid) return;
     if (a.action === 'update' && a.row) {
       const isScan = a.field === 'scannedAt';
+      // RACE defense (cùng semantics nhánh append): freshLogRows đã có epoch cho phase này
+      // (thiết bị khác vừa ghi trong lock) → KHÔNG đè thời gian, báo row hiện hữu.
+      const ex = existingMap[sid];
+      const done = isScan ? num(ex && ex.scannedAtEpoch) : num(ex && ex.listedAtEpoch);
+      if (done) {
+        outcomes[sid] = {
+          action: 'update', field: a.field,
+          scannedAtText: isScan ? (ex.scannedAtText || fmt(now)) : '',
+          scannedAtEpoch: isScan ? num(ex.scannedAtEpoch) : 0,
+          listedAtText: isScan ? '' : (ex.listedAtText || fmt(now)),
+          listedAtEpoch: isScan ? 0 : num(ex.listedAtEpoch),
+          status: ex.status || STATUS.EXTRA,
+          staffName: ex.staffName || null,
+          slotCode: ex.slotCode || '', station: ex.station || '',
+          team: ex.team || '', workstation: ex.workstation || '',
+          dateText: (ex && ex.dateText) || '',
+          rowIndex: ex._rowIndex || 0,
+        };
+        return;
+      }
       outcomes[sid] = {
         action: 'update', field: a.field,
         scannedAtText: isScan ? fmt(now) : '',

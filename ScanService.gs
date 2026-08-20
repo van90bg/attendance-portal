@@ -96,8 +96,9 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     // planScanCommits (ScanLogic) — seam commit gom re-check race + enrich staffIndex + batch (architecture review B).
     const field = result.field;
     const needsAppend = result.action === 'append';
-    // Re-check race: đọc lại cache sau lock (thiết bị khác có thể vừa ghi cùng staffId)
-    const freshLogRows = needsAppend ? (readLogRowsCached_(taskId) || []) : logRows;
+    // Re-check race: đọc lại cache sau lock (thiết bị khác có thể vừa ghi cùng staffId).
+    // Cả nhánh update lẫn append — update mà epoch đã set (planScanCommits skip) không đè giờ.
+    const freshLogRows = readLogRowsCached_(taskId) || [];
     let staffIndex = null;
     if (needsAppend) {
       // Đọc staffIndex CHỈ khi cần append (lazy). G: wrap try/catch — StaffData lỗi
@@ -110,11 +111,16 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     // 60s van du an toan; hep hon = gio lui/tới tuong lai it hon); ngoai cua so, gio truoc khi tao
     // task (createdAtText), hoac gio tuong lai → server-authoritative (gio server hien tai).
     const drift = Date.now() - clientEpoch;
+    // Cửa sổ ±60s ĐỐI XỨNG — client clock nhanh 30s (drift âm) trước đây bị bỏ dù trong
+    // cửa sổ ghi chú (±60s so với server) → mất WYSIWYG cho thiết bị chạy nhanh.
     const clientEpochOk = typeof clientEpoch === 'number' && isFinite(clientEpoch) && clientEpoch > 0
-      && drift >= 0 && drift <= 60000;
+      && drift >= -60000 && drift <= 60000;
     let scanNow = clientEpochOk ? new Date(clientEpoch) : new Date();
     const taskCreatedAt = safeDate_(task.createdAtText);
-    if ((taskCreatedAt && scanNow.getTime() < taskCreatedAt.getTime()) || scanNow.getTime() > Date.now()) {
+    // Chỉ fallback server khi NGOÀI cửa sổ: trước lúc tạo task, hoặc tương lai xa hơn 60s
+    // (tương lai gần ≤60s = client clock nhanh trong cửa sổ — giữ WYSIWYG).
+    if ((taskCreatedAt && scanNow.getTime() < taskCreatedAt.getTime())
+        || (scanNow.getTime() - Date.now() > 60000)) {
       scanNow = new Date();
     }
     const commit = planScanCommits(
