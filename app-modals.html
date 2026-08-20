@@ -273,6 +273,12 @@
       sb.textContent = n > 0 ? ('Tạo (' + n + ' NV)') : 'Dán mã NV';
     }
   }
+  // Tạo task rỗng (noList) — không cần chọn Station hay dán mã.
+  function submitCreateEmptyTask() {
+    var btn = document.getElementById('btnCreateEmpty');
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo…'; }
+    createTaskWithMeta_({});
+  }
   function submitCreateTaskPaste() {
     var ta = document.getElementById('createPasteTextarea');
     var submitBtn = document.getElementById('btnCreatePasteSubmit');
@@ -440,6 +446,11 @@
     for (var i = 0; i < footers.length; i++) footers[i].style.display = '';
     var createdFooter = m.querySelector('.task-created-footer');
     if (createdFooter) createdFooter.style.display = 'none';
+    // Reset nút "Tạo task rỗng"
+    var emptyWrap = m.querySelector('.create-empty-wrap');
+    if (emptyWrap) emptyWrap.style.display = '';
+    var emptyBtn = document.getElementById('btnCreateEmpty');
+    if (emptyBtn) { emptyBtn.disabled = false; emptyBtn.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
     _taskCreatedTaskId = null;
   }
   function onTaskCreatedView() {
