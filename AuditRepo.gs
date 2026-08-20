@@ -11,7 +11,7 @@
  * google.script.run; action lạ (doạ dòng junk) bị BỎ, không làm phình AuditLog.
  * Thêm action mới phải vào đây — KHÔNG audit action chưa đăng ký. */
 const AUDIT_ACTIONS_ = {
-  pasteCodes: true, createTask: true, loadRoster: true, completeTaskForceClose: true,
+  createTask: true, completeTaskForceClose: true,
   completeTask: true, transitionToAttend: true, reopenTask: true, cancelTask: true,
   fixLogRowStatus: true, settings: true,
 };

@@ -89,7 +89,7 @@
       if (base.slotCode && base.slotCode.length && base.slotCode.indexOf(s.slotCode) === -1) return false;
       if (base.team && base.team.length && base.team.indexOf(s.team) === -1) return false;
       if (base.contractType && base.contractType.length && base.contractType.indexOf(s.contractType) === -1) return false;
-      // date có thể là array (loadRosterApi) hoặc string (previewStaffApi) — khớp server
+      // date có thể là array (createReconcileTask) hoặc string (previewStaffApi) — khớp server
       // filterStaffByGroup: mảng rỗng = không lọc; 1 phần tử = lọc theo giá trị đó.
       var d = Array.isArray(base.date) ? (base.date.length === 1 ? base.date[0] : '') : base.date;
       if (d && d !== (s.date || '')) return false;
@@ -215,19 +215,50 @@
       // KHÔNG được leak vào server-side mock state (giống prod: google.script.run serialize JSON).
       // Nếu trả reference: mọi lần quét đầu tiên đều bị reject nhầm 'Đã điểm danh'.
       // Khớp server getTaskDetail (TaskService.gs): permission tính tươi theo user đọc —
-      // mock luôn owner/admin để 2 nút Dán + Lấy danh sách hiện khi test local.
+      // mock luôn owner/admin để các nút quản lý hiện khi test local.
       task.permission = { isAdmin: true, isOwner: true, canScanOpen: true };
       return { ok: true, task: task, log: JSON.parse(JSON.stringify(log)), counters: counters(log) };
     },
     createReconcileTaskApi: function (input) {
+      // Khớp server createReconcileTask (TaskService A3): tạo task + pre-fill roster NGAY lúc
+      // tạo — theo ca (lọc StaffData) / dán mã (tra staffIndex). Dòng PENDING LISTED_AT rỗng
+      // (noListedAt — thời điểm đến ghi khi NV quét phase 1). Task rỗng → log rỗng.
       var taskId = 'R' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-0' + (MOCK_DATA.tasks.length + 1);
+      var slotCode = Array.isArray(input && input.slotCode) ? (input.slotCode || []).join(', ') : String((input && input.slotCode) || '').trim();
+      var team = Array.isArray(input && input.team) ? (input.team || []).join(', ') : String((input && input.team) || '').trim();
       var task = {
-        taskId: taskId, station: input.station, slotCode: input.slotCode,
-        team: input.team, date: (input && input.date) || '', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00',
+        taskId: taskId, station: (input && input.station) || '', slotCode: slotCode,
+        team: team, date: (input && input.date) || '', status: 'open', createdBy: 'web', createdAtText: '2026-08-02 09:00:00',
       };
       MOCK_DATA.tasks.unshift(task);
-      var log = getLog(taskId);
-      return { ok: true, taskId: taskId, count: log.length, message: 'Tạo task thành công: ' + taskId };
+      var log = [];
+      var skippedCodes = 0;
+      var codes = Array.isArray(input && input.codes) ? (input.codes || []) : [];
+      function pushRow(s) {
+        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: '', listedAtEpoch: 0, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' });
+      }
+      if (input && input.station && codes.length === 0) {
+        var rows = mockDedupe(mockFilterStaff({ station: input.station, slotCode: input.slotCode || [], team: input.team || [], contractType: input.contractType || [], date: input.date || '' }));
+        if (!rows.length) return { ok: false, taskId: null, count: 0, skippedCodes: 0, message: 'Không có nhân viên nào trong tổ hợp đã chọn' };
+        rows.forEach(pushRow);
+      } else if (codes.length > 0) {
+        var byId = {};
+        MOCK_DATA.staff.forEach(function (s) { byId[String(s.staffId || '').trim().toUpperCase()] = s; });
+        var seen = {};
+        codes.forEach(function (c) {
+          var key = String(c || '').trim().toUpperCase();
+          if (!key || seen[key]) return;
+          seen[key] = true;
+          var s = byId[key];
+          if (!s) { skippedCodes++; return; }
+          pushRow(s);
+        });
+        if (!log.length) return { ok: false, taskId: null, count: 0, skippedCodes: skippedCodes, message: 'Không có mã NV nào hợp lệ trong danh sách dán' };
+      }
+      MOCK_LOGS[taskId] = log;
+      var msg = 'Tạo task thành công: ' + taskId;
+      if (log.length > 0) msg = 'Đã tạo task + nạp ' + log.length + ' NV — ' + taskId + (skippedCodes ? ' (bỏ ' + skippedCodes + ' mã không có trong dữ liệu)' : '');
+      return { ok: true, taskId: taskId, count: log.length, skippedCodes: skippedCodes, message: msg };
     },
     scanStaffApi: function (taskId, staffId, clientEpoch) {
       // Mock 2-pha khớp server scanStaff (ScanService.gs + classifyScan):
@@ -265,68 +296,7 @@
         listedAtText: phase2 ? '' : ts, listedAtEpoch: phase2 ? 0 : nowMs,
         staffName: 'NV LẠ', dateText: '', counters: counters(log) };
     },
-    pasteCodesApi: function (taskId, rawLines) {
-      // Khớp server pasteCodes: { ok, message, total, success, failed, results, counters }
-      var lines = (Array.isArray(rawLines) ? rawLines : []).slice(0, 200);
-      var task = null;
-      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
-      if (!task) return { ok: false, message: 'Không tìm thấy task', total: 0, success: 0, failed: 0, results: [], counters: null };
-      if (task.status !== 'open') {
-        return { ok: false, message: 'Chỉ áp dụng quét tự do phase Mở', total: 0, success: 0, failed: 0, results: [], counters: null };
-      }
-      var log = getLog(taskId);
-      // Gate canScanOpen_ (owner/admin phase OPEN) bỏ qua CÓ CHỦ Ý — mock không mô
-      // hình hoá identity; luôn mở cho local test. Không "fix" thành gate ở đây.
-      var results = [];
-      var success = 0, failed = 0;
-      var seen = {}; // mã trùng trong cùng batch → reject (khớp planBatchScans)
-      var nowMs = Date.now();
-      var d = new Date(nowMs);
-      var ts = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
-      lines.forEach(function (code) {
-        var c = String(code || '').trim();
-        if (!c) return;
-        if (!/^OPS\d+$/i.test(c)) { failed++; results.push({ code: c, ok: false, reason: 'invalid-format' }); return; }
-        var key = c.toUpperCase();
-        if (seen[key]) { failed++; results.push({ code: c, ok: false, reason: 'already-present' }); return; }
-        seen[key] = true;
-        var hit = null;
-        log.forEach(function (r) { if (r.staffId.toLowerCase() === c.toLowerCase()) hit = r; });
-        if (hit && hit.status !== '-') { failed++; results.push({ code: c, ok: false, reason: 'already-present' }); return; }
-        if (hit) { hit.listedAtText = ts; hit.listedAtEpoch = nowMs; }
-        else { log.push({ taskId: taskId, staffId: c.toUpperCase(), staffName: 'NV DÁN', slotCode: '', station: '', team: '', workstation: '', listedAtText: ts, listedAtEpoch: nowMs, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: '' }); }
-        success++; results.push({ code: c, ok: true, action: 'append' });
-      });
-      return { ok: true, message: 'Dán ' + success + '/' + lines.length + ' mã thành công', total: lines.length, success: success, failed: failed, results: results, counters: counters(log) };
-    },
-    loadRosterApi: function (taskId, filters) {
-      // Khớp server loadRoster (TaskService): gate status OPEN; lọc StaffData → append PENDING
-      // + LISTED_AT rỗng (noListedAt — thời điểm đến ghi khi NV quét phase 1); bỏ qua NV đã có dòng (idempotent).
-      var task = null;
-      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
-      function z(msg) { return { ok: false, total: 0, added: 0, skipped: 0, message: msg, counters: null }; }
-      if (!task) return z('Không tìm thấy task');
-      if (task.status === 'done') return z('Task đã kết thúc — không thể nạp danh sách');
-      var base = {
-        station: filters && filters.station,
-        slotCode: (filters && filters.slotCode) || [],
-        team: (filters && filters.team) || [],
-        contractType: (filters && filters.contractType) || [],
-        date: filters && filters.date,
-      };
-      var deduped = mockDedupe(mockFilterStaff(base));
-      if (!deduped.length) return z('Không có nhân viên nào trong tổ hợp đã chọn');
-      var log = getLog(taskId);
-      var added = 0, skipped = 0;
-      deduped.forEach(function (s) {
-        var hit = null;
-        log.forEach(function (r) { if (r.staffId.toLowerCase() === s.staffId.toLowerCase()) hit = r; });
-        if (hit) { skipped++; return; }
-        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: '', listedAtEpoch: 0, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' });
-        added++;
-      });
-      return { ok: true, total: deduped.length, added: added, skipped: skipped, counters: counters(log), message: added ? ('Đã nạp ' + added + ' NV' + (skipped ? ' — bỏ qua ' + skipped + ' đã có' : '')) : ('Tất cả ' + skipped + ' NV đã có trong danh sách') };
-    },
+
     updateLogRowStatusApi: function (taskId, staffId, newStatus) {
       // Khớp server updateLogRowStatus (TaskService): đổi STATUS 1 dòng theo staffId;
       // PRESENT trên dòng chưa quét → fill TIME_SCAN = now; trả counters + message.

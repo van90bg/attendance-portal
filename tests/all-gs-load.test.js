@@ -228,17 +228,13 @@ test('doGet wiring: khong debug → tra HtmlOutput index; debug=1 editor → tra
   assert.equal(parsed.sheets.Config.rows >= 1, true);
 });
 
-test('planBatchScans chạy trong vm shared context (BARCODE_ID_RE global từ CsvUtil)', () => {
-  // Cover nhánh GAS của barcodeRe: typeof BARCODE_ID_RE !== 'undefined' → dùng global
-  // (paste-batch.test.js chỉ cover nhánh require CsvUtil khi load ScanLogic standalone).
-  const { ctx } = makeSandbox();
+test('createReconcileTaskApi dùng UI_LABELS global trong vm shared context', () => {
+  // A3: tổ hợp rỗng → message = UI_LABELS.CREATE_FAILED_EMPTY (chứng minh global
+  // từ Config.gs nạp chung 1 vm context — file .gs không cần require).
+  const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
-  const cfg = {
-    STATUS: { PENDING: '-', PRESENT: 'Có mặt', ABSENT: 'Vắng', EXTRA: 'Dư' },
-    TASK_STATUS: { OPEN: 'open', ATTEND: 'attend', DONE: 'done' },
-  };
-  const res = svc.planBatchScans(cfg, { taskId: 'R1', status: 'open' }, [], ['Ops000001', 'NV000002']);
-  assert.equal(res.plans.length, 1);
-  assert.equal(res.invalid.length, 1);
-  assert.equal(res.invalid[0].reason, 'invalid-format');
+  svc.ensureSheets_();
+  const res = svc.createReconcileTaskApi({ station: 'KHÔNG CÓ', slotCode: ['08:00-17:00'] });
+  assert.equal(res.ok, false);
+  assert.equal(res.message, 'Không có nhân viên nào trong tổ hợp đã chọn');
 });

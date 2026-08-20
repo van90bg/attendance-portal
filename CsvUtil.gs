@@ -42,7 +42,7 @@ const SLOT_FREE_MAGIC = 'Tự do';
 
 /**
  * Regex mã barcode NV — 'Ops' + chữ số (case-insensitive). 1 nguồn sự thật cho server:
- * isValidBarcodeId (CsvUtil) + planBatchScans (ScanLogic — global GAS / require ở Node test).
+ * isValidBarcodeId (CsvUtil) — global GAS / require ở Node test.
  * Client (index.html) có hằng số riêng BARCODE_ID_RE — giữ sync (pattern SLOT_FREE_MAGIC).
  */
 const BARCODE_ID_RE = /^OPS\d+$/i;

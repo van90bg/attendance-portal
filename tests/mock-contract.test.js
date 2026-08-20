@@ -121,18 +121,26 @@ test('searchLogsByStaffApi shape khớp server: { ok, rows }', async () => {
   assert.deepEqual(Object.keys(s).sort(), ['ok', 'rows']);
   assert.ok(Array.isArray(s.rows), 'rows phải là mảng');
 });
-// Server loadRoster (TaskService.gs) KHÔNG ghi LISTED_AT khi nạp roster (noListedAt:true —
-// thời điểm đến ghi khi NV quét phase 1). Mock phải mirror — test chặn drift.
-test('loadRosterApi không pre-fill LISTED_AT (khớp server noListedAt)', async () => {
+// Server createReconcileTask (TaskService A3) KHÔNG ghi LISTED_AT khi pre-fill roster lúc tạo
+// (noListedAt:true — thời điểm đến ghi khi NV quét phase 1). Mock phải mirror — test chặn drift.
+test('createReconcileTaskApi không pre-fill LISTED_AT (khớp server noListedAt)', async () => {
   const { call } = loadMock();
-  const r = await call('loadRosterApi', 'R20260802-0900', { station: 'HN2 SOC', team: ['Inbound'] });
-  assert.ok(r.ok && r.added >= 1, 'nạp roster Inbound phải thêm NV: ' + (r && r.message));
-  const d = await call('getTaskDetailApi', 'R20260802-0900');
-  const inbound = d.log.filter((x) => ['Ops129481', 'Ops126503', 'Ops133754'].indexOf(x.staffId) >= 0);
-  assert.equal(inbound.length, r.added, 'log có đủ NV Inbound mới nạp');
-  inbound.forEach((row) => {
-    assert.equal(row.listedAtText, '', 'LISTED_AT rỗng sau nạp roster: ' + row.staffId);
-    assert.equal(row.listedAtEpoch, 0, 'listedAtEpoch 0 sau nạp roster: ' + row.staffId);
+  const r = await call('createReconcileTaskApi', { station: 'HN2 SOC', team: ['Inbound'] });
+  assert.ok(r.ok && r.count >= 1, 'tạo task + nạp roster Inbound: ' + (r && r.message));
+  const d = await call('getTaskDetailApi', r.taskId);
+  assert.equal(d.log.length, r.count, 'log có đủ NV vừa nạp');
+  d.log.forEach((row) => {
+    assert.equal(row.listedAtText, '', 'LISTED_AT rỗng sau tạo task kèm roster: ' + row.staffId);
+    assert.equal(row.listedAtEpoch, 0, 'listedAtEpoch 0 sau tạo task: ' + row.staffId);
   });
+});
+
+// Task rỗng → log rỗng (khớp server noList: !station && !codes.length)
+test('createReconcileTaskApi task rỗng → count 0, log rỗng (khớp server noList)', async () => {
+  const { call } = loadMock();
+  const r = await call('createReconcileTaskApi', {});
+  assert.ok(r.ok && r.count === 0, 'task rỗng count 0: ' + (r && r.message));
+  const d = await call('getTaskDetailApi', r.taskId);
+  assert.equal(d.log.length, 0, 'log rỗng');
 });
 

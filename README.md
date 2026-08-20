@@ -24,7 +24,7 @@
 
 Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình điểm danh trong ngày:
 
-1. **Tạo task** (luôn mở phase 1, log rỗng) — chọn Station / Team / Ngày (metadata hiển thị); danh sách nạp sau qua **Nạp danh sách** (tab Theo ca / Dán mã) hoặc quét.
+1. **Tạo task** (luôn mở phase 1) — **+ Task mới** mở modal 2 tab: **Theo ca** (chọn Station/Ca/Hình thức/Phòng ban/Team/Ngày → pre-fill roster NGAY) / **Dán mã** (dán mã NV) / để trống (task rỗng — quét tự do).
 2. **Quét LISTED_AT** (pha Mở) — ghi nhận nhân viên vào ca.
 3. **Bắt đầu điểm danh** (pha Điểm danh) — quét lần 2 ghi SCANNED_AT.
 4. **Chốt ca** (chỉ owner/admin của task) — nhân viên chưa điểm danh sẽ tính là Vắng; có thể Mở lại để quét bổ sung.
@@ -56,15 +56,15 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 
 ## Tính năng
 
-- **Tạo task 2 nhóm (dropdown + Task mới)** — task mới **Mở (phase 1) + log RỖNG** (KHÔNG pre-fill roster): nút **+ Task mới** là dropdown 2 lựa chọn — **Nạp danh sách** (chọn Station trong modal → task có station, nạp roster theo ca ngay) hoặc **Task rỗng** (tạo ngay, quét tự do); nút **Nạp danh sách** (tab Theo ca / Dán mã) **CHỈ hiện ở task có station** — task rỗng không có modal nạp, danh sách xây bằng quét.
+- **Tạo task + nạp danh sách 1 lần (A3)** — nút **+ Task mới** mở modal 2 tab: **Theo ca** (chọn Station/Ca/Hình thức/Phòng ban/Team/Ngày → **pre-fill roster NGAY lúc tạo**) / **Dán mã** (dán mã NV, mã lạ bỏ qua) / để trống (task rỗng — quét tự do, danh sách xây bằng quét ở phase 1).
 - **Quy trình 2 pha** — pha **Mở** ghi LISTED_AT (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi SCANNED_AT:
-  - Task tạo xong rỗng: quét / dán / nạp roster theo ca xây danh sách ở phase 1, bấm **Bắt đầu điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
-    - Nạp roster theo ca (tab **Theo ca** trong **Nạp danh sách**): append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1); quét phase 2 = Có mặt / Dư.
+  - Task tạo kèm roster → log pre-fill PENDING (LISTED_AT rỗng — thời điểm đến ghi khi quét phase 1); task tạo rỗng → quét xây danh sách ở phase 1; bấm **Bắt đầu điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
+    - Pre-fill roster khi tạo task (tab **Theo ca** trong modal tạo task): append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1); quét phase 2 = Có mặt / Dư.
     - **Đã đến ≠ Có mặt** — phase 1 ghi LISTED_AT hiện **Đã đến**; quét lần 2 ghi Giờ quét mới là **Có mặt** (điểm danh thật). Banner phase trong màn quét nhắc rõ 2 bước; đóng task khi **chưa ai quét lần 2** → confirm cảnh báo "tất cả sẽ tính Vắng" (không chặn cứng — Mở lại cứu được).
 - **Hủy task rỗng** — task phase Mở chưa có dữ liệu quét (tạo nhầm / bỏ dở): nút **Hủy** (owner/admin, hiện khi log rỗng) xóa hẳn task khỏi AttendanceTask; task đã có dữ liệu phải Bắt đầu điểm danh → Chốt ca bình thường.
 - **Phân quyền (role gate)** — viewer < operator < manager < admin:
   - Task `open` chỉ owner + admin quét được; legacy `createdBy='web'` fail-open.
-  - **Bắt đầu điểm danh** (OPEN→ATTEND) chỉ owner/admin — non-owner gọi thẳng server bị chặn (M1 service-layer, đồng gate scan/paste/nạp roster).
+  - **Bắt đầu điểm danh** (OPEN→ATTEND) chỉ owner/admin — non-owner gọi thẳng server bị chặn (M1 service-layer, đồng gate scan/tạo task).
   - **Chốt ca / Mở lại / Sửa trạng thái log** chỉ owner/admin — gate **fail-closed `canMutateTask_`** (khác `canScanOpen_` fail-open): task legacy `createdBy='web'` không ai đóng/mở lại/sửa được ngoài admin. `warmStaffCacheApi` (index nhân sự) giờ gate operator+.
   - **Repo mutator gate (M1 2026-08-19)** — mọi hàm ghi/đọc StaffData-task-log (`batchInsertLogRows_`/`batchAppendLogRows_`/`batchUpdateLogRows_`/`transformLogStatuses_`/`setLogRowStatus_`/`writeBatchRuns_`/`insertTask_`/`updateTaskStatus_`/`readStaffList_`/`readStaffIndex_`) tự `requireRole_('operator')` (google.script.run gọi được global trực tiếp — gate *Api wrapper bị bypass); `getFilterOptionsApi`/`previewStaffApi` gate operator+; `roleMap` tách khỏi `getSettings_` → `getRoleMap_` (bản đồ quyền không lộ qua settings public).
   - `getStaffStatsApi` (viewStats/viewStaff) + `getReportsApi` (viewReports) + `searchLogsByStaffApi` (lịch sử chấm công cá nhân) chỉ manager+; `getAuditLogApi` (viewAdmin) chỉ admin; settings editor-only (viewConfig).
@@ -82,8 +82,8 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewConfig (Cấu hình) | | | | ✅ (editor) |
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
-- **Dán danh sách mã** — dán hàng loạt mã NV, 1 `setValues` batch, dedupe, clamp 200, báo mã lỗi.
-- **Nạp danh sách** (1 nút — modal 2 tab Theo ca / Dán mã thay menu Thêm; tab Theo ca: phase 1 + 2, owner): lọc StaffData theo Station/Ca/Team/**Hình thức**/Ngày, append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1), **bỏ qua NV đã có** (idempotent).
+- **Dán danh sách mã** — dán mã NV ngay lúc tạo task (tab Dán mã): dedupe, clamp 200, mã lạ bỏ qua (skippedCodes).
+- **Tạo task kèm roster (A3)** — thay nút 'Nạp danh sách' màn quét: lọc StaffData theo Station/Ca/Team/**Hình thức**/**Phòng ban**/Ngày ngay trong modal tạo task, append PENDING — LISTED_AT rỗng (thời điểm đến ghi khi NV quét phase 1).
 - **Thời gian quét WYSIWYG** — app gửi epoch chụp lúc quét (`scanStaffApi(..., clientEpoch)`): sheet ghi đúng giờ hiển thị trên app, server không đè giờ riêng → hết nhảy giờ sau ~1s khi đồng hồ thiết bị lệch / queue xử lý chậm.
 - **Cột Ngày bảng quét** — hiện ngay khi quét (optimistic từ staffIndex + response `dateText`), không chờ reload; `getFilterOptionsApi` cache 60s → modal tạo task mở nhanh.
 - **Chốt ca** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.
@@ -122,7 +122,7 @@ RollCall_2/
 ├── app-admin.html         # JS client (module 9/9) — viewAdmin (nhật ký hoạt động, manager+)
 ├── mock/mock-google.js    # mock GAS cho dev local
 ├── test-fixtures/         # CSV mẫu cho test
-├── tests/                 # 212 unit tests node --test
+├── tests/                 # 195 unit tests node --test
 ├── scripts/               # build-local.js, cdp-helper.js, audit-* (css/gs/style/ui)
 ├── skills/                # skill chuẩn SKILL.md — project-skill · ui-ux-audit · audit-webapp-optimize · review-gas-failure-modes · debug-systematic
 └── docs/                  # deploy-codespace-actions.md
@@ -133,7 +133,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 212/212 unit tests (node:test)
+npm test                        # 195/195 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 

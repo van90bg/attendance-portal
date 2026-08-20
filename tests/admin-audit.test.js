@@ -50,7 +50,7 @@ test('getAuditLogApi: admin nhận rows, mới nhất trước', () => {
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'mgr@spx.com': 'admin' })]);
-  svc.audit_('loadRoster', 'R2026', { staffId: 'Ops1' });
+  svc.audit_('completeTask', 'R2026', {});
   svc.audit_('createTask', 'R2027', {});
   const res = svc.getAuditLogApi(50);
   assert.equal(res.ok, true);

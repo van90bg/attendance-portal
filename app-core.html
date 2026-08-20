@@ -273,9 +273,6 @@
         submitScan();
       }
     });
-    // F2: cho phép dán danh sách mã trực tiếp vào scanInput (thay thế nút "Dán danh sách mã").
-    // Barcode scanner = keyboard emulation → không bao giờ trigger paste event; chỉ clipboard (Ctrl+V) mới đến.
-    document.getElementById('scanInput').addEventListener('paste', onScanInputPaste);
     // F-search: Enter trên ô tìm (viewTasks) → chay tim; Escape → clear (xử lý trong onListSearchKeydown).
     var _ls = document.getElementById('listSearch');
     if (_ls) _ls.addEventListener('keydown', function (e) {

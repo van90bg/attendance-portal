@@ -144,7 +144,7 @@ function invalidateLogRows_(taskId) {
 }
 
 /**
- * Pre-fill log batch 1 lần (loadRoster/paste — KHÔNG còn ở createReconcileTask từ A2) — KHÔNG appendRow trong loop.
+ * Pre-fill log batch 1 lần (createReconcileTask A3 — nạp roster lúc tạo task) — KHÔNG appendRow trong loop.
  * @param {string} taskId
  * @param {Array<Object>} staffList — NV khớp tổ hợp
  * @param {Date} createdAt
@@ -161,9 +161,9 @@ function batchInsertLogRows_(taskId, staffList, createdAt, opts) {
     ];
   });
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
-  invalidateLogRows_(taskId); // U2: nạp roster/paste tạo dòng mới — xoá cache cũ nếu taskId tái sử dụng
+  invalidateLogRows_(taskId); // U2: nạp roster tạo dòng mới — xoá cache cũ nếu taskId tái sử dụng
   // P1 (B-P1-1): ghi dòng mới cũng invalidate detail + list (counters) — trước chỉ LOG_ROWS
-  // → readTaskDetailCached_/readTaskList_ giữ data cũ 15s/30s sau khi nạp roster.
+  // → readTaskDetailCached_/readTaskList_ giữ data cũ 15s/30s sau khi nạp roster (A3 lúc tạo task).
   invalidateTaskDetailCache_(taskId);
   invalidateTaskListCache_();
   return rows.length;
@@ -183,7 +183,7 @@ function batchAppendLogRows_(rows) {
   // FIX: hoist const taskId len dau ham — truoc do khai ben trong try (block-scoped)
   // nen cac goi catch/ngoai try (invalidateLogRows_/invalidateTaskDetailCache_) throw
   // ReferenceError: taskId is not defined SAU khi setValues da ghi xong -> sheet co data
-  // nhung pasteCodes tra ok:false -> client khong loadTaskDetail -> danh sach khong refresh.
+  // nếu ghi fail sau setValues: client không loadTaskDetail -> danh sách không refresh.
   const taskId = String(rows[0][0] || '').trim(); // taskId is first column
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
   // Build row indices for cache update

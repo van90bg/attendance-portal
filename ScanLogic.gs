@@ -8,12 +8,12 @@
  * Để Node test chạy được, file này KHÔNG require Config — các hằng số được
  * truyền vào qua tham số `cfg` (xem chữ ký hàm).
  * Ngoại lệ DUY NHẤT: BARCODE_ID_RE (CsvUtil.gs) — global GAS; Node test standalone
- * require CsvUtil (xem planBatchScans).
+ * require CsvUtil (xem scanStaff).
  */
 
 // Regex mã barcode NV — 1 nguồn sự thật: CsvUtil.gs. KHÔNG khai báo ở top-level
 // (GAS gộp mọi file vào 1 scope — khai trùng const/var cùng tên = SyntaxError lúc load).
-// planBatchScans lấy global BARCODE_ID_RE (GAS) hoặc require CsvUtil (Node standalone).
+// ScanService dùng BARCODE_ID_RE (global GAS / require CsvUtil khi test standalone).
 
 /**
  * Phân loại 1 lần quét (2-phase attendance).
@@ -119,7 +119,7 @@ function computeCounters(cfg, logRows) {
 
 /**
  * B (2026-08-12): planScanCommits — seam THUẦN gom quyết định COMMIT scan.
- * scanStaff + pasteCodes trước đây tự viết lại 3 thứ (duplicate logic — architecture review B):
+ * scanStaff trước đây tự viết lại 3 thứ (duplicate logic — architecture review B):
  *   1. re-check race (2 thiết bị cùng staffId trong cửa sổ cache) → append biến update/skip
  *   2. enrich append bằng staffIndex
  *   3. gom update/append thành batch
@@ -129,9 +129,9 @@ function computeCounters(cfg, logRows) {
  *   appends: [11 cột theo LOG_COL_COUNT]                            → batchAppendLogRows_
  *   outcomes: {STAFFID: {action, field, listedAtText, listedAtEpoch, scannedAtText,
  *              scannedAtEpoch, status, staffName, slotCode, station, team, workstation,
- *              dateText, rowIndex}} — payload response client (scanStaff) / results (pasteCodes).
+ *              dateText, rowIndex}} — payload response client (scanStaff).
  *
- * Race semantics (thống nhất theo hành vi scanStaff, bảo thủ hơn pasteCodes cũ):
+ * Race semantics (thống nhất theo hành vi scanStaff):
  *  - append mà staffId ĐÃ có trong freshLogRows (thiết bị khác vừa ghi trong lock):
  *    + field 'scannedAt' & chưa có scannedAtEpoch → convert thành update scannedAt
  *    + field 'listedAt'  & chưa有 listedAtEpoch   → convert thành update listedAt
@@ -141,7 +141,7 @@ function computeCounters(cfg, logRows) {
  * @param {Object} cfg — { STATUS, TASK_STATUS }
  * @param {Object} task — { taskId, status }
  * @param {Array} actions — [{ code?, action:'update'|'append', field, status, row? }]
- *   (classifyScan result / planBatchScans plan — cùng shape commit)
+ *   (classifyScan result — cùng shape commit)
  * @param {Array} freshLogRows — log rows RE-CHECK (slim: staffId, text, epoch, status, _rowIndex)
  * @param {Object|null} staffIndex — map STAFFID → {staffName, slotCode, station, team, workstation, date}
  * @param {Date} now
@@ -312,100 +312,6 @@ function canMutateTask_(createdBy, activeEmail, isAdmin) {
 }
 
 /**
- * Plan batch scans for paste feature (T-2).
- * Pure function - no side effects, testable on Node.
- * For each code: normalize, validate format, then classifyScan against current logRows.
- * Deduplicates naturally within the batch (second occurrence of same code in paste will be rejected).
- *
- * @param {Object} cfg — { STATUS, TASK_STATUS }
- * @param {Object} task — { taskId, status }
- * @param {Array<Object>} logRows — current log rows (with listedAtEpoch/scannedAtEpoch)
- * @param {Array<string>} codes — array of raw codes from paste (one per line)
- * @returns {{plans: Array<{code, action, phase, field, status, reason, row}>, invalid: Array<{code, reason}>}}
- */
-function planBatchScans(cfg, task, logRows, codes) {
-  const plans = [];
-  const invalid = [];
-  // Regex barcode — 1 nguồn: CsvUtil.gs. GAS: global BARCODE_ID_RE (const CsvUtil, scope chung).
-  // Node test (require('../ScanLogic.gs') standalone) không thấy global → require CsvUtil.
-  const barcodeRe = typeof BARCODE_ID_RE !== 'undefined' ? BARCODE_ID_RE : require('./CsvUtil.gs').BARCODE_ID_RE;
-  // Clone logRows so we can simulate appends/updates for dedup within batch
-  // Fix 2 (audit 2): shallow [...logRows] vẫn dùng CHUNG object phần tử với caller —
-  // nhánh update (listedAtEpoch/timeRef) mut bản gốc. Deep copy phần tử → pure,
-  // nếu ghi sheet throw thì chỉ ảnh hưởng simulated local, không lệch logRows caller.
-  const simulatedLogRows = logRows ? logRows.map(function (r) { return Object.assign({}, r, { listedAt: r.listedAt ? new Date(r.listedAt) : r.listedAt }); }) : [];
-  
-  for (let i = 0; i < codes.length; i++) {
-    const rawCode = codes[i];
-    const code = String(rawCode || '').trim();
-    
-    if (!code) continue; // skip empty lines
-    
-    // Normalize
-    const staffId = code.toUpperCase();
-    
-    // Validate format (must start with OPS followed by digits only)
-    if (!barcodeRe.test(staffId)) {
-      invalid.push({ code: code, ok: false, reason: 'invalid-format' });
-      continue;
-    }
-    
-    // Classify against simulated log (includes previous appends in this batch)
-    const result = classifyScan(cfg, task, simulatedLogRows, staffId);
-    
-    const plan = {
-      code: code,
-      action: result.action,
-      phase: result.phase,
-      field: result.field,
-      status: result.status,
-      reason: result.reason,
-      row: result.row,
-    };
-    plans.push(plan);
-    
-    // m4 (audit): simulate update trong batch — trước chỉ append được simulate nên mã
-    // trùng (plan đầu = update) ra 2 update + success sai. Giờ update cũng cập nhật
-    // simulated log để lượt kế classify ra already-*. 
-    if (result.action === 'update' && result.row) {
-      const nowU = new Date();
-      if (result.field === 'scannedAt') {
-        result.row.scannedAtEpoch = nowU.getTime();
-        result.row.scannedAt = nowU;
-        result.row.status = result.status;
-      } else {
-        result.row.listedAtEpoch = nowU.getTime();
-        result.row.listedAt = nowU;
-      }
-    }
-    
-    // If append, add to simulated log for subsequent codes in same batch
-    if (result.action === 'append') {
-      // Build a minimal row object for simulation
-      const now = new Date();
-      const newRow = {
-        taskId: task.taskId,
-        staffId: staffId,
-        staffName: '',
-        slotCode: '',
-        station: '',
-        team: '',
-        workstation: '',
-        timeRef: result.field === 'listedAt' ? now : null,
-        timeScan: result.field === 'scannedAt' ? now : null,
-        listedAtEpoch: result.field === 'listedAt' ? now.getTime() : 0,
-        scannedAtEpoch: result.field === 'scannedAt' ? now.getTime() : 0,
-        status: result.status,
-        date: '',
-      };
-      simulatedLogRows.push(newRow);
-    }
-  }
-  
-  return { plans: plans, invalid: invalid };
-}
-
-/**
  * matchLogsByStaff — logic THUẦN: lọc log rows theo mã NV (xuyên task) + join task meta.
  * Dùng cho tính năng search header (F-search). Server (Database.searchLogsByStaff) chỉ
  * đọc sheet rồi gọi hàm này — tránh duplicate logic, test được Node mà không cần mock sheet.
@@ -490,7 +396,6 @@ if (typeof module !== 'undefined' && module.exports) {
     canScanOpen_: canScanOpen_,
     canMutateTask_: canMutateTask_,
     planScanCommits: planScanCommits,
-    planBatchScans: planBatchScans,
     matchLogsByStaff: matchLogsByStaff,
     matchTasksByQuery: matchTasksByQuery,
   };

@@ -11,7 +11,7 @@
  *   getSettingsApi()             → { ok, settings } — editor-only (trang Config Admin)
  *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
  *   getAuditLogApi(limit)        → { ok, rows } — nhật ký hoạt động viewAdmin (admin+)
- *   createReconcileTaskApi(input) → { ok, taskId, count, message }
+ *   createReconcileTaskApi(input) → { ok, taskId, count, skippedCodes, message } — tạo task + nạp roster (theo ca / dán mã / rỗng)
  *   getTaskListApi()             → [{ taskId, station, slotCode, team, status, createdAt }]
  *   getTaskDetailApi(taskId)     → { ok, task, log, counters }
  *   scanStaffApi(taskId, staffId) → { ok, message, status, counters }
@@ -19,7 +19,6 @@
  *   cancelTaskApi(taskId)        → { ok, message } — hủy task Mở rỗng (xóa hẳn)
  *   transitionToAttendApi(taskId) → { ok, message, counters } — task open → attend
  *   reopenTaskApi(taskId)         → { ok, message } — task done → open (quét bổ sung)
- *   pasteCodesApi(taskId, lines)  → { ok, total, success, failed, results } — dán mã hàng loạt
  *   searchLogsByStaffApi(staffId) → { ok, rows } — manager+ (báo cáo tháng theo mail)
  *   getReportsApi()               → { ok, rows, email, opsId } — báo cáo chấm công tháng theo mail đăng nhập (StaffAttendance × StaffInfo)
  *   searchTasksByQueryApi(q)      → { ok, rows } — tìm task theo mã NV / mã task
@@ -139,7 +138,7 @@ function previewStaffApi(input) {
  * Gate: requireRole_('manager') — viewStats/viewStaff chỉ cho manager+ (2026-08-17).
  * Chỉ đọc — cache 30s (STAFF_STATS). */
 function getStaffStatsApi() {
-  // Gate requireRole_('operator') đặt TRONG try (pattern DEFENSE như pasteCodes):
+  // Gate requireRole_('operator') đặt TRONG try (pattern DEFENSE):
   // nếu requireRole_ → getSetting_ → getSheet_/getSpreadsheet_ throw (chưa cấu hình)
   // thì trả ok:false thay vì ném ra client.
   try {
@@ -283,32 +282,6 @@ function reopenTaskApi(taskId) {
     return reopenTask(taskId);
   } catch (e) {
     return { ok: false, message: e && e.message ? e.message : 'reopenTask fail' };
-  }
-}
-
-/** T-2: Dán danh sách mã (batch paste). Gate requireRole_('operator') — operator vẫn dùng
- *  (DEFAULT=operator); paste vẫn giữ owner-gate canScanOpen_ ở phase OPEN bên trong. */
-function pasteCodesApi(taskId, lines) {
-  // Gate quyền THẬT nằm TRONG pasteCodes (ScanService) — google.script.run gọi được hàm global
-  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
-  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
-  try {
-    return pasteCodes(taskId, lines);
-  } catch (e) {
-    return { ok: false, message: e && e.message ? e.message : 'pasteCodes fail' };
-  }
-}
-
-/** Nạp danh sách theo ca (roster) — Phase A (docs/roster-load-design.md). Gate thật TRONG
- *  loadRoster (TaskService): operator + status OPEN + canScanOpen_ (owner/admin). */
-function loadRosterApi(taskId, filters) {
-  // Gate quyền THẬT nằm TRONG loadRoster (TaskService) — google.script.run gọi được hàm global
-  // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
-  // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
-  try {
-    return loadRoster(taskId, filters);
-  } catch (e) {
-    return { ok: false, total: 0, added: 0, skipped: 0, message: e && e.message ? e.message : 'loadRoster fail', counters: null };
   }
 }
 

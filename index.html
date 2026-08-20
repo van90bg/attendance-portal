@@ -58,17 +58,7 @@
         <div class="task-meta">Đối chiếu danh sách theo Station / Ca / Team — tạo task, quét giờ có mặt, điểm danh, bàn giao</div>
       </div>
       <div class="create-task-wrap" id="createTaskWrap">
-        <button class="btn" id="btnCreate" onclick="toggleCreateTaskMenu()" aria-haspopup="true" aria-expanded="false">+ Task mới</button>
-        <div class="create-task-menu hidden" id="createTaskMenu" role="menu" aria-label="Tạo task mới">
-          <button type="button" class="create-task-menu-item" role="menuitem" onclick="chooseCreateMode('roster')">
-            <span class="create-task-item-title">Nạp danh sách</span>
-            <span class="create-task-item-hint">Chọn Station — task có danh sách NV theo ca</span>
-          </button>
-          <button type="button" class="create-task-menu-item" role="menuitem" onclick="chooseCreateMode('empty')">
-            <span class="create-task-item-title">Task rỗng</span>
-            <span class="create-task-item-hint">Quét tự do — nạp danh sách sau (hoặc không)</span>
-          </button>
-        </div>
+        <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
       </div>
     </div>
 
@@ -124,7 +114,6 @@
         <div class="task-title" id="scanTaskTitle"></div>
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
-      <button class="btn btn-ghost" id="btnLoadList" onclick="openLoadListModal('roster')" style="display:none" aria-label="Nạp danh sách">Nạp danh sách</button>
       <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Bắt đầu điểm danh">Bắt đầu điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Chốt ca">Chốt ca</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
@@ -151,7 +140,7 @@
           <button class="btn" id="btnCameraPhoto" onclick="openPhotoScan()" aria-label="Chụp ảnh để quét mã" title="Chụp ảnh để quét mã"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
           <button class="btn" id="btnScan" onclick="submitScan()">Quét</button>
         </div>
-        <div class="scan-hint">Quét mã NV (Ops + số) hoặc bấm "Nạp danh sách" để dán mã / lấy theo ca. Enter để quét.</div>
+        <div class="scan-hint">Quét mã NV (Ops + số). Enter để quét — danh sách NV đã nạp lúc tạo task.</div>
         <div id="scanCard" class="scan-card">
           <div class="sc-empty">Chưa có lượt quét</div>
         </div>
@@ -438,7 +427,7 @@
 
       <h3 class="about-h3">2. Hướng dẫn nhanh</h3>
       <ol class="about-list about-list-lh">
-        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → nhấn <b>+ Task mới</b> → chọn <b>Nạp danh sách</b> (chọn Station, Ca, Hình thức, Phòng ban — Team/Ngày lấy từ task nếu có) hoặc <b>Task rỗng</b> (tạo ngay, quét tự do).</li>
+        <li><b>Tạo task:</b> vào mục <b>Điểm danh</b> → nhấn <b>+ Task mới</b> → <b>Theo ca</b> (chọn Station, Ca, Hình thức, Phòng ban, Team, Ngày — danh sách NV nạp ngay) hoặc <b>Dán mã</b> (dán danh sách mã NV) hoặc để trống (task rỗng — quét tự do).</li>
         <li><b>Quét vào danh sách:</b> quét mã NV (bắt đầu bằng <b>Ops</b>) — người trong danh sách hiện <i>Đã đến</i> (đã ghi giờ có mặt); người lạ tính là <i>Dư</i>.</li>
         <li><b>Bắt đầu điểm danh:</b> nhấn <b>Bắt đầu điểm danh</b>, rồi quét lại từng người để ghi <b>Giờ quét</b> (<i>Có mặt</i>).</li>
         <li><b>Chốt ca:</b> nhấn <b>Chốt ca</b> — người chưa quét lần 2 tự tính là <b>Vắng</b>. Muốn quét bổ sung thì <b>Mở lại</b>.</li>
@@ -450,7 +439,7 @@
         <li><b>Quét tự do (FREE):</b> không cần danh sách sẵn, xây danh sách ngay khi quét.</li>
         <li><b>Phân quyền:</b> viewer / operator / manager / admin với từng mức truy cập riêng.</li>
         <li><b>Đa thiết bị:</b> tự thích ứng máy tính, tablet và điện thoại.</li>
-        <li><b>Dán mã hàng loạt:</b> dán cả danh sách mã NV một lần thay vì quét từng người.</li>
+        <li><b>Dán mã hàng loạt:</b> dán danh sách mã NV ngay lúc tạo task thay vì quét từng người.</li>
       </ul>
 
       <h3 class="about-h3">4. Trạng thái sau điểm danh</h3>
@@ -495,88 +484,62 @@
   <button class="nav-item" data-page="admin" id="bottomAdminItem" onclick="selectPage('admin')" style="display:none;" title="Quản trị (chỉ admin)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.2-7 10-4-1.8-7-5.4-7-10V6z"/><path d="M9.5 12l1.8 1.8 3.2-3.6"/></svg><span>Quản trị</span></button>
   <button class="nav-item" data-page="about" onclick="selectPage('about')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg><span>Giới thiệu</span></button>
 </nav>
-<!-- Modal nạp danh sách (2 tab: Theo ca / Dán mã) — 1 nút duy nhất thay menu "Thêm" -->
-<div id="loadListModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="loadListModalTitle" onclick="if(event.target===this)closeLoadListModal()">
-  <div class="about-dialog paste-dialog">
-    <h2 id="loadListModalTitle">Nạp danh sách</h2>
-    <div class="load-tabs" role="tablist" aria-label="Cách nạp danh sách" onkeydown="onLoadTabKeydown_(event)">
-      <button type="button" class="load-tab is-active" id="loadTabRoster" role="tab" aria-selected="true" aria-controls="loadPaneRoster" tabindex="0" onclick="onLoadTabClick_('roster')">Theo ca</button>
-      <button type="button" class="load-tab" id="loadTabPaste" role="tab" aria-selected="false" aria-controls="loadPanePaste" tabindex="-1" onclick="onLoadTabClick_('paste')">Dán mã</button>
-    </div>
-    <div class="load-pane" id="loadPaneRoster">
-      <p class="mode-desc">Chọn Station, Ca, Hình thức, Phòng ban — Team/Ngày lấy từ task (nếu có).</p>
-      <div class="create-form" id="rosterForm">
-        <div class="frow">
-          <span class="flabel">Station</span>
-          <div class="chips" id="rosterChipsStation" role="radiogroup" aria-label="Station"></div>
-        </div>
-        <div class="frow">
-          <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
-          <div class="chips" id="rosterChipsSlot" role="group" aria-label="Ca"></div>
-        </div>
-        <div class="frow">
-          <span class="flabel">Hình thức <span class="fnote">chọn nhiều</span></span>
-          <div class="chips" id="rosterChipsContract" role="group" aria-label="Hình thức"></div>
-        </div>
-        <div class="frow">
-          <span class="flabel">Phòng ban <span class="fnote">chọn nhiều</span></span>
-          <div class="chips" id="rosterChipsDept" role="group" aria-label="Phòng ban"></div>
-        </div>
-      </div>
-      <div class="empty" id="rosterError" style="display:none;"></div>
-      <div class="create-footer">
-        <div class="create-total"><b id="rosterTotalNum">0</b> <span>nhân viên khớp</span></div>
-        <div class="create-actions">
-          <button class="btn btn-ghost" onclick="closeLoadListModal()">Huỷ</button>
-          <button class="btn" id="btnRosterSubmit" onclick="submitRoster()" disabled>Nạp danh sách</button>
-        </div>
-      </div>
-    </div>
-    <div class="load-pane" id="loadPanePaste" style="display:none">
-      <p class="muted paste-hint">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần.</p>
-      <textarea id="pasteTextarea" class="paste-textarea" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
-      <div id="pasteCountHint" class="paste-count-hint">Nhập mã NV để đếm tự động</div>
-      <div id="pasteProgress" style="display:none;margin-top:var(--space-2);">
-        <div class="paste-track">
-          <div id="pasteProgressFill" class="paste-fill"></div>
-        </div>
-        <div id="pasteProgressText" class="paste-progress-text">Đang xử lý…</div>
-      </div>
-      <div id="pastePreview" style="margin-top:var(--space-2);overflow:auto;display:none;"></div>
-      <div class="paste-footer">
-        <button class="btn btn-ghost" onclick="closeLoadListModal()">Huỷ</button>
-        <button class="btn" id="btnPasteSubmit" onclick="submitPaste()">Dán</button>
-      </div>
-    </div>
-  </div>
-</div>
 <div id="createModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="createModalTitle" onclick="if(event.target===this)closeCreateModal()">
   <div class="about-dialog">
     <h2 id="createModalTitle">Tạo task mới</h2>
-    <p class="mode-desc">Chọn Station — task này có danh sách NV; sau khi tạo, mở "Nạp danh sách" trong màn quét để chọn Ca và nạp.</p>
-    <div class="create-form" id="createForm">
-      <div class="frow">
-        <span class="flabel">Station <span class="fnote">bắt buộc</span></span>
-        <div class="chips" id="createChipsStation" role="radiogroup" aria-label="Station"></div>
+    <div class="load-tabs" role="tablist" aria-label="Cách tạo task" onkeydown="onCreateTabKeydown_(event)">
+      <button type="button" class="load-tab is-active" id="createTabRoster" role="tab" aria-selected="true" aria-controls="createPaneRoster" tabindex="0" onclick="onCreateTabClick_('roster')">Theo ca</button>
+      <button type="button" class="load-tab" id="createTabPaste" role="tab" aria-selected="false" aria-controls="createPanePaste" tabindex="-1" onclick="onCreateTabClick_('paste')">Dán mã</button>
+    </div>
+    <div class="load-pane" id="createPaneRoster">
+      <p class="mode-desc">Chọn Station, Ca, Hình thức, Phòng ban, Team, Ngày — danh sách NV nạp ngay lúc tạo task. Không chọn gì → task rỗng (quét tự do).</p>
+      <div class="create-form" id="createForm">
+        <div class="frow">
+          <span class="flabel">Station</span>
+          <div class="chips" id="createChipsStation" role="radiogroup" aria-label="Station"></div>
+        </div>
+        <div class="frow">
+          <span class="flabel">Ca <span class="fnote">chọn nhiều</span></span>
+          <div class="chips" id="createChipsSlot" role="group" aria-label="Ca"></div>
+        </div>
+        <div class="frow">
+          <span class="flabel">Hình thức <span class="fnote">chọn nhiều</span></span>
+          <div class="chips" id="createChipsContract" role="group" aria-label="Hình thức"></div>
+        </div>
+        <div class="frow">
+          <span class="flabel">Phòng ban <span class="fnote">chọn nhiều</span></span>
+          <div class="chips" id="createChipsDept" role="group" aria-label="Phòng ban"></div>
+        </div>
+        <div class="frow">
+          <span class="flabel">Team <span class="fnote">chọn nhiều</span></span>
+          <div class="chips" id="createChipsTeam" role="group" aria-label="Team"></div>
+        </div>
+        <div class="frow">
+          <span class="flabel">Ngày <span class="fnote">chọn nhiều</span></span>
+          <div class="chips" id="createChipsDate" role="group" aria-label="Ngày"></div>
+        </div>
       </div>
-      <div class="frow">
-        <span class="flabel">Team</span>
-        <div class="chips" id="createChipsTeam" role="group" aria-label="Team"></div>
-      </div>
-      <div class="frow">
-        <span class="flabel">Ngày</span>
-        <div class="chips" id="createChipsDate" role="group" aria-label="Ngày"></div>
+      <div class="empty" id="createRosterError" style="display:none;"></div>
+      <div class="create-footer">
+        <div class="create-total"><b id="createRosterTotalNum">0</b> <span>nhân viên khớp</span></div>
+        <div class="create-actions">
+          <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
+          <button class="btn" id="btnCreateSubmit" onclick="submitCreateTask()" disabled>Tạo</button>
+        </div>
       </div>
     </div>
-    <div class="create-footer">
-      <div class="create-actions">
+    <div class="load-pane" id="createPanePaste" style="display:none">
+      <p class="muted paste-hint">Mỗi dòng 1 mã NV (bắt đầu bằng <b>Ops</b>). Tối đa 200 dòng/lần — mã không có trong dữ liệu sẽ bị bỏ qua.</p>
+      <textarea id="createPasteTextarea" class="paste-textarea" placeholder="Ops000001&#10;Ops000002&#10;Ops000003&#10;..."></textarea>
+      <div id="createPasteCountHint" class="paste-count-hint">Nhập mã NV để đếm tự động</div>
+      <div id="createPasteError" class="empty" style="display:none;"></div>
+      <div class="paste-footer">
         <button class="btn btn-ghost" onclick="closeCreateModal()">Huỷ</button>
-        <button class="btn" id="btnCreateSubmit" onclick="submitCreateTask()" disabled>Tạo</button>
+        <button class="btn" id="btnCreatePasteSubmit" onclick="submitCreateTaskPaste()" disabled>Tạo</button>
       </div>
     </div>
   </div>
 </div>
-
 <!-- Modal confirm dùng chung (thay alert/confirm trình duyệt — giữ UX đồng nhất) -->
 <div id="confirmModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="confirmModalTitle" onclick="if(event.target===this)closeConfirmModal()">
   <div class="about-dialog confirm-dialog">
