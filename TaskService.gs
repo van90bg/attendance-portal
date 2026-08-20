@@ -117,7 +117,7 @@ function createReconcileTask(input) {
 
 /**
  * Nạp danh sách theo ca (roster) vào task đang MỞ — Phase A (docs/roster-load-design.md).
- * Lọc StaffData theo tổ hợp → append dòng PENDING + timeRef = now cho NV CHƯA có trong log
+ * Lọc StaffData theo tổ hợp → append dòng PENDING (LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1) cho NV CHƯA có trong log
  * (bỏ qua im lặng NV đã có — idempotent, khác paste báo "đã có mặt"). KHÔNG reclassify dòng cũ.
  * Gate: operator + status OPEN + canScanOpen_ (owner/admin) — pattern DEFENSE (như pasteCodes).
  * @param {string} taskId
@@ -353,7 +353,7 @@ function reopenTask(taskId) {
 /**
  * Hủy task đang Mở (OPEN) với log RỖNG — xóa hẳn task khỏi AttendanceTask (tạo nhầm / bỏ dở).
  * KHÔNG cho hủy khi đã có dữ liệu quét — phải Bắt đầu điểm danh → Chốt ca bình thường.
- * Gate: operator + OPEN + canScanOpen_ (owner/admin — đồng gate transitionToAttend).
+ * Gate: operator + OPEN + canMutateTask_ (owner/admin — fail-closed như complete/reopen).
  * @param {string} taskId
  * @returns {{ok: boolean, message: string}}
  */
@@ -374,7 +374,7 @@ function cancelTask(taskId) {
       return { ok: false, message: 'Chỉ hủy được task đang ở phase Mở' };
     }
     const isAdmin = requireRole_('admin');
-    if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
+    if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
       return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
     }
     // An toàn: chỉ xóa dòng task khi log RỖNG — có dữ liệu quét thì phải Kết thúc bình thường.

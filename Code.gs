@@ -247,7 +247,7 @@ function completeTaskApi(taskId) {
 }
 
 /** Hủy task phase Mở với log rỗng (tạo nhầm / bỏ dở) — xóa hẳn task. Gate requireRole_('operator')
- *  + canScanOpen_ bên trong cancelTask (TaskService) — đồng gate transitionToAttend.
+ *  + canMutateTask_ bên trong cancelTask (TaskService) — fail-closed như complete/reopen.
  */
 function cancelTaskApi(taskId) {
   // Gate quyền THẬT nằm TRONG cancelTask (TaskService) — google.script.run gọi được hàm global

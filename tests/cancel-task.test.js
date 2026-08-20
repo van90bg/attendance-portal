@@ -65,6 +65,16 @@ test('cancelTask gate: non-owner phase Mở → reject (canScanOpen_)', () => {
   assert.match(res.message, /owner/i);
 });
 
+test('cancelTask gate: task legacy createdBy web + operator → reject (fail-closed canMutateTask_)', () => {
+  const { ctx, ss } = makeSandbox({ activeEmail: 'op@spx.com' });  // operator, non-editor
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedTask(ss, 'R1', 'open', 'web');
+  const res = svc.cancelTask('R1');
+  assert.equal(res.ok, false);
+  assert.match(res.message, /owner/i);
+});
+
 test('cancelTask gate: viewer → reject (requireRole_)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'v@spx.com' });
   const svc = loadAll(ctx);

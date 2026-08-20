@@ -301,7 +301,7 @@
     },
     loadRosterApi: function (taskId, filters) {
       // Khớp server loadRoster (TaskService): gate status OPEN; lọc StaffData → append PENDING
-      // + timeRef = now; bỏ qua NV đã có dòng (idempotent, không lỗi như paste).
+      // + LISTED_AT rỗng (noListedAt — thời điểm đến ghi khi NV quét phase 1); bỏ qua NV đã có dòng (idempotent).
       var task = null;
       MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
       function z(msg) { return { ok: false, total: 0, added: 0, skipped: 0, message: msg, counters: null }; }
@@ -317,15 +317,12 @@
       var deduped = mockDedupe(mockFilterStaff(base));
       if (!deduped.length) return z('Không có nhân viên nào trong tổ hợp đã chọn');
       var log = getLog(taskId);
-      var nowMs = Date.now();
-      var d = new Date(nowMs);
-      var ts = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
       var added = 0, skipped = 0;
       deduped.forEach(function (s) {
         var hit = null;
         log.forEach(function (r) { if (r.staffId.toLowerCase() === s.staffId.toLowerCase()) hit = r; });
         if (hit) { skipped++; return; }
-        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: ts, listedAtEpoch: nowMs, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' });
+        log.push({ taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: '', listedAtEpoch: 0, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' });
         added++;
       });
       return { ok: true, total: deduped.length, added: added, skipped: skipped, counters: counters(log), message: added ? ('Đã nạp ' + added + ' NV' + (skipped ? ' — bỏ qua ' + skipped + ' đã có' : '')) : ('Tất cả ' + skipped + ' NV đã có trong danh sách') };
