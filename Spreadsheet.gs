@@ -85,13 +85,27 @@ function validateColumnHeaders_(sheet, expected, sheetName) {
 /** Đảm bảo toàn bộ sheet tồn tại (dùng khi khởi tạo). strict=true (setupSheets) →
  * validate header theo vị trí và THROW khi mismatch (fail-closed); doGet chạy non-strict
  * (chỉ log) để không chặn app khi sheet đang lệch — lỗi hiện trên Stackdriver. */
+/** Validate header CÓ CACHE (non-strict) — doGet gọi ensureSheets_ mỗi request, mỗi lần
+ * validate đọc header sheet (RPC). Header chỉ đổi khi editor migration tay — cache 60s
+ * che nhịp request; lệch nhất thời chỉ thấy muộn tối đa 1 phút (non-strict vốn chỉ log). */
+function validateHeadersCached_(sheet, expected, name) {
+  const key = CACHE_KEYS.HEADER + name;
+  const hit = cache_().get(key);
+  if (hit === 'ok') return true;
+  if (hit === 'bad') return false;
+  const ok = validateColumnHeaders_(sheet, expected, name);
+  try { cache_().put(key, ok ? 'ok' : 'bad', 60); } catch (e) { /* cache lỗi → vẫn chạy */ }
+  return ok;
+}
+
 function ensureSheets_(strict) {
   const fails = [];
+  const validate = strict ? validateColumnHeaders_ : validateHeadersCached_;
   getSheet_(SHEETS.CONFIG, ['Key', 'Value']);
   // Header chuẩn Att.csv (20 cột) — getSheet_ chỉ set khi sheet trống; syncFromCsv()
   // ghi đè dữ liệu từ dòng 2 (header dòng 1 giữ nguyên).
   const staffSheet = getSheet_(SHEETS.STAFF_DATA, STAFF_DATA_HEADER);
-  if (!validateColumnHeaders_(staffSheet, STAFF_DATA_HEADER, SHEETS.STAFF_DATA)) fails.push(SHEETS.STAFF_DATA);
+  if (!validate(staffSheet, STAFF_DATA_HEADER, SHEETS.STAFF_DATA)) fails.push(SHEETS.STAFF_DATA);
   const taskSheet = getSheet_(SHEETS.ATTENDANCE_TASK, [
     'taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt', 'date',
   ]);
@@ -109,7 +123,7 @@ function ensureSheets_(strict) {
   } else {
     console.warn('AttendanceTask hàng rỗng format — migration chèn cột bỏ qua để tránh vượt 10M cells');
   }
-  if (!validateColumnHeaders_(taskSheet, ['taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt', 'date'], SHEETS.ATTENDANCE_TASK)) fails.push(SHEETS.ATTENDANCE_TASK);
+  if (!validate(taskSheet, ['taskId', 'station', 'slotCode', 'team', 'contractType', 'status', 'createdAt', 'createdBy', 'completedAt', 'date'], SHEETS.ATTENDANCE_TASK)) fails.push(SHEETS.ATTENDANCE_TASK);
   const logSheet = getSheet_(SHEETS.ATTENDANCE_LOG, [
     'taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation',
     'listedAt', 'scannedAt', 'status', 'date',
@@ -146,8 +160,8 @@ function ensureSheets_(strict) {
       + ') — cột ' + (LOG_COL_COUNT + 1) + ' mang header "' + String(hdr[LOG_COL_COUNT] || '')
       + '". Writer ghi 11 giá trị, DATE sẽ vào cột sai header. Dọn sheet về 11 cột hoặc migration tay.');
   }
-  if (!validateColumnHeaders_(logSheet, ['taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation', 'listedAt', 'scannedAt', 'status', 'date'], SHEETS.ATTENDANCE_LOG)) fails.push(SHEETS.ATTENDANCE_LOG);
-  if (!validateColumnHeaders_(auditSheet, ['timestamp', 'email', 'action', 'targetId', 'detail'], SHEETS.AUDIT_LOG)) fails.push(SHEETS.AUDIT_LOG);
+  if (!validate(logSheet, ['taskId', 'staffId', 'staffName', 'slotCode', 'station', 'team', 'workstation', 'listedAt', 'scannedAt', 'status', 'date'], SHEETS.ATTENDANCE_LOG)) fails.push(SHEETS.ATTENDANCE_LOG);
+  if (!validate(auditSheet, ['timestamp', 'email', 'action', 'targetId', 'detail'], SHEETS.AUDIT_LOG)) fails.push(SHEETS.AUDIT_LOG);
   // Fail-closed CHỈ ở setupSheets (editor chủ động) — doGet non-strict vẫn log ở trên.
   if (strict && fails.length) {
     throw new Error('HEADER MISMATCH — ' + fails.join(', ')
