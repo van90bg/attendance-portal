@@ -401,6 +401,10 @@
   var MQ_COARSE = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
   var COARSE_POINTER = !!(MQ_COARSE && MQ_COARSE.matches);
   if (MQ_COARSE && MQ_COARSE.addEventListener) MQ_COARSE.addEventListener('change', function (e) { COARSE_POINTER = e.matches; });
+  function anyModalOpen() {
+    return !!document.querySelector('.about-overlay.open');
+  }
+
   /* ===== Auto-focus loop (tham khảo v1): giữ focus vào ô quét trên màn hình touch ===== */
   function startAutoFocusLoop() {
     if (COARSE_POINTER) return;  // mobile/tablet: không auto-focus — bàn phím không tự bật

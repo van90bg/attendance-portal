@@ -714,10 +714,10 @@
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
     }
-    // Đang chốt ca nền (BG_TASKS.rpc) — khoá nút Chốt, hiện trạng thái, không block UI khác.
+    // Đang chốt ca nền — không block UI, chỉ hiện trạng thái + BG indicator. Nút Chốt vẫn bấm được (BUSY guard chống double), không disabled.
     if (BG_TASKS.rpc) {
-      if (btn) { btn.disabled = true; btn.title = 'Đang chốt ca…'; }
-      if (btnTo) { btnTo.disabled = true; btnTo.title = 'Đang chốt ca…'; }
+      if (btn) { btn.disabled = false; btn.title = 'Đang chốt ca… (nền)'; }
+      if (btnTo) { btnTo.disabled = false; btnTo.title = 'Đang chốt ca…'; }
       if (btnCancel) { btnCancel.disabled = true; btnCancel.title = 'Đang chốt ca…'; }
       updateQueueFullState();
       return;
@@ -1065,7 +1065,7 @@
           var input = document.getElementById('scanInput');
           if (input) { input.disabled = true; input.title = 'Đang chốt ca…'; }
           var btn = document.getElementById('btnFinish');
-          if (btn) btn.disabled = true;
+          if (btn) btn.disabled = false;
           google.script.run
             .withSuccessHandler(function (res) {
               BUSY = false;
