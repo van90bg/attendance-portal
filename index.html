@@ -538,6 +538,20 @@
         <button class="btn" id="btnCreatePasteSubmit" onclick="submitCreateTaskPaste()" disabled>Tạo</button>
       </div>
     </div>
+    <!-- Nội dung "Đã tạo task" — ẩn mặc định, hiện khi tạo roster thành công -->
+    <div class="task-created-info" style="display:none">
+      <h2 style="margin:0 0 var(--space-3);font-size:var(--text-lg)">Đã tạo task thành công</h2>
+      <div class="task-created-row"><span class="task-created-label">Task</span><span class="task-created-value" id="taskCreatedId"></span></div>
+      <div class="task-created-row"><span class="task-created-label">Số lượng</span><span class="task-created-value" id="taskCreatedCount"></span></div>
+      <div class="task-created-row" id="taskCreatedTeamRow"><span class="task-created-label">Team</span><span class="task-created-value" id="taskCreatedTeam"></span></div>
+      <div class="task-created-row" id="taskCreatedSlotRow"><span class="task-created-label">Ca</span><span class="task-created-value" id="taskCreatedSlot"></span></div>
+    </div>
+    <div class="task-created-footer" style="display:none">
+      <div class="create-actions">
+        <button class="btn btn-ghost" onclick="onTaskCreatedView()">Xem</button>
+        <button class="btn" id="btnTaskCreatedAttend" onclick="onTaskCreatedAttend()">Điểm danh</button>
+      </div>
+    </div>
   </div>
 </div>
 <!-- Modal confirm dùng chung (thay alert/confirm trình duyệt — giữ UX đồng nhất) -->
@@ -574,25 +588,6 @@
       <div class="create-actions">
         <button class="btn btn-ghost" onclick="closeFixStatusModal()">Huỷ</button>
         <button class="btn" id="btnFixStatusSubmit" onclick="submitFixStatus()" disabled>Lưu</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal "Đã tạo task" — hiển thị sau khi tạo task thành công có roster (tình huống 2,3) -->
-<div id="taskCreatedModal" class="about-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="taskCreatedModalTitle" onclick="if(event.target===this)closeTaskCreatedModal()">
-  <div class="about-dialog">
-    <h2 id="taskCreatedModalTitle">Đã tạo task thành công</h2>
-    <div class="task-created-info">
-      <div class="task-created-row"><span class="task-created-label">Task</span><span class="task-created-value" id="taskCreatedId"></span></div>
-      <div class="task-created-row"><span class="task-created-label">Số lượng</span><span class="task-created-value" id="taskCreatedCount"></span></div>
-      <div class="task-created-row" id="taskCreatedTeamRow"><span class="task-created-label">Team</span><span class="task-created-value" id="taskCreatedTeam"></span></div>
-      <div class="task-created-row" id="taskCreatedSlotRow"><span class="task-created-label">Ca</span><span class="task-created-value" id="taskCreatedSlot"></span></div>
-    </div>
-    <div class="create-footer">
-      <div class="create-actions">
-        <button class="btn btn-ghost" onclick="closeTaskCreatedModal()">Xem danh sách</button>
-        <button class="btn" id="btnTaskCreatedAttend" onclick="onTaskCreatedAttend()">Chuyển sang điểm danh</button>
       </div>
     </div>
   </div>

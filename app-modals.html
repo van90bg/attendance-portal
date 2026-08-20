@@ -37,6 +37,7 @@
     if (first && first.focus) first.focus();
   }
   function closeCreateModal() {
+    if (typeof resetCreateModal_ === 'function') resetCreateModal_();
     var m = document.getElementById('createModal');
     if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
     var btn = document.getElementById('btnCreate');
@@ -346,14 +347,26 @@
     if (camPhoto) camPhoto.style.display = scanOwnerLocked ? 'none' : '';
   }
 
-  /* ===== Task created modal — hiển thị sau khi tạo task thành công có roster ===== */
+  /* ===== Task created — cập nhật createModal tại chỗ khi tạo thành công có roster ===== */
   var _taskCreatedTaskId = null;
-  function showTaskCreatedModal(res) {
+  function showTaskCreatedInModal(res) {
     // res = { ok, taskId, count, skippedCodes, message, station, slotCode, team }
     if (!res || !res.ok || !res.taskId) return false;
-    // Task rỗng (noList) → không hiện modal, giữ toast + mở scan như cũ
+    // Task rỗng (noList) → không hiện, caller đóng modal + mở scan
     if (!res.count || res.count === 0) return false;
     _taskCreatedTaskId = res.taskId;
+    // Ẩn nội dung tạo task, hiện nội dung "Đã tạo task" TRONG createModal
+    var m = document.getElementById('createModal');
+    if (!m) return false;
+    var tabs = m.querySelector('.load-tabs');
+    var paneRoster = document.getElementById('createPaneRoster');
+    var panePaste = document.getElementById('createPanePaste');
+    if (tabs) tabs.style.display = 'none';
+    if (paneRoster) paneRoster.style.display = 'none';
+    if (panePaste) panePaste.style.display = 'none';
+    // Hiện nội dung "Đã tạo task"
+    var info = m.querySelector('.task-created-info');
+    if (info) info.style.display = '';
     document.getElementById('taskCreatedId').textContent = res.taskId;
     document.getElementById('taskCreatedCount').textContent = res.count + ' NV' + (res.skippedCodes ? ' (bỏ ' + res.skippedCodes + ' mã)' : '');
     var teamEl = document.getElementById('taskCreatedTeam');
@@ -364,27 +377,60 @@
     var slotRow = document.getElementById('taskCreatedSlotRow');
     if (res.slotCode && res.slotCode !== SLOT_FREE_MAGIC) { slotEl.textContent = res.slotCode; slotRow.style.display = ''; }
     else { slotRow.style.display = 'none'; }
-    document.getElementById('taskCreatedModal').classList.add('open');
-    document.getElementById('taskCreatedModal').setAttribute('aria-hidden', 'false');
+    // Ẩn footer tạo, hiện footer "Đã tạo task"
+    var footers = m.querySelectorAll('.create-footer');
+    for (var i = 0; i < footers.length; i++) footers[i].style.display = 'none';
+    var createdFooter = m.querySelector('.task-created-footer');
+    if (createdFooter) createdFooter.style.display = '';
     document.getElementById('btnTaskCreatedAttend').focus();
     return true;
   }
-  function closeTaskCreatedModal() {
-    var m = document.getElementById('taskCreatedModal');
-    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
-    if (_taskCreatedTaskId) { openScan(_taskCreatedTaskId); _taskCreatedTaskId = null; }
+  function resetCreateModal_() {
+    // Khôi phục createModal về trạng thái ban đầu (gọi khi đóng/reopen)
+    var m = document.getElementById('createModal');
+    if (!m) return;
+    var tabs = m.querySelector('.load-tabs');
+    var paneRoster = document.getElementById('createPaneRoster');
+    var panePaste = document.getElementById('createPanePaste');
+    if (tabs) tabs.style.display = '';
+    if (paneRoster) paneRoster.style.display = '';
+    if (panePaste) panePaste.style.display = 'none';
+    var info = m.querySelector('.task-created-info');
+    if (info) info.style.display = 'none';
+    var footers = m.querySelectorAll('.create-footer');
+    for (var i = 0; i < footers.length; i++) footers[i].style.display = '';
+    var createdFooter = m.querySelector('.task-created-footer');
+    if (createdFooter) createdFooter.style.display = 'none';
+    _taskCreatedTaskId = null;
+  }
+  function onTaskCreatedView() {
+    var tid = _taskCreatedTaskId;
+    resetCreateModal_();
+    closeCreateModal();
+    if (tid) openScan(tid);
   }
   function onTaskCreatedAttend() {
     var tid = _taskCreatedTaskId;
-    closeTaskCreatedModal(); // đóng modal trước
     if (!tid) return;
-    // Chuyển OPEN→ATTEND rồi mở scan
+    // Đợi transitionToAttend xong TRƯỚC khi mở scan
+    var btn = document.getElementById('btnTaskCreatedAttend');
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang chuyển…'; }
     google.script.run
       .withSuccessHandler(function (res) {
-        if (res.ok) { openScan(tid); }
-        else { showToast(res.message, true); openScan(tid); }
+        resetCreateModal_();
+        closeCreateModal();
+        if (res.ok) {
+          openScan(tid);
+        } else {
+          showToast(res.message, true);
+          openScan(tid);
+        }
       })
-      .withFailureHandler(function () { openScan(tid); })
+      .withFailureHandler(function () {
+        resetCreateModal_();
+        closeCreateModal();
+        openScan(tid);
+      })
       .transitionToAttendApi(tid);
   }
 
@@ -432,8 +478,6 @@
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('fixStatusModal');
       if (m && m.classList.contains('open')) { closeFixStatusModal(); return; }
-      m = document.getElementById('taskCreatedModal');
-      if (m && m.classList.contains('open')) { closeTaskCreatedModal(); return; }
       // viewAbout is now a section, not a modal - go back to previous view
       var aboutV = document.getElementById('viewAbout');
       if (aboutV && !aboutV.classList.contains('hidden')) {
