@@ -105,3 +105,28 @@ Marker: 🔴 P0 (blocker/sai data) · 🟠 P1 (break/khó dùng) · 🟡 P2 (cos
 - Dùng marker 🔴🟠🟡 ✅ ⚠️ ✓ thay chữ "lỗi/nghiêm trọng/đã xong".
 - Số liệu đi đầu (đếm trước, kể sau): 5 P2 chứ không "có vài issue nhỏ".
 - Mỗi finding có ile:line cụ thể — không "ở đâu đó trong scan".
+## Redesign format (chuẩn riêng cho task thiết kế lại UI)
+
+Khi task là redesign giao diện (nút / modal / layout / card / component), dùng format này THAY VÌ bảng audit lỗi.
+
+**1. TL;DR 1 dòng** — quy mô redesign + regression:
+✅ Đề xuất duyệt — 2 component đổi · 1 token mới · 0 regression | ⚠️ Cần mockup — 3 component
+
+**2. Bảng đổi component** (Trước → Sau + token bắt buộc):
+| Component | Trước | Sau (chuẩn) | Token áp dụng | Vị trí |
+|---|---|---|---|---|
+| Nút Lưu | rect 6px, #2e7d32 | pill 999px, primary | --radius-full · --primary-bg | styles.html:140 |
+| Modal | fade 200ms | scale-in 0.96→1 180ms | --motion-fast | pp-modals.html:30 |
+
+**3. Khối 📐 Layout** — vẽ ASCII nhanh cấu trúc trước→sau:
+`  `
+TRƯỚC               SAU
+[Save][Cancel]      (Save pill)  (Cancel ghost)
+`  `
+
+**Quy tắc redesign**
+- Mọi màu/spacing/radius phải chỉ vào token :root — KHÔNG hardcode (AGENTS.md §2.8).
+- Đi kèm mockup HTML cho view lớn — user duyệt TRƯỚC khi implement (luật strict).
+- Edit deterministic CRLF (project-skill §8); xong chạy 
+pm run test:css + 	est:style.
+- Không regression: giữ class chuẩn .view-topbar/.list-search/.empty/modal chung.

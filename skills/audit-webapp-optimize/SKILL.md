@@ -88,3 +88,6 @@ Marker: 🔴 P0 (blocker/sai data) · 🟠 P1 (break/khó dùng) · 🟡 P2 (cos
 - Dùng marker 🔴🟠🟡 ✅ ⚠️ ✓ thay chữ "lỗi/nghiêm trọng/đã xong".
 - Số liệu đi đầu (đếm trước, kể sau): 5 P2 chứ không "có vài issue nhỏ".
 - Mỗi finding có ile:line cụ thể — không "ở đâu đó trong scan".
+## Redesign format (khi task thiết kế lại UI)
+
+Task redesign giao diện → dùng format riêng trong ui-ux-audit (bảng Trước→Sau + token + 📐 layout). Xem ../ui-ux-audit/SKILL.md §Redesign format.
