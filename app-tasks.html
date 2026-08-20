@@ -714,14 +714,11 @@
       clearSearch();
     }
   }
-  function createTaskWithMeta_(station, team, date) {
+  function createTaskWithMeta_(input) {
     if (BUSY) return;
     var btn = document.getElementById('btnCreate');
     BUSY = true;
     if (btn) { btn.disabled = true; setBtnBusy_(btn, 'Đang tạo…'); }
-    var input = { station: station };
-    if (team) input.team = [team];
-    if (date) input.date = date;
     google.script.run
       .withSuccessHandler(function (res) {
         BUSY = false;
