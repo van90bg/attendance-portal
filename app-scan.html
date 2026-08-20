@@ -711,8 +711,10 @@
     if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
     // "Hủy" chỉ ở phase Mở + log rỗng + owner — xóa hẳn task tạo nhầm/bỏ dở.
     if (btnCancel) {
+      var perm = CURRENT_TASK && CURRENT_TASK.permission;
+      var canMutate = perm && (perm.canMutate !== undefined ? perm.canMutate : (perm.isOwner || perm.isAdmin));
       var canCancel = phase === TASK_STATUS_C.OPEN && !scanOwnerLocked
-        && CURRENT_TASK && CURRENT_TASK.permission && CURRENT_TASK.permission.canScanOpen
+        && canMutate
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
     }

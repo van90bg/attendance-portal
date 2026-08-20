@@ -141,10 +141,10 @@
   // Trạng thái nút tải/lưu — dùng chung loadStaffView/loadConfigView/saveConfig (gom 2026-08-11).
   // busyLabel: text khi đang xử lý (lưu label gốc vào dataset để restore đúng).
   function setBtnBusy_(btn, busyLabel) {
-    if (btn && btn.tagName) { btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = busyLabel; }
+    if (btn && btn.tagName) { if (btn.dataset.origLabel === undefined) btn.dataset.origLabel = btn.textContent; btn.disabled = true; btn.textContent = busyLabel; }
   }
   function restoreBtnLabel_(btn, fallback) {
-    if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.label || fallback; }
+    if (btn && btn.tagName) { btn.disabled = false; btn.textContent = btn.dataset.origLabel || fallback; delete btn.dataset.origLabel; }
   }
 
     // ===== Pagination =====
@@ -744,6 +744,9 @@
       }
       updateStuckBars();
     }
+    // F1: focus main cho keyboard/SR
+    var main = document.getElementById('main-content');
+    if (main) { main.focus({ preventScroll: true }); }
   }
 
   /* ===== SPX Điểm Danh — Sidebar & Page routing ===== */
