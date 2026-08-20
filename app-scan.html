@@ -1046,10 +1046,9 @@
       : (pendingLeft > 0
         ? 'Chốt ca task ' + CURRENT_TASK.taskId + '?\n' + pendingLeft + ' NV chưa điểm danh sẽ tính Vắng.'
         : 'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.');
-    var finishMsg = queued > 0 ? baseMsg + '\n\nCòn ' + queued + ' lượt quét đang đồng bộ — sẽ tự chốt sau khi xong (nền, không block UI).' : baseMsg;
     showConfirm(
       scannedNow === 0 ? 'Cảnh báo — chưa ai điểm danh' : 'Kết thúc task',
-      finishMsg,
+      baseMsg,
       function () {
         var finishTaskId = CURRENT_TASK.taskId;
         // Helper gọi RPC chốt ca nền — không showModalSpin, chỉ BG_TASKS + khoá input/nút.
