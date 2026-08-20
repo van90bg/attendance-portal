@@ -339,11 +339,6 @@
 
     /* ===== Bộ đếm — 3 khối luôn cùng 1 hàng (nhìn nhanh) ===== */
     .counters { display: flex; gap: var(--space-2); }
-    /* P1-2 fix: dùng transform translateX (GPU-accelerated) thay vì left (layout thrash). */
-    @keyframes pasteSlide {
-      0% { transform: translateX(-250%); }
-      100% { transform: translateX(250%); }
-    }
     .counter {
       flex: 1;
       min-width: 0;
@@ -529,7 +524,7 @@
 
     /* ===== Scan input ===== */
     .scan-row { display: flex; gap: var(--space-2); }
-    .scan-input-wrap { flex: 1; position: relative; overflow: hidden; padding: var(--space-1); border-radius: var(--radius-sm); }
+    .scan-input-wrap { flex: 1; position: relative; overflow: hidden; padding: var(--space-1); border-radius: var(--radius-sm); background: var(--surface-muted); border: 1px solid var(--border); }
     .scan-input-wrap input {
       font-size: var(--text-4xl);
       letter-spacing: 1px;
@@ -551,8 +546,6 @@
       opacity: 0;
     }
     .scan-input-wrap:focus-within::after { animation: scanLine 1.8s ease-in-out infinite; }
-    /* Scan input không focus: nền hơi khác để phân biệt với scanCard */
-    .scan-input-wrap { background: var(--surface-muted); border: 1px solid var(--border); }
     .scan-input-wrap input::placeholder {
       font-size: var(--text-md);
       font-weight: 500;

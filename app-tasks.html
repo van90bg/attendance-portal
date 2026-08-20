@@ -506,7 +506,6 @@
               }
             }, 900);
           }
-          try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {}
          } else {
            showToast(res.message, true);
            var eb = document.getElementById('btnCreateEmpty'); if (eb) { eb.disabled = false; eb.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }

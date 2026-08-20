@@ -86,14 +86,17 @@ function getFilterOptionsApi() {
           slotCode: getSetting_('defaultSlotCode'),
           team: getSetting_('defaultTeam'),
         },
-        lists: {
-          stations: settingsList_('stations'),
-          teams: settingsList_('teams'),
-          slotcodes: settingsList_('slotcodes'),
-          departments: settingsList_('departments'),
-          agencies: settingsList_('agencies'),
-          contractTypes: settingsList_('contractTypes'),
-        },
+        lists: (function () {
+          const s = getSettings_();
+          return {
+            stations: s.stations || [],
+            teams: s.teams || [],
+            slotcodes: s.slotcodes || [],
+            departments: s.departments || [],
+            agencies: s.agencies || [],
+            contractTypes: s.contractTypes || [],
+          };
+        })(),
         staffList: slimStaffList,
       };
     }, CACHE_TTL.FILTER_OPTIONS);
