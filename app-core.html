@@ -247,12 +247,17 @@
   // đồng bộ --header-h = chiều cao header THẬT — token tĩnh 59px lệch khi
   // header wrap (font/zoom/màn hẹp) → doc cao hơn viewport → scroll dọc vĩnh viễn +
   // sidebar/view-topbar sticky bị ẩn sau header. Chạy khi DOM sẵn sàng + load + resize.
+  var _headerHRaf = null;
   function syncHeaderH() {
-    var hEl = document.querySelector('header');
-    if (!hEl) return;
-    var px = Math.round(hEl.getBoundingClientRect().height) + 'px';
-    var cur = getComputedStyle(document.documentElement).getPropertyValue('--header-h').trim();
-    if (cur !== px) document.documentElement.style.setProperty('--header-h', px);
+    if (_headerHRaf) return;
+    _headerHRaf = requestAnimationFrame(function () {
+      _headerHRaf = null;
+      var hEl = document.querySelector('header');
+      if (!hEl) return;
+      var px = Math.round(hEl.getBoundingClientRect().height) + 'px';
+      var cur = getComputedStyle(document.documentElement).getPropertyValue('--header-h').trim();
+      if (cur !== px) document.documentElement.style.setProperty('--header-h', px);
+    });
   }
   window.addEventListener('load', syncHeaderH);
   window.addEventListener('resize', syncHeaderH);
@@ -376,16 +381,21 @@
   }
 
   /* ===== Topbar sticky (.view-topbar chung) — thêm viền/bóng khi dính ===== */
+  var _stuckRaf = null;
   function updateStuckBars() {
-    var bars = document.querySelectorAll('.view-topbar');
-    if (!bars.length) return;
-    // đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
-    var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
-    bars.forEach(function (bar) {
-      // bỏ qua topbar của view đang ẩn (rect = 0 → không đánh dấu stuck sai)
-      if (!bar.offsetParent) { bar.classList.remove('stuck'); return; }
-      var rect = bar.getBoundingClientRect();
-      bar.classList.toggle('stuck', rect.top <= hh);
+    if (_stuckRaf) return;
+    _stuckRaf = requestAnimationFrame(function () {
+      _stuckRaf = null;
+      var bars = document.querySelectorAll('.view-topbar');
+      if (!bars.length) return;
+      // đọc token MỖI LẦN scroll — syncHeaderH() có thể đổi --header-h khi resize/wrap
+      var hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 59;
+      bars.forEach(function (bar) {
+        // bỏ qua topbar của view đang ẩn (rect = 0 → không đánh dấu stuck sai)
+        if (!bar.offsetParent) { bar.classList.remove('stuck'); return; }
+        var rect = bar.getBoundingClientRect();
+        bar.classList.toggle('stuck', rect.top <= hh);
+      });
     });
   }
   function initScanTopbarStuck() {
@@ -742,16 +752,14 @@
         lastViewBeforeAbout = 'viewTasks';
       }
     }
-    // Hide all views
-    document.getElementById('viewHome').classList.add('hidden');
-    document.getElementById('viewStats').classList.add('hidden');
-    document.getElementById('viewTasks').classList.add('hidden');
-    document.getElementById('viewScan').classList.add('hidden');
-    document.getElementById('viewStaff').classList.add('hidden');
-    document.getElementById('viewAbout').classList.add('hidden');
-    document.getElementById('viewConfig').classList.add('hidden');
-    document.getElementById('viewReports').classList.add('hidden');
-    document.getElementById('viewAdmin').classList.add('hidden');
+    // Chỉ toggle 2 view thay đổi (view cũ → hidden, view mới → visible) thay vì 9
+    // getElementById + add hidden mỗi lần chuyển trang — avoid reflow trên 9 sections.
+    var views = document.querySelectorAll('section[id^="view"]');
+    var prevShown = null;
+    for (var v = 0; v < views.length; v++) {
+      if (!views[v].classList.contains('hidden')) { prevShown = views[v]; break; }
+    }
+    if (prevShown && prevShown.id !== sectionName) prevShown.classList.add('hidden');
     // Stop auto-focus loop when leaving scan view
     stopAutoFocusLoop();
     // m3 (audit 2026-08-11): rời trang chủ → dừng đồng hồ 1Hz (đối xứng stopAutoFocusLoop).

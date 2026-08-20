@@ -400,21 +400,20 @@ function batchUpdateLogRows_(taskId, updates) {
     const cached = cacheGet_(key);
     if (cached !== null) {
       const rows = JSON.parse(cached);
+      const idxMap = {};
+      for (let k = 0; k < rows.length; k++) idxMap[rows[k]._rowIndex] = k;
       valid.forEach(function (u) {
-        for (let k = 0; k < rows.length; k++) {
-          if (rows[k]._rowIndex === u.rowIndex) {
-            if (u.field === 'scannedAt') {
-              rows[k].scannedAtText = formatTime_(u.time);
-              rows[k].scannedAtEpoch = u.time.getTime();
-              // n2: resolve status 1 nguồn, cache khớp sheet (resolvedStatus_: newStatus → keepStatus)
-              rows[k].status = resolvedStatus_(u);
-            } else {
-              rows[k].listedAtText = formatTime_(u.time);
-              rows[k].listedAtEpoch = u.time.getTime();
-              if (u.keepStatus !== undefined) rows[k].status = u.keepStatus;
-            }
-            break;
-          }
+        const k = idxMap[u.rowIndex];
+        if (k === undefined) return;
+        if (u.field === 'scannedAt') {
+          rows[k].scannedAtText = formatTime_(u.time);
+          rows[k].scannedAtEpoch = u.time.getTime();
+          // n2: resolve status 1 nguồn, cache khớp sheet (resolvedStatus_: newStatus → keepStatus)
+          rows[k].status = resolvedStatus_(u);
+        } else {
+          rows[k].listedAtText = formatTime_(u.time);
+          rows[k].listedAtEpoch = u.time.getTime();
+          if (u.keepStatus !== undefined) rows[k].status = u.keepStatus;
         }
       });
       cachePut_(key, JSON.stringify(rows), CACHE_TTL.LOG_ROWS);
@@ -445,14 +444,12 @@ function writeBatchRuns_(sheet, updates, field) {
     while (j + 1 < sorted.length && sorted[j + 1].rowIndex === end + 1) { end++; j++; }
     const block = [];
     for (let r = start; r <= end; r++) {
-      const up = sorted.find(function (u) { return u.rowIndex === r; });
+      const up = sorted[i + (r - start)];
       if (field === 'listedAt') {
         block.push([up.time]);
       } else {
         // n2 (audit): KHÔNG bao giờ ghi '' vào STATUS khi thiếu newStatus — fallback
         // keepStatus (ghi lại giá trị hiện hữu = idempotent) thay vì xoá sạch cell.
-        // Fix (audit 2026-08-11): resolvedStatus_(u) -> (up) — `u` chỉ là param của
-        // find() callback, ngoài scope sẽ ReferenceError khi chạy batch timeScan.
         block.push([up.time, resolvedStatus_(up)]);
       }
     }
