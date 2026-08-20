@@ -140,3 +140,22 @@ test('index/styles + mọi module app-* KHÔNG có BOM đầu file', function ()
     assert.notEqual(raw.charCodeAt(0), 0xfeff, f + ' bắt đầu bằng UTF-8 BOM — xóa BOM');
   });
 });
+// M1: index.html include app-* theo thứ tự cố định — core luôn trước cảm khác
+// để các hàm global (META, LAST_SERVER_CONFIG, repairViewParents) có sẵn khi module khác gọi.
+// Thỏa thuận dự án: core → stats/staff/modals/config → tasks/scan/reports/admin.
+test('index.html include app-* đúng thứ tự: core trước modules phụ thuộc', function () {
+  const idxSrc = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const order = [];
+  const re = /include\(['"](app-[^'"]+)['"]\) \?>/g;
+  let m;
+  while ((m = re.exec(idxSrc)) !== null) order.push(m[1].replace(/^app-/, ''));
+  assert.ok(order[0] === 'core', 'app-core phải include đầu tiên (global bootstrap), thực tế đầu tiên: ' + order[0]);
+  const coreIdx = order.indexOf('core');
+  const deps = ['stats','staff','modals','config','tasks','scan','reports','admin'];
+  deps.forEach(function (dep) {
+    const idx = order.indexOf(dep);
+    assert.ok(idx > coreIdx, 'app-' + dep + ' phải include SAU app-core (bootstrap global), core=' + coreIdx + ' dep=' + idx);
+  });
+  assert.deepEqual(order.sort(), ['admin','config','core','modals','reports','scan','staff','stats','tasks'],
+    'phân bố include phải đủ 9 module, không thừa/thiếu. Thực tế: ' + JSON.stringify(order));
+});
