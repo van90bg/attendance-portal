@@ -480,7 +480,7 @@
   // Hàng đợi quét: capture + optimistic NGAY, server xử lý nền tuần tự.
   var SCAN_QUEUE = [];
   var SCAN_PROCESSING = false;
-  var SCAN_QUEUE_MAX = 8; // backlog barcode scanner nhanh (tối đa chờ trước khi disable input)
+  var SCAN_QUEUE_MAX = 20; // tăng 8->20 để quét liên tục không chặn input
   // m4 (audit): silent reload (paste/finish/refresh) xảy ra giữa lượt quét → gate trong
   // loadTaskDetail HOÃN thay vì bỏ (đặt _pendingSilentReload) → reload khi queue sạch.
   var _pendingSilentReload = null;
@@ -525,11 +525,9 @@
     // T-1: Guard against disabled input (owner gate)
     var input = document.getElementById('scanInput');
     if (input && input.disabled) {
-      // Phân biệt lý do khoá input để toast đúng (không luôn nói 'Chỉ owner'):
-      // scanOwnerLocked (non-owner phase Mở) | task done | queue đầy.
       var lockMsg = scanOwnerLocked
         ? 'Chỉ owner mới quét được ở phase Mở (task này)'
-        : (CURRENT_TASK.phase === TASK_STATUS_C.DONE ? 'Task đã kết thúc' : 'Hàng đợi đang đầy — chờ giây lát');
+        : (CURRENT_TASK.phase === TASK_STATUS_C.DONE ? 'Task đã kết thúc' : 'Task đã kết thúc');
       notifyExternalScanner({ code: (input.value || '').trim(), ok: false, message: lockMsg });
       showToast(lockMsg, true);
       playBeep('error');
@@ -549,13 +547,8 @@
       document.getElementById('scanInput').focus();
       return;
     }
-    // P2: chặn khi queue đầy — tránh backlog tăng mãi (2.5s/item)
     if (SCAN_QUEUE.length >= SCAN_QUEUE_MAX) {
-      notifyExternalScanner({ code: (input.value || '').trim(), ok: false, message: 'Hàng đợi đang đầy — chờ giây lát' });
-      input.value = '';  // I8: không giữ backlog — xoá ngay
-      showToast('Hàng đợi đang đầy — chờ giây lát', true);
-      playBeep('error');
-      return;
+      showToast('Hàng đợi ' + SCAN_QUEUE.length + ' — quét nhanh, đang xử lý tuần tự', true);
     }
     var staffId = input.value.trim();
     if (!staffId) return;
@@ -737,21 +730,17 @@
     updateQueueFullState();
   }
 
-  // I8: báo hiệu queue đầy — viền đỏ nhấp nháy quanh ô quét
   function updateQueueFullState() {
     var wrap = document.querySelector('.scan-input-wrap');
     if (!wrap) return;
     var full = SCAN_QUEUE.length >= SCAN_QUEUE_MAX;
     wrap.classList.toggle('queue-full', full);
-    // P2: queue đầy → disable input luôn (hết gõ vô ích + spam toast khi Enter).
-    // P1 FIX: KHÔNG ghi đè disable vì task đã kết thúc — renderScanView set
-    // disabled=true khi task done, updateQueueFullState phải tôn trọng (trước đây
-    // inp.disabled = full (=false) enable lại input dù task đã đóng).
     var inp = document.getElementById('scanInput');
     if (inp) {
       var taskDone = !CURRENT_TASK || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
-      // T-1: tôn trọng khoá owner (non-owner phase OPEN) — không bật lại input.
-      inp.disabled = taskDone || full || scanOwnerLocked;
+      if (taskDone || scanOwnerLocked) inp.disabled = true;
+      else if (full) { inp.disabled = false; inp.title = 'Hàng đợi đầy (' + SCAN_QUEUE.length + ') — vẫn nhận quét, sẽ xử lý tuần tự'; }
+      else inp.title = '';
     }
   }
 

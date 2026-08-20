@@ -168,19 +168,18 @@ function taskCountersForList_() {
   return cachedJson_(CACHE_KEYS.TASK_COUNTS + 'all', function () {
     const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
     const values = sheet.getDataRange().getValues();
-    const byTask = {};
+    const out = {};
     for (let i = 1; i < values.length; i++) {
       const row = values[i];
       const tid = String(row[LOG_COLS.TASK_ID] || '').trim();
       if (!tid) continue;
-      if (!byTask[tid]) byTask[tid] = [];
-      byTask[tid].push(logFromRow_(tid, row));
+      if (!out[tid]) out[tid] = { total: 0, scanned: 0, extra: 0 };
+      out[tid].total++;
+      const status = String(row[LOG_COLS.STATUS] || '');
+      if (status === STATUS.EXTRA) out[tid].extra++;
+      const dScan = safeDate_(row[LOG_COLS.SCANNED_AT]);
+      if (dScan && dScan.getTime() > 0) out[tid].scanned++;
     }
-    const out = {};
-    Object.keys(byTask).forEach(function (tid) {
-      const c = computeCounters({ STATUS: STATUS }, byTask[tid]);
-      out[tid] = { total: c.total, scanned: c.scanned, extra: c.extra };
-    });
     return out;
   }, CACHE_TTL.TASK_COUNTS);
 }

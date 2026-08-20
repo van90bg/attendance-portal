@@ -75,6 +75,9 @@ function getFilterOptionsApi() {
     // (SettingsService.invalidateSettingsCache_) + overwriteStaffData (StaffDataRepo).
     return cachedJson_(CACHE_KEYS.FILTER_OPTIONS, function () {
       const staffList = readStaffList_();
+      const slimStaffList = staffList.map(function (s) {
+        return { staffId: s.staffId, station: s.station, slotCode: s.slotCode, team: s.team, contractType: s.contractType, department: s.department, date: s.date };
+      });
       return {
         ok: true,
         stationGroups: buildStationGroups(staffList),
@@ -91,9 +94,7 @@ function getFilterOptionsApi() {
           agencies: settingsList_('agencies'),
           contractTypes: settingsList_('contractTypes'),
         },
-        // B3: staff list đầy đủ (đã dedupe theo staffId) — client dùng cho preview
-        // count khi đổi chips (không cần RPC previewStaffApi nữa).
-        staffList: staffList,
+        staffList: slimStaffList,
       };
     }, CACHE_TTL.FILTER_OPTIONS);
   } catch (e) {
