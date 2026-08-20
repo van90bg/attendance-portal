@@ -119,6 +119,33 @@ test('auditTargetText_: settings targetId trống → nhãn đọc được, kh�
   assert.equal(fn({ targetId: '', detail: '' }), '—');
 });
 
+// Regression: filterStaffByGroup gọi ở _doCreatePreview (app-modals) phải có bản client-side
+// (bản server chỉ nằm trong CsvUtil.gs — client không chạy được sau khi bỏ previewStaffApi).
+test('filterStaffByGroup: định nghĩa client-side + lọc đúng bộ lọc tạo task', function () {
+  const body = extractInlineScript(indexHtml);
+  const fIdx = body.indexOf('function filterStaffByGroup(');
+  assert.ok(fIdx >= 0, 'phải có function filterStaffByGroup client-side (app-modals)');
+  const tIdx = body.indexOf('function toFilterArray_(');
+  assert.ok(tIdx >= 0, 'phải có toFilterArray_ client-side');
+  const tf = new Function('return (' + body.slice(tIdx, matchingBrace(body, body.indexOf('{', tIdx)) + 1) + ');')();
+  const fn = new Function('return (' + body.slice(fIdx, matchingBrace(body, body.indexOf('{', fIdx)) + 1) + ');')();
+  global.toFilterArray_ = tf;
+  try {
+    const staff = [
+      { staffId: 'A1', station: 'HN2', slotCode: '08:00-17:00', team: 'T1', contractType: 'F', department: 'SOC', date: '2026-08-20' },
+      { staffId: 'B2', station: 'HN2', slotCode: '22:00-06:00', team: 'T1', contractType: 'F', department: 'SOC', date: '2026-08-20' },
+      { staffId: 'C3', station: 'HN3', slotCode: '08:00-17:00', team: 'T1', contractType: 'F', department: 'SOC', date: '2026-08-20' },
+    ];
+    assert.equal(fn(staff, { station: 'HN2' }).length, 2, 'lọc theo station');
+    assert.equal(fn(staff, { station: 'HN2', slotCode: ['08:00-17:00'] }).length, 1, 'station + slot');
+    assert.equal(fn(staff, { station: 'HN2', team: 'T1', contractType: ['F'], department: 'SOC', date: ['2026-08-20'] }).length, 2, 'full combo');
+    assert.equal(fn(staff, { station: 'HN2', team: 'T2' }).length, 0, 'team không khớp → 0');
+    assert.equal(fn(staff, {}).length, 3, 'không lọc → tất cả');
+  } finally {
+    delete global.toFilterArray_;
+  }
+});
+
 // Mở Thống kê/Dữ liệu không tự fetch mỗi lần (StaffData ít đổi, cache theo khung giờ) — RED→GREEN
 test('ensureStaffData: mở view KHÔNG gọi loadStaffView trực tiếp (dùng cache client)', function () {
   const body = extractInlineScript(indexHtml);

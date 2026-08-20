@@ -174,6 +174,38 @@
       if (submitBtn) submitBtn.textContent = 'Chọn Station';
     }
   }
+  // KHỚP CsvUtil.gs filterStaffByGroup — port client cho preview số NV khi tạo task
+  // (server là nguồn quyết định cuối khi reconcile; client chỉ đếm preview).
+  function toFilterArray_(val) {
+    if (val === undefined || val === null) return [];
+    if (Array.isArray(val)) {
+      return val.map(function (v) { return String(v || '').trim(); }).filter(function (v) { return v; });
+    }
+    var s = String(val).trim();
+    return s ? [s] : [];
+  }
+  function filterStaffByGroup(staffList, group) {
+    var station = String((group && group.station) || '').trim();
+    var slots = toFilterArray_(group && group.slotCode);
+    var teams = toFilterArray_(group && group.team);
+    var contractTypes = toFilterArray_(group && group.contractType);
+    var departments = toFilterArray_(group && group.department);
+    var dates = toFilterArray_(group && group.date);
+    return staffList.filter(function (s) {
+      if (station && String(s.station || '').trim() !== station) return false;
+      var sSlot = String(s.slotCode || '').trim();
+      var sTeam = String(s.team || '').trim();
+      var sContract = String(s.contractType || '').trim();
+      var sDept = String(s.department || '').trim();
+      var sDate = String(s.date || '').trim();
+      if (slots.length && slots.indexOf(sSlot) === -1) return false;
+      if (teams.length && teams.indexOf(sTeam) === -1) return false;
+      if (contractTypes.length && contractTypes.indexOf(sContract) === -1) return false;
+      if (departments.length && departments.indexOf(sDept) === -1) return false;
+      if (dates.length && dates.indexOf(sDate) === -1) return false;
+      return true;
+    });
+  }
   // Preview số NV khớp bộ lọc — client-side từ _createOptsData.staffList (không cần RPC).
   function _doCreatePreview() {
     if (!CREATE_FILTER.station) {
