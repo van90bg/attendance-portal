@@ -245,6 +245,7 @@
      if (submitBtn && submitBtn.disabled) return;
      // FEEDBACK: disable nút Tạo trong modal + text "Đang tạo…" — tránh click nhiều lần.
      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
+     setCreateModalSpin(true); // FEEDBACK: spinner trong modal
      // KHÔNG closeCreateModal() ở đây — createTaskWithMeta_ giữ modal mở
     // nếu có roster (hiện 'Đã tạo task'), chỉ đóng khi noList.
     createTaskWithMeta_({
@@ -273,13 +274,18 @@
     if (sb) {
       sb.disabled = n === 0;
       sb.textContent = n > 0 ? ('Tạo (' + n + ' NV)') : 'Dán mã NV';
-    }
-  }
-  // Tạo task rỗng (noList) — không cần chọn Station hay dán mã.
+   }
+   }
+   // FEEDBACK: spinner overlay trong createModal — hiện khi đang gọi server tạo task.
+   function setCreateModalSpin(on) {
+     var sp = document.getElementById('createModalSpinner');
+     if (sp) sp.style.display = on ? '' : 'none';
+   }
   function submitCreateEmptyTask() {
     var btn = document.getElementById('btnCreateEmpty');
-    if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo…'; }
-    createTaskWithMeta_({});
+     if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo…'; }
+     setCreateModalSpin(true); // FEEDBACK: spinner trong modal
+     createTaskWithMeta_({});
   }
   function submitCreateTaskPaste() {
     var ta = document.getElementById('createPasteTextarea');
@@ -295,6 +301,8 @@
       seen[k] = 1; uniq.push(l);
     });
     // KHÔNG closeCreateModal() — createTaskWithMeta_ giữ modal mở nếu có roster.
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
+    setCreateModalSpin(true); // FEEDBACK: spinner trong modal
     createTaskWithMeta_({ codes: uniq });
   }
   // Chips Station — KHÔNG có "Tất cả" (Station là bắt buộc cho tab Theo ca).
@@ -424,13 +432,16 @@
     var slotRow = document.getElementById('taskCreatedSlotRow');
     if (res.slotCode && res.slotCode !== SLOT_FREE_MAGIC) { slotEl.textContent = res.slotCode; slotRow.style.display = ''; }
     else { slotRow.style.display = 'none'; }
-    // Ẩn footer tạo, hiện footer "Đã tạo task"
-    var footers = m.querySelectorAll('.create-footer');
-    for (var i = 0; i < footers.length; i++) footers[i].style.display = 'none';
-    var createdFooter = m.querySelector('.task-created-footer');
-    if (createdFooter) createdFooter.style.display = '';
-    document.getElementById('btnTaskCreatedAttend').focus();
-    return true;
+     // Ẩn footer tạo, hiện footer "Đã tạo task"
+     var footers = m.querySelectorAll('.create-footer');
+     for (var i = 0; i < footers.length; i++) footers[i].style.display = 'none';
+     // Hide nút "Tạo task rỗng" trong lúc modal hiện "Đã tạo task" — đã có task, không tạo thêm
+     var emptyWrap = m.querySelector('.create-empty-wrap');
+     if (emptyWrap) emptyWrap.style.display = 'none';
+     var createdFooter = m.querySelector('.task-created-footer');
+     if (createdFooter) createdFooter.style.display = '';
+     document.getElementById('btnTaskCreatedAttend').focus();
+     return true;
   }
   function resetCreateModal_() {
     // Khôi phục createModal về trạng thái ban đầu (gọi khi đóng/reopen)

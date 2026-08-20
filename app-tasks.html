@@ -720,10 +720,11 @@
     BUSY = true;
     if (btn) { btn.disabled = true; setBtnBusy_(btn, 'Đang tạo…'); }
     google.script.run
-      .withSuccessHandler(function (res) {
-        BUSY = false;
-        if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
-        if (res.ok) {
+       .withSuccessHandler(function (res) {
+         BUSY = false;
+         if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
+         if (typeof setCreateModalSpin === 'function') setCreateModalSpin(false); // hide spinner trong modal
+         if (res.ok) {
           invalidateClientCaches_();
           showToast(res.message, false);
           loadTaskList();
@@ -747,6 +748,7 @@
       .withFailureHandler(function (err) {
         markServerFail();
         BUSY = false;
+        if (typeof setCreateModalSpin === 'function') setCreateModalSpin(false); // hide spinner trong modal
          var eb2 = document.getElementById('btnCreateEmpty'); if (eb2) { eb2.disabled = false; eb2.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
          var sb2 = document.getElementById('btnCreateSubmit'); if (sb2) { sb2.disabled = false; sb2.textContent = 'Tạo'; }
          var pb2 = document.getElementById('btnCreatePasteSubmit'); if (pb2) { pb2.disabled = false; pb2.textContent = 'Tạo'; }
