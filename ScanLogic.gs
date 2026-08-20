@@ -118,6 +118,51 @@ function computeCounters(cfg, logRows) {
 }
 
 /**
+ * Counters delta từ outcome của 1 scan — thay thế clone logRows + computeCounters
+ * (O(n) copy + O(n) đếm = 2 pass). skipIdx = index row được update trong logRows
+ * (-1 nếu append — total +1). Kết quả y hệt computeCounters chạy trên mảng đã patch:
+ * overlay outcome CHỈ đè field có text thật (scannedAtText/listedAtText) + status,
+ * field không đụng giữ nguyên của row. Invariant chốt ca (scanned+absent=total) giữ
+ * nguyên vì đếm tương đương — không đổi quy ước epoch là nguồn sự thật.
+ *
+ * @param {Object} cfg — { STATUS: {...} }
+ * @param {Array<Object>} logRows
+ * @param {number} skipIdx
+ * @param {Object} outcome — shape planScanCommits outcome (status/listedAtEpoch/scannedAtEpoch)
+ * @returns {{scanned: number, presentAt: number, absent: number, extra: number, total: number}}
+ */
+function computeCountersFromOutcome_(cfg, logRows, skipIdx, outcome) {
+  const o = outcome || {};
+  const eff = function (row) {
+    return {
+      scannedAtEpoch: o.scannedAtText ? o.scannedAtEpoch : Number(row.scannedAtEpoch),
+      listedAtEpoch: o.listedAtText ? o.listedAtEpoch : Number(row.listedAtEpoch),
+      status: o.status || row.status,
+    };
+  };
+  let scanned = 0, presentAt = 0, absent = 0, extra = 0;
+  for (let i = 0; i < logRows.length; i++) {
+    const e = i === skipIdx ? eff(logRows[i]) : logRows[i];
+    const hasScan = Number(e.scannedAtEpoch) > 0;
+    const hasRef = Number(e.listedAtEpoch) > 0;
+    if (hasScan) scanned++;
+    if (hasRef) presentAt++;
+    if (e.status === cfg.STATUS.EXTRA) extra++;
+    else if (!hasScan) absent++;
+  }
+  if (skipIdx < 0 && outcome) {
+    const hasScan = Number(outcome.scannedAtEpoch || 0) > 0;
+    const hasRef = Number(outcome.listedAtEpoch || 0) > 0;
+    if (hasScan) scanned++;
+    if (hasRef) presentAt++;
+    if (outcome.status === cfg.STATUS.EXTRA) extra++;
+    else if (!hasScan) absent++;
+  }
+  const total = logRows.length + (skipIdx < 0 ? 1 : 0);
+  return { scanned: scanned, presentAt: presentAt, absent: absent, extra: extra, total: total };
+}
+
+/**
  * B (2026-08-12): planScanCommits — seam THUẦN gom quyết định COMMIT scan.
  * scanStaff trước đây tự viết lại 3 thứ (duplicate logic — architecture review B):
  *   1. re-check race (2 thiết bị cùng staffId trong cửa sổ cache) → append biến update/skip
@@ -413,6 +458,7 @@ if (typeof module !== 'undefined' && module.exports) {
     classifyScan: classifyScan,
     findLogRow: findLogRow,
     computeCounters: computeCounters,
+    computeCountersFromOutcome_: computeCountersFromOutcome_,
     canScanOpen_: canScanOpen_,
     canMutateTask_: canMutateTask_,
     planScanCommits: planScanCommits,

@@ -142,23 +142,10 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     const staffUnknown = outcome ? !!outcome.staffUnknown : false;
     let counters;
     try {
-      const updatedRows = logRows.slice();
-      if (outcome) {
-        const needle = String(staffId).toUpperCase();
-        let idx = -1;
-        for (let i = 0; i < updatedRows.length; i++) { if (String(updatedRows[i].staffId || '').toUpperCase() === needle) { idx = i; break; } }
-        if (idx >= 0) {
-          const r = Object.assign({}, updatedRows[idx]);
-          if (outcome.scannedAtText) { r.scannedAtText = outcome.scannedAtText; r.scannedAtEpoch = outcome.scannedAtEpoch; }
-          if (outcome.listedAtText) { r.listedAtText = outcome.listedAtText; r.listedAtEpoch = outcome.listedAtEpoch; }
-          if (outcome.status) r.status = outcome.status;
-          if (outcome.staffName) r.staffName = outcome.staffName;
-          updatedRows[idx] = r;
-        } else {
-          updatedRows.push({ staffId: staffId, staffName: outcome.staffName || '', slotCode: outcome.slotCode || '', station: outcome.station || '', team: outcome.team || '', workstation: outcome.workstation || '', listedAtText: outcome.listedAtText || '', listedAtEpoch: outcome.listedAtEpoch || 0, scannedAtText: outcome.scannedAtText || '', scannedAtEpoch: outcome.scannedAtEpoch || 0, status: outcome.status || STATUS.EXTRA, dateText: outcome.dateText || '' });
-        }
-      }
-      counters = computeCounters({ STATUS: STATUS }, updatedRows);
+      // Delta 1-pass: skipIdx = index row đã update (result.row là object tham chiếu từ
+      // logRows — indexOf nhanh hơn loop String/uppercase); append → -1 (total+1).
+      const skipIdx = result.row ? logRows.indexOf(result.row) : -1;
+      counters = computeCountersFromOutcome_({ STATUS: STATUS }, logRows, skipIdx, outcome);
     } catch (e) { counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId)); }
     // P2 benchmark: tổng + tách giai đoạn — QA prod đọc Stackdriver biết ngay
     // bottleneck (read sheet vs write). Phân tích: t1→t2 = đọc task+log (full sheet),

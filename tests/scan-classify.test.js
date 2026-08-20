@@ -97,6 +97,53 @@ test('computeCounters: quy ước đã chốt', () => {
   assert.equal(c.total, 4);
 });
 
+test('computeCountersFromOutcome_: delta 1-pass KHỚP computeCounters trên mảng đã patch', () => {
+  // So sánh với computeCounters chạy trên logRows clone + patch outcome (hành vi cũ
+  // ScanService) cho mọi nhánh: update phase1 listedAt / phase2 scannedAt PRESENT /
+  // EXTRA re-scan / append.
+  const patch = function (rows, idx, o) {
+    const r = Object.assign({}, rows[idx]);
+    if (o.scannedAtText) { r.scannedAtText = o.scannedAtText; r.scannedAtEpoch = o.scannedAtEpoch; }
+    if (o.listedAtText) { r.listedAtText = o.listedAtText; r.listedAtEpoch = o.listedAtEpoch; }
+    if (o.status) r.status = o.status;
+    const out = rows.slice();
+    out[idx] = r;
+    return out;
+  };
+  const scenarios = [
+    { // phase1: listedAt trên PENDING chưa có timeRef
+      rows: [makeRow({ staffId: 'OPS000001', listedAtEpoch: 0, status: CFG.STATUS.PENDING }),
+             makeRow({ staffId: 'OPS000002', scannedAtEpoch: 1700000000000, status: CFG.STATUS.PRESENT })],
+      idx: 0,
+      outcome: { listedAtText: '07:31:00', listedAtEpoch: 1700000000000, status: CFG.STATUS.PENDING },
+    },
+    { // phase2: scannedAt trên PENDING → PRESENT
+      rows: [makeRow({ staffId: 'OPS000001', listedAtEpoch: 1700000000000, scannedAtEpoch: 0, status: CFG.STATUS.PENDING }),
+             makeRow({ staffId: 'OPS000002', scannedAtEpoch: 1700000000000, status: CFG.STATUS.PRESENT })],
+      idx: 0,
+      outcome: { scannedAtText: '08:02:00', scannedAtEpoch: 1700000012000, status: CFG.STATUS.PRESENT },
+    },
+    { // EXTRA quét lại phase2 → giữ EXTRA
+      rows: [makeRow({ staffId: 'OPS000001', scannedAtEpoch: 1700000000000, status: CFG.STATUS.EXTRA }),
+             makeRow({ staffId: 'OPS000002', scannedAtEpoch: 0, status: CFG.STATUS.PENDING })],
+      idx: 0,
+      outcome: { scannedAtText: '08:05:00', scannedAtEpoch: 1700000013000, status: CFG.STATUS.EXTRA },
+    },
+  ];
+  scenarios.forEach(function (s, i) {
+    const delta = ScanLogic.computeCountersFromOutcome_(CFG, s.rows, s.idx, s.outcome);
+    const full = ScanLogic.computeCounters(CFG, patch(s.rows, s.idx, s.outcome));
+    assert.deepEqual(delta, full, 'scenario ' + i);
+  });
+  // append: outcome trạng thái mới, skipIdx=-1 → total+1, y hệt push + computeCounters
+  const rows = [makeRow({ staffId: 'OPS000001', scannedAtEpoch: 1700000000000, status: CFG.STATUS.PRESENT })];
+  const appendOutcome = { scannedAtText: '08:10:00', scannedAtEpoch: 1700000014000, status: CFG.STATUS.EXTRA };
+  const deltaAppend = ScanLogic.computeCountersFromOutcome_(CFG, rows, -1, appendOutcome);
+  const fullAppend = ScanLogic.computeCounters(CFG, rows.concat([{ scannedAtEpoch: appendOutcome.scannedAtEpoch, listedAtEpoch: 0, status: appendOutcome.status }]));
+  assert.deepEqual(deltaAppend, fullAppend, 'append');
+  assert.equal(deltaAppend.total, rows.length + 1, 'append total+1');
+});
+
 test('computeCounters: PENDING + có timeScan (data-repair) → đếm scanned, KHÔNG absent', () => {
   // Insurance path (markUnscannedAbsent_): dòng có timeScan nhưng status còn '-'
   // (data legacy/sửa tay) → chuẩn hóa thành Có mặt, KHÔNG đánh Vắng.
