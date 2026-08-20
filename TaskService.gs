@@ -4,7 +4,9 @@
  * 2-phase attendance: tạo task → phase1 (Mở, quét LISTED_AT) → phase2 (Điểm danh,
  * quét SCANNED_AT) → Xong.
  * A3: danh sách NV nạp NGAY khi tạo task (createReconcileTask — theo ca hoặc dán mã);
- * NV đến trễ quét phase 1 (PENDING → LISTED_AT). Task rỗng = FREE + OPEN + log rỗng.
+ * Pre-fill roster ghi LISTED_AT = createdAt (danh sách đã sẵn) — NV trong roster quét phase 1
+ * bị reject already-present; phase 1 quét THẬT chỉ cho task rỗng (xây danh sách, ghi thời
+ * điểm đến) hoặc NV ngoài roster (append PENDING). Task rỗng = FREE + OPEN + log rỗng.
  * Phase 1 KHÔNG có Dư — Dư chỉ khi quét phase 2 ngoài danh sách. transitionToAttend
  * chuyển Mở→Điểm danh.
  */
@@ -23,7 +25,8 @@ function makeTaskId_(now) {
 /**
  * Tạo task mới (A3): nạp danh sách NV NGAY lúc tạo — 3 mode:
  *  - Theo ca: input.station (+ slotCode/team/contractType/department/date) → lọc StaffData
- *    → pre-fill dòng PENDING (LISTED_AT rỗng — thời điểm đến ghi khi NV quét phase 1).
+ *    → pre-fill dòng PENDING (LISTED_AT = createdAt — danh sách đã sẵn;
+ *    phase 1 quét thật chỉ cho task rỗng / NV ngoài roster).
  *  - Dán mã: input.codes (mảng mã NV) → tra staffIndex → pre-fill NV có trong dữ liệu;
  *    mã không tìm thấy bỏ qua (mã trùng trong cùng lần dán tính 1, đếm skippedCodes).
  *  - Task rỗng: không station + không codes → log rỗng, quét tự do (FREE).

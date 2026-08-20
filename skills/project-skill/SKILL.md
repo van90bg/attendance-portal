@@ -36,7 +36,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - `classifyScan(cfg,task,logRows,staffId)` → `{action:update|append|reject, phase, field, status}`.
 - Layers: `scanStaffApi`(Code) → `scanStaff`(ScanService) → `classifyScan`(ScanLogic) + `appendLogRow_`/`updateLogRowScan_`/`batchUpdateLogRows_`(LogRepo). LockService + try/catch — không throw client, trả `ok:false`.
 - `reopenTask` → ATTEND (KHÔNG quay OPEN); client recompute phase từ `task.status`.
-- A2 (2026-08-18): task mới luôn FREE + `status:OPEN` + log RỖNG — KHÔNG pre-fill roster khi tạo (kể cả ca thật; server ép noList); roster nạp sau qua `loadRosterApi` (nút "Lấy danh sách theo ca" — menu ⋯ trong màn quét). Phase 1 không Dư — Dư chỉ khi quét phase 2 ngoài danh sách. `reconcile` chỉ còn cho task cũ.
+- A3 (2026-08-20): tạo task qua `createReconcileTaskApi` — tab Theo ca / Dán mã → **pre-fill roster NGAY lúc tạo** (PENDING, LISTED_AT = createdAt — danh sách đã sẵn); để trống → task rỗng (`noList` — FREE + OPEN + log rỗng). **Phase 1 quét THẬT chỉ cho task rỗng** (xây danh sách, ghi thời điểm đến) — NV trong roster quét phase 1 → reject already-present; NV ngoài roster quét phase 1 → append PENDING. Phase 1 không Dư — Dư chỉ khi quét phase 2 ngoài danh sách.
 - **NO LIST phase2 rule**: NV lạ scanned trong phase2 → **EXTRA (Dư)**, KHÔNG phải PRESENT. Client `optimistic status` phải mirror server (`target.status === EXTRA ? EXTRA : PRESENT`).
 
 ## 4. Recurring gotchas (đã fix — đừng regress)

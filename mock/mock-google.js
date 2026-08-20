@@ -89,7 +89,7 @@
       if (base.slotCode && base.slotCode.length && base.slotCode.indexOf(s.slotCode) === -1) return false;
       if (base.team && base.team.length && base.team.indexOf(s.team) === -1) return false;
       if (base.contractType && base.contractType.length && base.contractType.indexOf(s.contractType) === -1) return false;
-      // date có thể là array (createReconcileTask) hoặc string (previewStaffApi) — khớp server
+      // date có thể là array (createReconcileTask) — khớp server
       // filterStaffByGroup: mảng rỗng = không lọc; 1 phần tử = lọc theo giá trị đó.
       var d = Array.isArray(base.date) ? (base.date.length === 1 ? base.date[0] : '') : base.date;
       if (d && d !== (s.date || '')) return false;
