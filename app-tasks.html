@@ -737,15 +737,19 @@
             openScan(res.taskId);
           }
           try { google.script.run.withSuccessHandler(function(r){ if (r && r.index) CLIENT_STAFF_INDEX = r.index; }).warmStaffCacheApi(); } catch (e) {}
-        } else {
-          showToast(res.message, true);
-          var eb = document.getElementById('btnCreateEmpty'); if (eb) { eb.disabled = false; eb.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
-        }
+         } else {
+           showToast(res.message, true);
+           var eb = document.getElementById('btnCreateEmpty'); if (eb) { eb.disabled = false; eb.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
+           var sb = document.getElementById('btnCreateSubmit'); if (sb) { sb.disabled = false; sb.textContent = 'Tạo'; }
+           var pb = document.getElementById('btnCreatePasteSubmit'); if (pb) { pb.disabled = false; pb.textContent = 'Tạo'; }
+         }
       })
       .withFailureHandler(function (err) {
         markServerFail();
         BUSY = false;
-        var eb2 = document.getElementById('btnCreateEmpty'); if (eb2) { eb2.disabled = false; eb2.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
+         var eb2 = document.getElementById('btnCreateEmpty'); if (eb2) { eb2.disabled = false; eb2.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
+         var sb2 = document.getElementById('btnCreateSubmit'); if (sb2) { sb2.disabled = false; sb2.textContent = 'Tạo'; }
+         var pb2 = document.getElementById('btnCreatePasteSubmit'); if (pb2) { pb2.disabled = false; pb2.textContent = 'Tạo'; }
         if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
         showToast('Lỗi tạo task: ' + err.message, true);
       })

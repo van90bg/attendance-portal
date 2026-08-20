@@ -240,10 +240,12 @@
     var ta = document.getElementById('createPasteTextarea');
     if (ta) ta.addEventListener('input', updateCreatePaste_);
   }
-  function submitCreateTask() {
-    var submitBtn = document.getElementById('btnCreateSubmit');
-    if (submitBtn && submitBtn.disabled) return;
-    // KHÔNG closeCreateModal() ở đây — createTaskWithMeta_ giữ modal mở
+   function submitCreateTask() {
+     var submitBtn = document.getElementById('btnCreateSubmit');
+     if (submitBtn && submitBtn.disabled) return;
+     // FEEDBACK: disable nút Tạo trong modal + text "Đang tạo…" — tránh click nhiều lần.
+     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
+     // KHÔNG closeCreateModal() ở đây — createTaskWithMeta_ giữ modal mở
     // nếu có roster (hiện 'Đã tạo task'), chỉ đóng khi noList.
     createTaskWithMeta_({
       station: CREATE_FILTER.station,
