@@ -714,8 +714,16 @@
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
     }
+    // Đang chốt ca nền (BG_TASKS.rpc) — khoá nút Chốt, hiện trạng thái, không block UI khác.
+    if (BG_TASKS.rpc) {
+      if (btn) { btn.disabled = true; btn.title = 'Đang chốt ca…'; }
+      if (btnTo) { btnTo.disabled = true; btnTo.title = 'Đang chốt ca…'; }
+      if (btnCancel) { btnCancel.disabled = true; btnCancel.title = 'Đang chốt ca…'; }
+      updateQueueFullState();
+      return;
+    }
     if (scanBusy()) {
-      if (btn) { btn.disabled = false; btn.title = 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chốt'; }
+      if (btn) { btn.disabled = false; btn.title = 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chốt (nền)'; }
       if (btnTo) { btnTo.disabled = false; btnTo.title = 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chuyển'; }
       if (btnCancel) { btnCancel.disabled = true; btnCancel.title = 'Đang xử lý quét — chờ xong rồi hủy'; }
     } else {
@@ -1026,72 +1034,98 @@
 
   function finishTask() {
     if (BUSY || !CURRENT_TASK) return;
-    if (scanBusy()) {
-      showToast('Còn ' + (SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0)) + ' lượt quét đang xử lý — sẽ tự chốt khi xong', false);
-      var _waitF = setInterval(function () {
-        if (!scanBusy()) { clearInterval(_waitF); finishTask(); }
-      }, 400);
-      setTimeout(function () { clearInterval(_waitF); }, 15000);
-      return;
-    }
-    // Modal confirm thay cho confirm() trình duyệt — giữ UX đồng nhất với các modal khác
-    // Cảnh báo mạnh khi scanned===0: task OPEN→ATTEND rồi đóng mà chưa ai quét lần 2
-    // (Giờ quét) → markUnscannedAbsent_ đánh MỌI dòng Vắng dù phase 1 đã ghi Giờ có mặt.
-    // reopenTask cứu được nên confirm là đủ, không chặn cứng.
-    // #4 (review): đếm NV chưa điểm danh (PENDING) — kết thúc sẽ đánh Vắng cả số này,
-    // hiện rõ trong confirm để user không bất ngờ (không chặn — reopenTask cứu được).
+    // Không block confirm khi đang đồng bộ — tính cảnh báo trước, cho phép chốt nền.
     var pendingLeft = safeArr(CURRENT_LOG).filter(function (r) {
       return r.status === STATUS_C.PENDING;
     }).length;
     var scannedNow = (CURRENT_COUNTERS && CURRENT_COUNTERS.scanned) || 0;
-    var finishMsg = (scannedNow === 0)
+    var queued = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
+    var baseMsg = (scannedNow === 0)
       ? 'Chưa có ai điểm danh (Giờ quét) — tất cả sẽ tính Vắng dù đã ghi Giờ có mặt. Chốt ca task ' + CURRENT_TASK.taskId + '?'
       : (pendingLeft > 0
         ? 'Chốt ca task ' + CURRENT_TASK.taskId + '?\n' + pendingLeft + ' NV chưa điểm danh sẽ tính Vắng.'
         : 'Kết thúc task ' + CURRENT_TASK.taskId + '?\nKhông thể quét thêm sau khi kết thúc.');
+    var finishMsg = queued > 0 ? baseMsg + '\n\nCòn ' + queued + ' lượt quét đang đồng bộ — sẽ tự chốt sau khi xong (nền, không block UI).' : baseMsg;
     showConfirm(
       scannedNow === 0 ? 'Cảnh báo — chưa ai điểm danh' : 'Kết thúc task',
       finishMsg,
       function () {
-        // Chốt ca chạy NỀN — không showModalSpin block toàn UI: khoá ô quét + indicator
-        // BG_TASKS.rpc; user vẫn xem/browse được. Rời task giữa chừng → chỉ toast, không
-        // reload view cũ; BUSY chặn re-entrant.
         var finishTaskId = CURRENT_TASK.taskId;
-        BUSY = true;
-        BG_TASKS.rpc = 1;
-        updateBgIndicator();
-        var input = document.getElementById('scanInput');
-        if (input) { input.disabled = true; input.title = 'Đang chốt ca…'; }
-        google.script.run
-          .withSuccessHandler(function (res) {
-            BUSY = false;
-            BG_TASKS.rpc = 0;
-            updateBgIndicator();
-            if (res.ok) {
-              invalidateClientCaches_();
-              showToast(res.message, false);
-              if (CURRENT_TASK && CURRENT_TASK.taskId === finishTaskId) {
-                closeExternalScanner();   // task kết thúc → tự đóng tab scanner ngoài
-                // C: silent=true → KHÔNG reset UI (skeleton/ẩn table) — chỉ render view mới lên view cũ (mượt, không nháy toàn bộ)
-                loadTaskDetail(finishTaskId, true);
+        // Helper gọi RPC chốt ca nền — không showModalSpin, chỉ BG_TASKS + khoá input/nút.
+        function doFinishRpc() {
+          if (!CURRENT_TASK || CURRENT_TASK.taskId !== finishTaskId) {
+            showToast('Đã rời task — hủy chốt ca', true);
+            BUSY = false; BG_TASKS.rpc = 0; updateBgIndicator(); updateFinishBtnState();
+            return;
+          }
+          BUSY = true;
+          BG_TASKS.rpc = 1;
+          updateBgIndicator();
+          updateFinishBtnState();
+          var input = document.getElementById('scanInput');
+          if (input) { input.disabled = true; input.title = 'Đang chốt ca…'; }
+          var btn = document.getElementById('btnFinish');
+          if (btn) btn.disabled = true;
+          google.script.run
+            .withSuccessHandler(function (res) {
+              BUSY = false;
+              BG_TASKS.rpc = 0;
+              updateBgIndicator();
+              updateFinishBtnState();
+              if (res.ok) {
+                invalidateClientCaches_();
+                showToast(res.message, false);
+                if (CURRENT_TASK && CURRENT_TASK.taskId === finishTaskId) {
+                  closeExternalScanner();
+                  loadTaskDetail(finishTaskId, true);
+                }
+              } else {
+                showToast(res.message, true);
+                if (input) { input.disabled = false; input.title = ''; }
+                updateQueueFullState();
               }
-            } else {
-              showToast(res.message, true);
+            })
+            .withFailureHandler(function (err) {
+              markServerFail();
+              BUSY = false;
+              BG_TASKS.rpc = 0;
+              updateBgIndicator();
+              updateFinishBtnState();
               if (input) { input.disabled = false; input.title = ''; }
               updateQueueFullState();
+              showToast('Lỗi kết thúc: ' + err.message, true);
+            })
+            .completeTaskApi(finishTaskId);
+        }
+        if (scanBusy()) {
+          showToast('Đang đồng bộ ' + queued + ' lượt quét — sẽ chốt ngay khi xong (nền)', false);
+          BG_TASKS.rpc = 1;
+          updateBgIndicator();
+          updateFinishBtnState();
+          var _waitF = setInterval(function () {
+            if (!scanBusy()) {
+              clearInterval(_waitF);
+              BG_TASKS.rpc = 0;
+              updateBgIndicator();
+              updateFinishBtnState();
+              doFinishRpc();
+            } else {
+              BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
+              updateBgIndicator();
             }
-          })
-          .withFailureHandler(function (err) {
-            markServerFail();
-            BUSY = false;
-            BG_TASKS.rpc = 0;
-            updateBgIndicator();
-            hideLoadingOverlay();
-            if (input) { input.disabled = false; input.title = ''; }
-            updateQueueFullState();
-            showToast('Lỗi kết thúc: ' + err.message, true);
-          })
-          .completeTaskApi(finishTaskId);
+          }, 400);
+          setTimeout(function () {
+            clearInterval(_waitF);
+            if (BG_TASKS.rpc && !BUSY) {
+              BG_TASKS.rpc = 0;
+              updateBgIndicator();
+              updateFinishBtnState();
+              showToast('Đồng bộ chưa xong — thử bấm Chốt ca lại', true);
+            }
+          }, 15000);
+          return;
+        }
+        doFinishRpc();
       }
     );
   }
