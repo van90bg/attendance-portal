@@ -66,6 +66,7 @@ const ALLOWED_DRIFT = [
   'spin-big',          // spinModal ẩn (0x0) vs loadingOverlay hiện — chủ đích
   'task-meta',         // #reportsMeta hiển thị tên user đậm primary 15px — "to rõ hơn task-meta mặc định" (CSS comment, chủ đích)
   'task-title',        // title trong toolbar (reports card) là flex item width auto — chủ đích (giống cfg-hint)
+  'view-topbar-title', // #viewScan .view-topbar-title min-width 40% (≤1199px) — giữ title không bị nút ép nén, chủ đích (mirror mobile ≤700)
 ];
 
 let chromeProc = null;
