@@ -142,10 +142,25 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     const staffUnknown = outcome ? !!outcome.staffUnknown : false;
     let counters;
     try {
-      // Delta 1-pass: skipIdx = index row đã update (result.row là object tham chiếu từ
-      // logRows — indexOf nhanh hơn loop String/uppercase); append → -1 (total+1).
-      const skipIdx = result.row ? logRows.indexOf(result.row) : -1;
-      counters = computeCountersFromOutcome_({ STATUS: STATUS }, logRows, skipIdx, outcome);
+      // Post-patch array + computeCounters (thay computeCountersFromOutcome_): overlay
+      // outcome lên logRows theo đúng quy ước epoch là nguồn sự thật, đếm 1 pass.
+      // append (row=null) → push outcome; update → thay thế dòng matched (result.row là
+      // reference từ logRows). applyOutcomeRow_ chỉ đè field khi outcome có text thật.
+      if (outcome) {
+        const postLog = logRows.slice();
+        if (result.action === 'append') {
+          postLog.push(applyOutcomeRow_(null, outcome));
+        } else if (result.row) {
+          const mi = postLog.indexOf(result.row);
+          if (mi >= 0) postLog[mi] = applyOutcomeRow_(postLog[mi], outcome);
+          else postLog.push(applyOutcomeRow_(null, outcome));
+        } else {
+          postLog.push(applyOutcomeRow_(null, outcome));
+        }
+        counters = computeCounters({ STATUS: STATUS }, postLog);
+      } else {
+        counters = computeCounters({ STATUS: STATUS }, logRows);
+      }
     } catch (e) { counters = computeCounters({ STATUS: STATUS }, readLogRowsCached_(taskId)); }
     // P2 benchmark: tổng + tách giai đoạn — QA prod đọc Stackdriver biết ngay
     // bottleneck (read sheet vs write). Phân tích: t1→t2 = đọc task+log (full sheet),

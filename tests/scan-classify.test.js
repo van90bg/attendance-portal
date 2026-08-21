@@ -97,10 +97,9 @@ test('computeCounters: quy ước đã chốt', () => {
   assert.equal(c.total, 4);
 });
 
-test('computeCountersFromOutcome_: delta 1-pass KHỚP computeCounters trên mảng đã patch', () => {
-  // So sánh với computeCounters chạy trên logRows clone + patch outcome (hành vi cũ
-  // ScanService) cho mọi nhánh: update phase1 listedAt / phase2 scannedAt PRESENT /
-  // EXTRA re-scan / append.
+test('applyOutcomeRow_ + computeCounters KHỚP post-patch array (thay computeCountersFromOutcome_)', () => {
+  // Xác nhận overlay CHỈ đè field khi outcome có text thật; kết quả y hệt
+  // computeCounters trên logRows đã patch (hành vi cũ ScanService).
   const patch = function (rows, idx, o) {
     const r = Object.assign({}, rows[idx]);
     if (o.scannedAtText) { r.scannedAtText = o.scannedAtText; r.scannedAtEpoch = o.scannedAtEpoch; }
@@ -131,17 +130,18 @@ test('computeCountersFromOutcome_: delta 1-pass KHỚP computeCounters trên m�
     },
   ];
   scenarios.forEach(function (s, i) {
-    const delta = ScanLogic.computeCountersFromOutcome_(CFG, s.rows, s.idx, s.outcome);
+    const postLog = s.rows.slice();
+    postLog[s.idx] = ScanLogic.applyOutcomeRow_(s.rows[s.idx], s.outcome);
     const full = ScanLogic.computeCounters(CFG, patch(s.rows, s.idx, s.outcome));
-    assert.deepEqual(delta, full, 'scenario ' + i);
+    assert.deepEqual(ScanLogic.computeCounters(CFG, postLog), full, 'scenario ' + i);
   });
-  // append: outcome trạng thái mới, skipIdx=-1 → total+1, y hệt push + computeCounters
+  // append: outcome trạng thái mới, total+1, y hệt push + computeCounters
   const rows = [makeRow({ staffId: 'OPS000001', scannedAtEpoch: 1700000000000, status: CFG.STATUS.PRESENT })];
   const appendOutcome = { scannedAtText: '08:10:00', scannedAtEpoch: 1700000014000, status: CFG.STATUS.EXTRA };
-  const deltaAppend = ScanLogic.computeCountersFromOutcome_(CFG, rows, -1, appendOutcome);
+  const postAppend = rows.concat([ScanLogic.applyOutcomeRow_(null, appendOutcome)]);
   const fullAppend = ScanLogic.computeCounters(CFG, rows.concat([{ scannedAtEpoch: appendOutcome.scannedAtEpoch, listedAtEpoch: 0, status: appendOutcome.status }]));
-  assert.deepEqual(deltaAppend, fullAppend, 'append');
-  assert.equal(deltaAppend.total, rows.length + 1, 'append total+1');
+  assert.deepEqual(ScanLogic.computeCounters(CFG, postAppend), fullAppend, 'append');
+  assert.equal(postAppend.length, rows.length + 1, 'append total+1');
 });
 
 test('computeCounters: PENDING + có timeScan (data-repair) → đếm scanned, KHÔNG absent', () => {

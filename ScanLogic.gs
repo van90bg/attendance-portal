@@ -118,48 +118,47 @@ function computeCounters(cfg, logRows) {
 }
 
 /**
- * Counters delta từ outcome của 1 scan — thay thế clone logRows + computeCounters
- * (O(n) copy + O(n) đếm = 2 pass). skipIdx = index row được update trong logRows
- * (-1 nếu append — total +1). Kết quả y hệt computeCounters chạy trên mảng đã patch:
- * overlay outcome CHỈ đè field có text thật (scannedAtText/listedAtText) + status,
- * field không đụng giữ nguyên của row. Invariant chốt ca (scanned+absent=total) giữ
- * nguyên vì đếm tương đương — không đổi quy ước epoch là nguồn sự thật.
+ * applyOutcomeRow_ — overlay 1 outcome lên 1 row để tính counters (thay thế
+ * computeCountersFromOutcome_). Chỉ đè field khi outcome CÓ text thật — khớp eff()
+ * cũ: scannedAtEpoch/listedAtEpoch lấy từ outcome NẾU có scannedAtText/listedAtText
+ * tương ứng, ngược lại giữ giá trị row. append (row=null) → lấy trực tiếp từ outcome
+ * (1 trong 2 field ép theo phase). Dùng chung cho update + append.
  *
- * @param {Object} cfg — { STATUS: {...} }
- * @param {Array<Object>} logRows
- * @param {number} skipIdx
- * @param {Object} outcome — shape planScanCommits outcome (status/listedAtEpoch/scannedAtEpoch)
- * @returns {{scanned: number, presentAt: number, absent: number, extra: number, total: number}}
+ * @param {Object|null} row — dòng log hiện hữu (null nếu append mới)
+ * @param {Object} outcome — outcome từ planScanCommits (scannedAtText/listedAtText/epoch/status)
+ * @returns {{scannedAtEpoch:number, listedAtEpoch:number, status:string}}
  */
-function computeCountersFromOutcome_(cfg, logRows, skipIdx, outcome) {
+function applyOutcomeRow_(row, outcome) {
   const o = outcome || {};
-  const eff = function (row) {
-    return {
-      scannedAtEpoch: o.scannedAtText ? o.scannedAtEpoch : Number(row.scannedAtEpoch),
-      listedAtEpoch: o.listedAtText ? o.listedAtEpoch : Number(row.listedAtEpoch),
-      status: o.status || row.status,
-    };
+  return {
+    scannedAtEpoch: o.scannedAtText ? o.scannedAtEpoch : Number(row ? row.scannedAtEpoch : 0),
+    listedAtEpoch: o.listedAtText ? o.listedAtEpoch : Number(row ? row.listedAtEpoch : 0),
+    status: o.status || (row ? row.status : o.status),
   };
-  let scanned = 0, presentAt = 0, absent = 0, extra = 0;
-  for (let i = 0; i < logRows.length; i++) {
-    const e = i === skipIdx ? eff(logRows[i]) : logRows[i];
-    const hasScan = Number(e.scannedAtEpoch) > 0;
-    const hasRef = Number(e.listedAtEpoch) > 0;
-    if (hasScan) scanned++;
-    if (hasRef) presentAt++;
-    if (e.status === cfg.STATUS.EXTRA) extra++;
-    else if (!hasScan) absent++;
-  }
-  if (skipIdx < 0 && outcome) {
-    const hasScan = Number(outcome.scannedAtEpoch || 0) > 0;
-    const hasRef = Number(outcome.listedAtEpoch || 0) > 0;
-    if (hasScan) scanned++;
-    if (hasRef) presentAt++;
-    if (outcome.status === cfg.STATUS.EXTRA) extra++;
-    else if (!hasScan) absent++;
-  }
-  const total = logRows.length + (skipIdx < 0 ? 1 : 0);
-  return { scanned: scanned, presentAt: presentAt, absent: absent, extra: extra, total: total };
+}
+
+/**
+ * makeOutcome_ — gom khối literal outcome (14 field) lặp ở planScanCommits thành 1
+ * helper, giữ shape response client đồng nhất (batch write + cache dùng chung).
+ */
+function makeOutcome_(f) {
+  return {
+    action: f.action,
+    field: f.field,
+    scannedAtText: f.scannedAtText || '',
+    scannedAtEpoch: f.scannedAtEpoch || 0,
+    listedAtText: f.listedAtText || '',
+    listedAtEpoch: f.listedAtEpoch || 0,
+    status: f.status || '',
+    staffName: f.staffName || null,
+    slotCode: f.slotCode || '',
+    station: f.station || '',
+    team: f.team || '',
+    workstation: f.workstation || '',
+    dateText: f.dateText || '',
+    rowIndex: f.rowIndex || 0,
+    staffUnknown: !!f.staffUnknown,
+  };
 }
 
 /**
@@ -214,34 +213,30 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
       const ex = existingMap[sid];
       const done = isScan ? num(ex && ex.scannedAtEpoch) : num(ex && ex.listedAtEpoch);
       if (done) {
-        outcomes[sid] = {
+        outcomes[sid] = makeOutcome_({
           action: 'update', field: a.field,
           scannedAtText: isScan ? (ex.scannedAtText || fmt(now)) : '',
           scannedAtEpoch: isScan ? num(ex.scannedAtEpoch) : 0,
           listedAtText: isScan ? '' : (ex.listedAtText || fmt(now)),
           listedAtEpoch: isScan ? 0 : num(ex.listedAtEpoch),
           status: ex.status || STATUS.EXTRA,
-          staffName: ex.staffName || null,
-          slotCode: ex.slotCode || '', station: ex.station || '',
-          team: ex.team || '', workstation: ex.workstation || '',
-          dateText: (ex && ex.dateText) || '',
-          rowIndex: ex._rowIndex || 0,
-        };
+          staffName: ex.staffName, slotCode: ex.slotCode, station: ex.station,
+          team: ex.team, workstation: ex.workstation, dateText: ex.dateText,
+          rowIndex: ex._rowIndex,
+        });
         return;
       }
-      outcomes[sid] = {
+      outcomes[sid] = makeOutcome_({
         action: 'update', field: a.field,
         scannedAtText: isScan ? fmt(now) : '',
         scannedAtEpoch: isScan ? now.getTime() : 0,
         listedAtText: isScan ? '' : fmt(now),
         listedAtEpoch: isScan ? 0 : now.getTime(),
         status: a.status || STATUS.EXTRA,
-        staffName: a.row.staffName || null,
-        slotCode: a.row.slotCode || '', station: a.row.station || '',
-        team: a.row.team || '', workstation: a.row.workstation || '',
-        dateText: (a.row && a.row.dateText) || '',
-        rowIndex: a.row._rowIndex || 0,
-      };
+        staffName: a.row.staffName, slotCode: a.row.slotCode, station: a.row.station,
+        team: a.row.team, workstation: a.row.workstation, dateText: a.row.dateText,
+        rowIndex: a.row._rowIndex,
+      });
       const u = { rowIndex: a.row._rowIndex, field: a.field, time: now, newStatus: a.status };
       // scannedAt: ghi STATUS; listedAt: chỉ LISTED_AT
       if (isScan) u.keepStatus = a.row.status;
@@ -254,45 +249,39 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
         // RACE: thiết bị khác vừa append trong lock → chỉ ghi nếu phase CHƯA hoàn thành
         if (a.field === 'scannedAt' && !num(ex.scannedAtEpoch)) {
           updates.push({ rowIndex: ex._rowIndex, field: 'scannedAt', time: now, newStatus: a.status || STATUS.EXTRA, keepStatus: ex.status });
-          outcomes[sid] = {
+          outcomes[sid] = makeOutcome_({
             action: 'update', field: 'scannedAt',
             scannedAtText: ex.scannedAtText || fmt(now), scannedAtEpoch: now.getTime(),
             listedAtText: '', listedAtEpoch: 0,
             status: a.status || STATUS.EXTRA,
-            staffName: ex.staffName || null,
-            slotCode: ex.slotCode || '', station: ex.station || '',
-            team: ex.team || '', workstation: ex.workstation || '',
-            dateText: (ex && ex.dateText) || '',
-            rowIndex: ex._rowIndex || 0,
-          };
+            staffName: ex.staffName, slotCode: ex.slotCode, station: ex.station,
+            team: ex.team, workstation: ex.workstation, dateText: ex.dateText,
+            rowIndex: ex._rowIndex,
+          });
         } else if (a.field === 'listedAt' && !num(ex.listedAtEpoch)) {
           updates.push({ rowIndex: ex._rowIndex, field: 'listedAt', time: now });
-          outcomes[sid] = {
+          outcomes[sid] = makeOutcome_({
             action: 'update', field: 'listedAt',
             listedAtText: ex.listedAtText || fmt(now), listedAtEpoch: now.getTime(),
             scannedAtText: '', scannedAtEpoch: 0,
             status: ex.status || STATUS.EXTRA,
-            staffName: ex.staffName || null,
-            slotCode: ex.slotCode || '', station: ex.station || '',
-            team: ex.team || '', workstation: ex.workstation || '',
-            dateText: (ex && ex.dateText) || '',
-            rowIndex: ex._rowIndex || 0,
-          };
+            staffName: ex.staffName, slotCode: ex.slotCode, station: ex.station,
+            team: ex.team, workstation: ex.workstation, dateText: ex.dateText,
+            rowIndex: ex._rowIndex,
+          });
         } else {
           // phase đã xong (thiết bị khác) → KHÔNG ghi, báo row hiện hữu (không đè thời gian)
-          outcomes[sid] = {
+          outcomes[sid] = makeOutcome_({
             action: 'update', field: a.field,
             scannedAtText: a.field === 'scannedAt' ? (ex.scannedAtText || fmt(now)) : '',
             scannedAtEpoch: a.field === 'scannedAt' ? num(ex.scannedAtEpoch) : 0,
             listedAtText: a.field === 'listedAt' ? (ex.listedAtText || fmt(now)) : '',
             listedAtEpoch: a.field === 'listedAt' ? num(ex.listedAtEpoch) : 0,
             status: ex.status || STATUS.EXTRA,
-            staffName: ex.staffName || null,
-            slotCode: ex.slotCode || '', station: ex.station || '',
-            team: ex.team || '', workstation: ex.workstation || '',
-            dateText: (ex && ex.dateText) || '',
-            rowIndex: ex._rowIndex || 0,
-          };
+            staffName: ex.staffName, slotCode: ex.slotCode, station: ex.station,
+            team: ex.team, workstation: ex.workstation, dateText: ex.dateText,
+            rowIndex: ex._rowIndex,
+          });
         }
         return;
       }
@@ -311,7 +300,7 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
         a.status || STATUS.EXTRA,
         info ? String(info.date || '') : '',
       ]);
-      outcomes[sid] = {
+      outcomes[sid] = makeOutcome_({
         action: 'append', field: a.field,
         // staffUnknown: ma khong co trong StaffData (staffIndex co nhung khong tim thay) -
         // client canh bao (gian lan / danh may sai); staffIndex load fail → null → khong bao.
@@ -319,14 +308,14 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
         scannedAtText: isScan ? fmt(now) : '', scannedAtEpoch: isScan ? now.getTime() : 0,
         listedAtText: isScan ? '' : fmt(now), listedAtEpoch: isScan ? 0 : now.getTime(),
         status: a.status || STATUS.EXTRA,
-        staffName: info ? info.staffName || null : null,
-        slotCode: info ? String(info.slotCode || '') : '',
-        station: info ? String(info.station || '') : '',
-        team: info ? String(info.team || '') : '',
-        workstation: info ? String(info.workstation || '') : '',
-        dateText: info ? String(info.date || '') : '',  // cột Ngày (StaffData Date) — bảng quét hiện ngay
+        staffName: info ? info.staffName : null,
+        slotCode: info ? info.slotCode : '',
+        station: info ? info.station : '',
+        team: info ? info.team : '',
+        workstation: info ? info.workstation : '',
+        dateText: info ? info.date : '',  // cột Ngày (StaffData Date) — bảng quét hiện ngay
         rowIndex: 0, // gán sau batchAppendLogRows_ (caller đối chiếu rowIndices)
-      };
+      });
     }
   });
   return { updates: updates, appends: appends, outcomes: outcomes };
@@ -458,7 +447,8 @@ if (typeof module !== 'undefined' && module.exports) {
     classifyScan: classifyScan,
     findLogRow: findLogRow,
     computeCounters: computeCounters,
-    computeCountersFromOutcome_: computeCountersFromOutcome_,
+    applyOutcomeRow_: applyOutcomeRow_,
+    makeOutcome_: makeOutcome_,
     canScanOpen_: canScanOpen_,
     canMutateTask_: canMutateTask_,
     planScanCommits: planScanCommits,
