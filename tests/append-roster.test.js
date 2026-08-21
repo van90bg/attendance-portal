@@ -132,3 +132,17 @@ test('appendRosterApi: gate non-owner phase Mở → reject (requireOwnerOrAdmin
   assert.equal(res.ok, false);
   assert.match(res.message, /owner/i);
 });
+
+test('appendRosterApi: audit row được ghi (action=loadRoster, detail count)', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedStaff(ss);
+  const taskId = createEmpty(ss, svc);
+  const res = svc.appendRosterApi({ taskId: taskId, filter: { station: 'HN2' } });
+  assert.equal(res.ok, true, res.message);
+  const rows = ss.sheets.AuditLog.data;
+  const last = rows[rows.length - 1];
+  assert.equal(last[2], 'loadRoster');
+  assert.equal(last[3], taskId);
+});

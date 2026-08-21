@@ -14,6 +14,7 @@ const AUDIT_ACTIONS_ = {
   createTask: true, completeTaskForceClose: true,
   completeTask: true, transitionToAttend: true, reopenTask: true, cancelTask: true,
   fixLogRowStatus: true, settings: true,
+  loadRoster: true,  // S1 (2026-08-21): appendRoster_ nạp roster vào task rỗng
 };
 
 /** Ghi 1 dòng audit (append + LockService — append row không lock có thể interleave
