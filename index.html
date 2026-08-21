@@ -59,7 +59,8 @@
         <div class="task-meta">Đối chiếu danh sách theo Station / Ca / Team — tạo task, quét giờ có mặt, điểm danh, bàn giao</div>
       </div>
       <div class="create-task-wrap" id="createTaskWrap">
-        <button class="btn" id="btnCreate" onclick="openCreateModal()">+ Task mới</button>
+        <button class="btn" id="btnCreate" onclick="createEmptyTaskGo()">+ Task mới (rỗng)</button>
+        <button class="btn btn-ghost btn-sm" id="btnCreateRoster" onclick="openCreateModal()" style="font-size:var(--text-sm)" aria-label="Tạo task có roster">+ Task có roster</button>
       </div>
     </div>
 
