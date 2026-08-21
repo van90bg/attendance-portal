@@ -1323,6 +1323,13 @@
     .nav-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
     .nav-item.active { color: var(--primary-active); }  /* tab active trên nền dark — #1a73e8 4.19:1 < AA 4.5; #4d8fe8 5.76:1 */
+    /* Bottom-nav ≤375px: màn rất hẹp 8 tab (full role) → icon-only, ẩn label (giữ title tooltip + aria-label) —
+       mỗi tab ~45px không đủ chỗ cho label 2 từ bị cắt (CDP 375: 8 item × 45px). */
+    @media (max-width: 375px) {
+      .nav-item span { display: none; }
+      .nav-item { gap: 0; }
+      .nav-item svg { width: 24px; height: 24px; }
+    }
 
     /* Mobile ≤700px: ẩn sidebar trái, hiện bottom nav */
     @media (max-width: 700px) {

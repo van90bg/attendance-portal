@@ -817,6 +817,8 @@
       });
       return;
     }
+    // Track trang trước khi vào About — nút back quay lại đúng view (không hardcode home)
+    if (page === 'about' && ACTIVE_PAGE !== 'about') _pageBeforeAbout = ACTIVE_PAGE;
     // Cập nhật active menu — sidebar + bottom nav mobile
     setActiveNav_(page);
     ACTIVE_PAGE = page;
@@ -827,6 +829,12 @@
     if (page === 'config' && typeof ensureConfigData === 'function') { ensureConfigData(false); }
     if (page === 'reports' && typeof loadReportsView === 'function' && !REPORTS_LOADED) { loadReportsView(); }
     if (page === 'admin' && typeof loadAdminView === 'function' && !ADMIN_LOADED) { loadAdminView(); }
+  }
+
+  var _pageBeforeAbout = 'home'; // trang trước khi vào About — dùng cho nút back
+  function aboutBack() {
+    var dest = _pageBeforeAbout && _pageBeforeAbout !== 'about' ? _pageBeforeAbout : 'home';
+    selectPage(dest);
   }
 
   function toggleSidebarCompact() {

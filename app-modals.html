@@ -561,6 +561,7 @@
       // viewAbout is now a section, not a modal - go back to previous view
       var aboutV = document.getElementById('viewAbout');
       if (aboutV && !aboutV.classList.contains('hidden')) {
+        if (typeof aboutBack === 'function') { aboutBack(); return; }
         showSection(lastViewBeforeAbout || 'viewTasks');
         return;
       }
