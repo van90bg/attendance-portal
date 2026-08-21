@@ -47,7 +47,7 @@
         if (hsStats) hsStats.style.display = canManager_() ? '' : 'none';
         var hsReports = document.getElementById('homeShortcutReports');
         if (hsReports) hsReports.style.display = canOperator_() ? '' : 'none';
-        // #10: nút + Task mới — operator+ mới thấy (createReconcileTask gate operator)
+        // #10: nút + Task mới — operator+ mới thấy (createTask gate operator)
         var bc = document.getElementById('btnCreate');
         if (bc) bc.style.display = canOperator_() ? '' : 'none';
         // Attendance stays out of navMap: the bottom item must stay visible for viewer+ (mobile
@@ -547,7 +547,7 @@
         if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
         showToast('Lỗi tạo task: ' + err.message, true);
       })
-      .createReconcileTaskApi(input);
+      .createTaskApi(input);
   }
 
   function openScan(taskId) {

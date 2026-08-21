@@ -101,7 +101,7 @@ Tất cả màu/spacing/type/radius nằm trong `:root` (styles.html) — **92 t
 
 **Invariant**: KHÔNG hardcode hex/px ngoài :root (cả inline style/JS). Ngoại lệ: micro 1-3px · `#fff`/`#000` · fallback `var(--x, #hex)` · px đo runtime. Audit 2026-08-17: 0 rời rạc còn lại (trước đó: 93 hex + 317 spacing px + 100% font px).
 
-**Tech debt — hàm dài (ghi nhận, KHÔNG refactor)**: server `scanStaff` 7.9k chars · `pasteCodes` 5.4k · `createReconcileTask` 5.7k · `planScanCommits` 5.3k; client `submitScan` 9.2k · `processScanQueue` 6.0k · `renderScanView` 4.2k · `submitPaste` 4.5k · `renderStaffDataTable` 4.5k. Core đã review nhiều vòng (gate/optimistic/race) — rủi ro refactor > lợi ích trên GAS.
+**Tech debt — hàm dài (ghi nhận, KHÔNG refactor)**: server `scanStaff` 7.9k chars · `pasteCodes` 5.4k · `createTask` 5.7k · `planScanCommits` 5.3k; client `submitScan` 9.2k · `processScanQueue` 6.0k · `renderScanView` 4.2k · `submitPaste` 4.5k · `renderStaffDataTable` 4.5k. Core đã review nhiều vòng (gate/optimistic/race) — rủi ro refactor > lợi ích trên GAS.
 
 ## Lỗ hổng audit tooling hiện tại (2026-08-16, đã vá 1-2)
 

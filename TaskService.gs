@@ -3,7 +3,7 @@
  *
  * 2-phase attendance: tạo task → phase1 (Mở, quét LISTED_AT) → phase2 (Điểm danh,
  * quét SCANNED_AT) → Xong.
- * A3: danh sách NV nạp NGAY khi tạo task (createReconcileTask — theo ca hoặc dán mã);
+ * A3: danh sách NV nạp NGAY khi tạo task (createTask — theo ca hoặc dán mã);
  * Pre-fill roster ghi LISTED_AT = createdAt (danh sách đã sẵn) — NV trong roster quét phase 1
  * bị reject already-present; phase 1 quét THẬT chỉ cho task rỗng (xây danh sách, ghi thời
  * điểm đến) hoặc NV ngoài roster (append PENDING). Task rỗng = FREE + OPEN + log rỗng.
@@ -33,7 +33,7 @@ function makeTaskId_(now) {
  * @param {{station: string, slotCode: string|string[], team: string|string[], contractType: string|string[], department: string|string[], date: string, codes: string[], createdBy: string, autoAttend: boolean}} input
  * @returns {{ok: boolean, taskId: string|null, count: number, skippedCodes: number, message: string}}
  */
-function createReconcileTask(input) {
+function createTask(input) {
   // M1 (review 2026-08-11): gate THẬT ở service layer — google.script.run gọi được global
   // trực tiếp nên gate chỉ ở *Api wrapper bị bypass. Mặc định mọi user là operator
   // (ROLES.DEFAULT, Auth.gs) → không đổi hành vi hiện tại.

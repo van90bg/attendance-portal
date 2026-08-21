@@ -89,7 +89,7 @@
       if (base.slotCode && base.slotCode.length && base.slotCode.indexOf(s.slotCode) === -1) return false;
       if (base.team && base.team.length && base.team.indexOf(s.team) === -1) return false;
       if (base.contractType && base.contractType.length && base.contractType.indexOf(s.contractType) === -1) return false;
-      // date có thể là array (createReconcileTask) — khớp server
+      // date có thể là array (createTask) — khớp server
       // filterStaffByGroup: mảng rỗng = không lọc; 1 phần tử = lọc theo giá trị đó.
       var d = Array.isArray(base.date) ? (base.date.length === 1 ? base.date[0] : '') : base.date;
       if (d && d !== (s.date || '')) return false;
@@ -204,8 +204,8 @@
       task.permission = { isAdmin: true, isOwner: true, canScanOpen: true };
       return { ok: true, task: task, log: JSON.parse(JSON.stringify(log)), counters: counters(log) };
     },
-    createReconcileTaskApi: function (input) {
-      // Khớp server createReconcileTask (TaskService A3): tạo task + pre-fill roster NGAY lúc
+    createTaskApi: function (input) {
+      // Khớp server createTask (TaskService A3): tạo task + pre-fill roster NGAY lúc
       // tạo — theo ca (lọc StaffData) / dán mã (tra staffIndex). Dòng PENDING LISTED_AT = createdAt
       // (tình huống 2,3: danh sách đã sẵn). Task rỗng → log rỗng.
       var taskId = 'R' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-0' + (MOCK_DATA.tasks.length + 1);

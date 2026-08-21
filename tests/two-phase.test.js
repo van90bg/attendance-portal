@@ -98,7 +98,7 @@ test('computeCounters: có LISTED_AT nhưng chưa quét → Vắng (không phả
 
 
 // ===== Nhánh "Quét tự do" (noList) — tạo task KHÔNG danh sách, quét 2 lần =====
-test('noList: createReconcileTask không cần group → log rỗng, status Mở', () => {
+test('noList: createTask không cần group → log rỗng, status Mở', () => {
   // Giả lập các dependency bằng stub nhẹ (TaskService dùng global GAS API).
   // Vì TaskService require GAS, test này chỉ kiểm tra classifyScan behaviour cho
   // task rỗng: task Mở + log rỗng → lần 1 append PENDING(timeRef), lần 2 append EXTRA(timeScan).

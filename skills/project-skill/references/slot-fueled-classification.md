@@ -8,7 +8,7 @@ Replace the modal's Free/Reconcile **tab** with a magic **slot value `'Tự do'`
 User explicitly chose: **bỏ tabs hoàn toàn** (no tabs in the modal), no step-2, no NV preview list, `'Tự do'` is mutually exclusive with real slots.
 
 ## Server impact (Phương án A — derive-and-store; ~3 lines)
-`TaskService.createReconcileTask` — keep everything else untouched:
+`TaskService.createTask` — keep everything else untouched:
 
 ```
 const slotCode = ... (existing normalize to string)
@@ -47,7 +47,7 @@ const isFree   = !!(input && input.noList) || slotFree;   // dual-source during 
 4. Old tasks (`noList:true` from prior UI) keep working: server keeps `input.noList` OR magic-slot.
 
 ## Verify after implementing
-- `npm run test` (4 test files construct `taskType` directly — they stay green unchanged; add a test asserting `slotFree` derivation through `createReconcileTask`-adjacent pure logic if practical).
+- `npm run test` (4 test files construct `taskType` directly — they stay green unchanged; add a test asserting `slotFree` derivation through `createTask`-adjacent pure logic if practical).
 - CRLF preserved; `new vm.Script()` for .gs, `new Function()` for inline client JS.
 - `check-html-js-gaps` false positives only.
 - Live deploy is user's clasp job; confirm running SHA via `gh run list`.

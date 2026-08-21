@@ -122,11 +122,11 @@ test('searchLogsByStaffApi shape khớp server: { ok, rows }', async () => {
   assert.deepEqual(Object.keys(s).sort(), ['ok', 'rows']);
   assert.ok(Array.isArray(s.rows), 'rows phải là mảng');
 });
-// Server createReconcileTask (TaskService A3) ghi LISTED_AT = createdAt khi pre-fill roster
+// Server createTask (TaskService A3) ghi LISTED_AT = createdAt khi pre-fill roster
 // (tình huống 2,3: danh sách đã sẵn, listedAt = thời điểm tạo task). Mock phải mirror — test chặn drift.
-test('createReconcileTaskApi ghi LISTED_AT = createdAt khi có roster (khớp server)', async () => {
+test('createTaskApi ghi LISTED_AT = createdAt khi có roster (khớp server)', async () => {
   const { call } = loadMock();
-  const r = await call('createReconcileTaskApi', { station: 'HN2 SOC', team: ['Inbound'] });
+  const r = await call('createTaskApi', { station: 'HN2 SOC', team: ['Inbound'] });
   assert.ok(r.ok && r.count >= 1, 'tạo task + nạp roster Inbound: ' + (r && r.message));
   const d = await call('getTaskDetailApi', r.taskId);
   assert.equal(d.log.length, r.count, 'log có đủ NV vừa nạp');
@@ -136,9 +136,9 @@ test('createReconcileTaskApi ghi LISTED_AT = createdAt khi có roster (khớp se
 });
 
 // Task rỗng → log rỗng (khớp server noList: !station && !codes.length)
-test('createReconcileTaskApi task rỗng → count 0, log rỗng (khớp server noList)', async () => {
+test('createTaskApi task rỗng → count 0, log rỗng (khớp server noList)', async () => {
   const { call } = loadMock();
-  const r = await call('createReconcileTaskApi', {});
+  const r = await call('createTaskApi', {});
   assert.ok(r.ok && r.count === 0, 'task rỗng count 0: ' + (r && r.message));
   const d = await call('getTaskDetailApi', r.taskId);
   assert.equal(d.log.length, 0, 'log rỗng');

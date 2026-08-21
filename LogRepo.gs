@@ -144,7 +144,7 @@ function invalidateLogRows_(taskId) {
 }
 
 /**
- * Pre-fill log batch 1 lần (createReconcileTask A3 — nạp roster lúc tạo task) — KHÔNG appendRow trong loop.
+ * Pre-fill log batch 1 lần (createTask A3 — nạp roster lúc tạo task) — KHÔNG appendRow trong loop.
  * @param {string} taskId
  * @param {Array<Object>} staffList — NV khớp tổ hợp
  * @param {Date} createdAt

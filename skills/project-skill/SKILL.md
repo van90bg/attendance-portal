@@ -36,7 +36,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - `classifyScan(cfg,task,logRows,staffId)` → `{action:update|append|reject, phase, field, status}`.
 - Layers: `scanStaffApi`(Code) → `scanStaff`(ScanService) → `classifyScan`(ScanLogic) + `appendLogRow_`/`updateLogRowScan_`/`batchUpdateLogRows_`(LogRepo). LockService + try/catch — không throw client, trả `ok:false`.
 - `reopenTask` → ATTEND (KHÔNG quay OPEN); client recompute phase từ `task.status`.
-- A3 (2026-08-20): tạo task qua `createReconcileTaskApi` — tab Theo ca / Dán mã → **pre-fill roster NGAY lúc tạo** (PENDING, LISTED_AT = createdAt — danh sách đã sẵn); để trống → task rỗng (`noList` — FREE + OPEN + log rỗng). **Phase 1 quét THẬT chỉ cho task rỗng** (xây danh sách, ghi thời điểm đến) — NV trong roster quét phase 1 → reject already-present; NV ngoài roster quét phase 1 → append PENDING. Phase 1 không Dư — Dư chỉ khi quét phase 2 ngoài danh sách.
+- A3 (2026-08-20): tạo task qua `createTaskApi` — tab Theo ca / Dán mã → **pre-fill roster NGAY lúc tạo** (PENDING, LISTED_AT = createdAt — danh sách đã sẵn); để trống → task rỗng (`noList` — FREE + OPEN + log rỗng). **Phase 1 quét THẬT chỉ cho task rỗng** (xây danh sách, ghi thời điểm đến) — NV trong roster quét phase 1 → reject already-present; NV ngoài roster quét phase 1 → append PENDING. Phase 1 không Dư — Dư chỉ khi quét phase 2 ngoài danh sách.
 - **NO LIST phase2 rule**: NV lạ scanned trong phase2 → **EXTRA (Dư)**, KHÔNG phải PRESENT. Client `optimistic status` phải mirror server (`target.status === EXTRA ? EXTRA : PRESENT`).
 
 ## 4. Recurring gotchas (đã fix — đừng regress)
@@ -162,7 +162,7 @@ Router: `selectPage(page)` + `PAGE_VIEWS = { home:'viewHome', stats:'viewStats',
 - **92 token trong `:root`** (styles.html) — màu semantic (primary/danger/warning/success/amber-solid-text-hover-deep/badge status free/reconcile/net-err/dark-mode/surface) · `--space-1..8` = 4/8/12/16/20/24/28/32px (4pt grid) · `--text-3xs..8xl` = 10→72px px-exact · `--radius-2xs..full` = 4/6/8/12/20/999px · layout `--header-h`/`--bottom-nav-h`/`--card-radius` (= var(--radius-md)).
 - **Invariant**: KHÔNG hardcode hex/px ngoài :root (cả inline style + JS). Ngoại lệ chủ đích: micro 1-3px trong component · `#fff`/`#000` · fallback `var(--x, #hex)` · px đo runtime (width/scroll/progress). Audit 2026-08-17: 0 rời rạc còn lại.
 - **Spacing đã chuẩn hóa 4pt** (10px→8px, 6px→8px, 14px→16px, 18px→16px — UI chặt hơn ~2px; đã verify audit-ui 132/132). Đừng regress về 10px/6px cũ.
-- **Tech debt ghi nhận — KHÔNG refactor**: hàm dài core (server: scanStaff 7.9k chars, pasteCodes 5.4k, createReconcileTask 5.7k, planScanCommits 5.3k; client: submitScan 9.2k, processScanQueue 6.0k, renderScanView 4.2k, submitPaste 4.5k). Đã qua nhiều vòng review (security gate/optimistic/race) — refactor rủi ro > lợi ích trên GAS.
+- **Tech debt ghi nhận — KHÔNG refactor**: hàm dài core (server: scanStaff 7.9k chars, pasteCodes 5.4k, createTask 5.7k, planScanCommits 5.3k; client: submitScan 9.2k, processScanQueue 6.0k, renderScanView 4.2k, submitPaste 4.5k). Đã qua nhiều vòng review (security gate/optimistic/race) — refactor rủi ro > lợi ích trên GAS.
 
 ## Verify workflow
 

@@ -10,7 +10,7 @@
   *   getSettingsApi()             → { ok, settings } — editor-only
   *   saveSettingsApi(patch)       → { ok, saved, ignored, message } — editor-only
   *   getAuditLogApi(limit)        → { ok, rows } — admin
-  *   createReconcileTaskApi(input) → { ok, taskId, count, skippedCodes, message }
+  *   createTaskApi(input) → { ok, taskId, count, skippedCodes, message }
   *   getTaskListApi()             → [{ taskId, station, slotCode, team, status, createdAt }]
   *   getTaskDetailApi(taskId)     → { ok, task, log, counters }
   *   scanStaffApi(taskId, staffId, clientEpoch?) → { ok, message, counters, ... }
@@ -163,16 +163,16 @@ function getAuditLogApi(limit) {
   }
 }
 
-/** Tạo task mới (A2 — luôn FREE + rỗng, không pre-fill). Gate requireRole_('operator') đặt TRONG createReconcileTask
+/** Tạo task mới — rỗng (noList) hoặc pre-fill roster theo ca/dán mã (A3). Gate requireRole_('operator') đặt TRONG createTask
  *  (TaskService) — chống bypass google.script.run gọi global; wrapper chỉ DEFENSE. */
-function createReconcileTaskApi(input) {
-  // Gate quyền THẬT nằm TRONG createReconcileTask (TaskService) — google.script.run gọi được hàm global
+function createTaskApi(input) {
+  // Gate quyền THẬT nằm TRONG createTask (TaskService) — google.script.run gọi được hàm global
   // trực tiếp nên gate ở wrapper không chặn bypass. Wrapper chỉ giữ DEFENSE: catch mọi
   // lỗi (kể cả requireRole_ → getSetting_ sheet chưa cấu hình) → ok:false thay vì ném ra client.
   try {
-    return createReconcileTask(input);
+    return createTask(input);
   } catch (e) {
-    return { ok: false, message: e && e.message ? e.message : 'createReconcileTask fail' };
+    return { ok: false, message: e && e.message ? e.message : 'createTask fail' };
   }
 }
 

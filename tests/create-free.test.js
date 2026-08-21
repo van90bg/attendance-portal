@@ -1,7 +1,7 @@
 /**
  * tests/create-free.test.js — commit 2026-08-08: slotCode 'Tự do' → task FREE.
  * Pure: isFreeSlotSelection_ (CsvUtil) 3 case.
- * VM   : createReconcileTask với CsvUtil thật + fake GAS (LockService/Session/IO).
+ * VM   : createTask với CsvUtil thật + fake GAS (LockService/Session/IO).
  *        Case task rỗng → status OPEN, log=0 (FREE)
  *        Case ca thật (A3) → status OPEN, pre-fill roster NGAY lúc tạo
  *        Case dán mã (codes) → pre-fill NV có trong dữ liệu, mã lạ bỏ qua
@@ -64,7 +64,7 @@ function makeCtx() {
 
 test('vm: task rỗng (không station + không codes) → FREE task, OPEN, log=0', () => {
   const { ctx, inserted } = makeCtx();
-  const res = ctx.createReconcileTask({});
+  const res = ctx.createTask({});
   assert.equal(res.ok, true, res.message);
   assert.equal(inserted[0].status, 'open', 'task mở phase1');
   assert.equal(inserted[0].slotCode, 'Tự do', 'Ca lưu = Tự do');
@@ -73,7 +73,7 @@ test('vm: task rỗng (không station + không codes) → FREE task, OPEN, log=0
 
 test('VM: station + ca thật → pre-fill roster NGAY lúc tạo (A3), ca lưu ca thật', () => {
   const { ctx, inserted } = makeCtx();
-  const res = ctx.createReconcileTask({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
+  const res = ctx.createTask({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
   assert.equal(inserted[0].status, 'open', 'task mở phase1');
   assert.equal(inserted[0].slotCode, '08:00-17:00', 'A3: ca lưu = ca chọn');
@@ -82,7 +82,7 @@ test('VM: station + ca thật → pre-fill roster NGAY lúc tạo (A3), ca lưu 
 
 test('VM: dán mã (codes) → pre-fill NV có trong dữ liệu, mã lạ bỏ qua', () => {
   const { ctx, inserted } = makeCtx();
-  const res = ctx.createReconcileTask({ codes: ['OPS001', 'OPS999', 'ops002'] });
+  const res = ctx.createTask({ codes: ['OPS001', 'OPS999', 'ops002'] });
   assert.equal(res.ok, true, res.message);
   assert.equal(res.count, 2, 'OPS001 + OPS002 (không phân biệt hoa thường)');
   assert.equal(res.skippedCodes, 1, 'OPS999 không có trong dữ liệu');
@@ -92,7 +92,7 @@ test('VM: dán mã (codes) → pre-fill NV có trong dữ liệu, mã lạ bỏ 
 
 test('VM: station rỗng → task tạo được, station rỗng (task rỗng)', () => {
   const { ctx, inserted } = makeCtx();
-  const res = ctx.createReconcileTask({});
+  const res = ctx.createTask({});
   assert.equal(res.ok, true, res.message);
   assert.equal(inserted[0].station, '', 'station rỗng — quét tự do');
   assert.equal(res.count, 0, 'log rỗng');

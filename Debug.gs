@@ -42,7 +42,7 @@ function handleDebugRequest_(e) {
         slotCode: e.parameter.slotCode || '',
         team: e.parameter.team || '',
       };
-      const created = createReconcileTask(input);
+      const created = createTask(input);
       const detail = created.ok ? getTaskDetail(created.taskId) : null;
       return ContentService.createTextOutput(JSON.stringify({
         create: created,

@@ -1,5 +1,5 @@
 /** tests/create-roster.test.js — A3 (2026-08-20): danh sách NV nạp NGAY lúc tạo task
- * (createReconcileTaskApi — theo ca / dán mã / task rỗng). Thay cho roster-load.test.js
+ * (createTaskApi — theo ca / dán mã / task rỗng). Thay cho roster-load.test.js
  * (loadRosterApi đã xóa) + paste-batch.test.js (pasteCodes đã xóa).
  *
  * Cover: pre-fill PENDING + LISTED_AT ghi createdAt (tình huống 2,3) · quét phase 1
@@ -28,12 +28,12 @@ function taskRows(ss) {
   return ss.sheets.AttendanceTask.data;
 }
 
-test('createReconcileTaskApi theo ca: pre-fill PENDING + LISTED_AT = createdAt (danh sách đã sẵn)', () => {
+test('createTaskApi theo ca: pre-fill PENDING + LISTED_AT = createdAt (danh sách đã sẵn)', () => {
   const { ctx, ss } = makeSandbox();  // admin (DEPLOYER_EMAIL) → editor
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
+  const res = svc.createTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
   assert.equal(res.count, 2, 'Ops001 + Ops002 khớp ca 08:00-17:00');
   const rows = logRows(ss, res.taskId);
@@ -44,47 +44,47 @@ test('createReconcileTaskApi theo ca: pre-fill PENDING + LISTED_AT = createdAt (
   assert.equal(t[2], '08:00-17:00', 'ca lưu = ca chọn (không ép Tự do)');
 });
 
-test('createReconcileTaskApi: quét phase 1 sau khi tạo kèm roster → reject already-present (đã có LISTED_AT)', () => {
+test('createTaskApi: quét phase 1 sau khi tạo kèm roster → reject already-present (đã có LISTED_AT)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
+  const res = svc.createTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
   assert.ok(String(logRows(ss, res.taskId)[0][7]).length > 0, 'tạo task ghi LISTED_AT = createdAt');
   const sc = svc.scanStaffApi(res.taskId, 'Ops001');
   assert.equal(sc.ok, false, 'quét phase 1 → reject already-present (đã có LISTED_AT)');
 });
 
-test('createReconcileTaskApi: dedupe nội bộ — NV 2 dòng StaffData → 1 dòng', () => {
+test('createTaskApi: dedupe nội bộ — NV 2 dòng StaffData → 1 dòng', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
   ss.sheets.StaffData.appendRow([1, '2026-08-02', 'Ops001', 'NV001', 'a@spx.com', 'GRG', 'Chính thức', '', '', '', '', '', '', '', '', '', '08:00-17:00', 'OB1', 'Inbound', 'HN2']);  // Ops001 dòng 2
-  const res = svc.createReconcileTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
+  const res = svc.createTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] });
   assert.equal(res.ok, true, res.message);
   assert.equal(res.count, 2, 'dedupe giữ 1 dòng/NV');
   assert.equal(logRows(ss, res.taskId).length, 2);
 });
 
-test('createReconcileTaskApi: filter rỗng → ok:false (CREATE_FAILED_EMPTY)', () => {
+test('createTaskApi: filter rỗng → ok:false (CREATE_FAILED_EMPTY)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({ station: 'XYZ' });
+  const res = svc.createTaskApi({ station: 'XYZ' });
   assert.equal(res.ok, false);
   assert.match(res.message, /Không có nhân viên/i);
   assert.equal(taskRows(ss).slice(1).filter(function (t) { return t[0]; }).length, 0, 'không tạo task khi roster rỗng');
 });
 
-test('createReconcileTaskApi dán mã: mã hợp lệ → pre-fill + LISTED_AT = createdAt, mã lạ/trùng → skipped', () => {
+test('createTaskApi dán mã: mã hợp lệ → pre-fill + LISTED_AT = createdAt, mã lạ/trùng → skipped', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({ codes: ['Ops001', 'ops001', 'OPS999', 'Ops003'] });
+  const res = svc.createTaskApi({ codes: ['Ops001', 'ops001', 'OPS999', 'Ops003'] });
   assert.equal(res.ok, true, res.message);
   assert.equal(res.count, 2, 'Ops001 (trùng tính 1) + Ops003');
   assert.equal(res.skippedCodes, 1, 'OPS999 không có trong dữ liệu');
@@ -99,23 +99,23 @@ test('createReconcileTaskApi dán mã: mã hợp lệ → pre-fill + LISTED_AT =
   assert.equal(t[2], 'Tự do', 'dán mã → FREE');
 });
 
-test('createReconcileTaskApi dán mã: toàn bộ mã lạ → ok:false, không tạo task', () => {
+test('createTaskApi dán mã: toàn bộ mã lạ → ok:false, không tạo task', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({ codes: ['OPS999', 'OPS888'] });
+  const res = svc.createTaskApi({ codes: ['OPS999', 'OPS888'] });
   assert.equal(res.ok, false);
   assert.equal(res.skippedCodes, 2);
   assert.equal(taskRows(ss).slice(1).filter(function (t) { return t[0]; }).length, 0);
 });
 
-test('createReconcileTaskApi task rỗng (không station + không codes) → FREE, OPEN, log=0', () => {
+test('createTaskApi task rỗng (không station + không codes) → FREE, OPEN, log=0', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({});
+  const res = svc.createTaskApi({});
   assert.equal(res.ok, true, res.message);
   assert.equal(res.count, 0);
   const t = taskRows(ss)[taskRows(ss).length - 1];
@@ -123,23 +123,23 @@ test('createReconcileTaskApi task rỗng (không station + không codes) → FRE
   assert.equal(logRows(ss, res.taskId).length, 0);
 });
 
-test('createReconcileTaskApi gate: viewer → reject (requireRole_)', () => {
+test('createTaskApi gate: viewer → reject (requireRole_)', () => {
   const { ctx, ss } = makeSandbox({ activeEmail: 'v@spx.com' });
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   ss.sheets.Config.appendRow(['roleMap', JSON.stringify({ 'v@spx.com': 'viewer' })]);
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({ station: 'HN2' });
+  const res = svc.createTaskApi({ station: 'HN2' });
   assert.equal(res.ok, false);
   assert.match(res.message, /quyền/);
 });
 
-test('createReconcileTaskApi: audit row được ghi (action=createTask, detail count)', () => {
+test('createTaskApi: audit row được ghi (action=createTask, detail count)', () => {
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
   seedStaff(ss);
-  const res = svc.createReconcileTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'] });
+  const res = svc.createTaskApi({ station: 'HN2', slotCode: ['08:00-17:00'] });
   assert.equal(res.ok, true, res.message);
   const rows = ss.sheets.AuditLog.data;
   const last = rows[rows.length - 1];

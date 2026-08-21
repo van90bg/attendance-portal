@@ -226,13 +226,13 @@ test('doGet wiring: khong debug → tra HtmlOutput index; debug=1 editor → tra
   assert.equal(parsed.sheets.Config.rows >= 1, true);
 });
 
-test('createReconcileTaskApi dùng UI_LABELS global trong vm shared context', () => {
+test('createTaskApi dùng UI_LABELS global trong vm shared context', () => {
   // A3: tổ hợp rỗng → message = UI_LABELS.CREATE_FAILED_EMPTY (chứng minh global
   // từ Config.gs nạp chung 1 vm context — file .gs không cần require).
   const { ctx, ss } = makeSandbox();
   const svc = loadAll(ctx);
   svc.ensureSheets_();
-  const res = svc.createReconcileTaskApi({ station: 'KHÔNG CÓ', slotCode: ['08:00-17:00'] });
+  const res = svc.createTaskApi({ station: 'KHÔNG CÓ', slotCode: ['08:00-17:00'] });
   assert.equal(res.ok, false);
   assert.equal(res.message, 'Không có nhân viên nào trong tổ hợp đã chọn');
 });

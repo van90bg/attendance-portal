@@ -82,7 +82,7 @@ function saveSettings_(patch) {
   const saved = [];
   const ignored = [];
   // Lock TRƯỚC khi đọc values — 2 editor save đồng thời cùng đọc rowByKey rồi cùng append
-  // sẽ tạo row trùng (pattern như createReconcileTask: lock trước mọi đọc).
+  // sẽ tạo row trùng (pattern như createTask: lock trước mọi đọc).
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
