@@ -152,7 +152,9 @@
         <span id="scanLiveMsg" class="sr-only" aria-live="polite"></span>
       </div>
       <div class="scan-col-right">
-        <!-- S1 (2026-08-21): panel nạp roster vào task rỗng — mở qua btnScanLoad, chỉ khi OPEN + log rỗng -->
+        <!-- S1 (2026-08-21): panel nạp roster vào task rỗng — mở qua btnScanLoad, chỉ khi OPEN + log rỗng.
+             Compact 3 chiều (Station/Ca/Team) — server appendRoster_ hỗ trợ đủ 6 chiều (contractType/dept/date qua API),
+             panel giữ gọn cho mobile/tablet; lọc theo 3 chiều chính là đủ case vận hành kho. -->
         <div class="card" id="scanLoadPane" style="display:none;">
           <div class="task-list-toolbar">
             <h2 class="section-heading">NẠP DANH SÁCH</h2>

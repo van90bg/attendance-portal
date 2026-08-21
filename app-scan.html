@@ -788,9 +788,11 @@
         && canMutate
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
-      canLoadRoster = canCancel;  // S1: nạp roster cùng điều kiện (OPEN + log rỗng + mutate)
+      canLoadRoster = canCancel && !scanBusy();  // S1: nạp roster — OPEN + log rỗng + mutate + không đang quét (tránh reject server 'đã có dữ liệu')
     }
     if (btnScanLoad) btnScanLoad.style.display = canLoadRoster ? '' : 'none';
+    // P2 (2026-08-21): phase đổi → tự động ẩn panel nạp (ATTEND/DONE không nạp được)
+    if (!canLoadRoster && typeof hideScanLoadPane_ === 'function') hideScanLoadPane_();
     if (canLoadRoster && typeof initScanLoadEvents_ === 'function') initScanLoadEvents_();
     // Mode nút: rpc (đang chốt ca nền) > scanBusy (đang quét) > rảnh. Nút Chốt/Chuyển
     // không disabled (BUSY guard chống double); chỉ Hủy bị khóa lúc bận.
@@ -1654,6 +1656,12 @@
     if (pane) pane.style.display = 'none';
   }
   function renderScanLoadChips_() {
+    // P2 (2026-08-21): re-apply defaultStation mỗi khi render chips — _createOptsData có thể load sau
+    // khi panel đã mở lần đầu (createStationOptions_() trả [] → validate fail ở lần reset).
+    if (!SCAN_LOAD_FILTER.station && typeof CFG_DEFAULTS !== 'undefined' && CFG_DEFAULTS && CFG_DEFAULTS.station
+        && typeof createStationOptions_ === 'function' && createStationOptions_().indexOf(String(CFG_DEFAULTS.station).trim()) !== -1) {
+      SCAN_LOAD_FILTER.station = String(CFG_DEFAULTS.station).trim();
+    }
     var st = document.getElementById('scanLoadChipsStation');
     if (st && typeof chipsHtmlStation_ === 'function' && typeof createStationOptions_ === 'function') {
       st.innerHTML = chipsHtmlStation_(createStationOptions_(), SCAN_LOAD_FILTER.station || '');
