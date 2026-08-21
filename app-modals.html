@@ -21,8 +21,6 @@
     if (typeof resetCreateModal_ === 'function') resetCreateModal_();
     CREATE_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
     _lastCreateCount = 0;
-    var err = document.getElementById('createRosterError');
-    if (err) { err.style.display = 'none'; err.innerHTML = ''; }
     var pErr = document.getElementById('createPasteError');
     if (pErr) { pErr.style.display = 'none'; pErr.innerHTML = ''; }
     var ta = document.getElementById('createPasteTextarea');
@@ -31,7 +29,16 @@
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     switchCreateTab_('roster', true);
+    // Station mặc định từ Config (SettingsService defaultStation) — pre-select khi chưa chọn.
+    // Validate: mặc định phải nằm trong danh sách station hợp lệ, nếu không giữ '' (bắt buộc chọn).
+    if (!CREATE_FILTER.station && _createOptsData && _createOptsData.defaults && _createOptsData.defaults.defaultStation) {
+      var ds = String(_createOptsData.defaults.defaultStation).trim();
+      if (ds && createStationOptions_().indexOf(ds) !== -1) {
+        CREATE_FILTER.station = ds;
+      }
+    }
     renderCreateChips_();
+    if (CREATE_FILTER.station) _doCreatePreview();  // default station chọn sẵn → đếm NV hiện ngay
     // #13 (review 2026-08-19): focus-in modal — trước không focus gì, Tab đầu tiên
     // nhảy về phần tử đứng TRƯỚC modal trong document (nút header) rồi mới vào modal.
     var first = m.querySelector('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
@@ -125,6 +132,7 @@
       stationGroups: res.stationGroups || [],
       // B3: staff list đầy đủ cho preview count client-side (không cần RPC previewStaffApi).
       staffList: safeArr(res.staffList),
+      defaults: res.defaults || {},   // defaultStation/SlotCode/Team từ Config — pre-select modal (P1)
     };
     renderCreateChips_();
   }
@@ -232,14 +240,7 @@
     });
     _lastCreateCount = count;
     updateCreateSubmit_();
-    var err = document.getElementById('createRosterError');
-    if (err && count === 0) {
-      err.style.display = '';
-      err.innerHTML = 'Không có nhân viên nào khớp bộ lọc';
-    } else if (err) {
-      err.style.display = 'none';
-      err.innerHTML = '';
-    }
+    // 0 NV khớp đã thể hiện qua 'Tạo (0 NV)' disabled + num=0 — không cần block lỗi riêng (trùng thông tin, chiếm chỗ modal).
   }
   // Create modal: delegate click chip — Station single-select, còn lại đa chọn (Tất cả = rỗng).
   function initCreateEvents() {
@@ -269,8 +270,6 @@
         if (chip.getAttribute('data-col') === 'roster-all') arr.length = 0;
         else toggleRosterArr_(arr, chip.getAttribute('data-val'), !pressed, isSlot);
       }
-      var err = document.getElementById('createRosterError');
-      if (err) { err.style.display = 'none'; err.innerHTML = ''; }
       renderCreateChips_();
       _doCreatePreview();
     });

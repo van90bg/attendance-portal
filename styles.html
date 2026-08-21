@@ -913,6 +913,23 @@
       transform: scale(.96); transition: transform .2s ease-out;
     }
     .about-overlay.open .about-dialog { transform: scale(1); }
+    /* Create modal: cap chiều cao dialog (100dvh — đúng mobile, tránh thanh địa chỉ) + flex column,
+       pane cuộn trong, header/tab/footer luôn thấy — hết tràn trên/dưới (2026-08-21).
+       Scope riêng #createModal — không ảnh hưởng confirm/spin/fixStatus. */
+    #createModal .about-dialog {
+      max-height: min(92dvh, 92vh, 720px);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    #createModal .load-tabs { flex-shrink: 0; }
+    #createModal .load-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+    #createModal .create-footer { flex-shrink: 0; }
+    /* Mobile ≤700px: chips mỗi nhóm 1 hàng cuộn ngang (giảm chiều cao đáng kể) + frow 1 cột + đệm gọn */
+    @media (max-width: 700px) {
+      #createModal .about-dialog { padding: var(--space-4); }
+      #createModal .create-form .frow { grid-template-columns: 1fr; gap: var(--space-1); }
+      #createModal .create-form .chips { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      #createModal .load-pane { padding-bottom: var(--space-2); }
+    }
 
 
     /* P2: tôn trọng prefers-reduced-motion — tắt animation khi user yêu cầu */
