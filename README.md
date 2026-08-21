@@ -95,7 +95,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 ```
 RollCall_2/
 ├── appsscript.json         # manifest + webapp block
-├── Code.gs                # doGet (template) + 20 API endpoint *Api + editor tools
+├── Code.gs                # doGet (template) + 19 API endpoint *Api + editor tools
 ├── Config.gs              # hằng số sheet/cột/cache/status/labels
 ├── Auth.gs                # getActiveEmail_/isEditor_ — MỌI lấy email qua đây
 ├── Debug.gs               # ?debug=1 (editor-gated)
@@ -133,7 +133,7 @@ RollCall_2/
 ## Chạy & kiểm thử
 
 ```bash
-npm test                        # 209/209 unit tests (node:test)
+npm test                        # 219/219 unit tests (node:test)
 node scripts/test-local-mock.js # UI test local mock qua CDP (11/11)
 ```
 
@@ -173,7 +173,7 @@ clasp deploy
 - ✅ Portal shell: sidebar 8 trang; trang chủ logo + đồng hồ; viewReports — báo cáo chấm công tháng (bảng 10 cột + thẻ card mobile); viewAdmin — nhật ký hoạt động (manager+, lọc ngày).
 - ✅ Tách frontend (index/styles + 9 module `app-*.html`) + `build-local.js` cho test local.
 - ✅ Cấu hình Admin (SettingsService) + role gate + pre-select mặc định.
-- ✅ 209/209 unit tests + 11/11 CDP local mock.
+- ✅ 219/219 unit tests + 11/11 CDP local mock.
 - ✅ Đợt 1 (2026-08-19): force-close admin (completeTask counter lệch) · loadRoster ở phase Điểm danh (chặn DONE) · sửa trạng thái dòng log (updateLogRowStatusApi + cột Sửa bảng quét) · chống gian lận giờ quét (±60s + không sớm hơn tạo task) · cảnh báo mã quét không có trong StaffData (staffUnknown) · **L1 fix** (đổi ngược PRESENT→ABSENT/PENDING clear TIME_SCAN — counter đúng; về PENDING clear LISTED_AT; EXTRA giữ SCANNED_AT — partition invariant).
 - ✅ Đợt 2 (2026-08-19): **hủy task Mở rỗng** (cancelTaskApi + nút Hủy — owner/admin, log rỗng mới hủy được, audit cancelTask) · **nạp roster KHÔNG ghi LISTED_AT** (thời điểm đến ghi khi NV quét phase 1 — counter 'Đã đến' không còn thổi phồng) · label phase 1 'Đã có mặt' → 'Đã đến' (khớp 2-phase: đến ≠ điểm danh).
 - ✅ Đợt 3 (2026-08-19): thuật ngữ operator — **Bắt đầu điểm danh** / **Chốt ca** / **Đang ghi danh sách** / **Đã chốt điểm danh** / **Đã điểm danh** (bỏ "quét lần 2") · gộp Dán mã + Lấy theo ca → **1 nút "Nạp danh sách"** (modal 2 tab — bỏ menu "Thêm" + CSS topbar-more) · ẩn cột Tạo lúc/Người tạo bảng task (list + F-search) · nudge quên chuyển phase (quét trùng phase Mở → toast gợi ý) · Dư → "Dư — không có trong danh sách".
@@ -184,7 +184,7 @@ clasp deploy
 - ✅ Đợt 6 (2026-08-19): frontend P1 — nhãn mobile card bảng task `'Đã điểm danh'` (khớp `data-label` JS) · bottom nav thêm mục **Dữ liệu** (manager+ mobile vào được viewStaff) · **`#scanPagination`** ra ngoài `.table-wrap` · **viewReports/viewAdmin/viewAbout vào trong `<main>`**.
 
 - ✅ Đợt 9 (2026-08-20): fix batch audit — CRLF app-modals.html · epoch ±60s đối xứng (client nhanh 30s vẫn WYSIWYG) · re-check race nhánh update (không đè giờ quét 2 thiết bị) · gate reader report StaffInfo/StaffAttendance manager+ · cache chunked >90KB + gen token unique · ISO date branch · optimistic field names · token --header-user-bg.
-- ✅ Đợt 2b (2026-08-20): cancelTask gate fail-closed (`canScanOpen_` → `canMutateTask_` — xóa hẳn task là mutation bất thuận nghịch) · mock `loadRosterApi` mirror server `noListedAt` (LISTED_AT rỗng — hết 'đã đến' giả khi test local) · wire `repo-integrity.test.js` vào `npm test` (212/212 — trước đó 11 tests row-integrity không bao giờ chạy).
+- ✅ Đợt 2b (2026-08-20): cancelTask gate fail-closed (`canScanOpen_` → `canMutateTask_` — xóa hẳn task là mutation bất thuận nghịch) · mock `loadRosterApi` mirror server `noListedAt` (LISTED_AT rỗng — hết 'đã đến' giả khi test local) · wire `repo-integrity.test.js` vào `npm test` (219/219 — trước đó 11 tests row-integrity không bao giờ chạy).
 - ✅ Đợt 11 (2026-08-20): chốt model 2-pha — **pre-fill roster LISTED_AT = createdAt** (đảo ngược Đợt 2 "nạp roster KHÔNG ghi LISTED_AT" — danh sách đã sẵn, khớp Spec v2.15) · **phase 1 quét THẬT chỉ cho task rỗng/free** (NV trong roster quét phase 1 → reject already-present; NV ngoài roster phase 1 → append PENDING) · đồng bộ comment TaskService + Spec + SKILL (hết drift "LISTED_AT rỗng") · xóa section/API dead trong Spec (previewStaffApi/loadRosterApi/searchTasksByQueryApi/pasteCodes đã bỏ khỏi code).
 - ✅ Đợt 7 (2026-08-19): review integrity backend — **row-integrity mutators** (updateTaskStatus_ fallback theo taskId / setLogRowStatus_ chặn row lệch / batchUpdateLogRows_ lọc rowIndex thuộc taskId — không ghi nhầm dòng task khác) · **cache gen guard** (`CACHE_KEYS.CACHE_GEN` — mọi invalidate*_ bump; cachedJson_ skip put dữ liệu cũ khi gen đổi giữa load — hết stale-resurrection race cross-deploy) · **`ensureSheets_(strict)` header validation theo vị trí** (setupSheets fail-closed 'HEADER MISMATCH'; doGet non-strict chỉ log) · **overwriteStaffData_ LockService** (clear→write→invalidate atomic) · **report filter ambiguous phần số** (OPS12345 vs ABC12345 → chỉ khớp chính xác + message báo admin) · **getTaskListApi error contract** ({ok:false,message} — [] chỉ khi rỗng thật; client xử lý lỗi ở đợt 8) · **getStaffStatsApi cảnh báo ≥2000 NV** · **admin gate thật** (owner-gate `isEditor_()` → `requireRole_('admin')` — admin trong roleMap giờ bypass như deployer) · **clearListed độc lập** (ABSENT→PENDING xoá LISTED_AT — hết PENDING 'đã đến' giả) · **audit whitelist + lock** (action lạ qua google.script.run bị bỏ, append không interleave).
 - ✅ Đợt 8 (2026-08-19): review integrity frontend — **getTaskListApi error contract client** (lỗi hạ tầng → inline 'Thử lại', không đè cache cũ bằng [] — hết tạo task trùng) · **role gating UI** (`+ Task mới` operator+ · home shortcut Thống kê/Báo cáo manager+ · `selectPage` guard role — devtools không vượt view ngoài quyền) · **inline error states + Thử lại** (task list / staff / config / reports / roster modal) · **thead sr-only** thay `display:none` (5 bảng mobile — SR vẫn đọc header) · **modal focus a11y** (openCreateModal focus-in · Tab trap kéo về modal khi focus ngoài · spinModal save/restore focus) · **admin TZ** (auditRowDate_/fmtAuditTime_ → Intl Asia/Ho_Chi_Minh — hết lệch ngày theo TZ thiết bị) · **bỏ duplicate `min-height:32px`** (btn-icon-dark giữ 40px touch) · **About hướng dẫn khớp UX** (Nạp danh sách/Task rỗng · Chốt ca) · **restoreScanCard DONE theo SCANNED_AT** (mở task đã chốt khôi phục lượt điểm danh cuối).

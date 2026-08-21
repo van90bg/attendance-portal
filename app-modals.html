@@ -45,7 +45,7 @@
       contractTypes: ((res.lists && res.lists.contractTypes) || []).slice(),
       departments: ((res.lists && res.lists.departments) || []).slice(),
       stationGroups: res.stationGroups || [],
-      // B3: staff list đầy đủ cho preview count client-side (không cần RPC previewStaffApi).
+      // staff list đầy đủ cho preview count client-side (không cần RPC previewStaffApi).
       staffList: safeArr(res.staffList),
       defaults: res.defaults || {},   // defaultStation/SlotCode/Team từ Config — pre-select Station cho S1 panel
     };
