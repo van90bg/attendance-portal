@@ -1056,10 +1056,10 @@
     #btnScanListToggle { display: none; min-width: 36px; padding: var(--space-2) var(--space-2); font-size: var(--text-base); line-height: 1; margin-left: auto; }  /* desktop ẩn — mobile: nút ▼/▲ góc phải card (margin-left: auto ép phải) */
     /* Mở rộng danh sách → ẩn cột quét (counters + ô nhập + nút Quét + scanCard) — danh sách NV đẩy lên full */
     body.scan-expanded .scan-col-left { display: none; }
-    /* Mobile/tablet viewScan (≤991px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard;
-       bấm Mở rộng mới hiện bảng + tìm/lọc. ≤991px scan-layout thành 1 cột (tablet 701-991px đã đồng bộ) —
-       nút ▼/▲ cho phép thu gọn danh sách, không kẹt xếp chồng. */
-    @media (max-width: 991px) {
+    /* Mobile viewScan (≤700px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard;
+       bấm Mở rộng mới hiện bảng + tìm/lọc. Tablet 701-991px (scan-layout 1 cột) GIỮ danh sách hiện sẵn —
+       có đủ chiều dọc, không ép thêm thao tác (phản biện 2026-08-21: ẩn mặc định trên tablet giảm scan throughput). */
+    @media (max-width: 700px) {
       #btnScanListToggle { display: inline-flex; }
       #scanListCard .list-search, #scanListCard #scanStatusFilter, #scanListCard #scanClearFilter, #scanListCard .table-wrap { display: none; }
       #scanListCard.scan-list-open .list-search { display: flex; }
@@ -1373,6 +1373,8 @@
       .btn-sm { padding: var(--space-2) var(--space-4); min-height: 36px; font-size: var(--text-sm); }
       .list-search .btn-icon { padding: var(--space-2) var(--space-3); min-height: 36px; }
       .pag-btn { padding: var(--space-2) var(--space-3); min-height: 36px; font-size: var(--text-sm); min-width: 36px; }
+      .cfg-chip-edit, .cfg-chip-del { min-width: 36px; min-height: 36px; padding: 0 var(--space-2); }
+      .cfg-star-btn { min-width: 36px; min-height: 36px; }
       header .btn-icon-dark { min-height: 44px; }
     }
     /* Main: nhường chỗ khi mở sidebar; tự tràn khi ẩn/thu gọn */

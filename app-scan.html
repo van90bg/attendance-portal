@@ -76,7 +76,7 @@
   }
 
   // Render view scan từ data (dùng chung cho full-load và cache-reuse)
-  function renderScanView(data) {
+  function renderScanView(data, skipReset) {
     var skel = document.getElementById('scanSkeleton');
     var tbl = document.getElementById('scanTable');
     var empty = document.getElementById('scanEmpty');
@@ -96,7 +96,9 @@
     }
     CURRENT_LOG = safeArr(data.log);
     SCAN_PAGE = 1; // dữ liệu mới (task vừa mở) → về trang đầu
-    resetScanListState_(); // mở task khác → trả về trạng thái thu gọn mặc định (không kẹt danh sách mở)
+    // Mở task mới/full-load → trả về trạng thái thu gọn mặc định (không kẹt danh sách mở).
+    // Silent reload (background sync) KHÔNG reset — user đang mở bảng NV không bị collapse (P1-2026-08-21).
+    if (!skipReset) resetScanListState_();
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
     metaEl.innerHTML = buildScanMetaHTML(data.task);
@@ -177,7 +179,7 @@
         // trỏ object cũ → dòng vừa quét optimistic 'biến mất'. Gate: đang scan thì bỏ qua
         // RPC silent (giữ view optimistic đang hiển thị — server vẫn ghi đúng phía sau).
         if (silent && scanBusy()) { _pendingSilentReload = taskId; BG_TASKS.silent = 1; updateBgIndicator(); return; } // m4: hoãn, reload khi queue idle
-        try { renderScanView(res); } catch (e) { console.error("renderScanView", e); markServerFail(); }
+        try { renderScanView(res, silent); } catch (e) { console.error("renderScanView", e); markServerFail(); }
         LAST_SCAN_VIEW = { taskId: taskId, ts: Date.now() };
         hideLoadingOverlay();
       })
