@@ -32,6 +32,11 @@ Hướng dẫn dành cho AI agent làm việc trong repo này. Đọc kỹ trư�
 9. **MỌI thay đổi (code/UI/API/flow) phải cập nhật README.md + `Spec — RollCall v2.md` trong CÙNG commit** — số liệu
    (test count, file count, API, sheets), bảng phân quyền, tên view/API, flow. Đừng để docs drift khỏi code (tiền lệ
    audit 2026-08-17: 138→144 tests, 9 view, 19 API, 7 sheets — đã đồng bộ).
+10. **KHÔNG tạo hàm trùng lặp — 1 logic = 1 nơi (Single Source of Truth).** Trước khi tạo hàm mới:
+    - `grep -rn "function <tên>" --include="*.gs" --include="*.html"` + `grep -rn "<keyword>"` (vd `normalize`, `formatTime`, `cache`, `filterStaff`, `computeCounters`) — nếu đã có → **reuse**, không copy.
+    - **Map bắt buộc:** `normalize*` → `CsvUtil.gs:55` · `formatTime/formatDate` → `Cache.gs:112` · `cache/cachedJson` → `Cache.gs:27` · `filter/dedupe/buildStation` → `CsvUtil.gs:242` · `classifyScan/computeCounters/findLogRow` → `ScanLogic.gs:37` · `invalidation` → `TaskRepo.gs:68`/`LogRepo.gs:140` — không tạo bản thứ 2.
+    - Client/server duplicate (`classifyScan` vs `app-scan.html:35`, `computeCounters` vs `app-scan.html:583`) là **ngoại lệ có chủ đích** — giữ comment `KHỚP server` + guard `tests/scan-drift.test.js`. Thêm duplicate mới ngoài whitelist → P1.
+    - Tạo hàm xong → `node scripts/audit-gs.js && npm run test` — audit báo `DEAD`/`API treo` là P0, semantic duplicate (grep ≥2 hit cùng intent) là P1.
 
 ## 3. Cách edit deterministic (BẮT BUỘC)
 
@@ -92,7 +97,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 
 ## 6. Workflow — fix & verify
 
-1. Đọc code trước (skill + file) → xác định `P0→P1→P2`.
+1. Đọc code + `grep` duplicate trước (skill + file + `grep -rn "function <tên>"`) → xác định `P0→P1→P2` (trùng thì reuse, không tạo mới).
 2. Edit deterministic → verify (parse/CRLF/test).
 3. **Commit + push GitHub NGAY khi xong đợt edit (bắt buộc, không chờ user hỏi)** — định dạng `type(scope): mô tả`.
 4. **Verify production**: GAS có thể đang chạy SHA cũ — check `gh run list --limit 5` (xem `.head_sha`), đối chiếu git HEAD. Nếu CI trễ: báo user đợi clasp deploy.
@@ -104,6 +109,7 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - CDP verify UI: `scripts/cdp-helper.js` (open/eval/shot) — đo `getBoundingClientRect` = geometry là truth, screenshot chỉ để cảm nhận.
 - Dead CSS audit: `node scripts/audit-css.js` — rà class selector styles.html đối chiếu index.html + toàn bộ app-*.html (class="" / classList / className literal + nối chuỗi / querySelector / getElementsByClassName) → phân loại DEAD chắc chắn vs DYNAMIC; **exit 1 nếu có dead** (chạy sau mỗi batch CSS). `--full` in thêm class nối chuỗi.
 - Dead GAS audit: `node scripts/audit-gs.js` — rà hàm/const top-level 17 file .gs đối chiếu toàn bộ nguồn (gs + index/app + mock + tests + scripts); phân loại **DEAD** (không ai gọi) + **API TREO** (*Api server có nhưng client không gọi — drift mock↔server↔client); **exit 1 nếu có dead/treo** (chạy sau mỗi batch server). Entry runtime GAS (doGet/doPost/include) không tính.
+- Duplicate logic audit: `grep -rn "^function " --include="*.gs" --include="*.html" | cut -d: -f2 | sort | uniq -d` — **0 duplicate exact** (GAS global scope sẽ SyntaxError). Semantic duplicate: `grep -rn "normalize\|formatTime\|cachePut\|filterStaff\|computeCounters" --include="*.gs" --include="*.html"` — >1 hit cùng intent → gộp trước khi commit. Chạy sau mỗi batch tạo hàm mới.
 - Style audit: `node scripts/audit-style.js [--strict]` — boot Chrome headless + đo computed style mọi class chung (SHARED_CLASSES trong script) → in class lệch fingerprint; `--strict` exit 1 nếu có lệch ngoài ALLOWED_DRIFT (chủ đích: modal 44px touch / btn-sm / cfg-card / flabel 56px / card+table-wrap flex scan). Bỏ element display:none (nhiễu min-height 0px). Chạy sau batch UI đổi style; cần Chrome.
 - UI audit toàn diện: `node scripts/audit-ui.js` — boot Chrome headless + đo geometry 7 view (home/tasks/scan/stats/staff/config/reports) x 4 viewport (desktop 1384 · tablet 1024 · mobile 390/375): view hiển thị · trang không cuộn · nav không che · card vừa màn hình (đo theo body height — KHÔNG innerHeight: headless mobile emulation báo 1007 nhưng body 844 → gap giả) · bảng có dữ liệu; viewScan mobile miễn trừ gap âm (section cuộn trong). `--quick` chỉ desktop (~20s); **exit 1 nếu có FAIL** (chạy sau mỗi batch UI thay đổi layout/touch). Cần Chrome.
 
