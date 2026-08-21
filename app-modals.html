@@ -114,8 +114,8 @@
     });
     return html;
   }
-  // Đa chọn helper — lọc Ca hợp lệ theo station (bỏ slot không còn khớp).
-  function toggleRosterArr_(arr, val, on, isSlot) {
+  // Đa chọn helper — thêm/bớt giá trị trong mảng (dùng cho chips filter đa chọn).
+  function toggleRosterArr_(arr, val, on) {
     var i = arr.indexOf(val);
     if (on && i === -1) arr.push(val);
     if (!on && i !== -1) arr.splice(i, 1);

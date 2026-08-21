@@ -185,6 +185,8 @@ function appendRoster_(taskId, filter) {
     if (!deduped.length) return { ok: false, message: UI_LABELS.CREATE_FAILED_EMPTY };
     const now = new Date();
     batchInsertLogRows_(taskId, deduped, now);  // listedAt = thời điểm nạp (không phải lúc tạo)
+    // Cập nhật task metadata: station/slotCode/team (P1-1 2026-08-21 — task sheet hiện đúng filter đã chọn, không giữ ''/Tự do).
+    updateTaskMeta_(taskId, f.station, Array.isArray(f.slotCode) ? f.slotCode.join(', ') : (f.slotCode || ''), Array.isArray(f.team) ? f.team.join(', ') : (f.team || ''));
     audit_('loadRoster', taskId, { count: deduped.length });
     return { ok: true, taskId: taskId, count: deduped.length, message: 'Nạp ' + deduped.length + ' NV thành công' };
   } catch (e) {

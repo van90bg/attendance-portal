@@ -1622,9 +1622,9 @@
       .updateLogRowStatusApi(CURRENT_TASK.taskId, FIX_STATUS_TARGET.staffId, sel.value);
   }
   /* ===== S1 (2026-08-21): nạp roster sau — task RỖNG (OPEN + log rỗng) ===== */
-  var SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
+  var SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [] };  // P2-2: chỉ 3 chiều panel nạp (Station/Ca/Team)
   function resetScanLoadFilter_() {
-    SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
+    SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [] };
     // Station mặc định từ Config (nối tiếp pre-select modal create)
     if (typeof CFG_DEFAULTS !== 'undefined' && CFG_DEFAULTS && CFG_DEFAULTS.station) {
       var ds = String(CFG_DEFAULTS.station).trim();
@@ -1711,16 +1711,19 @@
       if (!chip || !chip.getAttribute('data-col')) return;
       var pressed = chip.getAttribute('aria-pressed') === 'true';
       if (chip.closest('#scanLoadChipsStation')) {
+        var changed = SCAN_LOAD_FILTER.station !== (chip.getAttribute('data-col') === 'roster-all' ? '' : chip.getAttribute('data-val'));
         if (chip.getAttribute('data-col') === 'roster-all') SCAN_LOAD_FILTER.station = '';
         else SCAN_LOAD_FILTER.station = pressed ? '' : chip.getAttribute('data-val');
+        // P1-2 (2026-08-21): đổi Station → xóa slotCode + team cũ (chips thuộc station mới, tránh filter lệch/preview 0)
+        if (changed) { SCAN_LOAD_FILTER.slotCode.length = 0; SCAN_LOAD_FILTER.team.length = 0; }
       } else if (chip.closest('#scanLoadChipsSlot')) {
         var arr = SCAN_LOAD_FILTER.slotCode;
         if (chip.getAttribute('data-col') === 'roster-all') arr.length = 0;
-        else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr, chip.getAttribute('data-val'), !pressed, true);
+        else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr, chip.getAttribute('data-val'), !pressed);
       } else if (chip.closest('#scanLoadChipsTeam')) {
         var arr2 = SCAN_LOAD_FILTER.team;
         if (chip.getAttribute('data-col') === 'roster-all') arr2.length = 0;
-        else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr2, chip.getAttribute('data-val'), !pressed, false);
+        else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr2, chip.getAttribute('data-val'), !pressed);
       }
       renderScanLoadChips_();
     });

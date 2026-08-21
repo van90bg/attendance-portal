@@ -146,3 +146,20 @@ test('appendRosterApi: audit row được ghi (action=loadRoster, detail count)'
   assert.equal(last[2], 'loadRoster');
   assert.equal(last[3], taskId);
 });
+
+test('appendRosterApi: cập nhật task metadata (station/slotCode/team) — không còn rỗng/Tự do', () => {
+  const { ctx, ss } = makeSandbox();
+  const svc = loadAll(ctx);
+  svc.ensureSheets_();
+  seedStaff(ss);
+  const taskId = createEmpty(ss, svc);
+  // Task rỗng ban đầu: station='', slotCode='Tự do', team=''
+  const res = svc.appendRosterApi({ taskId: taskId, filter: { station: 'HN2', slotCode: ['08:00-17:00'], team: ['Inbound'] } });
+  assert.equal(res.ok, true, res.message);
+  // Đọc dòng task cuối
+  const tasks = ss.sheets.AttendanceTask.data;
+  const row = tasks.filter(function (r) { return r && r[0] === taskId; })[0];
+  assert.equal(row[1], 'HN2', 'station được ghi');
+  assert.equal(row[2], '08:00-17:00', 'slotCode được ghi (thay Tự do)');
+  assert.equal(row[3], 'Inbound', 'team được ghi');
+});

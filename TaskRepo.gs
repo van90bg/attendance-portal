@@ -86,6 +86,27 @@ function insertTask_(task) {
   invalidateTaskCaches_(task.taskId);
 }
 
+/** Cập nhật metadata task (station/slotCode/team) sau khi appendRoster_ nạp roster (S1).
+ * Đọc dòng → sửa memory → setValues 1 lần (idempotent cột không đụng — pattern writeTaskRow_).
+ * Không đổi status/completedAt. Gate operator (M1) + invalidate cache. */
+function updateTaskMeta_(taskId, station, slotCode, team) {
+  if (!requireRole_('operator')) return false;
+  const sheet = getSheet_(SHEETS.ATTENDANCE_TASK);
+  const values = sheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][TASK_COLS.TASK_ID] || '').trim() === taskId) {
+      const vals = values[i].slice();
+      vals[TASK_COLS.STATION] = station || '';
+      vals[TASK_COLS.SLOT_CODE] = slotCode || '';
+      vals[TASK_COLS.TEAM] = team || '';
+      sheet.getRange(i + 1, 1, 1, TASK_COL_COUNT).setValues([vals]);
+      invalidateTaskCaches_(taskId);
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Ghi 1 dòng task: sửa 3 cell trong memory rồi setValues 1 lần (idempotent cột không đụng). */
 function writeTaskRow_(sheet, r, vals, status, completedAt, contractType) {
   vals[TASK_COLS.CONTRACT_TYPE] = contractType || '';
