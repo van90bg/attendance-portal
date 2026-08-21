@@ -498,7 +498,7 @@ Modal: tạo task (2 tab Theo ca/Dán mã) · confirm dùng chung · vềAbout k
 - Skip-link, focus trap modal + Escape, `focus-visible` ring, focus restore khi đóng modal.
 - `prefers-reduced-motion` (tắt animation), `prefers-contrast: more` (badge nền đặc, border đậm).
 - Autofocus loop 3s giữ focus ô quét (dừng khi về danh sách / modal mở).
-- Responsive: ≤991px layout 2 cột về 1 cột; ≤600px header wrap + topbar hết sticky; ≥1280px phóng to cho màn hình touch.
+- Responsive: ≤991px layout 2 cột về 1 cột + scan list thu gọn mặc định (nút ▼/▲ mở rộng — đồng bộ tablet 701-991px); ≤700px sidebar → bottom nav + card mobile (task/scan/staff/reports/admin); touch target ≥44px tới 1199px (tablet: topbar btn · pick · sfp-opt · th-funnel — đo CDP 768); nút Quét/Camera hiển thị ≤1199px (iPad landscape 1024px là touch); ≤600px header wrap + topbar hết sticky; ≥1280px phóng to cho màn hình touch.
 - SWR client: task vừa xem <15s → render NGAY từ bộ nhớ + RPC nền silent (TTL khớp server TASK_DETAIL).
 
 ### 9.7 Mock local

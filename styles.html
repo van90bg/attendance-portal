@@ -334,8 +334,6 @@
     .pick:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
     /* Touch target modal chung paste/create/confirm — 44px touch, font 14px gọn */
     .about-dialog .btn { min-height: 44px; font-size: var(--text-base); font-weight: 600; }
-    @media (max-width: 719px) {
-    }
 
     /* ===== Bộ đếm — 3 khối luôn cùng 1 hàng (nhìn nhanh) ===== */
     .counters { display: flex; gap: var(--space-2); }
@@ -559,19 +557,19 @@
       box-shadow: 0 0 0 4px rgba(232, 93, 4, .18);
       background: #fff;
     }
-    /* Nút Quét chỉ hiển thị trên mobile (<992px); desktop máy quét tự Enter */
+    /* Nút Quét hiển thị ≤1199px (mobile/tablet touch); desktop ≥1200px dùng máy quét tự Enter */
     #btnScan { min-width: 64px; min-height: 44px; margin: var(--space-1) 0; } /* touch target ≥44×44; flex stretch làm nút cao hơn ô input 8px (padding wrap 4px×2) → margin 4px 0 cân bằng */
-    @media (min-width: 992px) {
+    /* Nút Quét/Camera: ẩn ≥1200px — desktop dùng máy quét tay + Enter. Giữ trên 992-1199px
+       (iPad landscape 1024px là touch — mất nút quét là kẹt thao tác, P1-2 2026-08-21). */
+    @media (min-width: 1200px) {
       #btnScan { display: none; }
-    }
-    /* Nút Camera: chỉ trên mobile/tablet (<992px) — desktop dùng máy quét tay */
-    #btnCamera { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }  /* margin 4px 0 đồng bộ #btnScan -> cùng chiều cao trong scan-row (stretch) */
-    #btnCameraPhoto { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
-    #btnCamera svg, #btnCameraPhoto svg, .list-search .btn-icon svg { width: 20px; height: 20px; display: block; }
-    @media (min-width: 992px) {
       #btnCamera { display: none; }
       #btnCameraPhoto { display: none; }
     }
+    /* Nút Camera: touch target 44px — margin đồng bộ #btnScan -> cùng chiều cao trong scan-row (stretch) */
+    #btnCamera { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #btnCameraPhoto { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #btnCamera svg, #btnCameraPhoto svg, .list-search .btn-icon svg { width: 20px; height: 20px; display: block; }
     /* Màn hình rộng: lớn hơn cho màn hình touch rộng (tham khảo v1 type scale) */
     @media (min-width: 1280px) {
       .scan-input-wrap input { font-size: var(--text-6xl); padding: var(--space-4) var(--space-5); letter-spacing: 2px; }
@@ -1058,8 +1056,10 @@
     #btnScanListToggle { display: none; min-width: 36px; padding: var(--space-2) var(--space-2); font-size: var(--text-base); line-height: 1; margin-left: auto; }  /* desktop ẩn — mobile: nút ▼/▲ góc phải card (margin-left: auto ép phải) */
     /* Mở rộng danh sách → ẩn cột quét (counters + ô nhập + nút Quét + scanCard) — danh sách NV đẩy lên full */
     body.scan-expanded .scan-col-left { display: none; }
-    /* Mobile viewScan (≤700px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard; bấm Mở rộng mới hiện bảng + tìm/lọc */
-    @media (max-width: 700px) {
+    /* Mobile/tablet viewScan (≤991px): danh sách NV thu gọn mặc định — chỉ counters + ô quét + nút quét + scanCard;
+       bấm Mở rộng mới hiện bảng + tìm/lọc. ≤991px scan-layout thành 1 cột (tablet 701-991px đã đồng bộ) —
+       nút ▼/▲ cho phép thu gọn danh sách, không kẹt xếp chồng. */
+    @media (max-width: 991px) {
       #btnScanListToggle { display: inline-flex; }
       #scanListCard .list-search, #scanListCard #scanStatusFilter, #scanListCard #scanClearFilter, #scanListCard .table-wrap { display: none; }
       #scanListCard.scan-list-open .list-search { display: flex; }
@@ -1360,6 +1360,20 @@
       .cfg-chip-edit, .cfg-chip-del { min-width: 36px; min-height: 36px; padding: 0 var(--space-2); }
       .cfg-star-btn { min-width: 36px; min-height: 36px; }
       header .btn-icon-dark { min-height: 36px; padding: var(--space-2) var(--space-2); font-size: var(--text-sm); }
+    }
+    /* Tablet 701-1199px: touch target 44px cho element thao tac chinh (sidebar van hien, khong bottom-nav)
+       - do CDP 768: topbar btn 40px, search btn-icon 36px deu <44px (P1-6 2026-08-21). */
+    @media (min-width: 701px) and (max-width: 1199px) {
+      .view-topbar .btn { min-height: 44px; font-size: var(--text-sm); }
+      #viewScan .view-topbar .btn { padding: var(--space-2) var(--space-2); }
+      #viewScan .view-topbar-title { min-width: 40%; }
+      .pick { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); min-height: 44px; display: inline-flex; align-items: center; }
+      .staff-filter-panel .sfp-opt { padding: var(--space-2) var(--space-2); min-height: 44px; align-items: center; }
+      .th-funnel { padding: var(--space-3) var(--space-3); margin-left: 2px; }
+      .btn-sm { padding: var(--space-2) var(--space-4); min-height: 36px; font-size: var(--text-sm); }
+      .list-search .btn-icon { padding: var(--space-2) var(--space-3); min-height: 36px; }
+      .pag-btn { padding: var(--space-2) var(--space-3); min-height: 36px; font-size: var(--text-sm); min-width: 36px; }
+      header .btn-icon-dark { min-height: 44px; }
     }
     /* Main: nhường chỗ khi mở sidebar; tự tràn khi ẩn/thu gọn */
     #main-content { flex: 1 1 auto; min-width: 0; min-height: 0; }

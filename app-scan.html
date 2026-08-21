@@ -96,6 +96,7 @@
     }
     CURRENT_LOG = safeArr(data.log);
     SCAN_PAGE = 1; // dữ liệu mới (task vừa mở) → về trang đầu
+    resetScanListState_(); // mở task khác → trả về trạng thái thu gọn mặc định (không kẹt danh sách mở)
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
     metaEl.innerHTML = buildScanMetaHTML(data.task);
@@ -429,8 +430,21 @@
       }
     }
 
-  // Mobile (≤700px): thu gọn / mở rộng danh sách NV trong viewScan — mặc định thu gọn
+  // Mobile/tablet: thu gọn / mở rộng danh sách NV trong viewScan — mặc định thu gọn
   // (chỉ counters + ô quét + nút quét + scanCard), mở ra khi cần xem bảng/lọc.
+  function resetScanListState_() {
+    var card = document.getElementById('scanListCard');
+    if (!card) return;
+    card.classList.remove('scan-list-open');
+    document.body.classList.remove('scan-expanded');
+    var btn = document.getElementById('btnScanListToggle');
+    if (btn) {
+      btn.textContent = '▼';
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', 'Mở rộng danh sách NV');
+      btn.title = 'Mở rộng danh sách NV';
+    }
+  }
   function toggleScanList() {
     var card = document.getElementById('scanListCard');
     var btn = document.getElementById('btnScanListToggle');

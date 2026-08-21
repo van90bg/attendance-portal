@@ -36,7 +36,7 @@ Mọi luồng thao tác được trên máy tính, máy tính bảng và điện
 | Thiết bị | Trải nghiệm |
 | :------- | :---------- |
 | **Máy tính** | Bảng đầy đủ 13–20 cột; quét bằng barcode scanner (Enter) hoặc nhập tay |
-| **Máy tính bảng** | Layout co lại, touch target ≥ 44px, nút Quét hiển thị |
+| **Máy tính bảng** | Layout co lại, touch target ≥ 44px (tới 1199px), nút Quét/Camera hiển thị (tới 1199px — iPad landscape 1024px touch), scan list thu gọn mặc định ≤991px (nút ▼/▲ mở rộng) |
 | **Điện thoại** | Thẻ gọn 3 dòng cho task/NV, bottom nav, toggle mở rộng danh sách NV |
 
 ## Điều hướng

@@ -555,6 +555,7 @@
       return;
     }
     document.body.classList.remove('scan-expanded');
+    if (typeof resetScanListState_ === 'function') resetScanListState_();
     showSection('viewTasks');
     loadTaskList();
   }

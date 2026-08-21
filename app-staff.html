@@ -161,11 +161,15 @@
     var sel = ctx.filters[field] || [];
     renderFunnelOptions_(field, sel);
     panel.style.display = '';
-    panel.style.left = Math.max(8, Math.min(r.left, window.innerWidth - Math.min(panel.offsetWidth || 240, 260))) + 'px';
+    // Dùng visualViewport (nếu có) — chính xác hơn window.innerWidth/Height trên mobile khi
+    // bàn phím ảo / pinch-zoom thu hẹp vùng hiển thị (P1-7 2026-08-21).
+    var vw = (window.visualViewport && window.visualViewport.width) ? window.visualViewport.width : (document.documentElement.clientWidth || window.innerWidth);
+    var vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : (document.documentElement.clientHeight || window.innerHeight);
+    panel.style.left = Math.max(8, Math.min(r.left, vw - Math.min(panel.offsetWidth || 240, 260))) + 'px';
     // chong tran day viewport: th o cuoi bang (thead sticky) -> mo len tren
     var top = r.bottom + 4;
     var ph = panel.offsetHeight || 260;
-    if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 4);
+    if (top + ph > vh - 8) top = Math.max(8, r.top - ph - 4);
     panel.style.top = top + 'px';
     // nút Xoá lọc hiện khi có filter đang áp
     var clearBtn = document.getElementById('sfpClear');
