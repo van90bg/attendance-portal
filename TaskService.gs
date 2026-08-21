@@ -167,8 +167,9 @@ function completeTask(taskId) {
     // Mutation gate fail-closed (canMutateTask_ — B-P1-4): đóng task gán Vắng cho NV chưa
     // quét — chỉ owner/admin; KHÔNG fail-open cho task legacy 'web' (canScanOpen_ dành vận hành).
     const isAdmin = requireRole_('admin');
-    if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
-      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
+    const gate = requireOwnerOrAdmin_(task, 'mutate');
+    if (!gate.ok) {
+      return { ok: false, message: gate.message };
     }
     // Chỉ kết thúc khi đang ở phase2 (Điểm danh). Nếu còn Mở (phase1) → chặn.
     if (task.status === TASK_STATUS.OPEN) {
@@ -240,9 +241,9 @@ function transitionToAttend(taskId) {
     // giới hạn owner) → chỉ owner/admin được phép, đồng gate scanStaff.
     // Thiếu gate này: non-owner gọi thẳng transitionToAttendApi qua console để vô hiệu
     // owner-gate phase Mở rồi quét thoải mái (owner-gate chỉ là khoá cửa trước).
-    const isAdmin = requireRole_('admin');
-    if (!canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, getActiveEmail_(), isAdmin)) {
-      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
+    const gate = requireOwnerOrAdmin_(task, 'scan');
+    if (!gate.ok) {
+      return { ok: false, message: gate.message };
     }
     updateTaskStatus_(taskId, TASK_STATUS.ATTEND, null, task._rowIndex, task.contractType || '');
     audit_('transitionToAttend', taskId, {});
@@ -273,9 +274,9 @@ function reopenTask(taskId) {
     if (!task) return { ok: false, message: 'Không tìm thấy task' };
     // Mutation gate fail-closed (canMutateTask_ — B-P1-4): mở lại reset ABSENT→PENDING —
     // chỉ owner/admin; KHÔNG fail-open cho task legacy 'web'.
-    const isAdmin = requireRole_('admin');
-    if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
-      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
+    const gate = requireOwnerOrAdmin_(task, 'mutate');
+    if (!gate.ok) {
+      return { ok: false, message: gate.message };
     }
     if (task.status !== TASK_STATUS.DONE) {
       return { ok: false, message: 'Task đang mở — không cần mở lại' };
@@ -318,9 +319,9 @@ function cancelTask(taskId) {
     if (task.status !== TASK_STATUS.OPEN) {
       return { ok: false, message: 'Chỉ hủy được task đang ở phase Mở' };
     }
-    const isAdmin = requireRole_('admin');
-    if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
-      return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
+    const gate = requireOwnerOrAdmin_(task, 'mutate');
+    if (!gate.ok) {
+      return { ok: false, message: gate.message };
     }
     // An toàn: chỉ xóa dòng task khi log RỖNG — có dữ liệu quét thì phải Kết thúc bình thường.
     if (readLogRows_(taskId).length > 0) {
@@ -392,9 +393,9 @@ function updateLogRowStatus(taskId, rawStaffId, newStatus) {
       if (!task) return { ok: false, message: 'Không tìm thấy task', counters: null };
       // Mutation dữ liệu chấm công → owner/admin (fail-closed canMutateTask_ — cùng gate
       // completeTask/reopenTask; KHÔNG fail-open cho task legacy 'web').
-      const isAdmin = requireRole_('admin');
-      if (!canMutateTask_(task.createdBy, getActiveEmail_(), isAdmin)) {
-        return { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY, counters: null };
+      const gate = requireOwnerOrAdmin_(task, 'mutate');
+      if (!gate.ok) {
+        return { ok: false, message: gate.message, counters: null };
       }
       const staffId = normalizeStaffId(rawStaffId);
       const rows = readLogRows_(taskId);

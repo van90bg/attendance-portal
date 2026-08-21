@@ -514,16 +514,16 @@ Modal: tạo task (2 tab Theo ca/Dán mã) · confirm dùng chung · vềAbout k
 - `createReconcileTaskApi({ codes })` → mã lạ/trùng → `skippedCodes` (toast kèm số bỏ qua); toàn bộ mã lạ → `{ok:false}` không tạo task.
 
 ## 10. Testing
-| **Kết quả** | **199/199 pass** |
+| **Kết quả** | **209/209 pass** |
 | Mock | `mock/mock-google.js` (contract test đối chiếu mock ↔ server: không orphan handler, không thiếu handler) |
 | Fixture | `test-fixtures/Att.sample.csv` |
 | Verify UI | `scripts/cdp-helper.js` (open/eval/shot) + `audit-ui.js` (7 view × 4 viewport) + `audit-style.js` |
 
-Nhóm test: `distinctValues` · `isValidBarcodeId` · `dedupeStaffByGroup` · `filterStaffByGroup` (multi-select) · `normalizeStaffDate_` · `buildStaffIndex/buildStaffListFromValues` · `classifyScan` (2-phase) · `findLogRow` · `computeCounters` · `buildExtraRow` · `canScanOpen_` · `planBatchScans` · `planScanCommits` (scan-commit) · `scanStaff` wrapper · **gate-bypass** (requireRole_ service layer chống bypass) · **role-service** (roleMap/getRole_/requireRole_) · **report-repo** (StaffInfo/StaffAttendance chunk ≤100KB + **ambiguous phần số**) · **repo-integrity** (row/task integrity mutators · cache gen guard · header validation · getTaskListApi contract) · **search** (matchTasksByQuery/searchLogsByStaff) · **settings-service** (defaults + lists) · **create-free** (FREE task) · **eol-bom** (CRLF + no BOM) · **index-html-parse** (template parse).
+Nhóm test: `distinctValues` · `isValidBarcodeId` · `dedupeStaffByGroup` · `filterStaffByGroup` (multi-select) · `normalizeStaffDate_` · `buildStaffIndex/buildStaffListFromValues` · `classifyScan` (2-phase) · `findLogRow` · `computeCounters` · `buildExtraRow` · `canScanOpen_` · `planBatchScans` · `planScanCommits` (scan-commit) · `scanStaff` wrapper · **gate-bypass** (requireRole_ service layer chống bypass) · **role-service** (roleMap/getRole_/requireRole_) · **report-repo** (StaffInfo/StaffAttendance chunk ≤100KB + **ambiguous phần số**) · **repo-integrity** (row/task integrity mutators · cache gen guard · header validation · getTaskListApi contract) · **search** (matchTasksByQuery/searchLogsByStaff) · **settings-service** (defaults + lists) · **create-free** (FREE task) · **eol-bom** (CRLF + no BOM) · **index-html-parse** (template parse) · **scan-drift** (đối chiếu client optimistic decision ↔ server classifyScan).
 
 > Chỉ test **logic thuần** (CsvUtil/ScanLogic — không gọi GAS) + smoke-load toàn bộ .gs với mock GAS; GAS API thật không test được trong Node. Không Jest/Playwright.
-| Files | **19 files** trong `tests/` (admin-audit · all-gs-load · cancel-task · create-free · create-roster · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · report-repo · repo-integrity · role-service · scan-classify · scan-commit · scanservice · search · settings-service · two-phase) |
-| **Kết quả** | **199/199 pass** |
+| Files | **20 files** trong `tests/` (admin-audit · all-gs-load · cancel-task · create-free · create-roster · csv-normalize · eol-bom · gate-bypass · index-html-parse · mock-contract · report-repo · repo-integrity · role-service · scan-classify · scan-commit · scan-drift · scanservice · search · settings-service · two-phase) |
+| **Kết quả** | **209/209 pass** |
 
 ## 11. Deploy (clasp)
 
@@ -605,7 +605,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 | Frontend | Vanilla + **Bootstrap 5.3** | Vanilla thuần, **không Bootstrap** |
 | Storage | localStorage + **IndexedDB** (24h) + SWR staggered | localStorage (âm thanh) + cache trong-bộ-nhớ (SWR 15s scan view); không IndexedDB |
 | Sound | Base64 embedded | **Web Audio API** (beep 880Hz / buzz 200Hz) |
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 196/196 (19 test files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 209/209 (20 files), mock `mock-google.js` + contract test mock↔server |
 | Sheets | 3 sheets (`AttendanceData`/`Task`/`Log`) | **7 sheets** (Config, StaffData 20 cột, AttendanceTask 9 cột, AttendanceLog 11 cột, AuditLog 5 cột, StaffInfo, StaffAttendance) |
 | Log | Batch flush 10 records/20s, append-only | Pre-fill 1 lần + **update-in-place** + cache log rows 30s; `batchAppendLogRows_` (paste) |
 | Audit log | Sheet riêng, 3 actions, vĩnh viễn | **Có** — AuditLog sheet 5 cột (`AuditRepo.audit_`), viewAdmin admin (2026-08-17) |
@@ -616,7 +616,7 @@ Bản 2.0.0 (2026-07-31) mô tả nhiều tính năng **không tồn tại trong
 ---
 
 ## 15. Scope & lộ trình
-| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 199/199 (19 files), mock `mock-google.js` + contract test mock↔server |
+| Testing | Jest + Playwright, coverage >80% | **Node `node:test`**, 209/209 (20 files), mock `mock-google.js` + contract test mock↔server |
 ### Đã hoàn thành (MVP — khớp code)
 
 ```plain

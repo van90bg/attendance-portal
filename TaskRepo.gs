@@ -64,14 +64,6 @@ function readTaskCached_(taskId) {
   }, CACHE_TTL.TASK);
 }
 
-/** Xoá task cache 1 task (gọi sau insertTask_/updateTaskStatus_). */
-function invalidateTaskCache_(taskId) {
-  if (!taskId) return;
-  try { cache_().remove(CACHE_KEYS.TASK + taskId); }
-  catch (e) { console.warn('invalidateTaskCache_ fail', taskId, e.message); }
-  bumpCacheGen_();
-}
-
 /** Xoá mọi cache task sau khi ghi AttendanceTask — thêm TASK cache chỉ đổi ở 1 chỗ. */
 function invalidateTaskCaches_(taskId) {
   try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
@@ -161,25 +153,30 @@ function readTaskList_() {
 }
 
 /** Đếm total/scanned/extra theo taskId cho DANH SÁCH task (cache 30s).
- * Đọc AttendanceLog 1 lần rồi group — tránh N+1. scanned theo epoch
- * (nguồn sự thật — khớp computeCounters). Dùng chung computeCounters (ScanLogic)
- * để không drift giữa list + detail + scan. */
+ * Đọc AttendanceLog 1 lần rồi group — tránh N+1. Tái dùng computeCounters (ScanLogic)
+ * để 1 nguồn sự thật duy nhất — không drift giữa list + detail + scan. */
 function taskCountersForList_() {
   return cachedJson_(CACHE_KEYS.TASK_COUNTS + 'all', function () {
     const sheet = getSheet_(SHEETS.ATTENDANCE_LOG);
     const values = sheet.getDataRange().getValues();
-    const out = {};
+    const groups = {};
     for (let i = 1; i < values.length; i++) {
       const row = values[i];
       const tid = String(row[LOG_COLS.TASK_ID] || '').trim();
       if (!tid) continue;
-      if (!out[tid]) out[tid] = { total: 0, scanned: 0, extra: 0 };
-      out[tid].total++;
-      const status = String(row[LOG_COLS.STATUS] || '');
-      if (status === STATUS.EXTRA) out[tid].extra++;
+      if (!groups[tid]) groups[tid] = [];
       const dScan = safeDate_(row[LOG_COLS.SCANNED_AT]);
-      if (dScan && dScan.getTime() > 0) out[tid].scanned++;
+      groups[tid].push({
+        scannedAtEpoch: dScan && dScan.getTime() > 0 ? dScan.getTime() : 0,
+        listedAtEpoch: 0, // list không cần presentAt
+        status: String(row[LOG_COLS.STATUS] || ''),
+      });
     }
+    const out = {};
+    Object.keys(groups).forEach(function (tid) {
+      const c = computeCounters({ STATUS: STATUS }, groups[tid]);
+      out[tid] = { total: c.total, scanned: c.scanned, extra: c.extra };
+    });
     return out;
   }, CACHE_TTL.TASK_COUNTS);
 }

@@ -47,15 +47,13 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     }
     // T-1: Owner gate cho scan khi task ở phase OPEN
     // Chỉ áp dụng khi task.status === OPEN. Admin bypass, owner match, legacy 'web'/rỗng cho phép.
-    const activeEmail = getActiveEmail_();
-    const isAdmin = requireRole_('admin');
     if (task.status === TASK_STATUS.OPEN) {
-      const canScan = canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, activeEmail, isAdmin);
-      if (!canScan) {
+      const gate = requireOwnerOrAdmin_(task, 'scan');
+      if (!gate.ok) {
         console.log({ bench: 'scanStaff', taskId: taskId, staffId: staffId, phase: 'reject-owner-gate', ms: Date.now() - t0 });
         return {
           ok: false,
-          message: UI_LABELS.SCAN_OPEN_OWNER_ONLY,
+          message: gate.message,
           status: null,
           counters: { scanned: 0, absent: 0, extra: 0, total: 0 },
         };
@@ -203,5 +201,24 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     var isLock = /timeout/i.test(msg) || /lock/i.test(msg) || /wait/i.test(msg);
     return { ok: false, message: isLock ? 'Hệ thống bận, thử lại sau 2s' : ('Lỗi server: ' + msg), status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
   }
+}
+
+/**
+ * Gate owner/admin tập trung — thay 6 chỗ lặp isAdmin + canX_ + return message (M-gate).
+ * @param {Object} task — { createdBy }
+ * @param {string} mode — 'mutate' (fail-closed canMutateTask_ — đóng/mở lại/cancel/sửa log) |
+ *   'scan' (fail-open canScanOpen_ — quét phase OPEN / transition). KHÁC ngữ nghĩa fail,
+ *   đừng đổi mode lẫn nhau.
+ * @returns {{ok: boolean, message?: string}} — { ok: true } nếu được, { ok: false, message }
+ *   khi thiếu quyền (UI_LABELS.SCAN_OPEN_OWNER_ONLY).
+ */
+function requireOwnerOrAdmin_(task, mode) {
+  if (!task) return { ok: true };
+  const isAdmin = requireRole_('admin');
+  const activeEmail = getActiveEmail_();
+  const can = mode === 'scan'
+    ? canScanOpen_({ TASK_STATUS: TASK_STATUS }, task.createdBy, activeEmail, isAdmin)
+    : canMutateTask_(task.createdBy, activeEmail, isAdmin);
+  return can ? { ok: true } : { ok: false, message: UI_LABELS.SCAN_OPEN_OWNER_ONLY };
 }
 

@@ -32,6 +32,37 @@
     return !!(task && (task.phase === TASK_STATUS_C.DONE || task.status === TASK_STATUS_C.DONE));
   }
 
+  // Client optimistic decision — KHỚP SERVER classifyScan (tests/scan-drift.test.js dùng
+  // chung fixture để bắt drift sớm). Thuần (không DOM/GAS) — trả đúng shape action mà
+  // submitScan dùng để render optimistic. Khi sửa 1 bên PHẢI sửa cả 2 + chạy test.
+  function clientScanDecision(taskPhase, logRows, staffId) {
+    var norm = String(staffId || '').toUpperCase();
+    var target = null;
+    (logRows || []).forEach(function (r) {
+      if (!target && String(r.staffId).toUpperCase() === norm) target = r;
+    });
+    var phase2 = taskPhase === TASK_STATUS_C.ATTEND;
+    if (target) {
+      if (phase2) {
+        if (Number(target.scannedAtEpoch) > 0) return { action: 'reject', reason: 'already-scanned', status: null, field: null };
+        // F5: NV đã Dư (EXTRA) quét lại phase2 → giữ EXTRA (khớp server classifyScan).
+        return { action: 'update', field: 'scannedAt', status: target.status === STATUS_C.EXTRA ? STATUS_C.EXTRA : STATUS_C.PRESENT };
+      }
+      if (Number(target.listedAtEpoch) > 0) return { action: 'reject', reason: 'already-present', status: null, field: null };
+      return { action: 'update', field: 'listedAt', status: STATUS_C.PENDING };
+    }
+    return { action: 'append', field: phase2 ? 'scannedAt' : 'listedAt', status: phase2 ? STATUS_C.EXTRA : STATUS_C.PENDING };
+  }
+
+  // Tìm dòng NV trong log theo staffId (case-insensitive) — client copy của server findLogRow.
+  function findLogRowByStaff(logRows, staffId) {
+    var needle = String(staffId || '').toUpperCase();
+    for (var i = 0; i < (logRows || []).length; i++) {
+      if (String(logRows[i].staffId || '').toUpperCase() === needle) return logRows[i];
+    }
+    return null;
+  }
+
   // Build meta task (Station · Ca · Team — Phase) dùng chung cho mọi chỗ re-render
   // phase (renderScanView / chuyển Điểm danh / Chốt ca) — 1 nguồn, sửa label ở 1 chỗ.
   function buildScanMetaHTML(task) {
@@ -604,34 +635,23 @@
     input.value = '';
     input.focus();
 
-    // Tìm dòng NV trong log hiện tại; nếu chưa có → tạo dòng tạm.
-    var norm = staffId.toUpperCase();
-    var target = null;
-    (CURRENT_LOG || []).forEach(function (r) {
-      if (!target && String(r.staffId).toUpperCase() === norm) { target = r; }
-    });
-
+    // Decision optimistic 1 nguồn — KHỚP server classifyScan (tests/scan-drift.test.js).
+    var dec = clientScanDecision(CURRENT_TASK.phase, CURRENT_LOG, staffId);
     // 2-phase: chặn NGAY ở client theo phase hiện tại (tránh toast lặp + gọi server).
-    // phase1 (Mở): đã có LISTED_AT (listedAtEpoch>0) → 'Đã đến'.
-    // phase2 (Điểm danh): đã quét (scannedAtEpoch>0) → 'Đã điểm danh'.
-    if (target) {
-      if (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) {
-        if (Number(target.scannedAtEpoch) > 0) {
-          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã điểm danh rồi' });
-          showToast('Đã điểm danh rồi', true);
-          playBeep('error');
-          showScanCard('Đã điểm danh rồi', target, 'warn');
-          return;
-        }
-      } else {
-        if (Number(target.listedAtEpoch) > 0) {
-          notifyExternalScanner({ code: staffId, ok: false, message: 'Đã đến' });
-          showToast('Đã đến — muốn điểm danh lần 2? Bấm "Bắt đầu điểm danh"', true);
-          playBeep('error');
-          showScanCard('Đã đến', target, 'warn');
-          return;
-        }
+    if (dec.action === 'reject') {
+      if (dec.reason === 'already-scanned') {
+        notifyExternalScanner({ code: staffId, ok: false, message: 'Đã điểm danh rồi' });
+        showToast('Đã điểm danh rồi', true);
+        playBeep('error');
+        var tgtR = findLogRowByStaff(CURRENT_LOG, staffId);
+        showScanCard('Đã điểm danh rồi', tgtR, 'warn');
+        return;
       }
+      notifyExternalScanner({ code: staffId, ok: false, message: 'Đã đến' });
+      showToast('Đã đến — muốn điểm danh lần 2? Bấm "Bắt đầu điểm danh"', true);
+      playBeep('error');
+      showScanCard('Đã đến', findLogRowByStaff(CURRENT_LOG, staffId), 'warn');
+      return;
     }
 
     var phase2 = CURRENT_TASK.phase === TASK_STATUS_C.ATTEND;
@@ -640,7 +660,7 @@
         var item = {
           staffId: staffId,
           taskId: CURRENT_TASK.taskId,  // F1: capture task lúc enqueue — guard response cũ
-          target: target,
+          target: null,
           optimisticNew: false,
           phase2: phase2,
           clientEpoch: now.getTime(),  // WYSIWYG: gửi giờ chụp lúc quét → sheet ghi đúng giờ app hiển thị
@@ -648,7 +668,9 @@
           oldListedAtText: null, oldListedAtEpoch: null,
           oldScannedAtText: null, oldScannedAtEpoch: null,
         };  // scanSeq gán sau khi enqueue (2990) — tránh dead assignment (review 2026-08-11)
-      if (target) {
+    var target = findLogRowByStaff(CURRENT_LOG, staffId);
+    item.target = target;
+    if (target) {
       item.oldStatus = target.status;
       item.oldListedAtText = target.listedAtText; item.oldListedAtEpoch = target.listedAtEpoch;
       item.oldScannedAtText = target.scannedAtText; item.oldScannedAtEpoch = target.scannedAtEpoch;
@@ -665,11 +687,8 @@
       }
     } else {
       item.optimisticNew = true;
-      // NV lạ → dòng tạm. Status optimistic phải khớp server:
-      // - Phase1: PENDING (thuộc danh sách).
-      // - Phase2: EXTRA (Dư) — NV lạ ngoài danh sách.
-        // Phase2: NV chưa trong danh sách phase1 → DƯ (EXTRA). Phase1: PENDING.
-      var optimisticStatusNew = phase2 ? STATUS_C.EXTRA : STATUS_C.PENDING;
+      // NV lạ → dòng tạm. Status optimistic từ dec (khớp server):
+      var optimisticStatusNew = dec.status;
       var staffRec = CLIENT_STAFF_INDEX[String(staffId).toUpperCase()] || null;
       var cachedName = staffRec ? (staffRec.staffName || '') : '';
       target = { staffId: staffId, staffName: cachedName || '…',
