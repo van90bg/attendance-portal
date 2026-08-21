@@ -6,85 +6,12 @@
    * Nạp qua index.html (directive include app-modals) — script block
    * riêng, chung global scope với các module khác (thứ tự include quan trọng).
    * ============================================================ */
-  /* ===== Create modal (A3 — tạo task + nạp danh sách 1 lần: Theo ca / Dán mã / rỗng) =====
-   * Thay paste modal (loadListModal/pasteCodesApi) + roster modal (loadRosterApi — đã xóa).
-   * Server: createTaskApi — station+ca → pre-fill roster; codes → pre-fill theo mã;
-   * không chọn gì → task rỗng (quét tự do). Không còn nút "Nạp danh sách" ở màn quét. */
   var _createOptsLoaded = false;
   var _createOptsData = null;
-  var CREATE_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
-  var CREATE_TAB = 'roster';
-  var _lastCreateCount = 0;
-  function openCreateModal() {
-    var m = document.getElementById('createModal');
-    if (!m) return;
-    if (typeof resetCreateModal_ === 'function') resetCreateModal_();
-    CREATE_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
-    _lastCreateCount = 0;
-    var pErr = document.getElementById('createPasteError');
-    if (pErr) { pErr.style.display = 'none'; pErr.innerHTML = ''; }
-    var ta = document.getElementById('createPasteTextarea');
-    if (ta) ta.value = '';
-    if (!_createOptsLoaded && typeof loadFilterOptions === 'function') loadFilterOptions();
-    m.setAttribute('aria-hidden', 'false');
-    m.classList.add('open');
-    switchCreateTab_('roster', true);
-    // Station mặc định từ Config (SettingsService defaultStation) — pre-select khi chưa chọn.
-    // Validate: mặc định phải nằm trong danh sách station hợp lệ, nếu không giữ '' (bắt buộc chọn).
-    if (!CREATE_FILTER.station && _createOptsData && _createOptsData.defaults && _createOptsData.defaults.defaultStation) {
-      var ds = String(_createOptsData.defaults.defaultStation).trim();
-      if (ds && createStationOptions_().indexOf(ds) !== -1) {
-        CREATE_FILTER.station = ds;
-      }
-    }
-    renderCreateChips_();
-    if (CREATE_FILTER.station) _doCreatePreview();  // default station chọn sẵn → đếm NV hiện ngay
-    // #13 (review 2026-08-19): focus-in modal — trước không focus gì, Tab đầu tiên
-    // nhảy về phần tử đứng TRƯỚC modal trong document (nút header) rồi mới vào modal.
-    var first = m.querySelector('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
-    if (first && first.focus) first.focus();
-  }
-  function closeCreateModal() {
-    if (typeof resetCreateModal_ === 'function') resetCreateModal_();
-    var m = document.getElementById('createModal');
-    if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
-    var btn = document.getElementById('btnCreate');
-    if (btn && btn.focus) btn.focus();
-  }
-  // Tablist create modal — roving tabindex (kế thừa load-tabs cũ).
-  function switchCreateTab_(tab, force) {
-    var m = document.getElementById('createModal');
-    if (!m || (!force && CREATE_TAB === tab)) return;
-    var on = m.querySelector('.load-tab.is-active');
-    if (on) { on.classList.remove('is-active'); on.setAttribute('aria-selected', 'false'); on.setAttribute('tabindex', '-1'); }
-    var btn = document.getElementById(tab === 'paste' ? 'createTabPaste' : 'createTabRoster');
-    if (btn) { btn.classList.add('is-active'); btn.setAttribute('aria-selected', 'true'); btn.setAttribute('tabindex', '0'); }
-    var rp = document.getElementById('createPaneRoster');
-    var pp = document.getElementById('createPanePaste');
-    if (rp) rp.style.display = tab === 'paste' ? 'none' : '';
-    if (pp) pp.style.display = tab === 'paste' ? '' : 'none';
-    CREATE_TAB = tab;
-    if (tab === 'paste') updateCreatePaste_();
-  }
-  function onCreateTabClick_(tab) { switchCreateTab_(tab); }
-  // Tablist keyboard (roving tabindex) — ArrowLeft/Right chuyển tab, focus theo tab đang active.
-  function onCreateTabKeydown_(e) {
-    var map = { ArrowLeft: 'roster', ArrowRight: 'paste' };
-    var next = map[e.key];
-    if (!next) return;
-    e.preventDefault();
-    switchCreateTab_(next);
-    var on = document.querySelector('#createModal .load-tab.is-active');
-    if (on) on.focus();
-  }
-  // Options — union lists.* + stationGroups (cascade slot theo station đã chọn).
   function createStationOptions_() {
     var sts = [];
     (_createOptsData && _createOptsData.stations || []).forEach(function (s) { if (sts.indexOf(s) === -1) sts.push(s); });
     return sts;
-  }
-  function createSlotOptions_() {
-    return createSlotOptionsFor_(CREATE_FILTER.station);
   }
   function createSlotOptionsFor_(station) {
     if (!station) return [];
@@ -135,58 +62,10 @@
       stationGroups: res.stationGroups || [],
       // B3: staff list đầy đủ cho preview count client-side (không cần RPC previewStaffApi).
       staffList: safeArr(res.staffList),
-      defaults: res.defaults || {},   // defaultStation/SlotCode/Team từ Config — pre-select modal (P1)
+      defaults: res.defaults || {},   // defaultStation/SlotCode/Team từ Config — pre-select Station cho S1 panel
     };
-    renderCreateChips_();
-  }
-  function renderCreateChips_() {
-    var stEl = document.getElementById('createChipsStation');
-    var slotEl = document.getElementById('createChipsSlot');
-    var ctEl = document.getElementById('createChipsContract');
-    var deptEl = document.getElementById('createChipsDept');
-    var tmEl = document.getElementById('createChipsTeam');
-    var dtEl = document.getElementById('createChipsDate');
-    if (!stEl || !_createOptsData) return;
-    stEl.innerHTML = chipsHtmlStation_(createStationOptions_(), CREATE_FILTER.station || '');
-    if (slotEl) slotEl.innerHTML = chipsHtml_(createSlotOptions_(), CREATE_FILTER.slotCode);
-    if (ctEl) ctEl.innerHTML = chipsHtml_(createContractOptions_(), CREATE_FILTER.contractType);
-    if (deptEl) deptEl.innerHTML = chipsHtml_(createDeptOptions_(), CREATE_FILTER.department);
-    if (tmEl) tmEl.innerHTML = chipsHtml_(createDateOptions_() && _createOptsData.teams || [], CREATE_FILTER.team);
-    if (dtEl) dtEl.innerHTML = chipsHtml_(createDateOptions_(), CREATE_FILTER.date);
-    updateCreateSubmit_();
-  }
-  // Nút Tạo chỉ tắt khi chọn Station mà 0 NV khớp (server sẽ từ chối).
-  // Không chọn gì → task rỗng hợp lệ (quét tự do) — hiển thị rõ "Task rỗng".
-  function updateCreateSubmit_() {
-    var submitBtn = document.getElementById('btnCreateSubmit');
-    var hasStation = !!CREATE_FILTER.station;
-    var hasCount = _lastCreateCount > 0;
-    // Disable khi: chưa chọn Station, hoặc chọn Station mà 0 NV khớp
-    if (submitBtn) submitBtn.disabled = !hasStation || !hasCount;
-    // Toggle hiển thị: có danh sách vs chưa chọn Station
-    var totalEl = document.getElementById('createRosterTotal');
-    var freeEl = document.getElementById('createRosterFree');
-    var num = document.getElementById('createRosterTotalNum');
-    if (hasStation && hasCount) {
-      if (totalEl) totalEl.style.display = '';
-      if (freeEl) freeEl.style.display = 'none';
-      if (num) num.textContent = String(_lastCreateCount);
-      if (submitBtn) submitBtn.textContent = 'Tạo (' + _lastCreateCount + ' NV)';
-    } else if (hasStation && !hasCount) {
-      // Đã chọn Station nhưng 0 NV khớp
-      if (totalEl) totalEl.style.display = '';
-      if (freeEl) freeEl.style.display = 'none';
-      if (num) num.textContent = '0';
-      if (submitBtn) submitBtn.textContent = 'Tạo';
-    } else {
-      // Chưa chọn Station
-      if (totalEl) totalEl.style.display = 'none';
-      if (freeEl) freeEl.style.display = '';
-      if (submitBtn) submitBtn.textContent = 'Chọn Station';
-    }
-  }
-  // KHỚP CsvUtil.gs filterStaffByGroup — port client cho preview số NV khi tạo task
-  // (server là nguồn quyết định cuối khi reconcile; client chỉ đếm preview).
+  }  // KHỚP CsvUtil.gs filterStaffByGroup — port client cho preview số NV (server là nguồn quyết định cuối).
+  // S1 scan panel dùng _createOptsData.staffList + renderScanLoadChips_() riêng (app-scan.html). — port client cho preview số NV (server là nguồn quyết định cuối).
   function toFilterArray_(val) {
     if (val === undefined || val === null) return [];
     if (Array.isArray(val)) {
@@ -217,126 +96,7 @@
       return true;
     });
   }
-  // Preview số NV khớp bộ lọc — client-side từ _createOptsData.staffList (không cần RPC).
-  function _doCreatePreview() {
-    if (!CREATE_FILTER.station) {
-      _lastCreateCount = 0;
-      updateCreateSubmit_();
-      return;
-    }
-    var staffList = _createOptsData && _createOptsData.staffList ? _createOptsData.staffList : [];
-    var filtered = filterStaffByGroup(staffList, {
-      station: CREATE_FILTER.station,
-      slotCode: CREATE_FILTER.slotCode,
-      team: CREATE_FILTER.team,
-      contractType: CREATE_FILTER.contractType,
-      department: CREATE_FILTER.department,
-      date: CREATE_FILTER.date.length === 1 ? CREATE_FILTER.date[0] : '',
-    });
-    var deduped = {};
-    var count = 0;
-    filtered.forEach(function (s) {
-      var key = String(s.staffId || '').trim().toUpperCase();
-      if (!key || deduped[key]) return;
-      deduped[key] = true;
-      count++;
-    });
-    _lastCreateCount = count;
-    updateCreateSubmit_();
-    // 0 NV khớp đã thể hiện qua 'Tạo (0 NV)' disabled + num=0 — không cần block lỗi riêng (trùng thông tin, chiếm chỗ modal).
-  }
-  // Create modal: delegate click chip — Station single-select, còn lại đa chọn (Tất cả = rỗng).
-  function initCreateEvents() {
-    var form = document.getElementById('createForm');
-    if (!form) return;
-    form.addEventListener('click', function (e) {
-      var chip = e.target && e.target.closest ? e.target.closest('.pick') : null;
-      if (!chip || !chip.getAttribute('data-col')) return;
-      var pressed = chip.getAttribute('aria-pressed') === 'true';
-      var arr = null;
-      var isSlot = chip.closest('#createChipsSlot') !== null;
-      if (chip.closest('#createChipsStation')) {
-        if (chip.getAttribute('data-col') === 'roster-all') CREATE_FILTER.station = '';
-        else CREATE_FILTER.station = pressed ? '' : chip.getAttribute('data-val');
-      } else if (isSlot) {
-        arr = CREATE_FILTER.slotCode;
-      } else if (chip.closest('#createChipsContract')) {
-        arr = CREATE_FILTER.contractType;
-      } else if (chip.closest('#createChipsDept')) {
-        arr = CREATE_FILTER.department;
-      } else if (chip.closest('#createChipsTeam')) {
-        arr = CREATE_FILTER.team;
-      } else if (chip.closest('#createChipsDate')) {
-        arr = CREATE_FILTER.date;
-      }
-      if (arr) {
-        if (chip.getAttribute('data-col') === 'roster-all') arr.length = 0;
-        else toggleRosterArr_(arr, chip.getAttribute('data-val'), !pressed, isSlot);
-      }
-      renderCreateChips_();
-      _doCreatePreview();
-    });
-    var ta = document.getElementById('createPasteTextarea');
-    if (ta) ta.addEventListener('input', updateCreatePaste_);
-  }
-   function submitCreateTask() {
-     var submitBtn = document.getElementById('btnCreateSubmit');
-     if (submitBtn && submitBtn.disabled) return;
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
-      showModalSpin('Đang tạo…');
-    createTaskWithMeta_({
-      station: CREATE_FILTER.station,
-      slotCode: CREATE_FILTER.slotCode,
-      team: CREATE_FILTER.team,
-      contractType: CREATE_FILTER.contractType,
-      department: CREATE_FILTER.department,
-      date: CREATE_FILTER.date,
-      autoAttend: true,
-    });
-  }
-  // ===== Dán mã (tab 2) — mã NV dán trực tiếp, pre-fill roster lúc tạo task =====
-  function updateCreatePaste_() {
-    var ta = document.getElementById('createPasteTextarea');
-    var hint = document.getElementById('createPasteCountHint');
-    var sb = document.getElementById('btnCreatePasteSubmit');
-    var freeEl = document.getElementById('createPasteFree');
-    if (!ta) return;
-    var n = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; }).length;
-    if (hint) {
-      hint.textContent = n > 0 ? ('Đã phát hiện ' + n + ' mã NV') : 'Nhập mã NV để đếm tự động';
-      hint.style.color = n > 0 ? 'var(--success)' : 'var(--muted)';
-    }
-    // Toggle: có mã → hiện count, không có → hiện hướng dẫn
-    if (freeEl) freeEl.style.display = n > 0 ? 'none' : '';
-    if (sb) {
-      sb.disabled = n === 0;
-      sb.textContent = n > 0 ? ('Tạo (' + n + ' NV)') : 'Dán mã NV';
-   }
-   }
-   // FEEDBACK: spinner overlay trong createModal — hiện khi đang gọi server tạo task.
-   function submitCreateEmptyTask() {
-     var btn = document.getElementById('btnCreateEmpty');
-      if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo…'; }
-      showModalSpin('Đang tạo…');
-      createTaskWithMeta_({});
-   }
-   function submitCreateTaskPaste() {
-     var ta = document.getElementById('createPasteTextarea');
-     var submitBtn = document.getElementById('btnCreatePasteSubmit');
-     if (!ta || (submitBtn && submitBtn.disabled)) return;
-     var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
-     if (lines.length > 200) { lines = lines.slice(0, 200); showToast('Đã giới hạn 200 dòng đầu', true); }
-     var seen = {}, uniq = [];
-     lines.forEach(function (l) {
-       var k = l.toLowerCase();
-       if (seen[k]) return;
-       seen[k] = 1; uniq.push(l);
-     });
-     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
-     showModalSpin('Đang tạo…');
-     createTaskWithMeta_({ codes: uniq, autoAttend: true });
-   }
-  // Chips Station — KHÔNG có "Tất cả" (Station là bắt buộc cho tab Theo ca).
+  // Chips filter — Station (radiogroup, không 'Tất cả') / đa chọn (Tất cả = rỗng)
   function chipsHtmlStation_(opts, selected) {
     var html = '';
     opts.forEach(function (v) {
@@ -359,10 +119,6 @@
     var i = arr.indexOf(val);
     if (on && i === -1) arr.push(val);
     if (!on && i !== -1) arr.splice(i, 1);
-    if (isSlot) {
-      var avail = createSlotOptions_();
-      CREATE_FILTER.slotCode = CREATE_FILTER.slotCode.filter(function (s) { return avail.indexOf(s) !== -1; });
-    }
   }
   /* ===== T-1: Apply scan permission (owner gate) ===== */
   // Cờ khoá owner (non-owner ở phase OPEN) — các hàm UI khác (updateFinishBtnState,
@@ -421,102 +177,6 @@
     if (camPhoto) camPhoto.style.display = scanOwnerLocked ? 'none' : '';
   }
 
-  /* ===== Task created — cập nhật createModal tại chỗ khi tạo thành công có roster ===== */
-  var _taskCreatedTaskId = null;
-  function showTaskCreatedInModal(res) {
-    // res = { ok, taskId, count, skippedCodes, message, station, slotCode, team }
-    if (!res || !res.ok || !res.taskId) return false;
-    // Task rỗng (noList) → không hiện, caller đóng modal + mở scan
-    if (!res.count || res.count === 0) return false;
-    _taskCreatedTaskId = res.taskId;
-    // Ẩn nội dung tạo task, hiện nội dung "Đã tạo task" TRONG createModal
-    var m = document.getElementById('createModal');
-    if (!m) return false;
-    var tabs = m.querySelector('.load-tabs');
-    var paneRoster = document.getElementById('createPaneRoster');
-    var panePaste = document.getElementById('createPanePaste');
-    if (tabs) tabs.style.display = 'none';
-    if (paneRoster) paneRoster.style.display = 'none';
-    if (panePaste) panePaste.style.display = 'none';
-    // Hiện nội dung "Đã tạo task"
-    var info = m.querySelector('.task-created-info');
-    if (info) info.style.display = '';
-    document.getElementById('taskCreatedId').textContent = res.taskId;
-    document.getElementById('taskCreatedCount').textContent = res.count + ' NV' + (res.skippedCodes ? ' (bỏ ' + res.skippedCodes + ' mã)' : '');
-    var teamEl = document.getElementById('taskCreatedTeam');
-    var teamRow = document.getElementById('taskCreatedTeamRow');
-    if (res.team) { teamEl.textContent = res.team; teamRow.style.display = ''; }
-    else { teamRow.style.display = 'none'; }
-    var slotEl = document.getElementById('taskCreatedSlot');
-    var slotRow = document.getElementById('taskCreatedSlotRow');
-    if (res.slotCode && res.slotCode !== SLOT_FREE_MAGIC) { slotEl.textContent = res.slotCode; slotRow.style.display = ''; }
-    else { slotRow.style.display = 'none'; }
-     // Ẩn footer tạo, hiện footer "Đã tạo task"
-     var footers = m.querySelectorAll('.create-footer');
-     for (var i = 0; i < footers.length; i++) footers[i].style.display = 'none';
-     // Hide nút "Tạo task rỗng" trong lúc modal hiện "Đã tạo task" — đã có task, không tạo thêm
-     var emptyWrap = m.querySelector('.create-empty-wrap');
-     if (emptyWrap) emptyWrap.style.display = 'none';
-     var createdFooter = m.querySelector('.task-created-footer');
-     if (createdFooter) createdFooter.style.display = '';
-     document.getElementById('btnTaskCreatedAttend').focus();
-     return true;
-  }
-  function resetCreateModal_() {
-    // Khôi phục createModal về trạng thái ban đầu (gọi khi đóng/reopen)
-    var m = document.getElementById('createModal');
-    if (!m) return;
-    var tabs = m.querySelector('.load-tabs');
-    var paneRoster = document.getElementById('createPaneRoster');
-    var panePaste = document.getElementById('createPanePaste');
-    if (tabs) tabs.style.display = '';
-    if (paneRoster) paneRoster.style.display = '';
-    if (panePaste) panePaste.style.display = 'none';
-    var info = m.querySelector('.task-created-info');
-    if (info) info.style.display = 'none';
-    var footers = m.querySelectorAll('.create-footer');
-    for (var i = 0; i < footers.length; i++) footers[i].style.display = '';
-    var createdFooter = m.querySelector('.task-created-footer');
-    if (createdFooter) createdFooter.style.display = 'none';
-    // Reset nút "Tạo task rỗng"
-    var emptyWrap = m.querySelector('.create-empty-wrap');
-    if (emptyWrap) emptyWrap.style.display = '';
-    var emptyBtn = document.getElementById('btnCreateEmpty');
-    if (emptyBtn) { emptyBtn.disabled = false; emptyBtn.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
-    _taskCreatedTaskId = null;
-  }
-  function onTaskCreatedView() {
-    var tid = _taskCreatedTaskId;
-    resetCreateModal_();
-    closeCreateModal();
-    if (tid) openScan(tid);
-  }
-  function onTaskCreatedAttend() {
-    var tid = _taskCreatedTaskId;
-    if (!tid) return;
-    // Đợi transitionToAttend xong TRƯỚC khi mở scan
-    var btn = document.getElementById('btnTaskCreatedAttend');
-    if (btn) { btn.disabled = true; btn.textContent = 'Đang chuyển…'; }
-    google.script.run
-      .withSuccessHandler(function (res) {
-        resetCreateModal_();
-        closeCreateModal();
-        if (res.ok) {
-          openScan(tid);
-        } else {
-          showToast(res.message, true);
-          openScan(tid);
-        }
-      })
-      .withFailureHandler(function () {
-        resetCreateModal_();
-        closeCreateModal();
-        openScan(tid);
-      })
-      .transitionToAttendApi(tid);
-  }
-
-  // Modal confirm dùng chung — thay alert/confirm trình duyệt.
   // showConfirm(title, message, onConfirm): mở modal, bấm "Đồng ý" → chạy onConfirm.
   var confirmOnOk = null;
   var confirmOpener = null;  // P2: nút mở modal confirm (để restore focus)
@@ -542,20 +202,10 @@
     if (confirmOpener && document.contains(confirmOpener)) confirmOpener.focus();
     confirmOpener = null;
   }
-  // Roster + Create modal events — init sau DOM sẵn sàng.
-  (function initModals() {
-    function _init() { initCreateEvents(); }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', _init);
-    } else {
-      _init();
-    }
-  })();
+
   document.addEventListener('keydown', function (e) {
     // P3: Escape đóng modal (focus trap cơ bản)
     if (e.key === 'Escape') {
-      m = document.getElementById('createModal');
-      if (m && m.classList.contains('open')) { closeCreateModal(); return; }
       m = document.getElementById('confirmModal');
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('fixStatusModal');

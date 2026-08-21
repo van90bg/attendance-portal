@@ -217,11 +217,6 @@
     .view-topbar-title .task-title,
     .view-topbar-title .task-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .view-topbar .btn { min-height: 40px; line-height: 1.2; }  /* nút topbar đồng bộ 40px — desktop 37-41px lệch do border/line-height */
-    /* Modal "Nạp danh sách" — 2 tab: Theo ca / Dán mã (operator: 1 nút duy nhất, không menu ẩn) */
-    .load-tabs { display: flex; gap: var(--space-1); padding: var(--space-2); background: var(--surface-muted); border-radius: var(--radius-md); margin-bottom: var(--space-3); }
-    .load-tab { flex: 1; padding: var(--space-2) var(--space-3); min-height: 44px; border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--muted); cursor: pointer; }
-    .load-tab.is-active { background: var(--card); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    .load-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
     /* Toolbar chung các view List/Scan/Stats/Staff/Config — 1 class dùng chung */
     .scan-layout {
@@ -920,15 +915,13 @@
       max-height: min(92dvh, 92vh, 720px);
       display: flex; flex-direction: column; overflow: hidden;
     }
-    #createModal .load-tabs { flex-shrink: 0; }
-    #createModal .load-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
     #createModal .create-footer { flex-shrink: 0; }
     /* Mobile ≤700px: chips mỗi nhóm 1 hàng cuộn ngang (giảm chiều cao đáng kể) + frow 1 cột + đệm gọn */
     @media (max-width: 700px) {
       #createModal .about-dialog { padding: var(--space-4); }
       #createModal .create-form .frow { grid-template-columns: 1fr; gap: var(--space-1); }
       #createModal .create-form .chips { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      #createModal .load-pane { padding-bottom: var(--space-2); }
     }
 
 
@@ -1480,23 +1473,13 @@
     .about-body { line-height: 1.7; font-size: var(--text-base); color: var(--text); }
     .about-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); margin-top: var(--space-2); }
     .about-thead { background: var(--surface-muted); }
-    /* Create modal — pane Dán mã (paste-textarea/count-hint/footer) + pane Theo ca (load-pane) */
-    .paste-hint { margin: 0 0 var(--space-2); }  /* font-size/color đã có .muted */
-    .load-pane { min-height: 260px; }
-    .paste-textarea { width: 100%; min-height: 200px; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: monospace; font-size: var(--text-sm); line-height: 1.5; resize: vertical; }
-    .paste-count-hint { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
-    .paste-footer { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+
     /* Confirm modal */
     .confirm-dialog { max-width: 380px; }
     .confirm-title { font-size: var(--text-lg); margin: 0 0 var(--space-2); }
     .confirm-msg { color: var(--muted); font-size: var(--text-base); margin: 0 0 var(--space-4); line-height: 1.5; white-space: pre-line; }
     .confirm-footer { display: flex; gap: var(--space-2); justify-content: flex-end; }
-    /* Task created modal */
-    .task-created-info { margin: var(--space-3) 0 var(--space-4); }
-    .task-created-row { display: flex; justify-content: space-between; padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
-    .task-created-row:last-child { border-bottom: none; }
-    .task-created-label { color: var(--muted); font-size: var(--text-sm); }
-    .task-created-value { font-weight: 600; font-size: var(--text-base); text-align: right; }
+
     /* Spin modal */
     .spin-dialog { width: auto; max-width: 280px; text-align: center; padding: var(--space-6) var(--space-7); border-top: 3px solid var(--primary); }
     .spin-msg { margin-top: var(--space-4); color: var(--muted); font-size: var(--text-base); font-weight: 600; }
@@ -1504,6 +1487,5 @@
     .about-list { margin: var(--space-2) 0 var(--space-2) var(--space-5); padding: 0; }
     .about-list-lh { line-height: 1.8; }
     .cfg-item-group { margin-bottom: var(--space-3); }
-    .create-empty-wrap { text-align: center; padding: var(--space-3) 0; border-top: 1px solid var(--border); margin-top: var(--space-2); }
-    .task-created-footer { display: flex; justify-content: flex-end; gap: var(--space-3); padding-top: var(--space-4); }
+
   </style>
