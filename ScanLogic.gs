@@ -335,15 +335,18 @@ function planScanCommits(cfg, task, actions, freshLogRows, staffIndex, now, fmtT
  * @param {boolean} isAdmin — true nếu là admin (isEditor_())
  * @returns {boolean} true = được quét, false = bị chặn
  */
+/** Email người tạo task là owner hợp lệ (có '@', khác 'web'/'' — P2 2026-08-21, 1 nguồn). */
+function isValidOwnerEmail_(createdBy) {
+  const cb = String(createdBy || '').trim().toLowerCase();
+  return cb.includes('@') && cb !== 'web' && cb !== '';
+}
+
 function canScanOpen_(cfg, createdBy, activeEmail, isAdmin) {
   // Gate chỉ áp dụng khi task ở phase OPEN — task status check do caller thực hiện.
   if (isAdmin) return true;
-  const cb = String(createdBy || '').trim().toLowerCase();
   const ae = String(activeEmail || '').trim().toLowerCase();
-  // Email hợp lệ: có '@' và khác 'web'/''
-  const isValidEmail = cb.includes('@') && cb !== 'web' && cb !== '';
-  if (!isValidEmail) return true; // A1: owner không xác định → cho phép
-  return ae === cb;
+  if (!isValidOwnerEmail_(createdBy)) return true; // A1: owner không xác định → cho phép
+  return ae === String(createdBy || '').trim().toLowerCase();
 }
 
 /**
@@ -358,11 +361,9 @@ function canScanOpen_(cfg, createdBy, activeEmail, isAdmin) {
  */
 function canMutateTask_(createdBy, activeEmail, isAdmin) {
   if (isAdmin) return true;
-  const cb = String(createdBy || '').trim().toLowerCase();
   const ae = String(activeEmail || '').trim().toLowerCase();
-  const isValidEmail = cb.includes('@') && cb !== 'web' && cb !== '';
-  if (!isValidEmail) return false; // fail-closed: owner không xác định → chặn mutation
-  return ae === cb;
+  if (!isValidOwnerEmail_(createdBy)) return false; // fail-closed: owner không xác định → chặn mutation
+  return ae === String(createdBy || '').trim().toLowerCase();
 }
 
 /**

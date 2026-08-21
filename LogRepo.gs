@@ -114,25 +114,30 @@ function searchLogsByStaff(rawStaffId) {
  * _rowIndex giữ nguyên (cần cho update) — KHÔNG dùng bản này cho UI (dùng riêng
  * readTaskDetailCached_).
  */
+/** Slim 1 dòng log cho cache (P2 2026-08-21 — 1 nguồn mapping thay vì 2 bản copy).
+ * Giữ đúng field readLogRowsCached_ + readTaskDetailCached_ (text+epoch, không Date —
+ * tránh >100KB/key task lớn; _rowIndex cần cho update). */
+function toSlimLogRow_(r, taskId) {
+  return {
+    taskId: taskId || r.taskId,
+    staffId: r.staffId,
+    staffName: r.staffName,
+    slotCode: r.slotCode,
+    station: r.station,
+    team: r.team,
+    workstation: r.workstation,
+    listedAtText: r.listedAtText,
+    listedAtEpoch: r.listedAtEpoch,
+    scannedAtText: r.scannedAtText,
+    scannedAtEpoch: r.scannedAtEpoch,
+    status: r.status,
+    dateText: r.dateText,
+    _rowIndex: r._rowIndex,
+  };
+}
 function readLogRowsCached_(taskId) {
   return cachedJson_(CACHE_KEYS.LOG_ROWS + taskId, function () {
-    return readLogRows_(taskId).map(function (r) {
-      return {
-        taskId: taskId,          // update log row write cần (invalidate detail/update cache)
-        staffId: r.staffId,
-        staffName: r.staffName,
-        slotCode: r.slotCode,
-        station: r.station,
-        team: r.team,
-        listedAtText: r.listedAtText,
-        listedAtEpoch: r.listedAtEpoch,
-        scannedAtText: r.scannedAtText,
-        scannedAtEpoch: r.scannedAtEpoch,
-        status: r.status,
-        dateText: r.dateText,
-        _rowIndex: r._rowIndex,
-      };
-    });
+    return readLogRows_(taskId).map(function (r) { return toSlimLogRow_(r, taskId); });
   }, CACHE_TTL.LOG_ROWS);
 }
 
@@ -246,23 +251,7 @@ function readTaskDetailCached_(taskId) {
     // → task 1000 NV JSON >100KB/key → cache_().put throw + warn → miss âm thầm →
     // mỗi lần load lại đọc cả sheet. Cùng schema slim như readLogRowsCached_ (text+epoch,
     // không Date) để giữ dưới 100KB khi task lớn.
-    const log = readLogRows_(taskId).map(function (r) {
-      return {
-        taskId: r.taskId,
-        staffId: r.staffId,
-        staffName: r.staffName,
-        slotCode: r.slotCode,
-        station: r.station,
-        team: r.team,
-        workstation: r.workstation,
-        listedAtText: r.listedAtText,
-        listedAtEpoch: r.listedAtEpoch,
-        scannedAtText: r.scannedAtText,
-        scannedAtEpoch: r.scannedAtEpoch,
-        status: r.status,
-        dateText: r.dateText,
-      };
-    });
+    const log = readLogRows_(taskId).map(function (r) { return toSlimLogRow_(r, taskId); });
     const counters = computeCounters({ STATUS: STATUS }, log);
     // P3: strip _rowIndex + phase khỏi cache — khách cache miss client tính phase lại.
     delete task._rowIndex;

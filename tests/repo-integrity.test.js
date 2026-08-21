@@ -113,7 +113,7 @@ test('#3 invalidate*_ đều bump gen — cachedJson_ phát hiện writer', () =
   svc.invalidateLogRows_('R1');
   assert.notEqual(cache.get('rc2_gen_v1'), g2);
   const g3 = cache.get('rc2_gen_v1');
-  svc.invalidateStaffIndex_();
+  svc.invalidateStaffList_();
   assert.notEqual(cache.get('rc2_gen_v1'), g3);
   const g4 = cache.get('rc2_gen_v1');
   svc.invalidateSettingsCache_();

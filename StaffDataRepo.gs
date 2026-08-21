@@ -5,17 +5,9 @@
  * - readStaffIndex_: index { staffId: staff } derive TỪ readStaffList_ (1 sheet read,
  *   không cache riêng — list cache 5m là nguồn sự thật duy nhất).
  * - Mọi parser qua buildStaffIndex/buildStaffListFromValues (CsvUtil) — 1 nguồn duy nhất.
- * - invalidateStaffIndex_/invalidateStaffList_/invalidateStaffFullList_: gọi sau syncFromCsv.
+ * - invalidateStaffList_/invalidateStaffFullList_: gọi sau syncFromCsv (index derive từ list — xóa list là đủ).
  */
 
-/** Đọc raw StaffData từ sheet (KHÔNG cache — dùng làm nguồn chung cho list + index). */
-function readStaffRaw_() {
-  if (!requireRole_('operator')) return [];  // M1: gate trước khi đọc sheet
-  const sheet = getSheet_(SHEETS.STAFF_DATA);
-  const values = sheet.getDataRange().getValues();
-  const tz = getSpreadsheet_().getSpreadsheetTimeZone();
-  return buildStaffListFromValues(values, tz);
-}
 
 /**
  * Đọc TOÀN BỌ StaffData dạng list objects — FULL 20 field (view thống kê StaffData).
@@ -38,7 +30,8 @@ function readStaffFullList_() {
 function readStaffList_() {
   if (!requireRole_('operator')) return [];  // M1: StaffData full 20 field — chỉ operator+ (create-modal/filter/roster)
   return cachedJson_(CACHE_KEYS.STAFF_LIST, function () {
-    return readStaffRaw_();
+    if (!requireRole_('operator')) return [];  // M1: gate trước khi đọc sheet
+    return buildStaffListFromValues(getSheet_(SHEETS.STAFF_DATA).getDataRange().getValues(), getSpreadsheet_().getSpreadsheetTimeZone());
   }, CACHE_TTL.STAFF_LIST);
 }
 
@@ -68,11 +61,6 @@ function readStaffIndex_() {
   return index;
 }
 
-/** Xóa cache StaffData (gọi sau syncFromCsv). */
-function invalidateStaffIndex_() {
-  // B2 (review): index derive từ list — xóa list cache là đủ (index tự build lại).
-  invalidateStaffList_();
-}
 
 /** Xóa cache staff list (gọi sau syncFromCsv). */
 function invalidateStaffList_() {
