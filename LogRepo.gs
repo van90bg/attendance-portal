@@ -161,11 +161,8 @@ function batchInsertLogRows_(taskId, staffList, createdAt, opts) {
     ];
   });
   sheet.getRange(startRow, 1, rows.length, LOG_COL_COUNT).setValues(rows);
-  try { cache_().remove(CACHE_KEYS.LOG_ROWS + taskId); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all'); } catch (e) {}
-  bumpCacheGen_();
+  invalidateLogRows_(taskId);
+  invalidateTaskCaches_(taskId);
   return rows.length;
 }
 
@@ -322,9 +319,8 @@ function transformLogStatuses_(taskId, mutate, logRows) {
     for (let r = run.start; r <= run.end; r++) { col.push([changed[ci].v]); ci++; }
     sheet.getRange(run.start, statusCol, col.length, 1).setValues(col);
   });
-  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.LOG_ROWS + taskId); } catch (e) {}
-  bumpCacheGen_();
+  invalidateLogRows_(taskId);
+  invalidateTaskDetailCache_(taskId);
   return changed.length;
 }
 
@@ -391,10 +387,7 @@ function batchUpdateLogRows_(taskId, updates) {
   // timeScan → 2 cột TIME_SCAN+STATUS (khớp updateLogRowRef_/updateLogRowScan_ cũ).
   writeBatchRuns_(sheet, valid, 'listedAt');
   writeBatchRuns_(sheet, valid, 'scannedAt');
-  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all'); } catch (e) {}
-  bumpCacheGen_();
+  invalidateTaskCaches_(taskId);
   try {
     const key = CACHE_KEYS.LOG_ROWS + taskId;
     const cached = cacheGet_(key);
@@ -489,9 +482,6 @@ function setLogRowStatus_(taskId, rowIndex, newStatus, scanTime, clearScanned, c
   } else {
     sheet.getRange(rowIndex, LOG_COLS.STATUS + 1, 1, 1).setValues([[newStatus]]);
   }
-  try { cache_().remove(CACHE_KEYS.TASK_DETAIL + taskId); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.LOG_ROWS + taskId); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.TASK_LIST); } catch (e) {}
-  try { cache_().remove(CACHE_KEYS.TASK_COUNTS + 'all'); } catch (e) {}
-  bumpCacheGen_();
+  invalidateLogRows_(taskId);
+  invalidateTaskCaches_(taskId);
 }

@@ -519,11 +519,7 @@
     return esc(status || '');
   }
 
-  function taskKindLabel_(task) {
-    if (!task) return 'Task';
-    if (Number(task.total || task.count || 0) > 0) return 'Đã có danh sách';
-    return 'Mới tạo';
-  }
+
   // F-search: badge Trạng thái task — dùng chung cho renderTaskList_ + renderSearchResults_ (tránh duplicate markup).
   // 'attend'→Điểm danh, 'done'→Xong, 'open'→Mở; trạng thái lạ/null → badge trống.
   function taskStatusBadge(status) {

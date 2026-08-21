@@ -67,6 +67,13 @@ function normalizeStaffId(id) {
   return String(id).trim().toUpperCase();
 }
 
+/** Rút phần số của mã NV ("Ops103487" → "103487") — so khớp dự phòng khi 2 nguồn lệch tiền tố.
+ * Gộp từ ReportRepo.opsDigits_ (P1-3 2026-08-21) — tránh duplicate với normalizeStaffId. */
+function staffDigits_(v) {
+  return String(v || '').replace(/[^0-9]/g, '');
+}
+
+
 /**
  * Chuẩn hóa ngày vào làm (StaffData 'Date') về yyyy-MM-dd (ISO — sort string đúng
  * thứ tự). StaffData có 3 dạng:

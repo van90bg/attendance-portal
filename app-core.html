@@ -527,11 +527,7 @@
     if (o) o.classList.add('hide');
     hideModalSpin(); // F6: mọi success/fail path gọi hideLoadingOverlay → đóng modal spin luôn
   }
-  function showLoadingOverlay() {
-    var o = document.getElementById('loadingOverlay');
-    if (!o) return;
-    o.classList.remove('hide');
-  }
+
 
   // F6: modal spin cho nút chuyển trạng thái (Kết thúc / Chuyển điểm danh / Mở lại) —
   // thay loadingOverlay toàn màn để thấy rõ đang xử lý ở ngay tâm màn, hết khi nhận phản hồi.

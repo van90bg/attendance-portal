@@ -17,15 +17,6 @@ function normCell_(v) {
   return (!s || s.toLowerCase() === 'none') ? '' : s;
 }
 
-/** Normalize mã Ops cho so khớp: trim + uppercase. */
-function normOpsId_(v) {
-  return String(v || '').trim().toUpperCase();
-}
-
-/** Rút phần số của mã Ops ("Ops103487" → "103487") — so khớp dự phòng khi 2 nguồn lệch tiền tố. */
-function opsDigits_(v) {
-  return String(v || '').replace(/[^0-9]/g, '');
-}
 
 /**
  * Parse StaffInfo values (2D, dòng 1 = header) → { emailLower: { opsId, name } }.
@@ -96,12 +87,12 @@ function buildAttendanceRowsAll(values) {
 /** Có >1 ID THẬT khác nhau cùng phần số với ID đang tra (vd OPS12345 + ABC12345) —
  * fallback phần số trong trường hợp này là AMBIGUOUS (trả nhầm dữ liệu người khác). */
 function ambiguousOpsId_(rows, rawOpsId) {
-  const wantDigits = opsDigits_(normOpsId_(rawOpsId));
+  const wantDigits = staffDigits_(normalizeStaffId(rawOpsId));
   if (!wantDigits) return false;
   const owners = {};
   (rows || []).forEach(function (r) {
-    const b = normOpsId_(r.bizStaffId);
-    const d = opsDigits_(b);
+    const b = normalizeStaffId(r.bizStaffId);
+    const d = staffDigits_(b);
     if (b && d && d === wantDigits) owners[b] = true;
   });
   return Object.keys(owners).length > 1;
@@ -111,14 +102,14 @@ function ambiguousOpsId_(rows, rawOpsId) {
  * Review 2026-08-19: fallback phần số CHỈ khi suffix unique trong dữ liệu —
  * ambiguous (nhiều ID cùng phần số) → chỉ khớp chính xác, KHÔNG trả dữ liệu người khác. */
 function filterAttendanceRows(rows, rawOpsId) {
-  const want = normOpsId_(rawOpsId);
-  const wantDigits = opsDigits_(want);
+  const want = normalizeStaffId(rawOpsId);
+  const wantDigits = staffDigits_(want);
   const ambiguous = ambiguousOpsId_(rows, rawOpsId);
   return (rows || []).filter(function (r) {
-    const biz = normOpsId_(r.bizStaffId);
+    const biz = normalizeStaffId(r.bizStaffId);
     if (biz === want) return true;
     if (!wantDigits || ambiguous) return false;
-    return opsDigits_(biz) === wantDigits;
+    return staffDigits_(biz) === wantDigits;
   });
 }
 
@@ -150,41 +141,23 @@ function readStaffInfoMap_() {
   return readStaffInfoMapShared_('manager');
 }
 
-/** Toàn bộ dòng StaffAttendance đã parse — shared (cache CHUNG 60s, chia CHUNK theo
- * dung lượng: CacheService giới hạn 100KB/key — sheet tháng thật vượt 1 key → put fail
- * âm thầm + đọc lại sheet mỗi request). Meta '_all_n' = số chunk; '_all_i' = dữ liệu.
+/** Toàn bộ dòng StaffAttendance đã parse — shared (cache CHUNG 60s).
+ * Dùng cacheGet_/cachePut_ generic (Cache.gs) — tự chia chunk `key#cN`+`key#n` khi >90KB
+ * (thay chunk tự chế all_n/all_i cũ — thiếu stale-gen guard + sentinel, drift với generic).
  * Manager dùng trực tiếp; operator qua readAttendanceRowsSelf_ dùng CHUNG cache —
  * 1 lần đọc sheet cho mọi role, không mỗi user đọc lại full sheet.
  */
 function readAttendanceRowsAllShared_(minRole) {
   if (!gateShared_(minRole)) return [];  // M1: reader global — dữ liệu chấm công chỉ manager/operator (không chỉ getReports gate)
-  const nKey = CACHE_KEYS.REPORTS + 'all_n';
-  const nRaw = cache_().get(nKey);
-  if (nRaw !== null) {
-    try {
-      const n = parseInt(nRaw, 10);
-      let json = '';
-      let ok = n > 0;
-      for (let i = 0; i < n && ok; i++) {
-        const part = cache_().get(CACHE_KEYS.REPORTS + 'all_' + i);
-        if (part === null) { ok = false; break; }
-        json += part;
-      }
-      if (ok) {
-        try { return JSON.parse(json); } catch (e) { /* cache hỏng → rebuild */ }
-      }
-    } catch (e) { /* rơi xuống rebuild */ }
+  const key = CACHE_KEYS.REPORTS + 'all';
+  const cached = cacheGet_(key);
+  if (cached !== null) {
+    try { return JSON.parse(cached); } catch (e) { /* cache hỏng → rebuild */ }
   }
   const sheet = getSpreadsheet_().getSheetByName(SHEETS.REPORT_ATTENDANCE);
   const rows = sheet ? buildAttendanceRowsAll(sheet.getDataRange().getValues()) : [];
   try {
-    const json = JSON.stringify(rows);
-    const CHUNK = 80000; // byte/key — dưới giới hạn 100KB của CacheService
-    const n = Math.max(1, Math.ceil(json.length / CHUNK));
-    for (let i = 0; i < n; i++) {
-      cache_().put(CACHE_KEYS.REPORTS + 'all_' + i, json.slice(i * CHUNK, (i + 1) * CHUNK), CACHE_TTL.REPORTS);
-    }
-    cache_().put(nKey, String(n), CACHE_TTL.REPORTS);
+    cachePut_(key, JSON.stringify(rows), CACHE_TTL.REPORTS);
   } catch (e) {
     console.warn('readAttendanceRowsAllShared_ cache put fail', e && e.message);
   }

@@ -171,8 +171,7 @@ test('readAttendanceRowsAll_: cache CHUNG — Ops khác không đọc lại shee
   assert.equal(a.length, 3);
   // Meta + chunk key tồn tại trong script cache
   const cache = ctx.CacheService.getScriptCache();
-  assert.ok(cache.get('rc2_reports_v2_all_n'), 'meta chunk count');
-  assert.ok(cache.get('rc2_reports_v2_all_0'), 'chunk 0');
+  // Dữ liệu nhỏ (<90KB) → cachePut_ ghi JSON trực tiếp base key (không chunk sentinel).
   // Xóa sheet nguồn — Ops khác vẫn filter từ cache chung (không đọc lại sheet)
   ss.sheets.StaffAttendance.data = [ss.sheets.StaffAttendance.data[0]];
   const b = svc.readAttendanceRows_('Ops999999');
@@ -258,7 +257,7 @@ test('readAttendanceRowsAll_: sheet lớn >1 chunk (vượt 100KB/key)', () => {
   const rows = svc.readAttendanceRows_('Ops100005');
   assert.equal(rows.length, 1);
   const cache = ctx.CacheService.getScriptCache();
-  const n = parseInt(cache.get('rc2_reports_v2_all_n'), 10);
+  const n = parseInt(cache.get('rc2_reports_v2_all#n'), 10);
   assert.ok(n > 1, 'phải có >1 chunk, thực tế ' + n);
   // Xóa sheet nguồn — vẫn trả từ cache chunked
   ss.sheets.StaffAttendance.data = [ss.sheets.StaffAttendance.data[0]];

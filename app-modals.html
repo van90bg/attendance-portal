@@ -26,21 +26,6 @@
     });
     return slots;
   }
-  function createContractOptions_() {
-    var cts = [];
-    (_createOptsData && _createOptsData.contractTypes || []).forEach(function (c) { if (cts.indexOf(c) === -1) cts.push(c); });
-    return cts;
-  }
-  function createDeptOptions_() {
-    var dts = [];
-    (_createOptsData && _createOptsData.departments || []).forEach(function (d) { if (dts.indexOf(d) === -1) dts.push(d); });
-    return dts;
-  }
-  function createDateOptions_() {
-    var ds = [];
-    (_createOptsData && _createOptsData.dates || []).forEach(function (d) { if (ds.indexOf(d) === -1) ds.push(d); });
-    return ds;
-  }
   function fillCreateOptions(res) {
     if (!res || !res.ok) return;
     _createOptsLoaded = true;
