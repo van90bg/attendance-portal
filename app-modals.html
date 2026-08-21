@@ -558,11 +558,10 @@
       if (m && m.classList.contains('open')) { closeConfirmModal(); return; }
       m = document.getElementById('fixStatusModal');
       if (m && m.classList.contains('open')) { closeFixStatusModal(); return; }
-      // viewAbout is now a section, not a modal - go back to previous view
+      // viewAbout is now a section, not a modal - go back to previous view (aboutBack dùng _pageBeforeAbout)
       var aboutV = document.getElementById('viewAbout');
       if (aboutV && !aboutV.classList.contains('hidden')) {
         if (typeof aboutBack === 'function') { aboutBack(); return; }
-        showSection(lastViewBeforeAbout || 'viewTasks');
         return;
       }
       // U4 (review 2026-08-11): Escape đóng funnel panel (không nằm trong .about-overlay modals)

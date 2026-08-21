@@ -741,17 +741,7 @@
   }
 
   /* ===== T-3: View management (7 view: home/stats/tasks/scan/staff/config/reports/about) ===== */
-  var lastViewBeforeAbout = 'viewTasks'; // remember where we came from
   function showSection(sectionName) {
-    // Track last non-about view for back navigation
-    if (sectionName === 'viewAbout') {
-      var currentView = document.getElementById('viewScan');
-      if (currentView && !currentView.classList.contains('hidden')) {
-        lastViewBeforeAbout = 'viewScan';
-      } else {
-        lastViewBeforeAbout = 'viewTasks';
-      }
-    }
     // Chỉ toggle 2 view thay đổi (view cũ → hidden, view mới → visible) thay vì 9
     // getElementById + add hidden mỗi lần chuyển trang — avoid reflow trên 9 sections.
     var views = document.querySelectorAll('section[id^="view"]');
