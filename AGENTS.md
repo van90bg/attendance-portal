@@ -107,7 +107,49 @@ with open(path, 'w', encoding='utf-8', newline='') as f:
 - Style audit: `node scripts/audit-style.js [--strict]` — boot Chrome headless + đo computed style mọi class chung (SHARED_CLASSES trong script) → in class lệch fingerprint; `--strict` exit 1 nếu có lệch ngoài ALLOWED_DRIFT (chủ đích: modal 44px touch / btn-sm / cfg-card / flabel 56px / card+table-wrap flex scan). Bỏ element display:none (nhiễu min-height 0px). Chạy sau batch UI đổi style; cần Chrome.
 - UI audit toàn diện: `node scripts/audit-ui.js` — boot Chrome headless + đo geometry 7 view (home/tasks/scan/stats/staff/config/reports) x 4 viewport (desktop 1384 · tablet 1024 · mobile 390/375): view hiển thị · trang không cuộn · nav không che · card vừa màn hình (đo theo body height — KHÔNG innerHeight: headless mobile emulation báo 1007 nhưng body 844 → gap giả) · bảng có dữ liệu; viewScan mobile miễn trừ gap âm (section cuộn trong). `--quick` chỉ desktop (~20s); **exit 1 nếu có FAIL** (chạy sau mỗi batch UI thay đổi layout/touch). Cần Chrome.
 
-## 8. Đọc thêm
+## 8. Output format (chuẩn chung — BẮT BUỘC khi trả kết quả)
+
+Khi in kết quả chạy skill, TUÂN THỦ format này — dễ quét, có marker, không tường thuật.
+
+**1. TL;DR 1 dòng** — verdict + đếm issue:
+✅ Approve — 0 P0 · 2 P1 · 5 P2 | ⚠️ Cần duyệt — 1 P0 | 🔴 Blocked — 3 P0
+
+**2. Bảng findings** (audit/review/debug) — mỗi dòng = 1 issue, cell ≤1 dòng:
+| Sev | Vấn đề | Vị trí | Đề xuất |
+|---|---|---|---|
+| 🔴 P0 | quét ngoài DS ghi PRESENT | ScanLogic.gs:142 | mirror server EXTRA |
+| 🟠 P1 | card mobile lệch tông | styles.html:88 | override tbody td:nth-child(n) |
+| 🟡 P2 | comment thừa | Code.gs:30 | xóa |
+
+Marker: 🔴 P0 (blocker/sai data) · 🟠 P1 (break/khó dùng) · 🟡 P2 (cosmetic).
+
+**3. Nhóm theo chủ đề** chỉ khi >5 issue — ### Nhóm + bullet 1 dòng/cái.
+
+**4. Khối hành động cuối:**
+> **Tiếp theo:** [làm gì] · [ai] · [duyệt?]
+
+**Quy tắc vàng**
+- Không tóm tắt lại nội dung skill — chỉ in kết quả.
+- Không đoạn văn >3 dòng không chia ý.
+- Dùng marker 🔴🟠🟡 ✅ ⚠️ ✓ thay chữ "lỗi/nghiêm trọng/đã xong".
+- Số liệu đi đầu (đếm trước, kể sau): 5 P2 chứ không "có vài issue nhỏ".
+- Mỗi finding có file:line cụ thể — không "ở đâu đó trong scan".
+**5. Confidence score** — mỗi finding có độ tin cậy 0–100 (review-gas):
+| Sev | Vấn đề | Vị trí | Conf | Đề xuất |
+|---|---|---|---|---|
+| 🔴 P0 | cache blind put mất write | Cache.gs:55 | 92 | read-merge-write |
+- Blocker/security: LUÔN report dù conf thấp. Major ≥70 · Minor/Nit ≥80 · dưới ngưỡng → bỏ im lặng.
+
+**6. Empty-state** — KHÔNG có issue thì in 1 dòng, không bỏ trống:
+✅ Sạch — 0 P0 · 0 P1 · 0 P2 (kèm scope đã quét: test:css + test:gs + audit-ui)
+
+**7. Anti-pattern (CẤM — đừng trả kết quả thế này)**
+✗ Tôi đã đọc qua code và thấy có một số vấn đề nhỏ về giao diện, cụ thể là màu sắc ở vài chỗ có vẻ không nhất quán, rồi còn chuyện nút bấm hơi bé trên mobile nữa, bạn xem rồi sửa dùm tôi nhé...
+Thay bằng:
+⚠️ Cần duyệt — 0 P0 · 2 P1 + bảng 2 hàng (vị trí + đề xuất cụ thể).
+Quy tắc: không tường thuật, không "vài chỗ/có vẻ", mỗi claim có file:line.
+
+## 9. Đọc thêm
 
 - `README.md` — tổng quan cập nhật.
 - `Spec — RollCall v2.md` — spec đầy đủ.
