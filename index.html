@@ -116,6 +116,7 @@
         <div class="task-title" id="scanTaskTitle"></div>
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
+      <button class="btn btn-outline" id="btnScanLoad" onclick="showScanLoadPane_()" style="display:none" aria-label="Nạp danh sách NV" title="Nạp danh sách NV vào task rỗng">Nạp danh sách</button>
       <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Bắt đầu điểm danh">Bắt đầu điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Chốt ca">Chốt ca</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
@@ -150,6 +151,22 @@
         <span id="scanLiveMsg" class="sr-only" aria-live="polite"></span>
       </div>
       <div class="scan-col-right">
+        <!-- S1 (2026-08-21): panel nạp roster vào task rỗng — mở qua btnScanLoad, chỉ khi OPEN + log rỗng -->
+        <div class="card" id="scanLoadPane" style="display:none;">
+          <div class="task-list-toolbar">
+            <h2 class="section-heading">NẠP DANH SÁCH</h2>
+            <button class="btn btn-ghost btn-sm" onclick="hideScanLoadPane_()" aria-label="Đóng panel nạp danh sách">✕ Đóng</button>
+          </div>
+          <div class="create-form" id="scanLoadForm">
+            <div class="frow"><span class="flabel">Station</span><div class="chips" id="scanLoadChipsStation" role="radiogroup" aria-label="Station"></div></div>
+            <div class="frow"><span class="flabel">Ca <span class="fnote">chọn nhiều</span></span><div class="chips" id="scanLoadChipsSlot" role="group" aria-label="Ca"></div></div>
+            <div class="frow"><span class="flabel">Team <span class="fnote">chọn nhiều</span></span><div class="chips" id="scanLoadChipsTeam" role="group" aria-label="Team"></div></div>
+          </div>
+          <div class="create-footer">
+            <div class="create-total"><b id="scanLoadCount">0</b> <span>NV khớp</span></div>
+            <button class="btn" id="btnScanLoadSubmit" onclick="loadRosterIntoScan_()" disabled>Nạp</button>
+          </div>
+        </div>
         <div class="card" id="scanListCard">
           <div class="att-toolbar">
             <h2 class="section-heading">DANH SÁCH NV</h2>

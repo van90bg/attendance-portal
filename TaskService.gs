@@ -149,6 +149,52 @@ function createTask(input) {
 }
 
 /**
+ * S1 (2026-08-21): nạp roster vào task RỖNG (OPEN + log rỗng) — tách từ createTask.
+ * Chỉ cho phép khi status === OPEN và chưa có dòng log — né merge phức tạp,
+ * giữ invariant scanned + absent === total (total = số roster, chưa quét gì nên hợp lệ).
+ * Tái dùng filterStaffByGroup / dedupeStaffByGroup / batchInsertLogRows_ / readLogRows_.
+ * Gate: operator (service) + owner/admin (requireOwnerOrAdmin_ mode mutate — M1).
+ */
+function appendRoster_(taskId, filter) {
+  if (!requireRole_('operator')) {
+    return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
+  }
+  const f = filter || {};
+  const station = String(f.station || '').trim();
+  if (!station) return { ok: false, message: 'Thiếu Station — không thể nạp danh sách' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const task = readTask_(taskId);
+    if (!task) return { ok: false, message: 'Không tìm thấy task' };
+    // Owner/admin gate — khớp completeTask/reopenTask/updateLogRowStatus (M1: gate thật ở service).
+    const gate = requireOwnerOrAdmin_(task, 'mutate');
+    if (!gate.ok) return { ok: false, message: gate.message };
+    if (task.status !== TASK_STATUS.OPEN) return { ok: false, message: 'Chỉ nạp được khi task ở phase Mở' };
+    if (readLogRows_(taskId).length > 0) return { ok: false, message: 'Task đã có dữ liệu quét — không nạp được' };
+    const filterSlots = Array.isArray(f.slotCode) ? f.slotCode : (f.slotCode ? [f.slotCode] : []);
+    const filterTeams = Array.isArray(f.team) ? f.team : (f.team ? [f.team] : []);
+    const filterContractTypes = Array.isArray(f.contractType) ? f.contractType : (f.contractType ? [f.contractType] : []);
+    const filterDepartments = Array.isArray(f.department) ? f.department : (f.department ? [f.department] : []);
+    const date = String(f.date || '').trim();
+    const staffList = filterStaffByGroup(readStaffList_(), {
+      station: station, slotCode: filterSlots, team: filterTeams,
+      contractType: filterContractTypes, department: filterDepartments, date: date,
+    });
+    const deduped = dedupeStaffByGroup(staffList);
+    if (!deduped.length) return { ok: false, message: UI_LABELS.CREATE_FAILED_EMPTY };
+    const now = new Date();
+    batchInsertLogRows_(taskId, deduped, now);  // listedAt = thời điểm nạp (không phải lúc tạo)
+    audit_('loadRoster', taskId, { count: deduped.length });
+    return { ok: true, taskId: taskId, count: deduped.length, message: 'Nạp ' + deduped.length + ' NV thành công' };
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'appendRoster fail' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Đóng task (Kết thúc) — chỉ ở phase2 (Điểm danh). Nút Kết thúc chỉ hiện ở phase2.
  * @param {string} taskId
  * @returns {{ok: boolean, message: string}}

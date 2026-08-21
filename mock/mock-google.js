@@ -247,6 +247,27 @@
       if (log.length > 0) msg = 'Đã tạo task + nạp ' + log.length + ' NV — ' + taskId + (skippedCodes ? ' (bỏ ' + skippedCodes + ' mã không có trong dữ liệu)' : '');
       return { ok: true, taskId: taskId, count: log.length, skippedCodes: skippedCodes, message: msg };
     },
+    appendRosterApi: function (input) {
+      // S1 (2026-08-21): nạp roster vào task RỖNG — chỉ OPEN + log rỗng (khớp appendRoster_ server).
+      var taskId = input && input.taskId;
+      var f = (input && input.filter) || {};
+      var task = null;
+      MOCK_DATA.tasks.forEach(function (t) { if (t.taskId === taskId) task = t; });
+      if (!task) return { ok: false, message: 'Không tìm thấy task' };
+      if (task.status !== 'open') return { ok: false, message: 'Chỉ nạp được khi task ở phase Mở' };
+      var existing = getLog(taskId) || [];
+      if (existing.length > 0) return { ok: false, message: 'Task đã có dữ liệu quét — không nạp được' };
+      if (!f.station) return { ok: false, message: 'Thiếu Station — không thể nạp danh sách' };
+      var rows = mockDedupe(mockFilterStaff({ station: f.station, slotCode: f.slotCode || [], team: f.team || [], contractType: f.contractType || [], date: f.date || '' }));
+      if (!rows.length) return { ok: false, message: 'Không có nhân viên nào trong tổ hợp đã chọn' };
+      var nowMs = Date.now();
+      var nowText = new Date().toISOString().slice(11, 19).replace('T', '');
+      var log = rows.map(function (s) {
+        return { taskId: taskId, staffId: s.staffId, staffName: s.staffName || '', slotCode: s.slotCode || '', station: s.station || '', team: s.team || '', workstation: s.workstation || '', listedAtText: nowText, listedAtEpoch: nowMs, scannedAtText: '', scannedAtEpoch: 0, status: '-', dateText: s.date || '' };
+      });
+      MOCK_LOGS[taskId] = log;
+      return { ok: true, taskId: taskId, count: log.length, message: 'Nạp ' + log.length + ' NV thành công' };
+    },
     scanStaffApi: function (taskId, staffId, clientEpoch) {
       // Mock 2-pha khớp server scanStaff (ScanService.gs + classifyScan):
       // open = ghi LISTED_AT (timeRef, giữ status '-'); attend = ghi SCANNED_AT (timeScan).

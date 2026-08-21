@@ -84,11 +84,14 @@
     return sts;
   }
   function createSlotOptions_() {
-    if (!CREATE_FILTER.station) return [];
+    return createSlotOptionsFor_(CREATE_FILTER.station);
+  }
+  function createSlotOptionsFor_(station) {
+    if (!station) return [];
     var slots = [];
     (_createOptsData && _createOptsData.slotcodes || []).forEach(function (s) { if (slots.indexOf(s) === -1) slots.push(s); });
     (_createOptsData && _createOptsData.stationGroups || []).forEach(function (g) {
-      if (g.station !== CREATE_FILTER.station) return;
+      if (g.station !== station) return;
       (g.slotCodes || []).forEach(function (sc) {
         if (!sc || !sc.slotCode || sc.slotCode === SLOT_FREE_MAGIC) return;
         if (slots.indexOf(sc.slotCode) === -1) slots.push(sc.slotCode);

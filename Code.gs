@@ -176,6 +176,16 @@ function createTaskApi(input) {
   }
 }
 
+/** Nạp roster vào task rỗng (S1 — OPEN + log rỗng). Gate thật ở appendRoster_ (TaskService):
+ * operator + owner/admin; wrapper chỉ DEFENSE: catch lỗi → ok:false. */
+function appendRosterApi(input) {
+  try {
+    return appendRoster_(input && input.taskId, input && input.filter);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'appendRoster fail' };
+  }
+}
+
 /** Danh sách task. Error contract (review 2026-08-19): [] CHỈ khi danh sách thực sự rỗng;
  * lỗi hạ tầng (sheet/quota/cache) → { ok:false, message } — client phân biệt được
  * "chưa có task" với "hệ thống lỗi", không tạo task trùng khi tưởng danh sách rỗng. */

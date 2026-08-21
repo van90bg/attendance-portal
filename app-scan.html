@@ -770,6 +770,7 @@
     var btnRe = document.getElementById('btnReopen');
     var btnTo = document.getElementById('btnToAttend');
     var btnCancel = document.getElementById('btnCancel');
+    var btnScanLoad = document.getElementById('btnScanLoad');
     if (!btn) return;
     var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
     var done = isTaskDone(CURRENT_TASK);
@@ -779,6 +780,7 @@
     if (btnRe) btnRe.style.display = done ? '' : 'none';
     if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
     // "Hủy" chỉ ở phase Mở + log rỗng + có quyền mutate + không bị owner-lock.
+    var canLoadRoster = false;
     if (btnCancel) {
       var perm = CURRENT_TASK && CURRENT_TASK.permission;
       var canMutate = perm && (perm.canMutate !== undefined ? perm.canMutate : (perm.isOwner || perm.isAdmin));
@@ -786,7 +788,10 @@
         && canMutate
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
+      canLoadRoster = canCancel;  // S1: nạp roster cùng điều kiện (OPEN + log rỗng + mutate)
     }
+    if (btnScanLoad) btnScanLoad.style.display = canLoadRoster ? '' : 'none';
+    if (canLoadRoster && typeof initScanLoadEvents_ === 'function') initScanLoadEvents_();
     // Mode nút: rpc (đang chốt ca nền) > scanBusy (đang quét) > rảnh. Nút Chốt/Chuyển
     // không disabled (BUSY guard chống double); chỉ Hủy bị khóa lúc bận.
     var mode, rpcTitle;
@@ -1613,5 +1618,122 @@
         showToast('Lỗi sửa trạng thái: ' + (err && err.message ? err.message : ''), true);
       })
       .updateLogRowStatusApi(CURRENT_TASK.taskId, FIX_STATUS_TARGET.staffId, sel.value);
+  }
+  /* ===== S1 (2026-08-21): nạp roster sau — task RỖNG (OPEN + log rỗng) ===== */
+  var SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
+  function resetScanLoadFilter_() {
+    SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], contractType: [], department: [], date: [] };
+    // Station mặc định từ Config (nối tiếp pre-select modal create)
+    if (typeof CFG_DEFAULTS !== 'undefined' && CFG_DEFAULTS && CFG_DEFAULTS.station) {
+      var ds = String(CFG_DEFAULTS.station).trim();
+      if (ds && typeof createStationOptions_ === 'function' && createStationOptions_().indexOf(ds) !== -1) {
+        SCAN_LOAD_FILTER.station = ds;
+      }
+    }
+  }
+  // Visibility: OPEN + log rỗng + canMutate (khớp canCancel trong updateFinishBtnState)
+  function canScanLoad_() {
+    if (!CURRENT_TASK) return false;
+    var phase = CURRENT_TASK.phase || TASK_STATUS_C.OPEN;
+    if (phase !== TASK_STATUS_C.OPEN) return false;
+    if (CURRENT_LOG && CURRENT_LOG.length) return false;
+    var perm = CURRENT_TASK.permission;
+    var canMutate = perm && (perm.canMutate !== undefined ? perm.canMutate : (perm.isOwner || perm.isAdmin));
+    return !!canMutate;
+  }
+  function showScanLoadPane_() {
+    var pane = document.getElementById('scanLoadPane');
+    if (!pane) return;
+    if (!canScanLoad_()) { showToast('Chỉ owner và khi task còn Mở + chưa có quét', true); return; }
+    if (typeof resetScanLoadFilter_ === 'function') resetScanLoadFilter_();
+    renderScanLoadChips_();
+    pane.style.display = '';
+  }
+  function hideScanLoadPane_() {
+    var pane = document.getElementById('scanLoadPane');
+    if (pane) pane.style.display = 'none';
+  }
+  function renderScanLoadChips_() {
+    var st = document.getElementById('scanLoadChipsStation');
+    if (st && typeof chipsHtmlStation_ === 'function' && typeof createStationOptions_ === 'function') {
+      st.innerHTML = chipsHtmlStation_(createStationOptions_(), SCAN_LOAD_FILTER.station || '');
+    }
+    var slot = document.getElementById('scanLoadChipsSlot');
+    if (slot && typeof chipsHtml_ === 'function' && typeof createSlotOptionsFor_ === 'function') {
+      slot.innerHTML = chipsHtml_(createSlotOptionsFor_(SCAN_LOAD_FILTER.station), SCAN_LOAD_FILTER.slotCode);
+    }
+    var tm = document.getElementById('scanLoadChipsTeam');
+    if (tm && typeof chipsHtml_ === 'function' && _createOptsData) {
+      tm.innerHTML = chipsHtml_((_createOptsData.teams || []), SCAN_LOAD_FILTER.team);
+    }
+    updateScanLoadCount_();
+  }
+  // Đếm NV khớp client-side (giống _doCreatePreview modal create) — preview trước khi nạp.
+  function scanLoadPreview_() {
+    if (!SCAN_LOAD_FILTER.station) return 0;
+    var staffList = _createOptsData && _createOptsData.staffList ? _createOptsData.staffList : [];
+    if (typeof filterStaffByGroup === 'function') {
+      var filtered = filterStaffByGroup(staffList, {
+        station: SCAN_LOAD_FILTER.station, slotCode: SCAN_LOAD_FILTER.slotCode, team: SCAN_LOAD_FILTER.team,
+        contractType: SCAN_LOAD_FILTER.contractType, department: SCAN_LOAD_FILTER.department,
+        date: SCAN_LOAD_FILTER.date.length === 1 ? SCAN_LOAD_FILTER.date[0] : '',
+      });
+      var seen = {}; var n = 0;
+      filtered.forEach(function (s) { var k = String(s.staffId || '').trim().toUpperCase(); if (!k || seen[k]) return; seen[k] = true; n++; });
+      return n;
+    }
+    return 0;
+  }
+  function updateScanLoadCount_() {
+    var num = document.getElementById('scanLoadCount');
+    var btn = document.getElementById('btnScanLoadSubmit');
+    var n = scanLoadPreview_();
+    if (num) num.textContent = String(n);
+    if (btn) { btn.disabled = !SCAN_LOAD_FILTER.station || n === 0; btn.textContent = n > 0 ? 'Nạp (' + n + ' NV)' : 'Nạp'; }
+  }
+  // Chip click trong panel nạp — ghi vào SCAN_LOAD_FILTER (delegate 1 lần).
+  var _scanLoadBound = false;
+  function initScanLoadEvents_() {
+    if (_scanLoadBound) return;
+    _scanLoadBound = true;
+    var pane = document.getElementById('scanLoadPane');
+    if (!pane) return;
+    pane.addEventListener('click', function (e) {
+      var chip = e.target && e.target.closest ? e.target.closest('.pick') : null;
+      if (!chip || !chip.getAttribute('data-col')) return;
+      var pressed = chip.getAttribute('aria-pressed') === 'true';
+      if (chip.closest('#scanLoadChipsStation')) {
+        if (chip.getAttribute('data-col') === 'roster-all') SCAN_LOAD_FILTER.station = '';
+        else SCAN_LOAD_FILTER.station = pressed ? '' : chip.getAttribute('data-val');
+      } else if (chip.closest('#scanLoadChipsSlot')) {
+        var arr = SCAN_LOAD_FILTER.slotCode;
+        if (chip.getAttribute('data-col') === 'roster-all') arr.length = 0;
+        else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr, chip.getAttribute('data-val'), !pressed, true);
+      } else if (chip.closest('#scanLoadChipsTeam')) {
+        var arr2 = SCAN_LOAD_FILTER.team;
+        if (chip.getAttribute('data-col') === 'roster-all') arr2.length = 0;
+        else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr2, chip.getAttribute('data-val'), !pressed, false);
+      }
+      renderScanLoadChips_();
+    });
+  }
+  function loadRosterIntoScan_() {
+    if (!CURRENT_TASK) return;
+    if (!SCAN_LOAD_FILTER.station) { showToast('Chọn Station', true); return; }
+    var btn = document.getElementById('btnScanLoadSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang nạp…'; }
+    google.script.run
+      .withSuccessHandler(function (r) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Nạp'; }
+        if (!r || !r.ok) { showToast((r && r.message) || 'Nạp thất bại', true); return; }
+        showToast(r.message, false);
+        hideScanLoadPane_();
+        loadTaskDetail(CURRENT_TASK.taskId);  // refresh log + counters + table
+      })
+      .withFailureHandler(function (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Nạp'; }
+        showToast('Lỗi: ' + (err && err.message ? err.message : 'kết nối'), true);
+      })
+      .appendRosterApi({ taskId: CURRENT_TASK.taskId, filter: SCAN_LOAD_FILTER });
   }
 </script>
