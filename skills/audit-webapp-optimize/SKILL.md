@@ -39,6 +39,7 @@ Checklist:
 - A11y: `th[scope]`, `aria-sort`, `role=listbox`+label, icon `aria-hidden`, `aria-live=polite`, `prefers-reduced-motion`, `:focus-visible`.
 - Animation: transform/opacity thay top/left, transition consistent.
 - Phân loại: P0 sai dữ liệu · P1 layout break / không dùng được · P2 cosmetic.
+- Đánh giá đề xuất UI (thêm dropdown, dời panel, đổi bố cục): vẽ ASCII wireframe các trạng thái (Đóng/Mở + Mobile) — xem ui-ux-audit §Wireframe.
 
 ## Phase 3 — Optimize
 

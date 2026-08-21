@@ -105,6 +105,14 @@ Marker: 🔴 P0 (blocker/sai data) · 🟠 P1 (break/khó dùng) · 🟡 P2 (cos
 - Dùng marker 🔴🟠🟡 ✅ ⚠️ ✓ thay chữ "lỗi/nghiêm trọng/đã xong".
 - Số liệu đi đầu (đếm trước, kể sau): 5 P2 chứ không "có vài issue nhỏ".
 - Mỗi finding có ile:line cụ thể — không "ở đâu đó trong scan".
+## Wireframe cho đánh giá đề xuất UI
+
+Không chỉ redesign: khi user nhờ đánh giá đổi thiết kế (thêm dropdown, dời panel, đổi bố cục…), vẽ ASCII wireframe các trạng thái **TRƯỚC khi chốt** để user hình dung:
+- ≥2 trạng thái (Đóng/Mở hoặc Trước/Sau) + Mobile (≤991px) nếu ảnh hưởng responsive.
+- Box-drawing `│─┌┐└┘▾▴` + label class/function **thật** (`.view-topbar`, `#scanLoadPane`, `canScanLoad_()`…) — khớp code.
+- Ghi rõ luật tương tác (mở/đóng, clear-selection khi đổi Station, disable) dưới khung.
+- Là minh họa kèm verdict, KHÔNG thay bảng findings P0/P1/P2.
+
 ## Redesign format (chuẩn riêng cho task thiết kế lại UI)
 
 Khi task là redesign giao diện (nút / modal / layout / card / component), dùng format này THAY VÌ bảng audit lỗi.

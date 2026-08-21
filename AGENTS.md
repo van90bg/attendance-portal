@@ -148,8 +148,12 @@ Marker: 🔴 P0 (blocker/sai data) · 🟠 P1 (break/khó dùng) · 🟡 P2 (cos
 Thay bằng:
 ⚠️ Cần duyệt — 0 P0 · 2 P1 + bảng 2 hàng (vị trí + đề xuất cụ thể).
 Quy tắc: không tường thuật, không "vài chỗ/có vẻ", mỗi claim có file:line.
-
-## 9. Đọc thêm
+**8. Wireframe khi đánh giá đề xuất UI** — khi user nhờ đánh giá đổi thiết kế (thêm/sửa nút, panel, dropdown, dời bố cục…), vẽ ASCII wireframe để user hình dung **TRƯỚC khi chốt**:
+- Vẽ ≥2 trạng thái: Đóng/Mở (hoặc Trước/Sau), và **Mobile (≤991px)** nếu ảnh hưởng responsive.
+- Dùng box-drawing `│─┌┐└┘▾▴` + label class/function **thật** (`.view-topbar`, `#scanLoadPane`, `canScanLoad_()`…) — khớp code, không vẽ chung chung.
+- Ghi rõ **luật tương tác** (mở/đóng, clear-selection khi đổi Station, disable điều kiện) ngay dưới khung.
+- KHÔNG thay thế bảng findings P0/P1/P2 — wireframe là minh họa kèm verdict (được user thích, dùng thường xuyên cho UI).
+**9. Đọc thêm**
 
 - `README.md` — tổng quan cập nhật.
 - `Spec — RollCall v2.md` — spec đầy đủ.
