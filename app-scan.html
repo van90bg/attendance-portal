@@ -790,6 +790,7 @@
     // P2 (2026-08-21): phase đổi → tự động ẩn panel nạp (ATTEND/DONE không nạp được)
     if (!canLoadRoster && typeof hideScanLoadPane_ === 'function') hideScanLoadPane_();
     if (canLoadRoster && typeof initScanLoadEvents_ === 'function') initScanLoadEvents_();
+    if (canLoadRoster && typeof initScanLoadDocEvents_ === 'function') initScanLoadDocEvents_();
     // Mode nút: rpc (đang chốt ca nền) > scanBusy (đang quét) > rảnh. Nút Chốt/Chuyển
     // không disabled (BUSY guard chống double); chỉ Hủy bị khóa lúc bận.
     var mode, rpcTitle;
@@ -1618,9 +1619,9 @@
       .updateLogRowStatusApi(CURRENT_TASK.taskId, FIX_STATUS_TARGET.staffId, sel.value);
   }
   /* ===== S1 (2026-08-21): nạp roster sau — task RỖNG (OPEN + log rỗng) ===== */
-  var SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [] };  // P2-2: chỉ 3 chiều panel nạp (Station/Ca/Team)
+  var SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], date: [] };  // 4 chiều panel nạp (Station/Ca/Team/Ngày)
   function resetScanLoadFilter_() {
-    SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [] };
+    SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], date: [] };
     // Station mặc định từ Config (nối tiếp pre-select modal create)
     if (typeof CFG_DEFAULTS !== 'undefined' && CFG_DEFAULTS && CFG_DEFAULTS.station) {
       var ds = String(CFG_DEFAULTS.station).trim();
@@ -1646,10 +1647,65 @@
     if (typeof resetScanLoadFilter_ === 'function') resetScanLoadFilter_();
     renderScanLoadChips_();
     pane.style.display = '';
+    positionScanLoadPopover_();
+    _setScanLoadOpen_(true);
+    if (typeof initScanLoadEvents_ === 'function') initScanLoadEvents_();
+  }
+  function toggleScanLoadPane_() {
+    var pane = document.getElementById('scanLoadPane');
+    if (!pane) return;
+    if (pane.style.display === 'none') showScanLoadPane_();
+    else hideScanLoadPane_();
   }
   function hideScanLoadPane_() {
     var pane = document.getElementById('scanLoadPane');
     if (pane) pane.style.display = 'none';
+    _setScanLoadOpen_(false);
+  }
+  // Popover: anchor dưới nút btnScanLoad, reposition theo viewport (không tràn phải/dưới).
+  function positionScanLoadPopover_() {
+    var pane = document.getElementById('scanLoadPane');
+    var btn = document.getElementById('btnScanLoad');
+    if (!pane || !btn) return;
+    var r = btn.getBoundingClientRect();
+    var vw = (window.visualViewport && window.visualViewport.width) ? window.visualViewport.width : (document.documentElement.clientWidth || window.innerWidth);
+    var vh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : (document.documentElement.clientHeight || window.innerHeight);
+    var pw = Math.min(400, vw - 16);
+    var left = Math.max(8, Math.min(r.left, vw - pw - 8));
+    var top = r.bottom + 8;
+    if (top + 380 > vh) top = Math.max(8, r.top - 380 - 8);  // tràn dưới → mở lên trên
+    pane.style.position = 'fixed';
+    pane.style.left = left + 'px';
+    pane.style.top = top + 'px';
+    pane.style.width = pw + 'px';
+    pane.style.maxHeight = Math.min(380, vh - top - 8) + 'px';
+    pane.style.overflowY = 'auto';
+  }
+  // Chevron ▲/▼ + aria-expanded trên nút
+  function _setScanLoadOpen_(open) {
+    var btn = document.getElementById('btnScanLoad');
+    var chev = btn ? btn.querySelector('.scan-load-chevron') : null;
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (chev) chev.textContent = open ? '▲' : '▼';
+  }
+  // Click-outside + Escape đóng popover (delegate 1 lần)
+  var _scanLoadDocBound = false;
+  function initScanLoadDocEvents_() {
+    if (_scanLoadDocBound) return;
+    _scanLoadDocBound = true;
+    document.addEventListener('click', function (e) {
+      var pane = document.getElementById('scanLoadPane');
+      if (!pane || pane.style.display === 'none') return;
+      if (pane.contains(e.target)) return;
+      if (e.target.closest && e.target.closest('#btnScanLoad')) return;
+      hideScanLoadPane_();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        var pane = document.getElementById('scanLoadPane');
+        if (pane && pane.style.display !== 'none') { hideScanLoadPane_(); }
+      }
+    });
   }
   function renderScanLoadChips_() {
     // P2 (2026-08-21): re-apply defaultStation mỗi khi render chips — _createOptsData có thể load sau
@@ -1669,6 +1725,10 @@
     var tm = document.getElementById('scanLoadChipsTeam');
     if (tm && typeof chipsHtml_ === 'function' && _createOptsData) {
       tm.innerHTML = chipsHtml_((_createOptsData.teams || []), SCAN_LOAD_FILTER.team);
+    }
+    var dt = document.getElementById('scanLoadChipsDate');
+    if (dt && typeof chipsHtml_ === 'function' && _createOptsData) {
+      dt.innerHTML = chipsHtml_((_createOptsData.dates || []), SCAN_LOAD_FILTER.date);
     }
     updateScanLoadCount_();
   }
@@ -1710,8 +1770,8 @@
         var changed = SCAN_LOAD_FILTER.station !== (chip.getAttribute('data-col') === 'roster-all' ? '' : chip.getAttribute('data-val'));
         if (chip.getAttribute('data-col') === 'roster-all') SCAN_LOAD_FILTER.station = '';
         else SCAN_LOAD_FILTER.station = pressed ? '' : chip.getAttribute('data-val');
-        // P1-2 (2026-08-21): đổi Station → xóa slotCode + team cũ (chips thuộc station mới, tránh filter lệch/preview 0)
-        if (changed) { SCAN_LOAD_FILTER.slotCode.length = 0; SCAN_LOAD_FILTER.team.length = 0; }
+        // P1-2 (2026-08-21): đổi Station → xóa slotCode + team + date cũ (chips thuộc station mới, tránh filter lệch/preview 0)
+        if (changed) { SCAN_LOAD_FILTER.slotCode.length = 0; SCAN_LOAD_FILTER.team.length = 0; SCAN_LOAD_FILTER.date.length = 0; }
       } else if (chip.closest('#scanLoadChipsSlot')) {
         var arr = SCAN_LOAD_FILTER.slotCode;
         if (chip.getAttribute('data-col') === 'roster-all') arr.length = 0;
@@ -1720,6 +1780,10 @@
         var arr2 = SCAN_LOAD_FILTER.team;
         if (chip.getAttribute('data-col') === 'roster-all') arr2.length = 0;
         else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr2, chip.getAttribute('data-val'), !pressed);
+      } else if (chip.closest('#scanLoadChipsDate')) {
+        var arr3 = SCAN_LOAD_FILTER.date;
+        if (chip.getAttribute('data-col') === 'roster-all') arr3.length = 0;
+        else if (typeof toggleRosterArr_ === 'function') toggleRosterArr_(arr3, chip.getAttribute('data-val'), !pressed);
       }
       renderScanLoadChips_();
     });

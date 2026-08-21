@@ -250,6 +250,30 @@
       flex: 1 1 auto;
       min-height: 0;
     }
+    /* S1 popover nạp roster — fixed overlay anchored dưới nút btnScanLoad (JS positionScanLoadPopover_).
+       Dùng token chung; nền đặc + border + shadow (pattern staff-filter-panel). */
+    .scan-load-popover {
+      position: fixed; z-index: 75;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: 0 6px 24px rgba(0,0,0,.16);
+      padding: var(--space-3) var(--space-4);
+      max-width: 400px;
+    }
+    .scan-load-popover .task-list-toolbar { margin-bottom: var(--space-2); }
+    .scan-load-popover .create-form { margin-top: 0; }
+    .scan-load-popover .create-footer { margin-top: var(--space-3); }
+    .scan-load-chevron { font-size: var(--text-xs); margin-left: var(--space-1); }
+    /* Mobile ≤991px: popover thành bottom-sheet full-width — không tràn, vuốt tự nhiên */
+    @media (max-width: 991px) {
+      .scan-load-popover {
+        left: 8px !important; right: 8px !important; width: auto !important;
+        top: auto !important; bottom: 0 !important;
+        max-width: none; max-height: 70vh;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        overflow-y: auto;
+      }
+    }
+
     .scan-col-right .card .table-wrap {
       flex: 1 1 auto;
       overflow: auto;
