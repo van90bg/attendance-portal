@@ -278,6 +278,18 @@
         submitScan();
       }
     });
+    // P2 (2026-08-21): touch (pointer:coarse) — bàn phím ảo bật che counters/phase-banner khi focus
+    // → scroll ô quét lên giữa viewport (block:'center') để user còn thấy scanCard + nút Quét.
+    if (MQ_COARSE && MQ_COARSE.matches) {
+      document.getElementById('scanInput').addEventListener('focus', function () {
+        setTimeout(function () {
+          var el = document.getElementById('scanInput');
+          if (el && document.getElementById('viewScan') && !document.getElementById('viewScan').classList.contains('hidden')) {
+            el.scrollIntoView({ block: 'center', behavior: 'auto' });
+          }
+        }, 250);  // delay cho keyboard mở + layout ổn định
+      });
+    }
     // F-search: Enter trên ô tìm (viewTasks) → chay tim; Escape → clear (xử lý trong onListSearchKeydown).
     var _ls = document.getElementById('listSearch');
     if (_ls) _ls.addEventListener('keydown', function (e) {

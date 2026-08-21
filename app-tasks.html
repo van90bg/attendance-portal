@@ -283,7 +283,47 @@
         body.appendChild(tr);
       }
       renderPaginator_('taskPagination', total, LIST_PAGE, 'goListPage', LIST_PAGE_SIZE);
+      renderTaskFilterChips_();
     }
+
+  // Mobile ≤700px: chips lọc nhanh thay funnel thead (thead sr-only khi card) —
+  // hiện giá trị đang lọc của Station/Team/Status + nút Xoá; bấm chip mở funnel panel tương ứng.
+  function renderTaskFilterChips_() {
+    var wrap = document.getElementById('taskFilterChips');
+    if (!wrap) return;
+    var isMobile = window.matchMedia && window.matchMedia('(max-width: 700px)').matches;
+    if (!isMobile || LIST_MODE === 'search') { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    var fields = [
+      { key: 'station', label: 'Station' },
+      { key: 'team', label: 'Team' },
+      { key: 'status', label: 'Trạng thái' }
+    ];
+    var parts = [];
+    var hasAny = false;
+    fields.forEach(function (f) {
+      var sel = TASK_FILTERS[f.key] || [];
+      if (sel.length) {
+        hasAny = true;
+        parts.push('<button type="button" class="pick on" data-field="' + f.key + '" onclick="toggleFunnel(\'' + f.key + '\', event, \'task\')" title="' + f.label + '">' +
+          esc(f.label) + ': ' + esc(sel.join(', ')) + '</button>');
+      }
+    });
+    if (!hasAny) {
+      parts.push('<span class="muted task-filter-hint">Lọc theo Station / Team / Trạng thái</span>');
+    } else {
+      parts.push('<button type="button" class="pick all" onclick="clearTaskFilters_()" title="Xoá toàn bộ bộ lọc">✕ Xoá lọc</button>');
+    }
+    wrap.style.display = 'flex';
+    wrap.innerHTML = parts.join('');
+  }
+  function clearTaskFilters_() {
+    Object.keys(TASK_FILTERS).forEach(function (k) { TASK_FILTERS[k] = []; });
+    LIST_PAGE = 1;
+    renderTaskList_(safeArr(LAST_TASK_LIST.tasks));
+    renderTaskFilterChips_();
+    var head = document.getElementById('taskListHead');
+    if (head && LIST_MODE !== 'search') head.innerHTML = taskHeadHtml_();
+  }
 
   /* F-search: === TÌM KIẾM MÃ OPS XUYÊN TASK === */
 

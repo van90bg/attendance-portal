@@ -177,6 +177,32 @@
     // U4 (review 2026-08-11): focus vào checkbox đầu — bàn phím không phải tab qua cả bảng
     var firstOpt = document.querySelector('#sfpBody input[type="checkbox"]');
     if (firstOpt) firstOpt.focus();
+    // P2 (2026-08-21): inert background + focus trap — panel mở thì bảng sau không nhận thao tác/swipe
+    _setFunnelTrap_(true);
+  }
+  function _setFunnelTrap_(on) {
+    var main = document.getElementById('main-content');
+    var panel = document.getElementById('staffFilterPanel');
+    if (main) { if (on) main.setAttribute('inert', ''); else main.removeAttribute('inert'); }
+    if (on && panel) {
+      _funnelTrapPrev = document.activeElement;
+      panel.addEventListener('keydown', _funnelTrapKey_);
+    } else if (panel) {
+      panel.removeEventListener('keydown', _funnelTrapKey_);
+      if (_funnelTrapPrev && _funnelTrapPrev.focus) _funnelTrapPrev.focus();
+      _funnelTrapPrev = null;
+    }
+  }
+  var _funnelTrapPrev = null;
+  function _funnelTrapKey_(e) {
+    if (e.key !== 'Tab') return;
+    var panel = document.getElementById('staffFilterPanel');
+    if (!panel) return;
+    var focusable = panel.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    var first = focusable[0], last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
   // Funnel hiển thị label theo app — field status lưu code wire/server (open/attend/done).
   var FUNNEL_LABEL = { status: TASK_PHASE_LABEL };
@@ -230,6 +256,7 @@
     var panel = document.getElementById('staffFilterPanel');
     if (panel) panel.style.display = 'none';
     _funnel.col = null; _funnel.ctx = null;
+    _setFunnelTrap_(false);
   }
   document.addEventListener('click', function (e) {
     var panel = document.getElementById('staffFilterPanel');

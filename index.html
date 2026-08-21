@@ -71,6 +71,8 @@
           <button class="btn-icon" id="btnListSearchClear" onclick="clearSearch()" title="Xoá tìm" aria-label="Xoá tìm" style="display:none">✕</button>
         </div>
       </div>
+      <!-- Mobile ≤700px: chips lọc nhanh thay funnel trong thead (thead sr-only khi card) — xem app-core renderTaskFilterChips_ -->
+      <div class="task-filter-chips" id="taskFilterChips" role="group" aria-label="Lọc task" style="display:none;"></div>
       <div class="table-wrap" id="taskListWrap">
         <div class="skeleton-wrap" id="taskSkeleton" style="display:none;">
           <div class="skeleton-row"><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div><div class="skeleton-cell"></div></div>
