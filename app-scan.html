@@ -27,6 +27,23 @@
     updateBgIndicator();
   }
 
+  // Task đã kết thúc (phase hoặc status DONE) — 1 nguồn tránh sót 1 trong 2 điều kiện.
+  function isTaskDone(task) {
+    return !!(task && (task.phase === TASK_STATUS_C.DONE || task.status === TASK_STATUS_C.DONE));
+  }
+
+  // Build meta task (Station · Ca · Team — Phase) dùng chung cho mọi chỗ re-render
+  // phase (renderScanView / chuyển Điểm danh / Chốt ca) — 1 nguồn, sửa label ở 1 chỗ.
+  function buildScanMetaHTML(task) {
+    var parts = [];
+    if (task.station) parts.push(esc(task.station));
+    if (task.slotCode && task.slotCode !== SLOT_FREE_MAGIC) parts.push(esc(task.slotCode));
+    if (task.team) parts.push(esc(task.team));
+    var phaseLabel = TASK_PHASE_LABEL[task.phase] || TASK_PHASE_LABEL.open;
+    var phaseHint = task.phase === TASK_STATUS_C.ATTEND ? ' (đang điểm danh)' : '';
+    return parts.join(' · ') + (parts.length ? ' — ' : '') + '<b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);
+  }
+
   // Render view scan từ data (dùng chung cho full-load và cache-reuse)
   function renderScanView(data) {
     var skel = document.getElementById('scanSkeleton');
@@ -50,14 +67,7 @@
     SCAN_PAGE = 1; // dữ liệu mới (task vừa mở) → về trang đầu
     document.getElementById('scanTaskTitle').textContent = data.task.taskId;
     var metaEl = document.getElementById('scanTaskMeta');
-    var phaseLabel = TASK_PHASE_LABEL[data.task.phase] || TASK_PHASE_LABEL.open;
-    var phaseHint = data.task.phase === TASK_STATUS_C.OPEN ? '' : (data.task.phase === TASK_STATUS_C.ATTEND ? ' (đang điểm danh)' : '');
-    // Hiển thị meta dạng hàng: Station | Ca | Team — Phase
-    var parts = [];
-    if (data.task.station) parts.push(esc(data.task.station));
-    if (data.task.slotCode && data.task.slotCode !== SLOT_FREE_MAGIC) parts.push(esc(data.task.slotCode));
-    if (data.task.team) parts.push(esc(data.task.team));
-    metaEl.innerHTML = parts.join(' · ') + (parts.length ? ' — ' : '') + '<b>' + esc(phaseLabel) + '</b>' + esc(phaseHint);
+    metaEl.innerHTML = buildScanMetaHTML(data.task);
     if (skel) skel.style.display = 'none';
     if (tbl) tbl.style.display = '';
     renderScanTable(safeArr(data.log));
@@ -71,7 +81,7 @@
         // Phải bấm "Bắt đầu điểm danh" (phase2) mới quét được (tránh ghi LISTED_AT mà sheet thiếu SCANNED_AT).
         // P1: canScan chỉ dựa trên phase — source of truth.
         // task DONE (status DONE hoặc phase DONE) => canScan = false. applyScanPermission() sẽ gộp owner-gate + queue-full.
-        var isDone = data.task.phase === TASK_STATUS_C.DONE || data.task.status === TASK_STATUS_C.DONE;
+        var isDone = isTaskDone(data.task);
         var canScan = !isDone;
         var scanInput = document.getElementById('scanInput');
         scanInput.disabled = !canScan;
@@ -176,7 +186,7 @@
       var scannedLbl = scannedCounter ? scannedCounter.querySelector('.lbl') : null;
       if (lbl && CURRENT_TASK) {
         // task DONE (status) => luôn 'Vắng', không để phase lỗi/stale giữ 'Chưa điểm danh'.
-        var isDone = CURRENT_TASK.status === TASK_STATUS_C.DONE || CURRENT_TASK.phase === TASK_STATUS_C.DONE;
+        var isDone = isTaskDone(CURRENT_TASK);
         if (isDone) {
           if (scannedLbl) scannedLbl.textContent = 'Đã điểm danh';
           document.getElementById('cScanned').textContent = c.scanned || 0;
@@ -407,7 +417,7 @@
     var badge = badgeFor(r.status, r);
     var staffRec = CLIENT_STAFF_INDEX[String(r.staffId || '').toUpperCase()] || null;
     // Fix thủ công 1 dòng — chỉ owner/admin và KHÔNG ở phase DONE (đã chốt không cho sửa).
-    var isDone = CURRENT_TASK && (CURRENT_TASK.phase === TASK_STATUS_C.DONE || CURRENT_TASK.status === TASK_STATUS_C.DONE);
+    var isDone = isTaskDone(CURRENT_TASK);
     var canFix = !isDone && CURRENT_TASK && CURRENT_TASK.permission && (CURRENT_TASK.permission.canMutate !== undefined ? CURRENT_TASK.permission.canMutate : (CURRENT_TASK.permission.isOwner || CURRENT_TASK.permission.isAdmin));
     return [
       '<td class="stt" data-label="STT">' + (idx + 1) + '</td>',
@@ -439,13 +449,22 @@
     }
   }
 
+  // Nhãn PENDING theo phase (dùng chung badge + scan card): phase Mở + đã LISTED_AT →
+  // 'Đã đến', còn lại 'Chưa đến' (Mở) / 'Chưa điểm danh' (Điểm danh). 1 nguồn tránh lệch.
+  function scanPendingLabel_(row) {
+    if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && row && Number(row.listedAtEpoch) > 0) {
+      return 'Đã đến';
+    }
+    return (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa đến' : 'Chưa điểm danh';
+  }
+
   function badgeFor(status, row) {
     if (status === STATUS_C.PENDING || !status) {
       // Phase 1 (Mở) + đã ghi LISTED_AT → 'Đã đến' (xanh) — khớp scanCard/counter.
-      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && row && Number(row.listedAtEpoch) > 0) {
-        return '<span class="badge present">Đã đến</span>';
-      }
-      return '<span class="badge pending">' + (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN ? 'Chưa đến' : 'Chưa điểm danh') + '</span>';
+      var pl = scanPendingLabel_(row);
+      return pl === 'Đã đến'
+        ? '<span class="badge present">' + pl + '</span>'
+        : '<span class="badge pending">' + pl + '</span>';
     }
     if (status === STATUS_C.PRESENT) return '<span class="badge present">Có mặt</span>';
     if (status === STATUS_C.ABSENT) return '<span class="badge absent">Vắng</span>';
@@ -511,20 +530,27 @@
       && (a.presentAt || 0) === (b.presentAt || 0);
   }
 
-  function recountFromLog() {
-    var s = 0, e = 0, a = 0, p = 0;
-    (CURRENT_LOG || []).forEach(function (r) {
-      // P2: epoch là nguồn sự thật duy nhất (khớp server computeCounters)
-      var hasScan = Number(r.scannedAtEpoch) > 0;
-      var hasRef = Number(r.listedAtEpoch) > 0;
-      if (hasScan) s++;
-      if (hasRef) p++;
-      if (r.status === STATUS_C.EXTRA) e++;
-      else if (!hasScan) a++;
+  // Client copy của ScanLogic.computeCounters — client chạy trình duyệt, KHÔNG share
+  // scope với .gs server nên cần bản riêng (giống STATUS_C). 1 nguồn đếm counters,
+  // epoch là nguồn sự thật duy nhất — khớp server, hết drift với recount cũ.
+  function computeCounters(logRows) {
+    var scanned = 0, presentAt = 0, absent = 0, extra = 0;
+    var total = logRows ? logRows.length : 0;
+    (logRows || []).forEach(function (row) {
+      var hasScan = Number(row.scannedAtEpoch) > 0;
+      var hasRef = Number(row.listedAtEpoch) > 0;
+      if (hasScan) scanned++;
+      if (hasRef) presentAt++;
+      if (row.status === STATUS_C.EXTRA) extra++;
+      else if (!hasScan) absent++;
     });
+    return { scanned: scanned, presentAt: presentAt, absent: absent, extra: extra, total: total };
+  }
+
+  function recountFromLog() {
     // D2 (review 2026-08-11): presentAt đủ shape như server computeCounters —
     // trước thiếu → 'Chưa điểm danh' counter = 0 trong phase OPEN đến khi server trả res.counters.
-    CURRENT_COUNTERS = { scanned: s, absent: a, extra: e, presentAt: p, total: (CURRENT_LOG || []).length };
+    CURRENT_COUNTERS = computeCounters(CURRENT_LOG);
     renderCounters(CURRENT_COUNTERS);
   }
 
@@ -535,7 +561,7 @@
     if (input && input.disabled) {
       var lockMsg = scanOwnerLocked
         ? 'Chỉ owner mới quét được ở phase Mở (task này)'
-        : (CURRENT_TASK.phase === TASK_STATUS_C.DONE ? 'Task đã kết thúc' : 'Task đã kết thúc');
+        : 'Task đã kết thúc';
       notifyExternalScanner({ code: (input.value || '').trim(), ok: false, message: lockMsg });
       showToast(lockMsg, true);
       playBeep('error');
@@ -711,13 +737,13 @@
     var btnCancel = document.getElementById('btnCancel');
     if (!btn) return;
     var phase = CURRENT_TASK ? CURRENT_TASK.phase : TASK_STATUS_C.OPEN;
-    var done = phase === TASK_STATUS_C.DONE;
+    var done = isTaskDone(CURRENT_TASK);
     // Nút "Kết thúc" chỉ hiện ở phase2 (Điểm danh).
     // T-1: ẩn "Bắt đầu điểm danh" khi non-owner đang bị khoá phase OPEN (scanOwnerLocked).
     if (btnTo) btnTo.style.display = (phase === TASK_STATUS_C.OPEN && !scanOwnerLocked) ? '' : 'none';
     if (btnRe) btnRe.style.display = done ? '' : 'none';
     if (btn) btn.style.display = (phase === TASK_STATUS_C.ATTEND) ? '' : 'none';
-    // "Hủy" chỉ ở phase Mở + log rỗng + owner — xóa hẳn task tạo nhầm/bỏ dở.
+    // "Hủy" chỉ ở phase Mở + log rỗng + có quyền mutate + không bị owner-lock.
     if (btnCancel) {
       var perm = CURRENT_TASK && CURRENT_TASK.permission;
       var canMutate = perm && (perm.canMutate !== undefined ? perm.canMutate : (perm.isOwner || perm.isAdmin));
@@ -726,22 +752,22 @@
         && (!CURRENT_LOG || !CURRENT_LOG.length);
       btnCancel.style.display = canCancel ? '' : 'none';
     }
-    // Đang chốt ca nền — không block UI, chỉ hiện trạng thái + BG indicator. Nút Chốt vẫn bấm được (BUSY guard chống double), không disabled.
-    if (BG_TASKS.rpc) {
-      if (btn) { btn.disabled = false; btn.title = 'Đang chốt ca… (nền)'; }
-      if (btnTo) { btnTo.disabled = false; btnTo.title = 'Đang chốt ca…'; }
-      if (btnCancel) { btnCancel.disabled = true; btnCancel.title = 'Đang chốt ca…'; }
-      updateQueueFullState();
-      return;
-    }
-    if (scanBusy()) {
-      if (btn) { btn.disabled = false; btn.title = 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chốt (nền)'; }
-      if (btnTo) { btnTo.disabled = false; btnTo.title = 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chuyển'; }
-      if (btnCancel) { btnCancel.disabled = true; btnCancel.title = 'Đang xử lý quét — chờ xong rồi hủy'; }
-    } else {
-      if (btn) { btn.disabled = false; btn.title = ''; }
-      if (btnTo) { btnTo.disabled = false; btnTo.title = ''; }
-      if (btnCancel) { btnCancel.disabled = false; btnCancel.title = ''; }
+    // Mode nút: rpc (đang chốt ca nền) > scanBusy (đang quét) > rảnh. Nút Chốt/Chuyển
+    // không disabled (BUSY guard chống double); chỉ Hủy bị khóa lúc bận.
+    var mode, rpcTitle;
+    if (BG_TASKS.rpc) { mode = 'rpc'; rpcTitle = 'Đang chốt ca…'; }
+    else if (scanBusy()) { mode = 'scan'; }
+    else { mode = 'idle'; }
+    var apply = function (b, rpcTip, scanTip) {
+      if (!b) return;
+      b.disabled = false;
+      b.title = mode === 'rpc' ? (rpcTip || rpcTitle) : (mode === 'scan' ? (scanTip || '') : '');
+    };
+    apply(btn, 'Đang chốt ca… (nền)', 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chốt (nền)');
+    apply(btnTo, 'Đang chốt ca…', 'Còn quét đang xử lý — bấm sẽ tự chờ xong rồi chuyển');
+    if (btnCancel) {
+      if (mode === 'idle') { btnCancel.disabled = false; btnCancel.title = ''; }
+      else { btnCancel.disabled = true; btnCancel.title = mode === 'rpc' ? 'Đang chốt ca…' : 'Đang xử lý quét — chờ xong rồi hủy'; }
     }
     updateQueueFullState();
   }
@@ -1015,14 +1041,7 @@
             CURRENT_TASK.status = TASK_STATUS_C.ATTEND;
             _scanSortDirty = true; // F4: phase đổi (OPEN→ATTEND) → default sort col đổi 7→8
             var metaEl = document.getElementById('scanTaskMeta');
-            if (metaEl) {
-              var phaseHint = ' (đang điểm danh)';
-              var parts2 = [];
-              if (CURRENT_TASK.station) parts2.push(esc(CURRENT_TASK.station));
-              if (CURRENT_TASK.slotCode && CURRENT_TASK.slotCode !== SLOT_FREE_MAGIC) parts2.push(esc(CURRENT_TASK.slotCode));
-              if (CURRENT_TASK.team) parts2.push(esc(CURRENT_TASK.team));
-              metaEl.innerHTML = parts2.join(' · ') + (parts2.length ? ' — ' : '') + '<b>' + esc(TASK_PHASE_LABEL[TASK_STATUS_C.ATTEND]) + '</b>' + esc(phaseHint);
-            }
+            if (metaEl) metaEl.innerHTML = buildScanMetaHTML(CURRENT_TASK);
             // Mở input để bắt đầu quét (phase2) — trước đó bị khóa ở phase1.
             var scanInput = document.getElementById('scanInput');
             scanInput.disabled = false;
@@ -1115,13 +1134,7 @@
                   applyScanPermission();
                   updateFinishBtnState();
                   var _metaEl = document.getElementById('scanTaskMeta');
-                  if (_metaEl) {
-                    var _parts = [];
-                    if (CURRENT_TASK.station) _parts.push(esc(CURRENT_TASK.station));
-                    if (CURRENT_TASK.slotCode && CURRENT_TASK.slotCode !== SLOT_FREE_MAGIC) _parts.push(esc(CURRENT_TASK.slotCode));
-                    if (CURRENT_TASK.team) _parts.push(esc(CURRENT_TASK.team));
-                    _metaEl.innerHTML = _parts.join(' \u00b7 ') + (_parts.length ? ' \u2014 ' : '') + '<b>' + esc(TASK_PHASE_LABEL[TASK_STATUS_C.DONE]) + '</b>';
-                  }
+                  if (_metaEl) _metaEl.innerHTML = buildScanMetaHTML(CURRENT_TASK);
                   var _inp = document.getElementById('scanInput');
                   if (_inp) { _inp.disabled = true; _inp.placeholder = 'Task \u0111\u00e3 k\u1ebft th\u00fac \u2014 kh\u00f4ng th\u1ec3 qu\u00e9t'; _inp.title = ''; }
                   loadTaskDetail(finishTaskId, true);
@@ -1185,10 +1198,7 @@
       // Phase 1 (Mở) + đã ghi LISTED_AT → 'Đã đến' — quét phase1 = ghi nhận đã đến,
       // 'Chưa điểm danh' ngay sau quét gây hiểu lầm. Chưa quét gì /
       // phase 2 chưa quét lần 2 → vẫn 'Chưa điểm danh'.
-      if (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN && target && Number(target.listedAtEpoch) > 0) {
-        return 'Đã đến';
-      }
-      return (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.OPEN) ? 'Chưa đến' : 'Chưa điểm danh';
+      return scanPendingLabel_(target);
     }
     if (status === STATUS_C.EXTRA) return 'Dư — không có trong danh sách';
     return status;
@@ -1488,7 +1498,7 @@
   // ===== Sửa trạng thái 1 dòng log (fix thủ công — owner/admin, có audit server) =====
   var FIX_STATUS_TARGET = null; // { staffId, status }
   function openFixStatusModal(staffId) {
-    if (!CURRENT_TASK || CURRENT_TASK.phase === TASK_STATUS_C.DONE || CURRENT_TASK.status === TASK_STATUS_C.DONE) return;
+    if (!CURRENT_TASK || isTaskDone(CURRENT_TASK)) return;
     if (!CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
     var m = document.getElementById('fixStatusModal');
     if (!m) return;
