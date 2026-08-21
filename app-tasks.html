@@ -484,29 +484,13 @@
        .withSuccessHandler(function (res) {
          BUSY = false;
          if (btn) { restoreBtnLabel_(btn, '+ Task mới'); btn.disabled = false; }
-          if (typeof hideModalSpin === 'function') hideModalSpin(); // hide spinner
          if (res.ok) {
           invalidateClientCaches_();
           showToast(res.message, false);
-          var input_ = input || {};
-          res.team = input_.team || '';
-          res.slotCode = input_.slotCode || '';
-          if (!showTaskCreatedInModal(res)) {
-            closeCreateModal();
-            openScan(res.taskId);
-          } else {
-            loadTaskList();
-            // #5: roster tạo xong đã hiện "Đã tạo task" — tự động chuyển sang Điểm danh sau 600ms nếu user không bấm
-            // (tiết kiệm 1 click cho flow phổ biến: tạo theo ca -> điểm danh ngay)
-            setTimeout(function () {
-              var m = document.getElementById('createModal');
-              if (m && m.classList.contains('open') && _taskCreatedTaskId === res.taskId) {
-                var btn = document.getElementById('btnTaskCreatedAttend');
-                if (btn && !btn.disabled) btn.click();
-              }
-            }, 900);
-          }
+          closeCreateModal();
+          openScan(res.taskId);
          } else {
+           if (typeof hideModalSpin === 'function') hideModalSpin();
            showToast(res.message, true);
            var eb = document.getElementById('btnCreateEmpty'); if (eb) { eb.disabled = false; eb.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
            var sb = document.getElementById('btnCreateSubmit'); if (sb) { sb.disabled = false; sb.textContent = 'Tạo'; }
@@ -516,7 +500,7 @@
       .withFailureHandler(function (err) {
         markServerFail();
         BUSY = false;
-        if (typeof hideModalSpin === 'function') hideModalSpin(); // hide spinner
+        if (typeof hideModalSpin === 'function') hideModalSpin();
          var eb2 = document.getElementById('btnCreateEmpty'); if (eb2) { eb2.disabled = false; eb2.textContent = 'Hoặc tạo task rỗng (quét tự do)'; }
          var sb2 = document.getElementById('btnCreateSubmit'); if (sb2) { sb2.disabled = false; sb2.textContent = 'Tạo'; }
          var pb2 = document.getElementById('btnCreatePasteSubmit'); if (pb2) { pb2.disabled = false; pb2.textContent = 'Tạo'; }

@@ -24,7 +24,7 @@
 
 Hệ thống giúp quản lý viên kho thực hiện toàn bộ quy trình điểm danh trong ngày:
 
-1. **Tạo task** (luôn mở phase 1) — **+ Task mới** mở modal 2 tab: **Theo ca** (chọn Station/Ca/Hình thức/Phòng ban/Team/Ngày → pre-fill roster NGAY) / **Dán mã** (dán mã NV) / để trống (task rỗng — quét tự do).
+1. **Tạo task** — **+ Task mới** mở modal 2 tab: **Theo ca** (chọn Station/Ca/Hình thức/Phòng ban/Team/Ngày → pre-fill roster NGAY) / **Dán mã** (dán mã NV) / để trống (task rỗng — quét tự do). Task rỗng tạo ở phase Mở; task có roster (Theo ca/Dán mã) tạo thẳng phase Điểm danh (`autoAttend`) — 1 spinner liên tục từ Tạo → mở màn quét, không còn modal "Đã tạo task" + chuyển dụng 900ms.
 2. **Quét LISTED_AT** (pha Mở) — ghi nhận nhân viên vào ca.
 3. **Bắt đầu điểm danh** (pha Điểm danh) — quét lần 2 ghi SCANNED_AT.
 4. **Chốt ca** (chỉ owner/admin của task) — nhân viên chưa điểm danh sẽ tính là Vắng; có thể Mở lại để quét bổ sung.
@@ -56,7 +56,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 
 ## Tính năng
 
-- **Tạo task + nạp danh sách 1 lần (A3)** — nút **+ Task mới** mở modal 2 tab: **Theo ca** (chọn Station/Ca/Hình thức/Phòng ban/Team/Ngày → **pre-fill roster NGAY lúc tạo**) / **Dán mã** (dán mã NV, mã lạ bỏ qua) / để trống (task rỗng — quét tự do, danh sách xây bằng quét ở phase 1).
+- **Tạo task + nạp danh sách 1 lần (A3)** — nút **+ Task mới** mở modal 2 tab: **Theo ca** (chọn Station/Ca/Hình thức/Phòng ban/Team/Ngày → **pre-fill roster NGAY lúc tạo**) / **Dán mã** (dán mã NV, mã lạ bỏ qua) / để trống (task rỗng — quét tự do, danh sách xây bằng quét ở phase 1). Task rỗng tạo ở Mở; có roster (Theo ca/Dán mã) `autoAttend:true` → thẳng Điểm danh, 1 spinner liên tục.
 - **Quy trình 2 pha** — pha **Mở** ghi LISTED_AT (**phase 1 KHÔNG có Dư**), pha **Điểm danh** ghi SCANNED_AT:
   - Task tạo kèm roster → log pre-fill PENDING (LISTED_AT = createdAt — danh sách đã sẵn; phase 1 quét thật chỉ cho task rỗng / NV ngoài roster); task tạo rỗng → quét xây danh sách ở phase 1; bấm **Bắt đầu điểm danh** → quét lần 2; NV lạ phase 2 → Dư.
     - Pre-fill roster khi tạo task (tab **Theo ca** trong modal tạo task): append PENDING — LISTED_AT = createdAt (danh sách đã sẵn — phase 1 quét thật chỉ cho task rỗng); quét phase 2 = Có mặt / Dư.
@@ -83,7 +83,7 @@ Sidebar trái thu gọn được (240px ↔ 48px), gồm 8 trang:
 | viewAdmin (Quản trị) | | | | ✅ |
 - **Sidebar 8 mục** — thu gọn icon `☰` (48px), mặc định mở; mục Cấu hình (chỉ editor) ẩn theo `meta.isEditor`.
 - **Dán danh sách mã** — dán mã NV ngay lúc tạo task (tab Dán mã): dedupe, clamp 200, mã lạ bỏ qua (skippedCodes).
-- **Tạo task kèm roster (A3)** — thay nút 'Nạp danh sách' màn quét: lọc StaffData theo Station/Ca/Team/**Hình thức**/**Phòng ban**/Ngày ngay trong modal tạo task, append PENDING — LISTED_AT = createdAt (danh sách đã sẵn — phase 1 quét thật chỉ cho task rỗng).
+- **Tạo task kèm roster (A3)** — lọc StaffData theo Station/Ca/Team/**Hình thức**/**Phòng ban**/Ngày ngay trong modal tạo task, append PENDING — LISTED_AT = createdAt; task có roster `autoAttend` → ATTEND ngay — 1 spinner từ Tạo → mở quét (không còn '"'Đã tạo task"' + 900ms).
 - **Thời gian quét WYSIWYG** — app gửi epoch chụp lúc quét (`scanStaffApi(..., clientEpoch)`): sheet ghi đúng giờ hiển thị trên app, server không đè giờ riêng → hết nhảy giờ sau ~1s khi đồng hồ thiết bị lệch / queue xử lý chậm.
 - **Cột Ngày bảng quét** — hiện ngay khi quét (optimistic từ staffIndex + response `dateText`), không chờ reload; `getFilterOptionsApi` cache 60s → modal tạo task mở nhanh.
 - **Chốt ca** → NV chưa quét gán **Vắng** (modal confirm); **Mở lại** → về Điểm danh.

@@ -30,7 +30,7 @@ function makeTaskId_(now) {
  *  - Dán mã: input.codes (mảng mã NV) → tra staffIndex → pre-fill NV có trong dữ liệu;
  *    mã không tìm thấy bỏ qua (mã trùng trong cùng lần dán tính 1, đếm skippedCodes).
  *  - Task rỗng: không station + không codes → log rỗng, quét tự do (FREE).
- * @param {{station: string, slotCode: string|string[], team: string|string[], contractType: string|string[], department: string|string[], date: string, codes: string[], createdBy: string}} input
+ * @param {{station: string, slotCode: string|string[], team: string|string[], contractType: string|string[], department: string|string[], date: string, codes: string[], createdBy: string, autoAttend: boolean}} input
  * @returns {{ok: boolean, taskId: string|null, count: number, skippedCodes: number, message: string}}
  */
 function createReconcileTask(input) {
@@ -70,6 +70,8 @@ function createReconcileTask(input) {
 
   // Task rỗng: không station + không codes → log rỗng, quét tự do.
   const noList = !station && codes.length === 0;
+  // autoAttend: client yêu cầu tạo thẳng phase Điểm danh (bỏ 1 RPC transitionToAttend + spinner)
+  const autoAttend = !!(input && input.autoAttend);
 
   const lock = LockService.getScriptLock();
   lock.waitLock(30000); // 30s — pre-fill dựng StaffData filter lâu, 10s dễ timeout khi lock bận
@@ -122,9 +124,8 @@ function createReconcileTask(input) {
       slotCode: (noList || !station) ? SLOT_FREE_MAGIC : slotCode,
       team: team,
       contractType: contractType,
-      // KHÔNG còn task sinh ở ATTEND — mọi task mới mở phase 1; bấm
-      // "Bắt đầu điểm danh" sang phase 2 (NV ngoài danh sách quét phase 2 = Dư).
-      status: TASK_STATUS.OPEN,
+      // Mặc định OPEN; khi autoAttend && có roster → tạo thẳng ATTEND (1 RPC, 1 spinner)
+      status: (autoAttend && !noList) ? TASK_STATUS.ATTEND : TASK_STATUS.OPEN,
       createdAt: now,
       createdBy: createdBy,
       completedAt: null,
@@ -135,7 +136,7 @@ function createReconcileTask(input) {
     // Tình huống 1 (noList): log rỗng, quét phase 1 mới ghi listedAt.
     const count = noList ? 0 : batchInsertLogRows_(taskId, deduped, now);
     insertTask_(task);
-    audit_('createTask', taskId, { count: count, skippedCodes: skippedCodes });
+    audit_('createTask', taskId, { count: count, skippedCodes: skippedCodes, autoAttend: autoAttend });
     let message = 'Tạo task' + (noList ? ' quét tự do' : '') + ' thành công: ' + taskId;
     if (!noList && count > 0) {
       message = 'Đã tạo task + nạp ' + count + ' NV — ' + taskId

@@ -280,11 +280,8 @@
    function submitCreateTask() {
      var submitBtn = document.getElementById('btnCreateSubmit');
      if (submitBtn && submitBtn.disabled) return;
-     // FEEDBACK: disable nút Tạo trong modal + text "Đang tạo…" — tránh click nhiều lần.
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
       showModalSpin('Đang tạo…');
-      // KHÔNG closeCreateModal() ở đây — createTaskWithMeta_ giữ modal mở
-    // nếu có roster (hiện 'Đã tạo task'), chỉ đóng khi noList.
     createTaskWithMeta_({
       station: CREATE_FILTER.station,
       slotCode: CREATE_FILTER.slotCode,
@@ -292,6 +289,7 @@
       contractType: CREATE_FILTER.contractType,
       department: CREATE_FILTER.department,
       date: CREATE_FILTER.date,
+      autoAttend: true,
     });
   }
   // ===== Dán mã (tab 2) — mã NV dán trực tiếp, pre-fill roster lúc tạo task =====
@@ -326,17 +324,15 @@
      if (!ta || (submitBtn && submitBtn.disabled)) return;
      var lines = ta.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l !== ''; });
      if (lines.length > 200) { lines = lines.slice(0, 200); showToast('Đã giới hạn 200 dòng đầu', true); }
-     // Dedup client-side — mã trùng cùng lần dán chỉ gửi 1 (server chặn qua skippedCodes).
      var seen = {}, uniq = [];
      lines.forEach(function (l) {
        var k = l.toLowerCase();
        if (seen[k]) return;
        seen[k] = 1; uniq.push(l);
      });
-     // KHÔNG closeCreateModal() — createTaskWithMeta_ giữ modal mở nếu có roster.
      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang tạo…'; }
      showModalSpin('Đang tạo…');
-     createTaskWithMeta_({ codes: uniq });
+     createTaskWithMeta_({ codes: uniq, autoAttend: true });
    }
   // Chips Station — KHÔNG có "Tất cả" (Station là bắt buộc cho tab Theo ca).
   function chipsHtmlStation_(opts, selected) {
