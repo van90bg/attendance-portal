@@ -1656,13 +1656,32 @@
     var canMutate = perm && (perm.canMutate !== undefined ? perm.canMutate : (perm.isOwner || perm.isAdmin));
     return !!canMutate;
   }
-  // Reset filter: Station mặc định từ Config (nếu tồn tại trong options)
+  // Lấy Date mới nhất (max yyyy-MM-dd) cho station — ngày hiện tại làm việc, không điểm danh ngày cũ.
+  // Ưu tiên dates của station đó (stationGroups), fallback global _createOptsData.dates.
+  function getLatestDateForStation_(station) {
+    var st = String(station || '').trim();
+    var cands = [];
+    if (st && _createOptsData && _createOptsData.stationGroups) {
+      for (var i=0;i<_createOptsData.stationGroups.length;i++) {
+        var g=_createOptsData.stationGroups[i];
+        if (String(g.station||'').trim()===st) { cands=(g.dates||[]).slice(); break; }
+      }
+    }
+    if (!cands.length && _createOptsData && _createOptsData.dates) cands=_createOptsData.dates.slice();
+    if (!cands.length) return '';
+    cands.sort();
+    return String(cands[cands.length-1]||'').trim();
+  }
+  // Reset filter: Station mặc định từ Config (nếu tồn tại trong options), Date mặc định = mới nhất
   function resetScanLoadFilter_() {
     SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], contractType: [], date: [] };
     if (typeof CFG_DEFAULTS !== 'undefined' && CFG_DEFAULTS && CFG_DEFAULTS.station
         && typeof createStationOptions_ === 'function' && createStationOptions_().indexOf(String(CFG_DEFAULTS.station).trim()) !== -1) {
       SCAN_LOAD_FILTER.station = String(CFG_DEFAULTS.station).trim();
     }
+    // Date mặc định = ngày hiện tại (mới nhất) — hiển thị trên nút Date để user biết
+    var latest = getLatestDateForStation_(SCAN_LOAD_FILTER.station);
+    if (latest) SCAN_LOAD_FILTER.date = [latest];
   }
   // Hiện/ẩn hàng NẠP (thay banner khi task rỗng)
   function updateScanLoadRow_() {
@@ -1790,7 +1809,11 @@
     if (stSel) stSel.addEventListener('change', function () {
       var changed = SCAN_LOAD_FILTER.station !== stSel.value;
       SCAN_LOAD_FILTER.station = stSel.value;
-      if (changed) { SCAN_LOAD_FILTER.slotCode.length = 0; SCAN_LOAD_FILTER.team.length = 0; SCAN_LOAD_FILTER.contractType.length = 0; SCAN_LOAD_FILTER.date.length = 0; }
+      if (changed) {
+        SCAN_LOAD_FILTER.slotCode.length = 0; SCAN_LOAD_FILTER.team.length = 0; SCAN_LOAD_FILTER.contractType.length = 0; SCAN_LOAD_FILTER.date.length = 0;
+        var latest2 = getLatestDateForStation_(SCAN_LOAD_FILTER.station);
+        if (latest2) SCAN_LOAD_FILTER.date.push(latest2);
+      }
       renderScanLoadRow_();
     });
     // Nút mở dropdown Team/Slot/Date
