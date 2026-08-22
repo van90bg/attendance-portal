@@ -49,6 +49,15 @@
       staffList: safeArr(res.staffList),
       defaults: res.defaults || {},   // defaultStation/SlotCode/Team từ Config — pre-select Station cho S1 panel
     };
+    // S1 (2026-08-22): data NV về SAU khi hàng NẠP render rỗng → re-render để kịp đếm NV.
+    // Chỉ re-render khi hàng đang hiện VÀ station chưa có option (rỗng vì data chưa về)
+    // — không reset filter giữa chừng nếu user đã chọn xong.
+    var stSel = document.getElementById('scanLoadSelectStation');
+    var rowEl = document.getElementById('scanLoadRow');
+    if (stSel && rowEl && rowEl.style.display !== 'none'
+        && (!stSel.options || stSel.options.length <= 1) && typeof updateScanLoadRow_ === 'function') {
+      updateScanLoadRow_();
+    }
   }  // KHỚP CsvUtil.gs filterStaffByGroup — port client cho preview số NV (server là nguồn quyết định cuối).
   // S1 scan panel dùng _createOptsData.staffList + renderScanLoadChips_() riêng (app-scan.html). — port client cho preview số NV (server là nguồn quyết định cuối).
   function toFilterArray_(val) {
