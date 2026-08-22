@@ -1678,8 +1678,7 @@
     pane.style.left = left + 'px';
     pane.style.top = top + 'px';
     pane.style.width = pw + 'px';
-    pane.style.maxHeight = Math.min(380, vh - top - 8) + 'px';
-    pane.style.overflowY = 'auto';
+    pane.style.maxHeight = Math.min(380, vh - top - 8) + 'px';  // form cuộn trong (flex .create-form), header/footer cố định
   }
   // Chevron ▲/▼ + aria-expanded trên nút
   function _setScanLoadOpen_(open) {

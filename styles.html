@@ -259,9 +259,10 @@
       padding: var(--space-3) var(--space-4);
       max-width: 400px;
     }
-    .scan-load-popover .task-list-toolbar { margin-bottom: var(--space-2); }
-    .scan-load-popover .create-form { margin-top: 0; }
-    .scan-load-popover .create-footer { margin-top: var(--space-3); }
+    .scan-load-popover { display: flex; flex-direction: column; }
+    .scan-load-popover .task-list-toolbar { flex-shrink: 0; margin-bottom: var(--space-2); }
+    .scan-load-popover .create-form { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-top: 0; padding-right: var(--space-1); }
+    .scan-load-popover .create-footer { flex-shrink: 0; margin-top: var(--space-3); }
     .scan-load-chevron { font-size: var(--text-xs); margin-left: var(--space-1); }
     /* Mobile ≤991px: popover thành bottom-sheet full-width — không tràn, vuốt tự nhiên */
     @media (max-width: 991px) {
@@ -270,7 +271,6 @@
         top: auto !important; bottom: 0 !important;
         max-width: none; max-height: 70vh;
         border-radius: var(--radius-md) var(--radius-md) 0 0;
-        overflow-y: auto;
       }
     }
 
