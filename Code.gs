@@ -56,7 +56,7 @@ function getMetaApi() {
     userEmail: getActiveEmail_(),
     // #10: role cho client placeholder/gate. Fallback ROLES.DEFAULT nếu getRole_ ném
     // (Config sheet lỗi) — KHÔNG để boot RPC getMetaApi sập → markServerFail mỗi lần mở app.
-    role: (function () { try { return getRole_(getActiveEmail_()); } catch (e) { return ROLES.DEFAULT; } })(),
+    role: (function () { try { return getRole_(getActiveEmail_()); } catch (e) { return ROLES.VIEWER; } })(),  // P2 (audit 2026-08-22): fallback fail-CLOSED — Config sheet lỗi thì hạ quyền, không nâng
     isEditor: isEditor_(),  // client ẩn/hiện trang Cấu hình (viewConfig)
   };
 }
@@ -207,9 +207,15 @@ function getTaskDetailApi(taskId) {
   }
 }
 
-/** Quét NV. Mở cho operator — KHÔNG cần editor (luồng vận hành hàng ngày). */
+/** Quét NV. Mở cho operator — KHÔNG cần editor (luồng vận hành hàng ngày).
+ * DEFENSE: wrapper bọc try/catch — scanStaff đã gate + try nội bộ, nhưng bất kỳ
+ * lỗi nào rò ra (vd requireRole_ sheet chưa cấu hình) vẫn trả ok:false (không ném client). */
 function scanStaffApi(taskId, staffId, clientEpoch) {
-  return scanStaff(taskId, staffId, clientEpoch);
+  try {
+    return scanStaff(taskId, staffId, clientEpoch);
+  } catch (e) {
+    return { ok: false, message: e && e.message ? e.message : 'scanStaff fail', status: null, counters: { scanned: 0, absent: 0, extra: 0, total: 0 } };
+  }
 }
 
 /** Kết thúc task. Gate requireRole_('operator') — mọi user hiện tại là operator+ (DEFAULT)

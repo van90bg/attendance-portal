@@ -215,7 +215,8 @@
     var html = opts.map(function (v) {
       var checked = sel.indexOf(v) !== -1;
       var zero = !counts[v] ? ' zero' : '';
-      return '<label class="sfp-opt' + zero + '"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + ' onchange="onFunnelCheck(\'' + field + '\', this, \'' + ctx.key + '\')">' +
+      // P2 (audit 2026-08-22): option count=0 disabled — SR + user biết chọn ra bảng trống
+      return '<label class="sfp-opt' + zero + '"><input type="checkbox" data-val="' + escAttr(v) + '"' + (checked ? ' checked' : '') + (zero ? ' disabled' : '') + ' onchange="onFunnelCheck(\'' + field + '\', this, \'' + ctx.key + '\')">' +
         '<span class="sfp-label">' + esc((lblMap && lblMap[v]) || v) + '</span>' +
         '<span class="sfp-count">' + (counts[v] || 0) + '</span></label>';
     }).join('') || '<div class="sfp-empty">(không có giá trị)</div>';

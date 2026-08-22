@@ -878,6 +878,9 @@
         // thực tế bị chặn bởi scanBusy(), guard này là defense cho đường thoát tương lai:
         // browser back, tab mới). Scan đã ghi server-side — chỉ drain queue, không đụng UI.
         if (!CURRENT_TASK || CURRENT_TASK.taskId !== item.taskId) {
+          // P2 (audit 2026-08-22): reset BG indicator — response task cũ không đụng UI
+          BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
+          updateBgIndicator();
           processScanQueue();
           return;
         }
@@ -946,6 +949,9 @@
         markServerFail();
         SCAN_PROCESSING = false;
         if (!CURRENT_TASK || CURRENT_TASK.taskId !== item.taskId) {
+          // P2 (audit 2026-08-22): reset BG indicator
+          BG_TASKS.scan = SCAN_QUEUE.length + (SCAN_PROCESSING ? 1 : 0);
+          updateBgIndicator();
           processScanQueue();
           return;
         }
@@ -1319,6 +1325,8 @@
 
   var toastTimer = null;
   function showToast(msg, isError) {
+    // P2 (audit 2026-08-22): không bao giờ show raw '-' (PENDING) — guard phòng mọi caller
+    if (msg === STATUS_C.PENDING) msg = 'Chưa điểm danh';
     var t = document.getElementById('toast');
     t.setAttribute('role', isError ? 'alert' : 'status');
     t.setAttribute('aria-live', isError ? 'assertive' : 'polite');
@@ -1532,7 +1540,11 @@
   var FIX_STATUS_TARGET = null; // { staffId, status }
   function openFixStatusModal(staffId) {
     if (!CURRENT_TASK || isTaskDone(CURRENT_TASK)) return;
-    if (!CURRENT_TASK.permission || !CURRENT_TASK.permission.canScanOpen) return;
+    // P2 (audit 2026-08-22): gate sửa log = canMutate (khớp canFix + server updateLogRowStatus)
+    // — trước dùng canScanOpen lệch ngữ nghĩa (non-owner ATTEND gọi thẳng được)
+    var fixPerm = CURRENT_TASK.permission;
+    var canMutate = fixPerm && (fixPerm.canMutate !== undefined ? fixPerm.canMutate : (fixPerm.isOwner || fixPerm.isAdmin));
+    if (!canMutate) return;
     var m = document.getElementById('fixStatusModal');
     if (!m) return;
     var sel = document.getElementById('fixStatusSelect');
@@ -1557,8 +1569,10 @@
     FIX_STATUS_TARGET = { staffId: staffId, status: row ? row.status : null };
     var msgEl = document.getElementById('fixStatusMsg');
     if (msgEl) {
+      // P2 (audit 2026-08-22): label người đọc thay raw '-' (PENDING) — scanStatusLabel_ 1 nguồn
+      var curLbl = row ? (scanStatusLabel_(row.status, row) || 'Chưa xác định') : '?';
       msgEl.textContent = 'NV ' + staffId + (row && row.staffName ? ' — ' + row.staffName : '')
-        + ' đang ở trạng thái: ' + (row ? (row.status || 'Chưa xác định') : '?');
+        + ' đang ở trạng thái: ' + curLbl;
     }
     if (sel) {
       sel.value = (row && row.status) ? row.status : STATUS_C.PENDING;
@@ -1566,14 +1580,18 @@
     }
     var btn = document.getElementById('btnFixStatusSubmit');
     if (btn) btn.disabled = !row;
+    _fixStatusOpener = document.activeElement;  // P2 (audit 2026-08-22): lưu nút mở để restore focus
     m.setAttribute('aria-hidden', 'false');
     m.classList.add('open');
     if (sel) setTimeout(function () { if (m.classList.contains('open')) sel.focus(); }, 60);
   }
+  var _fixStatusOpener = null;  // P2 (audit 2026-08-22): restore focus về nút mở (khớp confirm/spin #13)
   function closeFixStatusModal() {
     var m = document.getElementById('fixStatusModal');
     if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
     FIX_STATUS_TARGET = null;
+    if (_fixStatusOpener && document.contains(_fixStatusOpener)) _fixStatusOpener.focus();
+    _fixStatusOpener = null;
   }
   function submitFixStatus() {
     if (!FIX_STATUS_TARGET || !CURRENT_TASK) return;

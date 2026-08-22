@@ -326,8 +326,6 @@
   }
 
   /* F-search: === TÌM KIẾM MÃ OPS XUYÊN TASK === */
-
-  /* F-search: === TÌM KIẾM MÃ OPS XUYÊN TASK === */
   // Chuyển thead + empty msg của taskListTable giữa chế độ danh sách (all) và tìm kiếm (search).
   // STATE nguồn sống: LIST_MODE === 'search' (có trong search). Auto-focus loop + manual refresh
   // không xung đột vì viewScan ẩn khi ở viewTasks.
@@ -492,7 +490,7 @@
       renderPaginator_("taskPagination", total, LIST_PAGE, "goListPage", LIST_PAGE_SIZE);
     }
   // Mở task từ kết quả tìm kiếm → thoát search (reset mode+header) rồi mở scan.
-  // Mở task từ kết quả tìm kiếp → thoát search (reset mode+header) rồi mở scan.
+  // Mở task từ kết quả tìm kiếm → thoát search (reset mode+header) rồi mở scan.
   // KHÔNG gọi loadTaskList (tránh skeleton/fetch list rồi mới chuyển view) — chuyển trực tiếp viewScan.
   function openScanAndCloseSearch(e, taskId) {
     if (e && e.preventDefault) e.preventDefault();

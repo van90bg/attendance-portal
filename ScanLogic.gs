@@ -178,7 +178,7 @@ function makeOutcome_(f) {
  * Race semantics (thống nhất theo hành vi scanStaff):
  *  - append mà staffId ĐÃ có trong freshLogRows (thiết bị khác vừa ghi trong lock):
  *    + field 'scannedAt' & chưa có scannedAtEpoch → convert thành update scannedAt
- *    + field 'listedAt'  & chưa有 listedAtEpoch   → convert thành update listedAt
+ *    + field 'listedAt'  & chưa có listedAtEpoch   → convert thành update listedAt
  *    + field đã có epoch (thiết bị khác xong phase này) → KHÔNG ghi (không đè thời gian),
  *      báo thông tin row hiện hữu.
  *

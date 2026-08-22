@@ -606,6 +606,8 @@
       if (tblEl) tblEl.style.display = 'none';
       var emptyEl = document.getElementById('staffEmpty');
       if (emptyEl) { emptyEl.style.display = ''; emptyEl.textContent = 'Không đủ quyền — cần role manager'; }
+      // P2 (audit 2026-08-22): early-return phải nhả refresh-lock (nếu gọi từ refreshAll)
+      if (typeof _releaseRefreshLock === 'function') _releaseRefreshLock();
       return;
     }
     var skel = document.getElementById('staffSkeleton');
@@ -655,6 +657,16 @@
         markServerFail();
         if (!silent) showToast('Lỗi tải StaffData: ' + err.message, true);
         if (skel) skel.style.display = 'none';
+        // P2 (audit 2026-08-22): meta hết kẹt 'Đang tải…' — đồng bộ pattern inline-error view khác
+        var metaEl2 = document.getElementById('staffMeta');
+        if (metaEl2) metaEl2.textContent = 'Không tải được';
+        var stEmpty2 = document.getElementById('staffEmpty');
+        if (stEmpty2) {
+          stEmpty2.style.display = '';
+          stEmpty2.innerHTML = 'Không tải được dữ liệu nhân viên'
+            + ((err && err.message) ? ': <b>' + esc(err.message) + '</b>' : '')
+            + ' — <a href="javascript:void(0)" onclick="ensureStaffData(true,false)">Thử lại</a>';
+        }
       })
       .getStaffStatsApi();
   }

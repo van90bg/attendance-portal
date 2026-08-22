@@ -423,7 +423,8 @@
     item.classList.add('cfg-chip-editing');
     // Mockup chip edit = input transparent liền chip (viền primary ở chip) + icon ✓/✕ —
     // gọn hơn nút chữ Lưu/Huỷ; placeholder "Giá trị mới" chỉ khi Thêm mới (cur rỗng).
-    item.innerHTML = '<span class="cfg-drag-handle">⋮⋮</span>'
+    // P2 (audit 2026-08-22): mirror markup normal — drag-handle editing giữ role/tabindex/aria-label
+    item.innerHTML = '<span class="cfg-drag-handle" role="button" tabindex="0" aria-label="Sắp xếp ' + escAttr(String(cur)) + '">⋮⋮</span>'
         + '<input class="cfg-edit-input" id="cfgGroupEditInput" value="' + escAttr(String(cur)) + '" placeholder="' + (cur === '' ? 'Giá trị mới' : '') + '" autocomplete="off">'
         + '<button type="button" class="cfg-chip-edit" onclick="commitCfgGroupItem(\'' + group + '\',' + idx + ')" title="Lưu" aria-label="Lưu thay đổi">✓</button>'
         + '<button type="button" class="cfg-chip-del" onclick="cancelCfgGroupEdit(\'' + group + '\',' + idx + ')" title="Huỷ" aria-label="Huỷ thay đổi">✕</button>';

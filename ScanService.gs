@@ -114,7 +114,7 @@ function scanStaff(taskId, rawStaffId, clientEpoch) {
     // Chỉ fallback server khi NGOÀI cửa sổ: trước lúc tạo task, hoặc tương lai xa hơn 60s
     // (tương lai gần ≤60s = client clock nhanh trong cửa sổ — giữ WYSIWYG).
     if ((taskCreatedAt && scanNow.getTime() < taskCreatedAt.getTime())
-        || (scanNow.getTime() - Date.now() > 60000)) {
+        || (scanNow.getTime() - Date.now() >= 60000)) {
       scanNow = new Date();
     }
     const commit = planScanCommits(

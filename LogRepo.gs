@@ -98,7 +98,7 @@ function searchLogsByStaff(rawStaffId) {
       return matchLogsByStaff(logRows, tasks, sid);
     } catch (e) {
       console.error({ bench: 'searchLogsByStaff', staffId: sid, error: e && e.message });
-      return [];
+      throw e;  // P2 (audit 2026-08-22): rethrow — wrapper trả ok:false để client phân biệt trống vs lỗi
     }
   }, CACHE_TTL.SEARCH_STAFF);
 }
@@ -200,20 +200,20 @@ function batchAppendLogRows_(rows) {
       const cached = cacheGet_(key);
       if (cached !== null) {
         const cachedRows = JSON.parse(cached);
-        // Append slim versions of new rows
+        // Append slim versions of new rows — reuse toSlimLogRow_ (SSOT schema, P2 2026-08-22)
         rows.forEach(function (row, idx) {
           const timeRef = row[LOG_COLS.LISTED_AT];
           const timeScan = row[LOG_COLS.SCANNED_AT];
-          // Parse 1 lần duy nhất — tránh gọi safeDate_ nhiều lần.
           const dRef = timeRef ? safeDate_(timeRef) : null;
           const dScan = timeScan ? safeDate_(timeScan) : null;
-          cachedRows.push({
+          cachedRows.push(toSlimLogRow_({
             taskId: taskId,
             staffId: row[LOG_COLS.STAFF_ID],
             staffName: row[LOG_COLS.STAFF_NAME],
             slotCode: row[LOG_COLS.SLOT_CODE],
             station: row[LOG_COLS.STATION],
             team: row[LOG_COLS.TEAM],
+            workstation: row[LOG_COLS.WORKSTATION],
             listedAtText: timeRef ? formatTime_(timeRef) : '',
             listedAtEpoch: dRef ? dRef.getTime() : 0,
             scannedAtText: timeScan ? formatTime_(timeScan) : '',
@@ -221,7 +221,7 @@ function batchAppendLogRows_(rows) {
             status: row[LOG_COLS.STATUS],
             dateText: formatDateShort_(row[LOG_COLS.DATE]),
             _rowIndex: rowIndices[idx],
-          });
+          }, taskId));
         });
         cachePut_(key, JSON.stringify(cachedRows), CACHE_TTL.LOG_ROWS);
       }

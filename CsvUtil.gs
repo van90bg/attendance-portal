@@ -58,6 +58,20 @@ function normalizeStaffName(name) {
 }
 
 /**
+ * Chống formula injection (P2 audit 2026-08-22): giá trị client-derived ghi vào
+ * sheet (task meta / config lists) bắt đầu bằng = + - @ sẽ bị GAS setValue diễn giải
+ * thành công thức (IMPORTXML exfil/spoof). Escape prefix ' (quote) — nhìn thấy giá
+ * trị gốc, không thành công thức. SSOT: mọi write đường này phải qua helper này.
+ * @param {string} v — text sẽ ghi vào cell
+ * @returns {string} — '' giữ nguyên; bắt đầu ký tự nguy hiểm → prefix '
+ */
+function escapeFormula_(v) {
+  const s = String(v || '');
+  if (!s) return s;
+  const c = s.charAt(0);
+  return (c === '=' || c === '+' || c === '-' || c === '@') ? ("'" + s) : s;
+}
+/**
  * Chuẩn hóa staffId: trim + uppercase (để so khớp case-insensitive).
  * @param {string} id
  * @returns {string}
@@ -365,6 +379,7 @@ if (typeof module !== 'undefined' && module.exports) {
     SLOT_FREE_MAGIC: SLOT_FREE_MAGIC,
     BARCODE_ID_RE: BARCODE_ID_RE,
     normalizeStaffName: normalizeStaffName,
+    escapeFormula_: escapeFormula_,
     normalizeStaffId: normalizeStaffId,
     normalizeStaffDate_: normalizeStaffDate_,
     normalizeClockTime_: normalizeClockTime_,

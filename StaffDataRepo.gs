@@ -66,6 +66,8 @@ function readStaffIndex_() {
 function invalidateStaffList_() {
   try { cache_().remove(CACHE_KEYS.STAFF_LIST); }
   catch (e) { console.warn('invalidateStaffList_ fail', e.message); }
+  try { cache_().remove(CACHE_KEYS.FILTER_OPTIONS); }
+  catch (e) { console.warn('invalidateStaffList_ filter-options fail', e.message); }  // P2 (audit 2026-08-22): dropdown station/ca/team hết stale sau sync HR
   bumpCacheGen_();
 }
 
@@ -84,7 +86,6 @@ function overwriteStaffData_(staffList) {
   try {
     const sheet = getSheet_(SHEETS.STAFF_DATA);
     const lastRow = sheet.getLastRow();
-    if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, STAFF_DATA_COL_COUNT).clearContent();
     if (!staffList || !staffList.length) return 0;
     const rows = staffList.map(function (s) {
       return [
@@ -93,10 +94,17 @@ function overwriteStaffData_(staffList) {
         s.cardInRemark, s.cardOutRemark, s.slotCode, s.workstation, s.team, s.station,
       ];
     });
-    sheet.getRange(2, 1, rows.length, STAFF_DATA_COL_COUNT).setValues(rows);
+    // P1 (audit 2026-08-22): ghi vùng mới TRƯỚC, clear phần dư SAU — fail giữa chừng
+    // (quota/timeout) không mất trắng StaffData: dữ liệu cũ chỉ bị xóa sau khi đã có
+    // dữ liệu mới trên sheet. Clear thừa = số dòng cũ > dòng mới.
+    const writeCount = rows.length;
+    if (lastRow > writeCount) {
+      sheet.getRange(2 + writeCount, 1, lastRow - 1 - writeCount, STAFF_DATA_COL_COUNT).clearContent();
+    }
+    sheet.getRange(2, 1, writeCount, STAFF_DATA_COL_COUNT).setValues(rows);
     invalidateStaffList_();
     invalidateStaffFullList_();
-    return rows.length;
+    return writeCount;
   } finally {
     lock.releaseLock();
   }

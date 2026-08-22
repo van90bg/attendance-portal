@@ -40,26 +40,27 @@ function createTask(input) {
   if (!requireRole_('operator')) {
     return { ok: false, message: 'Không đủ quyền (cần role operator trở lên)' };
   }
-  const station = String((input && input.station) || '').trim();
+  // P2 (audit 2026-08-22): escape prefix '=' chống formula injection (escapeFormula_ CsvUtil)
+  const station = escapeFormula_(String((input && input.station) || '').trim());
   // Multi-select: slotCode/team/contractType/department có thể là mảng — task sheet chỉ có
   // 1 cột, nối ", " để lưu hiển thị; filter vẫn dùng mảng gốc (dòng NV khớp BẤT KỲ giá trị chọn).
   const slotCode = Array.isArray(input && input.slotCode)
     ? (input.slotCode).map(String).join(', ')
-    : String((input && input.slotCode) || '').trim();
+    : escapeFormula_(String((input && input.slotCode) || '').trim());
   const team = Array.isArray(input && input.team)
     ? (input.team).map(String).join(', ')
-    : String((input && input.team) || '').trim();
+    : escapeFormula_(String((input && input.team) || '').trim());
   const contractType = Array.isArray(input && input.contractType)
     ? (input.contractType).map(String).join(', ')
-    : String((input && input.contractType) || '').trim();
+    : escapeFormula_(String((input && input.contractType) || '').trim());
   const department = Array.isArray(input && input.department)
     ? (input.department).map(String).join(', ')
-    : String((input && input.department) || '').trim();
+    : escapeFormula_(String((input && input.department) || '').trim());
   const filterSlots = Array.isArray(input && input.slotCode) ? input.slotCode : (slotCode ? [slotCode] : []);
   const filterTeams = Array.isArray(input && input.team) ? input.team : (team ? [team] : []);
   const filterContractTypes = Array.isArray(input && input.contractType) ? input.contractType : (contractType ? [contractType] : []);
   const filterDepartments = Array.isArray(input && input.department) ? input.department : (department ? [department] : []);
-  const date = String((input && input.date) || '').trim();  // ngày vào làm (optional — lọc theo StaffData Date)
+  const date = escapeFormula_(String((input && input.date) || '').trim());  // ngày vào làm (optional — lọc theo StaffData Date)
   // Dán mã: clamp 200 mã/lần (giống giới hạn paste cũ); mảng rỗng → bỏ qua.
   const codes = Array.isArray(input && input.codes)
     ? input.codes.map(function (c) { return String(c || '').trim(); }).filter(Boolean).slice(0, 200)
@@ -398,9 +399,9 @@ function getTaskDetail(taskId) {
   // T-1: Tính permission tươi cho user đang đọc — KHÔNG lưu vào cache (cache 15s dùng chung mọi user).
   const activeEmail = getActiveEmail_();
   const isAdmin = requireRole_('admin');
-  const isOwner = String(detail.task.createdBy || '').trim().toLowerCase() === String(activeEmail || '').trim().toLowerCase()
-    && String(detail.task.createdBy || '').trim().toLowerCase() !== 'web'
-    && String(detail.task.createdBy || '').trim().includes('@');
+  // P2 (audit 2026-08-22): SSOT — tái dùng isValidOwnerEmail_ (ScanLogic) thay vì inline copy
+  const isOwner = isValidOwnerEmail_(detail.task.createdBy)
+    && String(detail.task.createdBy || '').trim().toLowerCase() === String(activeEmail || '').trim().toLowerCase();
   const isOpen = detail.task.status === TASK_STATUS.OPEN;
   const canScanOpen = isOpen ? canScanOpen_({ TASK_STATUS: TASK_STATUS }, detail.task.createdBy, activeEmail, isAdmin) : true;
   const canMutate = canMutateTask_(detail.task.createdBy, activeEmail, isAdmin);

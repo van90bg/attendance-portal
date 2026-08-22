@@ -81,30 +81,7 @@
       return true;
     });
   }
-  // Chips filter — Station (radiogroup, không 'Tất cả') / đa chọn (Tất cả = rỗng)
-  function chipsHtmlStation_(opts, selected) {
-    var html = '';
-    opts.forEach(function (v) {
-      var on = selected === v;
-      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="station" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
-    });
-    return html;
-  }
-  // Chips generic — "Tất cả" (roster-all) + giá trị (roster-val); tên data-col giữ legacy.
-  function chipsHtml_(opts, selectedArr) {
-    var html = '<button type="button" class="pick all' + (selectedArr.length === 0 ? ' on' : '') + '" data-col="roster-all" aria-pressed="' + (selectedArr.length === 0) + '">Tất cả</button>';
-    opts.forEach(function (v) {
-      var on = selectedArr.indexOf(v) !== -1;
-      html += '<button type="button" class="pick' + (on ? ' on' : '') + '" data-col="roster-val" data-val="' + escAttr(v) + '" aria-pressed="' + on + '">' + esc(v) + '</button>';
-    });
-    return html;
-  }
-  // Đa chọn helper — thêm/bớt giá trị trong mảng (dùng cho chips filter đa chọn).
-  function toggleRosterArr_(arr, val, on) {
-    var i = arr.indexOf(val);
-    if (on && i === -1) arr.push(val);
-    if (!on && i !== -1) arr.splice(i, 1);
-  }
+  // P2 (audit 2026-08-22): xóa chipsHtmlStation_/chipsHtml_/toggleRosterArr_ — dead code (0 caller)
   /* ===== T-1: Apply scan permission (owner gate) ===== */
   // Cờ khoá owner (non-owner ở phase OPEN) — các hàm UI khác (updateFinishBtnState,
   // updateQueueFullState) phải tôn trọng để không vô tình bật lại input/nút.
