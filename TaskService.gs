@@ -177,10 +177,10 @@ function appendRoster_(taskId, filter) {
     const filterTeams = Array.isArray(f.team) ? f.team : (f.team ? [f.team] : []);
     const filterContractTypes = Array.isArray(f.contractType) ? f.contractType : (f.contractType ? [f.contractType] : []);
     const filterDepartments = Array.isArray(f.department) ? f.department : (f.department ? [f.department] : []);
-    const date = String(f.date || '').trim();
+    const filterDates = Array.isArray(f.date) ? f.date : (f.date ? [String(f.date).trim()] : []);
     const staffList = filterStaffByGroup(readStaffList_(), {
       station: station, slotCode: filterSlots, team: filterTeams,
-      contractType: filterContractTypes, department: filterDepartments, date: date,
+      contractType: filterContractTypes, department: filterDepartments, date: filterDates,
     });
     const deduped = dedupeStaffByGroup(staffList);
     if (!deduped.length) return { ok: false, message: UI_LABELS.CREATE_FAILED_EMPTY };

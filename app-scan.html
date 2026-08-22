@@ -1824,7 +1824,7 @@
       var filtered = filterStaffByGroup(staffList, {
         station: SCAN_LOAD_FILTER.station, slotCode: SCAN_LOAD_FILTER.slotCode, team: SCAN_LOAD_FILTER.team,
         contractType: SCAN_LOAD_FILTER.contractType, department: SCAN_LOAD_FILTER.department,
-        date: SCAN_LOAD_FILTER.date.length === 1 ? SCAN_LOAD_FILTER.date[0] : '',
+        date: SCAN_LOAD_FILTER.date,
       });
       var seen = {}; var n = 0;
       filtered.forEach(function (s) { var k = String(s.staffId || '').trim().toUpperCase(); if (!k || seen[k]) return; seen[k] = true; n++; });
