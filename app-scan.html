@@ -1613,7 +1613,7 @@
       .updateLogRowStatusApi(CURRENT_TASK.taskId, FIX_STATUS_TARGET.staffId, sel.value);
   }
   /* ===== S1 (2026-08-21): nạp roster sau — task RỖNG (OPEN + log rỗng) ===== */
-  var SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], date: [] };  // 4 chiều: Station (bắt buộc) + Team/Slot/Date
+  var SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], agency: [], date: [] };  // 5 chiều: Station (bắt buộc) + Team/Slot/Agency/Date
   // Visibility: OPEN + log rỗng + canMutate
   function canScanLoad_() {
     if (!CURRENT_TASK) return false;
@@ -1626,7 +1626,7 @@
   }
   // Reset filter: Station mặc định từ Config (nếu tồn tại trong options)
   function resetScanLoadFilter_() {
-    SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], date: [] };
+    SCAN_LOAD_FILTER = { station: '', slotCode: [], team: [], agency: [], date: [] };
     if (typeof CFG_DEFAULTS !== 'undefined' && CFG_DEFAULTS && CFG_DEFAULTS.station
         && typeof createStationOptions_ === 'function' && createStationOptions_().indexOf(String(CFG_DEFAULTS.station).trim()) !== -1) {
       SCAN_LOAD_FILTER.station = String(CFG_DEFAULTS.station).trim();
@@ -1659,6 +1659,7 @@
     renderScanLoadDropdown_('Team', 'scanLoadBtnTeam', 'scanLoadDdTeam', _createOptsData && _createOptsData.teams || [], SCAN_LOAD_FILTER.team);
     var slots = typeof createSlotOptionsFor_ === 'function' ? createSlotOptionsFor_(SCAN_LOAD_FILTER.station) : [];
     renderScanLoadDropdown_('Slot', 'scanLoadBtnSlot', 'scanLoadDdSlot', slots, SCAN_LOAD_FILTER.slotCode);
+    renderScanLoadDropdown_('Agency', 'scanLoadBtnAgency', 'scanLoadDdAgency', _createOptsData && _createOptsData.agencies || [], SCAN_LOAD_FILTER.agency);
     renderScanLoadDropdown_('Date', 'scanLoadBtnDate', 'scanLoadDdDate', _createOptsData && _createOptsData.dates || [], SCAN_LOAD_FILTER.date);
     updateScanLoadCount_();
   }
@@ -1706,11 +1707,11 @@
     if (stSel) stSel.addEventListener('change', function () {
       var changed = SCAN_LOAD_FILTER.station !== stSel.value;
       SCAN_LOAD_FILTER.station = stSel.value;
-      if (changed) { SCAN_LOAD_FILTER.slotCode.length = 0; SCAN_LOAD_FILTER.team.length = 0; SCAN_LOAD_FILTER.date.length = 0; }
+      if (changed) { SCAN_LOAD_FILTER.slotCode.length = 0; SCAN_LOAD_FILTER.team.length = 0; SCAN_LOAD_FILTER.agency.length = 0; SCAN_LOAD_FILTER.date.length = 0; }
       renderScanLoadRow_();
     });
     // Nút mở dropdown Team/Slot/Date
-    ['scanLoadBtnTeam', 'scanLoadBtnSlot', 'scanLoadBtnDate'].forEach(function (id) {
+    ['scanLoadBtnTeam', 'scanLoadBtnSlot', 'scanLoadBtnAgency', 'scanLoadBtnDate'].forEach(function (id) {
       var b = document.getElementById(id);
       if (!b) return;
       b.addEventListener('click', function () {
@@ -1723,7 +1724,7 @@
       if (!cb) return;
       var dd = cb.closest('.scan-load-dd');
       if (!dd) return;
-      var field = dd.id === 'scanLoadDdTeam' ? 'team' : dd.id === 'scanLoadDdSlot' ? 'slotCode' : 'date';
+      var field = dd.id === 'scanLoadDdTeam' ? 'team' : dd.id === 'scanLoadDdSlot' ? 'slotCode' : dd.id === 'scanLoadDdAgency' ? 'agency' : 'date';
       var arr = SCAN_LOAD_FILTER[field];
       var v = cb.value;
       if (cb.checked) { if (arr.indexOf(v) === -1) arr.push(v); }

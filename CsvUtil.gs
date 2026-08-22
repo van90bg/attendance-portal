@@ -276,6 +276,7 @@ function filterStaffByGroup(staffList, group) {
   const teams = toFilterArray_(group && group.team);
   const contractTypes = toFilterArray_(group && group.contractType);
   const departments = toFilterArray_(group && group.department);
+  const agencies = toFilterArray_(group && group.agency);
   const dates = toFilterArray_(group && group.date);
   return staffList.filter(function (s) {
     if (station && String(s.station || '').trim() !== station) return false;
@@ -283,11 +284,13 @@ function filterStaffByGroup(staffList, group) {
     const sTeam = String(s.team || '').trim();
     const sContract = String(s.contractType || '').trim();
     const sDept = String(s.department || '').trim();
+    const sAgency = String(s.agency || '').trim();
     const sDate = String(s.date || '').trim();
     if (slots.length && slots.indexOf(sSlot) === -1) return false;
     if (teams.length && teams.indexOf(sTeam) === -1) return false;
     if (contractTypes.length && contractTypes.indexOf(sContract) === -1) return false;
     if (departments.length && departments.indexOf(sDept) === -1) return false;
+    if (agencies.length && agencies.indexOf(sAgency) === -1) return false;
     if (dates.length && dates.indexOf(sDate) === -1) return false;
     return true;
   });
