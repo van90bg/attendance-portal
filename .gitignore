@@ -13,3 +13,6 @@ index.local.html
 
 # git worktrees local (git worktree add) — không commit
 .worktrees/
+
+# VS Code local config (editor-only) — không commit
+.vscode/
