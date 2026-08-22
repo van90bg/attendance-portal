@@ -592,6 +592,10 @@
     }
     /* Nút Quét hiển thị ≤1199px (mobile/tablet touch); desktop ≥1200px dùng máy quét tự Enter */
     #btnScan { min-width: 64px; min-height: 44px; margin: var(--space-1) 0; } /* touch target ≥44×44; flex stretch làm nút cao hơn ô input 8px (padding wrap 4px×2) → margin 4px 0 cân bằng */
+    /* Nút Camera: touch target 44px — margin đồng bộ #btnScan -> cùng chiều cao trong scan-row (stretch) */
+    #btnCamera { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #btnCameraPhoto { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    #btnCamera svg, #btnCameraPhoto svg, .list-search .btn-icon svg { width: 20px; height: 20px; display: block; }
     /* Nút Quét/Camera: ẩn ≥1200px — desktop dùng máy quét tay + Enter. Giữ trên 992-1199px
        (iPad landscape 1024px là touch — mất nút quét là kẹt thao tác, P1-2 2026-08-21). */
     @media (min-width: 1200px) {
@@ -599,10 +603,6 @@
       #btnCamera { display: none; }
       #btnCameraPhoto { display: none; }
     }
-    /* Nút Camera: touch target 44px — margin đồng bộ #btnScan -> cùng chiều cao trong scan-row (stretch) */
-    #btnCamera { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
-    #btnCameraPhoto { min-width: 44px; min-height: 44px; margin: var(--space-1) 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
-    #btnCamera svg, #btnCameraPhoto svg, .list-search .btn-icon svg { width: 20px; height: 20px; display: block; }
     /* Màn hình rộng: lớn hơn cho màn hình touch rộng (tham khảo v1 type scale) */
     @media (min-width: 1280px) {
       .scan-input-wrap input { font-size: var(--text-6xl); padding: var(--space-4) var(--space-5); letter-spacing: 2px; }
