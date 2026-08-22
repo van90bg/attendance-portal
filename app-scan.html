@@ -88,6 +88,9 @@
         : (CURRENT_TASK.status === TASK_STATUS_C.DONE ? 'done' : 'open');
     }
     _scanSortDirty = true; // F4: task mới / phase đổi → cần sort lại
+    // P2 (audit 2026-08-22): mở task mới/full-load → reset sort về mặc định (col7 desc).
+    // Trước đây SCAN_SORT giữ giá trị task trước → task DONE mở lạ bị sort sai cột.
+    if (!skipReset) SCAN_SORT = { col: 7, asc: false, userSet: false };
     // Task kết thúc → tự đóng tab scanner ngoài (nếu mở cho chính task này).
     // V3: user mở task KHÁC giữa chừng → scanner gắn task cũ phải đóng (quét mã task cũ là sai ca).
     if (CURRENT_TASK && EXTERNAL_SCAN_TASK_ID
@@ -308,8 +311,9 @@
     var q = SCAN_FILTER.q.trim().toLowerCase();
     var st = SCAN_FILTER.status;
     // 2-phase: sort mặc định theo phase — phase1 LISTED_AT (col7), phase2 SCANNED_AT (col8)
-    // DONE: giữ sort hiện tại (không reset về col7 — tránh sort nhảy sau khi kết thúc)
-    var phaseCol = (CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 8 : ((CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.DONE) ? SCAN_SORT.col : 7);
+    // DONE: mặc định sort theo Giờ điểm danh (col8) như ATTEND — đã chốt thì xem ai
+    // quét lúc nào hữu ích hơn Giờ vào DS. userSet vẫn thắng (user chọn cột riêng).
+    var phaseCol = (CURRENT_TASK && (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND || CURRENT_TASK.phase === TASK_STATUS_C.DONE)) ? 8 : 7;
     // F: nếu user chưa chọn sort riêng (userSet=false mặc định) → ép theo phaseCol;
     // nếu đã chọn cột → tôn trọng cột user chọn (kể cả 7/8) — KHÔNG ép ngược lại.
     var asc = SCAN_SORT.asc;
@@ -486,7 +490,7 @@
     var ths = document.querySelectorAll('#scanTable th.sortable');
     // F: highlight cột sort THỰC TẾ — khớp filterAndSortScan (userSet ? cột user : phaseCol)
     var effectiveCol = SCAN_SORT.userSet ? SCAN_SORT.col
-      : ((CURRENT_TASK && CURRENT_TASK.phase === TASK_STATUS_C.ATTEND) ? 8 : 7);
+      : ((CURRENT_TASK && (CURRENT_TASK.phase === TASK_STATUS_C.ATTEND || CURRENT_TASK.phase === TASK_STATUS_C.DONE)) ? 8 : 7);
     for (var i = 0; i < ths.length; i++) {
       var col = parseInt(ths[i].dataset.sort, 10);
       var active = col === effectiveCol;
@@ -749,6 +753,11 @@
     // ---- Optimistic counters: recount NGAY từ CURRENT_LOG (đã mutate/push) — khớp
     // server computeCounters; server sẽ trả giá trị chuẩn sau. ----
     recountFromLog();
+    // P2 (audit 2026-08-22): lazy-sort bỏ sót dòng vừa quét (out.length không đổi +
+    // _scanSortDirty=false → giữ vị trí cũ, trái L694 'nhảy lên đầu'). Ép re-sort +
+    // về trang 1 để dòng vừa quét hiện ngay trên đầu.
+    _scanSortDirty = true;
+    SCAN_PAGE = 1;
     renderScanTable(CURRENT_LOG);
     SCAN_QUEUE.push(item);
     // #1 (review): queue dài (3+) → cảnh báo 1 lần (không spam mỗi lượt) — user quét chậm lại.
@@ -870,10 +879,13 @@
         SCAN_PROCESSING = false;
         // A.3: so khớp response với optimistic (tính TRƯỚC khi patch target) — server
         // xác nhận đúng status + epoch đã render thì bỏ renderScanTable lặp lại toàn bảng.
+        // P2 (audit 2026-08-22): so epoch với item.clientEpoch (giá trị đã gửi server) thay
+        // vì item.target.scannedAtEpoch — target có thể bị item sau trong queue đổi
+        // giữa chừng → skip-render vô hiệu, mỗi scan vẫn full re-render.
         var serverUnchanged = res.ok && item.target && !res.staffUnknown
           && res.status === item.optimisticStatus
-          && (!res.scannedAtText || res.scannedAtEpoch === item.target.scannedAtEpoch)
-          && (!res.listedAtText || res.listedAtEpoch === item.target.listedAtEpoch);
+          && (!res.scannedAtText || res.scannedAtEpoch === item.clientEpoch)
+          && (!res.listedAtText || res.listedAtEpoch === item.clientEpoch);
         // F1: response của scan enqueue ở task khác (user đã thoát/đổi task giữa chừng —
         // thực tế bị chặn bởi scanBusy(), guard này là defense cho đường thoát tương lai:
         // browser back, tab mới). Scan đã ghi server-side — chỉ drain queue, không đụng UI.
@@ -1319,8 +1331,10 @@
       : ((last.status === STATUS_C.PENDING) ? 'scan-card pending'
       : (last.status === STATUS_C.EXTRA ? 'scan-card extra' : 'scan-card ok'));
     card.className = cls;
-    card.innerHTML = scanCardHTML(last.status || STATUS_C.PRESENT, last);
-    setScanLiveMsg_(last.status || STATUS_C.PRESENT, last, null);
+    // P2 (audit 2026-08-22): fallback '' thay STATUS_C.PRESENT — status rỗng (=chưa quét)
+    // qua scanCardHTML → scanStatusLabel_ → scanPendingLabel_ trả label đúng phase.
+    card.innerHTML = scanCardHTML(last.status || '', last);
+    setScanLiveMsg_(last.status || '', last, null);
   }
 
   var toastTimer = null;
@@ -1836,7 +1850,7 @@
         if (!r || !r.ok) { showToast((r && r.message) || 'Nạp thất bại', true); return; }
         showToast(r.message, false);
         updateScanLoadRow_();  // log đã có → hàng ẩn, banner hiện
-        loadTaskDetail(CURRENT_TASK.taskId);  // refresh log + counters + table
+        loadTaskDetail(CURRENT_TASK.taskId, true);  // silent — không skeleton (roster vừa nạp là dữ liệu mới nhất)
       })
       .withFailureHandler(function (err) {
         if (btn) { btn.disabled = false; btn.textContent = 'Nạp'; }
