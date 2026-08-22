@@ -265,7 +265,7 @@
     .scan-load-ddbtn:hover { border-color: var(--primary); }
     .scan-load-caret { font-size: var(--text-xs); }
     .scan-load-dd {
-      position: absolute; z-index: 70; margin-top: 2px;
+      position: absolute; z-index: 70; top: 100%; margin-top: 2px;
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
       box-shadow: 0 6px 24px rgba(0,0,0,.14);
       min-width: 200px; max-width: 280px;
@@ -296,7 +296,7 @@
       background: var(--primary); color: #fff; font-size: var(--text-xs); font-weight: 600; cursor: pointer;
     }
     .scan-load-dd-ok:hover { filter: brightness(1.05); }
-    .scan-load-count { font-weight: 600; color: var(--text); margin-left: auto; white-space: nowrap; }
+    .scan-load-count { font-weight: 600; color: var(--text); margin-left: var(--space-2); white-space: nowrap; }
     /* Mobile ≤900px: wrap 2×2 · ≤560px: stack dọc */
     @media (max-width: 900px) {
       #scanLoadRow { display: grid; grid-template-columns: 1fr 1fr; }
