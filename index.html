@@ -117,7 +117,7 @@
         <div class="task-title" id="scanTaskTitle"></div>
         <div class="task-meta" id="scanTaskMeta"></div>
       </div>
-      <button class="btn btn-outline" id="btnScanLoad" onclick="toggleScanLoadPane_()" style="display:none" aria-haspopup="dialog" aria-expanded="false" aria-label="Nạp danh sách NV" title="Nạp danh sách NV vào task rỗng">Nạp danh sách <span class="scan-load-chevron" aria-hidden="true">▼</span></button>
+      
       <button class="btn" id="btnToAttend" onclick="transitionToAttend(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Bắt đầu điểm danh">Bắt đầu điểm danh</button>
       <button class="btn btn-danger" id="btnFinish" onclick="finishTask()" aria-label="Chốt ca">Chốt ca</button>
       <button class="btn btn-amber" id="btnReopen" onclick="reopenTask(CURRENT_TASK && CURRENT_TASK.taskId)" style="display:none" aria-label="Mở lại task">Mở lại</button>
@@ -127,6 +127,25 @@
     <!-- Banner trạng thái phase — hướng dẫn rõ 2 bước (quên Bắt đầu điểm danh → mọi scan
          rớt Giờ có mặt, kết thúc ra toàn Vắng). JS renderPhaseBanner đổ nội dung theo phase. -->
     <div id="scanPhaseBanner" class="phase-banner" style="display:none" role="status" aria-live="polite"></div>
+    <!-- S1: hàng NẠP DANH SÁCH — 1 dòng dropdown thay banner khi task rỗng (OPEN + log rỗng + canMutate).
+         Station native select (bắt buộc) · Team/Slot/Date checkbox-dropdown (đa chọn).
+         Hiện qua canScanLoad_() trong renderScanView; ẩn sau khi nạp. -->
+    <div id="scanLoadRow" style="display:none;">
+      <span class="scan-load-label">NẠP:</span>
+      <label class="scan-load-field"><span class="scan-load-field-label">Station</span>
+        <select id="scanLoadSelectStation" aria-label="Station"></select></label>
+      <label class="scan-load-field"><span class="scan-load-field-label">Team</span>
+        <button type="button" class="scan-load-ddbtn" id="scanLoadBtnTeam" aria-haspopup="listbox" aria-expanded="false">Tất cả <span class="scan-load-caret" aria-hidden="true">▾</span></button>
+        <div class="scan-load-dd" id="scanLoadDdTeam" style="display:none"></div></label>
+      <label class="scan-load-field"><span class="scan-load-field-label">Slot</span>
+        <button type="button" class="scan-load-ddbtn" id="scanLoadBtnSlot" aria-haspopup="listbox" aria-expanded="false">Tất cả <span class="scan-load-caret" aria-hidden="true">▾</span></button>
+        <div class="scan-load-dd" id="scanLoadDdSlot" style="display:none"></div></label>
+      <label class="scan-load-field"><span class="scan-load-field-label">Date</span>
+        <button type="button" class="scan-load-ddbtn" id="scanLoadBtnDate" aria-haspopup="listbox" aria-expanded="false">Tất cả <span class="scan-load-caret" aria-hidden="true">▾</span></button>
+        <div class="scan-load-dd" id="scanLoadDdDate" style="display:none"></div></label>
+      <span class="scan-load-count" id="scanLoadCount">0 NV</span>
+      <button class="btn" id="btnScanLoadSubmit" onclick="loadRosterIntoScan_()" disabled>Nạp</button>
+    </div>
 
     <!-- Layout 2 cột: trái = quét + counters + scan card, phải = bảng NV -->
 <div class="scan-layout">
@@ -152,25 +171,6 @@
         <span id="scanLiveMsg" class="sr-only" aria-live="polite"></span>
       </div>
       <div class="scan-col-right">
-        <!-- S1 (2026-08-21): popover nạp roster — mở qua btnScanLoad (chevron ▼), chỉ khi OPEN + log rỗng.
-             4 chiều (Station/Ca/Team/Ngày) — server appendRoster_ hỗ trợ đủ 6 chiều (contractType/dept qua API).
-             Popover anchored dưới topbar (fixed overlay); mobile ≤991px thành bottom-sheet full-width. -->
-        <div class="scan-load-popover" id="scanLoadPane" role="dialog" aria-modal="true" aria-labelledby="scanLoadPaneTitle" style="display:none;">
-          <div class="task-list-toolbar">
-            <h2 class="section-heading" id="scanLoadPaneTitle">NẠP DANH SÁCH</h2>
-            <button class="btn btn-ghost btn-sm" onclick="hideScanLoadPane_()" aria-label="Đóng panel nạp danh sách">✕ Đóng</button>
-          </div>
-          <div class="create-form" id="scanLoadForm">
-            <div class="frow"><span class="flabel">Station</span><div class="chips" id="scanLoadChipsStation" role="radiogroup" aria-label="Station"></div></div>
-            <div class="frow"><span class="flabel">Ca <span class="fnote">chọn nhiều</span></span><div class="chips" id="scanLoadChipsSlot" role="group" aria-label="Ca"></div></div>
-            <div class="frow"><span class="flabel">Team <span class="fnote">chọn nhiều</span></span><div class="chips" id="scanLoadChipsTeam" role="group" aria-label="Team"></div></div>
-            <div class="frow"><span class="flabel">Ngày <span class="fnote">chọn nhiều</span></span><div class="chips" id="scanLoadChipsDate" role="group" aria-label="Ngày"></div></div>
-          </div>
-          <div class="create-footer">
-            <div class="create-total"><b id="scanLoadCount">0</b> <span>NV khớp</span></div>
-            <button class="btn" id="btnScanLoadSubmit" onclick="loadRosterIntoScan_()" disabled>Nạp</button>
-          </div>
-        </div>
         <div class="card" id="scanListCard">
           <div class="att-toolbar">
             <h2 class="section-heading">DANH SÁCH NV</h2>
