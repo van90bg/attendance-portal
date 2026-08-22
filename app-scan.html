@@ -1681,19 +1681,70 @@
     renderScanLoadDropdown_('Date', 'scanLoadBtnDate', 'scanLoadDdDate', _createOptsData && _createOptsData.dates || [], SCAN_LOAD_FILTER.date);
     updateScanLoadCount_();
   }
-  // Checkbox-dropdown (đa chọn) — nút + popover list có checkbox
+  // Checkbox-dropdown (đa chọn) — popover: list cuộn + footer Xác nhận/Chọn tất cả/Xóa
+  function scanLoadBtnLabel_(arr) {
+    return (arr && arr.length ? arr.length + ' đã chọn' : 'Tất cả');
+  }
+  function updateScanLoadBtnLabel_(ddId, arr) {
+    var btn = document.getElementById(ddId.replace('Dd', 'Btn'));
+    if (btn) btn.innerHTML = esc(scanLoadBtnLabel_(arr)) + ' <span class="scan-load-caret" aria-hidden="true">▾</span>';
+  }
+  function syncScanLoadCheck_(dd, arr, v, checked) {
+    var i = arr.indexOf(v);
+    if (checked) { if (i === -1) arr.push(v); }
+    else { if (i !== -1) arr.splice(i, 1); }
+    updateScanLoadBtnLabel_(dd.id, arr);
+    updateScanLoadCount_();
+  }
+  function setScanLoadAll_(dd, arr, opts, on) {
+    arr.length = 0;
+    if (on) opts.forEach(function (v) { arr.push(v); });
+    var cbs = dd.querySelectorAll('.scan-load-dd-opt input');
+    for (var i = 0; i < cbs.length; i++) cbs[i].checked = on;
+    updateScanLoadBtnLabel_(dd.id, arr);
+    updateScanLoadCount_();
+  }
   function renderScanLoadDropdown_(label, btnId, ddId, opts, selectedArr) {
     var btn = document.getElementById(btnId);
     var dd = document.getElementById(ddId);
     if (!btn || !dd) return;
-    var labelSel = selectedArr && selectedArr.length ? selectedArr.length + ' đã chọn' : 'Tất cả';
-    btn.innerHTML = esc(labelSel) + ' <span class="scan-load-caret" aria-hidden="true">▾</span>';
-    if (!opts || !opts.length) { dd.innerHTML = '<div class="scan-load-dd-empty">(trống)</div>'; return; }
-    var html = opts.map(function (v) {
+    btn.innerHTML = esc(scanLoadBtnLabel_(selectedArr)) + ' <span class="scan-load-caret" aria-hidden="true">▾</span>';
+    dd.innerHTML = '';
+    if (!opts || !opts.length) {
+      var empty = document.createElement('div');
+      empty.className = 'scan-load-dd-empty';
+      empty.textContent = '(trống)';
+      dd.appendChild(empty);
+      return;
+    }
+    var list = document.createElement('div');
+    list.className = 'scan-load-dd-list';
+    opts.forEach(function (v) {
       var checked = selectedArr && selectedArr.indexOf(v) !== -1;
-      return '<label class="scan-load-dd-opt"><input type="checkbox" value="' + escAttr(v) + '"' + (checked ? ' checked' : '') + '> <span>' + esc(v) + '</span></label>';
-    }).join('');
-    dd.innerHTML = html;
+      var lbl = document.createElement('label');
+      lbl.className = 'scan-load-dd-opt';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = v; cb.checked = !!checked;
+      cb.addEventListener('change', function () { syncScanLoadCheck_(dd, selectedArr, v, cb.checked); });
+      var span = document.createElement('span');
+      span.textContent = v;
+      lbl.appendChild(cb); lbl.appendChild(span);
+      list.appendChild(lbl);
+    });
+    dd.appendChild(list);
+    var foot = document.createElement('div');
+    foot.className = 'scan-load-dd-foot';
+    var allBtn = document.createElement('button');
+    allBtn.type = 'button'; allBtn.className = 'scan-load-dd-mini'; allBtn.textContent = 'Chọn tất cả';
+    allBtn.onclick = function () { setScanLoadAll_(dd, selectedArr, opts, true); };
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button'; clearBtn.className = 'scan-load-dd-mini'; clearBtn.textContent = 'Xóa';
+    clearBtn.onclick = function () { setScanLoadAll_(dd, selectedArr, opts, false); };
+    var okBtn = document.createElement('button');
+    okBtn.type = 'button'; okBtn.className = 'scan-load-dd-ok'; okBtn.textContent = 'Xác nhận';
+    okBtn.onclick = function () { closeScanLoadDd_(); };
+    foot.appendChild(allBtn); foot.appendChild(clearBtn); foot.appendChild(okBtn);
+    dd.appendChild(foot);
   }
   // Mở/đóng 1 checkbox-dropdown tại 1 thời điểm + click-outside/Escape
   var _scanLoadDdOpen = null;
@@ -1736,23 +1787,7 @@
         toggleScanLoadDd_(id, id.replace('Btn', 'Dd'));
       });
     });
-    // Checkbox trong dropdown — update filter + button label
-    document.addEventListener('change', function (e) {
-      var cb = e.target && e.target.closest ? e.target.closest('.scan-load-dd-opt input') : null;
-      if (!cb) return;
-      var dd = cb.closest('.scan-load-dd');
-      if (!dd) return;
-      var field = dd.id === 'scanLoadDdTeam' ? 'team' : dd.id === 'scanLoadDdSlot' ? 'slotCode' : dd.id === 'scanLoadDdContract' ? 'contractType' : 'date';
-      var arr = SCAN_LOAD_FILTER[field];
-      var v = cb.value;
-      if (cb.checked) { if (arr.indexOf(v) === -1) arr.push(v); }
-      else { var i = arr.indexOf(v); if (i !== -1) arr.splice(i, 1); }
-      var btnId = dd.id.replace('Dd', 'Btn');
-      var label = arr.length ? arr.length + ' đã chọn' : 'Tất cả';
-      var btn = document.getElementById(btnId);
-      if (btn) btn.innerHTML = esc(label) + ' <span class="scan-load-caret" aria-hidden="true">▾</span>';
-      updateScanLoadCount_();
-    });
+    // Checkbox trong dropdown đã bind trực tiếp trên từng input (xem renderScanLoadDropdown_); footer Xác nhận đóng popover.
     // Click-outside đóng dropdown
     document.addEventListener('click', function (e) {
       if (!_scanLoadDdOpen) return;
